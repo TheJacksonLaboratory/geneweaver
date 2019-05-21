@@ -53,9 +53,155 @@
     pointer-events: none;
   }
 
+    .right {
+        float: right;
+    }
+
+    .left {
+        float: left;
+        width: 100%;
+    }
+
+    .popover {
+        text-transform: none;
+    }
 
 </style>
 
+<script type="text/javascript">
+
+    function create_data_table(selector, ajax_data) {
+        var task_id = "{{ task_id  | safe }}",
+            res = {{ json_results | tojson | safe}};
+        var borders = res.borders,
+            sp_names = res.all_species,
+            bg = res.bg;
+        $(selector).DataTable({
+            "iDisplayLength": 25,
+            "bLengthChange": true,
+            "processing": true,
+            "serverSide": true,
+            "ordering": false,
+            "oLanguage": {
+                "sProcessing": "Fetching Values"
+            },
+            "tableTools": {
+                "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                "sRowSelect": "multi",
+                "aButtons": [
+                    "select_all",
+                    "select_none",
+                    "copy",
+                    "print",
+                    "pdf",
+                    "xls",
+                    "csv"
+                ]
+            },
+            "dom": '<"clear"l><"left"ip><"bottom"rtip>',
+            "ajax": {
+                "url": "/BooleanAlgebra-result/" + task_id + "/output.json",
+                "type": "GET",
+                "data": ajax_data
+            },
+            "columns": [
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        data = data['data'];
+                        if (data.length > 0) {
+                            var first = data.shift();
+                            var sp = first.sp;
+                            var sp_color = bg[sp - 1],
+                                border_color = borders[sp - 1];
+                            var html = "<span style='margin-left: 5px;'>" +
+                                "<span class='group_name' style='font: italic 10px/14px Georgia, serif;" +
+                                "background-color: " + sp_color + "; border:1px solid " + border_color + "'>" + sp_names[sp.toString()] +
+                                "</span></span><strong>" +
+                                " <a href='/search/?searchbar=" + first.name + "&pagination_page=1&searchGenes=yes'>" +
+                                first.name +
+                                "</a></strong>";
+                            data.forEach(function (it, idx, arr) {
+                                if (it['sp'] !== sp) {
+                                    html += "<i class='fa fa-arrows-h'></i>";
+                                    sp = it['sp'];
+                                    var sp_color = bg[sp - 1],
+                                        border_color = borders[sp - 1];
+                                    html += "<span style='margin-left: 5px;'>" +
+                                        "<span class='group_name' style='font: italic 10px/14px Georgia, serif;" +
+                                        "background-color: " + sp_color + "; border:1px solid " + border_color + "'>" + sp_names[sp] +
+                                        "</span></span><strong>" +
+                                        "<a href='/search/?searchbar=" + it.name + "&pagination_page=1&searchGenes=yes'>" +
+                                        it.name +
+                                        "</a></strong>";
+                                }
+                            });
+                            return (html);
+                        } else {
+                            return ("");
+                        }
+                    },
+                    createdCell: function (td, cellData, rowData, row, col) {
+                        $(td).attr('style', 'text-align: left;');
+                    }
+                },
+                {
+                    data: "homology",
+                    render: function (data, type, row) {
+                        var html = "<span class=\"label label-default\">No Mapping</span>\n";
+                        if (data === true) {
+                            html = "<span class=\"label label-info\">Homologene</span>\n"
+                        }
+                        return html;
+                    }
+                },
+                {
+                    data: "genesets",
+                    render: function (data, type, row) {
+                        var html = "";
+                        data.forEach(function (it, idx, arr) {
+                            html += "<span id=" + it + ">" +
+                                "<span data-placement='top' data-toggle='tooltip' data-rel='tooltip'>" +
+                                "<a href='/viewgenesetdetails/" + it + "'>" +
+                                "<strong>GS" + it + "</strong></a>";
+                            if (idx !== arr.length - 1 && arr.length > 1) {
+                                html += ", ";
+                            }
+                            html += "</span></span>";
+                        });
+                        return html;
+                    }
+                },
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        var html = "<input type='checkbox' name='g_id[]a' id='" + data.ids.join('_') + "'" +
+                            "onchange='emphasize([" + data.ids + "],\""+data.ids.join('_')+"\")';" +
+                            "class='switch' data-size='mini'" +
+                            " style='padding: 0px; vertical-align: middle;'>";
+                        return (html)
+                    },
+                    createdCell: function(td, cellData, rowData, row, col) {
+                        $(td).find('input').bootstrapSwitch();
+                    }
+                },
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        var html = "<div class='ui-checkbox' style='padding: 0; border: 0; margin: 0;'>" +
+                            "<label for='addGeneset' style='margin: -6px; padding-right: 0;'> " +
+                            "<input type='checkbox' name='gsoptions[]' " +
+                            "id='addGeneset" + data.ids + "' " +
+                            "value='" + data.ids + "'/>" +
+                            "</label>" +
+                            "</div>";
+                        return (html);
+                    }
+                }
+            ]
+        });
+    }
+</script>
 
 <div class="loader"></div>
 
@@ -186,121 +332,38 @@
                 </div>
             </div>
 
-            {#
-            <div class="row" id="group-{{ json_results.numGS }}">
-            #}
-            <div class="row" id="group-{{ i }}">
-                <table class="table table-hover">
+            <div class="row">
+                <table class="table table-hover" id="union">
                     <tbody>
+                    <thead>
                     <tr>
-                        <th>Genes</th>
-                        {#                <th>Species</th>#}
-                        <th>Homology</th>
-                        <th>In GeneSets</th>
+                        <th>
+                            <i class="fa fa-sort"></i> GENES
+                            <span id="defaultIdHelp" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th>
+                            Homology
+                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th></i> IN GENESETS </th>
                         <th>Emphasis</th>
                         <th></th>
                     </tr>
-                    {% for g in results | sort(attribute=0) %}
-                        {% set cluster = results[g] %}
-                        <tr>
-                            <td style="text-align: left;">
-                                {% for gene in cluster %}
-                                    {% if previous != gene[2]|string + gene[1] %}
-                                        {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
-                                        <span style="margin-left: 5px;">
-                                            <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                                    background-color: {{ json_results.bg[(gene[2]|int-1)] }};
-                                                    border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
-                                                {{ json_results.all_species[gene[2]|string] }}.
-                                            </span>
-                                        </span>
-                                        <strong>
-                                            <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
-                                        </strong>
-                                    {% endif %}
-                                    {% set previous = gene[2]|string + gene[1] %}
-                                {% endfor %}
-                            </td>
-
-                            {#                    <td>#}
-                            {# Make boxes for homology blocks #}
-                            {# see tools repor boolean algebra for the list of species and colors #}
-                            {#
-                            {% for i in range(1,12) %}
-                                {# skip elements that are empty #}
-                            {#
-                                {% if json_results.tt[(i-1)] != 'empty' %}
-                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                          data-original-title="{{ json_results.tt[(i-1)] }}"
-                                          title="{{ json_results.tt[(i-1)] }}">
-                                                {% set exists = ['1'] %}
-    {#                                            {{ json_results.grid[json_results.odeLookup[gene]|string] }}#}
-                            {#
-                                        {% for h in json_results.resids[g|string]|sort %}
-                                            {% if h == i %}
-                                                <div class="geneBox"
-                                                     style="background-color: {{ json_results.colors[(i-1)] }};"></div>
-                                                {% if exists.append('1') %}{% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if exists|length == 1 %}
-                                            <div class="geneBox"></div>
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                            {% endfor %}
-                    #}
-                            {#                    </td>#}
-
-                            {# homoology #}
-                            <td>
-                                {% if cluster | length == 1 %}
-                                    <span class="label label-default">No Mapping</span>
-                                {% else %}
-                                    <span class="label label-info">Homologene</span>
-                                {% endif %}
-                            </td>
-
-                            {# In Gene Sets #}
-                            <td>
-                                {% for gene in cluster %}
-                                    <span id="{{ gene[3] }}">
-                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                      data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                <a href="/viewgenesetdetails/{{ gene[3] }}">
-                                <strong>GS{{ gene[3] }}</strong>
-                                </a>
-                                    {% if not loop.last %},{% endif %}
-                                </span>
-                            </span>
-                                {% endfor %}
-
-                            </td>
-                            {# Emphasize #}
-                            <td nowrap>
-                                <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
-                                       onchange="emphasize('{{ cluster[0] }}');"
-                                       class="switch" data-size="mini"
-                                       style="padding: 0px; vertical-align: middle;" />
-                            </td>
-                            {# Checkbox #}
-                            <td>
-                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                    <label for="addGeneset"
-                                           style="margin: -6px; padding-right: 0;">
-                                        <input type="checkbox" name="gsoptions[]"
-                                               id="addGeneset{{ cluster[0][1] |string}}"
-                                               
-                                               value="{{ cluster[0][1] | string }}"/>
-                                               {#json_results.all_species[gene[2]|string]#}
-                                    </label>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                    </thead>
                     </tbody>
                 </table>
             </div>
+            <script type="text/javascript">
+                create_data_table('#union');
+            </script>
+            {#
+            <div class="row" id="group-{{ json_results.numGS }}">
+            #}
+
         {% endif %}
 
         {% if json_results.type == 'Intersect' or json_results.type == 'Except' %}
@@ -364,7 +427,6 @@
 
 
                 {% set i = 1 %}
-                <script type="text/javascript">console.log('{{json_results.type}}')</script>
                 {% for gs_group in results | sort(reverse = True) %}
                     <div class="row">
                         {% if json_results.type == 'Except' %}
@@ -403,87 +465,23 @@
                 <div class="row" id="group-{{ json_results.numGS }}">
                     #}
                     <div class="row" id="group-{{ i }}">
-                        <table class="table table-hover">
-                            <tbody>
+                        <table class="table table-hover" id="table-{{ gs_group }}-blah">
+                            <thead>
                             <tr>
                                 <th>Genes</th>
-                                {#                <th>Species</th>#}
                                 <th>Homology</th>
                                 <th>In GeneSets</th>
                                 <th>Emphasis</th>
                                 <th></th>
                             </tr>
-                            {% for g in results[gs_group] %}
-
-                                {% set cluster = results[gs_group][g] %}
-                                <tr>
-
-                                    <td style="text-align: left; width: 30%;">
-                                        {% for gene in cluster %}
-                                            {% if previous != gene[2]|string + gene[1] %}
-                                                {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
-                                                <span style="margin-left: 5px;">
-                                                <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                                        background-color: {{ json_results.bg[(gene[2]|int-1)] }};
-                                                        border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
-                                                    {{ json_results.all_species[gene[2]|string] }}.
-                                                </span>
-                                            </span>
-                                                <strong>
-                                                    <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
-                                                </strong>
-                                            {% endif %}
-                                            {% set previous = gene[2]|string + gene[1] %}
-                                        {% endfor %}
-
-                                    </td>
-
-
-                                    {# homoology #}
-                                    <td style="width: 10%;">
-                                        {% if cluster | length == 1 %}
-                                            <span class="label label-default">No Mapping</span>
-                                        {% else %}
-                                            <span class="label label-info">Homologene</span>
-                                        {% endif %}
-                                    </td>
-
-                                    {# In Gene Sets #}
-                                    <td>
-                                        {% for gene in cluster %}
-                                            <span id="{{ gene[3] }}">
-                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                  data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                            <a href="/viewgenesetdetails/{{ gene[3] }}"><strong>GS{{ gene[3] }}</strong>
-                                            </a>
-                                                {% if not loop.last %},{% endif %}
-                                            </span>
-                                        </span>
-                                        {% endfor %}
-                                    </td>
-                                    {# Emphasize #}
-                                    <td nowrap>
-                                        <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
-                                               onchange="emphasize('{{ cluster[0] }}');"
-                                               class="switch" data-size="mini"
-                                               style="padding: 0px; vertical-align: middle;">
-                                    </td>
-                                    {# Checkbox #}
-                                    <td>
-                                        <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                            <label for="addGeneset"
-                                                   style="margin: -6px; padding-right: 0;">
-                                                <input type="checkbox" name="gsoptions[]"
-                                                       id="addGeneset{{ cluster[0][1] | string }}"
-                                                       value="{{ cluster[0][1] | string }}"/>
-                                            </label>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                            </thead>
+                            <tbody>
                             </tbody>
                         </table>
                     </div>
+                    <script type="text/javascript">
+                        create_data_table('#table-{{ gs_group }}-blah', {'table': {{ gs_group }}});
+                    </script>
                     {% set i = i + 1 %}
                 {% endfor %}
         {% endif %}
@@ -574,20 +572,26 @@
 
 {# To update the ephasize genes. #}
 <script type="text/javascript">
-    $("[name='g_id[]']").bootstrapSwitch();
+    // $("[name='g_id[]']").bootstrapSwitch();
 
-    $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
+    //$(function () {
+    //    $("[data-toggle='tooltip']").tooltip();
+    //});
 
 
-    function emphasize(id) {
-        if (document.getElementById(id).checked) {
-            $.get("/emphasize/" + id + ".html", function (data, status) {
+    function emphasize(ids, selector, test) {
+        console.log(selector);
+        if (document.getElementById(selector).checked) {
+            ids.forEach(function (it) {
+                $.get("/emphasize/" + it + ".html", function (data, status) {
+                });
             });
-        }
-        else {
-            $.get("/deemphasize/" + id + ".html", function (data, status) {
+
+        } else {
+            ids.forEach(function (it) {
+
+                $.get("/deemphasize/" + it + ".html", function (data, status) {
+                });
             });
         }
     }

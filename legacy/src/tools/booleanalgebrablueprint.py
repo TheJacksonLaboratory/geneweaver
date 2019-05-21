@@ -2,16 +2,22 @@ import celery.states as states
 import flask
 import json
 import uuid
+import operator
 import config
-
+import os
 import geneweaverdb as gwdb
 import toolcommon as tc
 from decimal import Decimal
-
+from collections import OrderedDict
 
 TOOL_CLASSNAME = 'BooleanAlgebra'
 boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 RESULTS_PATH = config.get('application', 'results')
+
+
+class BooleanResultError(Exception):
+    """ Exception returned when boolean results have a problem """
+    pass
 
 
 @boolean_algebra_blueprint.route('/Boolean-Algebra.html', methods=['POST'])
@@ -151,61 +157,154 @@ def decimal_default(obj):
     raise TypeError
 
 
-@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
-def view_result(task_id):
-    # TODO need to check for read permissions on task
-    async_result = tc.celery_app.AsyncResult(task_id)
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
-    # C: May need to update path to result to the location of the json file
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-
+def get_results(async_result, tool):
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
-        raise Exception('error while processing: ' + tool.name)
+        raise BooleanResultError('error while processing: ' + tool.name)
 
     elif async_result.state == states.FAILURE:
         results = json.loads(async_result.result)
 
         if results['error']:
-            flask.flash(results['error'])
+            raise BooleanResultError(results['error'])
         else:
-            flask.flash(
-                'An unkown error occurred. Please contact a GeneWeaver admin.'
-            )
-
-            return flask.redirect('analyze')
+            raise BooleanResultError('An unknown error occurred. Please contact a GeneWeaver admin.')
 
     elif async_result.state in states.READY_STATES:
         results = json.loads(async_result.result)
 
         if 'error' in results and results['error']:
-            flask.flash(results['error'])
+            raise BooleanResultError(results['error'])
+        else:
+            return results
 
-            return flask.redirect('analyze')
 
-        # added emphgeneids for the table in the boolean algebra result html file
-        emphgeneids = []
-
-        user_id = flask.session['user_id']
-        emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
-        for row in emphgenes:
-            emphgeneids.append(str(row['ode_gene_id']))
-
-        # Open files and pass via template
-        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+def read_results_file(task_id):
+    with open(RESULTS_PATH + '/' + task_id + '.json', 'r') as f:
         json_results = f.readline()
         f.close()
+    return json.loads(json_results)
+
+
+def get_emphgenes(user_id):
+    return [str(row['ode_gene_id']) for row in gwdb.get_gene_and_species_info_by_user(user_id)]
+
+
+def paginate_dict(dict, page, per_page):
+    page = int(page)
+    per_page = int(per_page)
+    sorted_items = sorted(dict.items(), key=operator.itemgetter(0))
+    start = page*per_page
+    paged = sorted_items[start:start+per_page]
+    return OrderedDict(paged)
+
+
+def paginate_bool_dicts(json_results, page, per_page):
+    if 'bool_results' in json_results:
+        json_results['bool_results'] = paginate_dict(json_results['bool_results'], page, per_page)
+    if 'bool_except' in json_results:
+        json_results['bool_except'] = {k: paginate_dict(v, page, per_page)
+                                       for k, v in json_results['bool_except'].iteritems()}
+    if 'intersect_results' in json_results:
+        json_results['intersect_results'] = {k: paginate_dict(v, page, per_page)
+                                             for k, v in json_results['intersect_results'].iteritems()}
+    return json_results
+
+
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+def view_result(task_id):
+    # TODO need to check for read permissions on task
+    async_result = tc.celery_app.AsyncResult(task_id)
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        flask.flash("Please log in to view results")
+        return flask.redirect('analyze')
+
+    try:
+        results = get_results(async_result, tool)
+    except BooleanResultError as e:
+        flask.flash(e.message)
+        return flask.redirect('analyze')
+
+    if results:
+        # added emphgeneids for the table in the boolean algebra result html file
+        emphgeneids = get_emphgenes(user_id)
+        json_results = read_results_file(task_id)
+
+        page = flask.request.args.get('page')
+        per_page = flask.request.args.get('per_page')
+
+        if page and per_page:
+            json_results = paginate_bool_dicts(json_results, page, per_page)
 
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
-            json_results=json.loads(json_results),
+            json_results=json_results,
             async_result=results,
             tool=tool,
-            emphgeneids=emphgeneids)
+            emphgeneids=emphgeneids,
+            task_id=task_id)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
+
+
+def datatablify(row_dict, draw_value, start=0, length=25):
+    dtbls_data = {'data': [
+        {"row_genes": {'key': key,
+                       'ids': [it[0] for it in row],
+                       'data': [{'sp': it[2], 'name': it[1]} for it in row]},
+         "homology": True if len(row) > 1 else False,
+         "genesets": [it[3] for it in row],
+         "species": list(set([it[2] for it in row])),
+         "emphasis": None}
+        for key, row in row_dict.iteritems()
+    ]}
+    total = len(dtbls_data['data'])
+    dtbls_data['data'] = dtbls_data['data'][start:start + length]
+    dtbls_data['recordsFiltered'] = total
+    dtbls_data['recordsTotal'] = total
+    dtbls_data['draw'] = draw_value
+    return dtbls_data
+
+
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>/output.json', methods=['GET'])
+def datatable_data(task_id):
+    async_result = tc.celery_app.AsyncResult(task_id)
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+
+    if 'user_id' not in flask.session:
+        flask.flash("Please log in to view results")
+        return flask.redirect('analyze')
+
+    try:
+        results = get_results(async_result, tool)
+    except BooleanResultError as e:
+        return flask.jsonify({'error1': e.message})
+    if results:
+
+        json_results = read_results_file(task_id)
+
+        draw = int(flask.request.args.get('draw', 0))
+        start = int(flask.request.args.get('start', 0))
+        length = int(flask.request.args.get('length', 25))
+
+        if json_results['type'] == 'Union':
+            data = json_results['bool_results']
+        elif json_results['type'] == 'Intersect':
+            table = flask.request.args.get('table')
+            data = json_results['intersect_results'][table]
+        elif json_results['type'] == 'Except':
+            table = flask.request.args.get('table')
+            data = json_results['bool_except'][table]
+        else:
+            return flask.jsonify({'data': None})
+
+        datatables_data = datatablify(data, draw, start, length)
+        return flask.jsonify(datatables_data)
 
 
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
