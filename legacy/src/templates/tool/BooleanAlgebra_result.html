@@ -184,19 +184,6 @@
                     createdCell: function(td, cellData, rowData, row, col) {
                         $(td).find('input').bootstrapSwitch();
                     }
-                },
-                {
-                    data: "row_genes",
-                    render: function (data, type, row) {
-                        var html = "<div class='ui-checkbox' style='padding: 0; border: 0; margin: 0;'>" +
-                            "<label for='addGeneset' style='margin: -6px; padding-right: 0;'> " +
-                            "<input type='checkbox' name='gsoptions[]' " +
-                            "id='addGeneset" + data.ids + "' " +
-                            "value='" + data.ids + "'/>" +
-                            "</label>" +
-                            "</div>";
-                        return (html);
-                    }
                 }
             ]
         });
@@ -212,21 +199,6 @@
 </div>
 
 <div class="panel panel-default">
-
-
-    <div class="row">
-        <div class="col-xs-12 col-md-9">
-            <div class="row">
-            </div>
-        </div>
-        <div class="col-xs-6 col-md-3">
-            <button type="button" class="btn btn-block btn-warning"
-                {#  onclick="newGeneSet()" #} id="addToNewGeneset"
-                    style="margin-bottom: 10px;">
-                <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-            </button>
-        </div>
-    </div>
 
     {# Relation type and Number of Genesets used Title #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -319,16 +291,20 @@
                     <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
                         of {{ json_results.numGS }} GeneSets</h6>
                 </div>
-                <div class="col-md-2" align="right" style="text-align:right">
-                    <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                         style="padding:0; border:0; margin:0">
-                        <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                            Select All
-                            <input type="checkbox"
-                                   name="group-{{ i }}"
-                            />
-                        </label>
+            </div>
+
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
                     </div>
+                </div>
+                <div class="col-xs-6 col-md-3">
+                    <button type="button" class="btn btn-block btn-warning addToNewGeneset"
+                            {#  onclick="newGeneSet()" #} id="addToNewGenesetUnion"
+                            data-genes="{{ json_results['gene_list']['union'] }}"
+                            style="margin-bottom: 10px;">
+                        <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                    </button>
                 </div>
             </div>
 
@@ -351,7 +327,6 @@
                         </th>
                         <th></i> IN GENESETS </th>
                         <th>Emphasis</th>
-                        <th></th>
                     </tr>
                     </thead>
                     </tbody>
@@ -366,20 +341,20 @@
 
         {% endif %}
 
-        {% if json_results.type == 'Intersect' or json_results.type == 'Except' %}
+        {% if json_results.type == 'Intersect' or json_results.type == 'Symmetric Difference' %}
             {% if json_results | length > 0 %}
             {% if json_results.type == 'Intersect' %}
                 {% set results = json_results.intersect_results %}
                 {% set union = 'Intersection' %}
-            {% elif json_results.type == 'Except' %}
+            {% elif json_results.type == 'Symmetric Difference' %}
                 {% set results = json_results.bool_except %}
-                {% set union = 'Except Clause' %}
+                {% set union = 'Symmetric Difference' %}
             {% endif %}
 
             <div class="row">
                 <div class="col-md-12">
-                    {% if json_results.type == 'Except' %}
-                        <h6 class="panel-title">Genes that are unique to the
+                    {% if json_results.type == 'Symmetric Difference' %}
+                        <h6 class="panel-title">Genes that are distinct to the
                             {{ json_results.numGS }} input GeneSets</h6>
                     {% else %}
                         <h6 class="panel-title">{{ results | length }} Distinct Sets found in the
@@ -410,7 +385,7 @@
                                                 {% if loop.last %}<strong>{{ loop.length }}</strong>{% endif %}
                                             {% endfor %}
                                             Gene Set(s)
-                                        {% elif json_results.type == 'Except' %}
+                                        {% elif json_results.type == 'Symmetric Difference' %}
                                             <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
                                             GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
                                         {% endif %}
@@ -428,8 +403,9 @@
 
                 {% set i = 1 %}
                 {% for gs_group in results | sort(reverse = True) %}
+                    <div class="row"><h1></h1></div>
                     <div class="row">
-                        {% if json_results.type == 'Except' %}
+                        {% if json_results.type == 'Symmetric Difference' %}
                             <div class="col-md-6">
                                 {% set gs_id = results[gs_group].values()[0][0][3] %}
                                 {% set gs_name = results[gs_group].values()[0][0][4] %}
@@ -438,25 +414,30 @@
                             </div>
                         {% elif json_results.type == 'Intersect' %}
                             <div class="col-md-6">
-                            <h2 id="{{ results[gs_group] }}">
-                            {% for g in results[gs_group] %}
-                                {% if loop.last %}
-                                    {{ loop.length }} Distinct Genes found in
-                                    {% for gene in results[gs_group][g] %}
-                                        {% if loop.last %}{{ loop.length }}{% endif %}
+                                <h2 id="{{ results[gs_group] }}">
+                                    {% for g in results[gs_group] %}
+                                        {% if loop.last %}
+                                            {{ loop.length }} Distinct Genes found in
+                                            {% for gene in results[gs_group][g] %}
+                                                {% if loop.last %}{{ loop.length }}{% endif %}
+                                            {% endfor %}
+                                        {% endif %}
                                     {% endfor %}
-                                {% endif %}
-                            {% endfor %}
-                            Gene Set(s)</h2>
+                                    Gene Set(s)</h2>
                             </div>
                         {% endif %}
-                  <div class="col-md-2 pull-right bottom-align-text" align="right" style="text-align:right">
-                            <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                                 style="padding:0; border:0; margin:0">
-                                <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                                    Select Set
-                                    <input type="checkbox" name="group-{{ i }}"/>
-                                </label>
+                        <div class="row">
+                            <div class="col-xs-12 col-md-9">
+                                <div class="row">
+                                </div>
+                            </div>
+                            <div class="col-xs-6 col-md-3">
+                                <button type="button" class="btn btn-block btn-warning addToNewGeneset"
+                                        {#  onclick="newGeneSet()" #} id="addToNewGeneset_{{ gs_group }}"
+                                        data-genes="{{ json_results['gene_list'][gs_group] }}"
+                                        style="margin-bottom: 10px;">
+                                    <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -580,7 +561,6 @@
 
 
     function emphasize(ids, selector, test) {
-        console.log(selector);
         if (document.getElementById(selector).checked) {
             ids.forEach(function (it) {
                 $.get("/emphasize/" + it + ".html", function (data, status) {
@@ -596,7 +576,10 @@
         }
     }
 
-    $('#addToNewGeneset').on('click', function () {
+    var genes_to_add = [];
+
+    $('.addToNewGeneset').on('click', function (e) {
+        genes_to_add = $(this).data('genes');
         $('#selectSpeciesForUpload').modal('show');
     });
 
@@ -605,7 +588,7 @@
 
 
     /**
-      * Creates a ne gene set from the bool alg. page. Determines the genes
+      * Creates a ne gene set from the bool alg. page. Symmetric Differenceetermines the genes
       * the user has selected then packages everything in a POST request to the
       * upload gene set page.
       */
@@ -613,13 +596,7 @@
 
         $('#selectSpeciesForUpload').hide();
 
-        var checkedArray = [];
-        var v = [];
-
-        // Retrieves genes that have been check marked
-        $("input:checkbox[name='gsoptions[]']:checked").each(function () {
-            checkedArray.push($(this).val());
-        });
+        var checkedArray = genes_to_add;
 
         if (typeof checkedArray != "undefined" && 
             checkedArray != null && 
@@ -688,6 +665,8 @@
             }));
 
             form.appendTo('body').submit();
+
+            genes_to_add = [];
         }
     };
 

@@ -211,6 +211,31 @@ def paginate_bool_dicts(json_results, page, per_page):
     return json_results
 
 
+def calculate_gene_list_for_table(table):
+    this_gene_list = []
+    for _, row in table.iteritems():
+        this_gene_list.append(row[0][0])
+    return list(set(this_gene_list))
+
+
+def calculate_gene_list_results(json_results):
+    if json_results['type'] == 'Union':
+        results = {'union': json_results['bool_results']}
+    elif json_results['type'] == 'Intersect':
+        results = json_results['intersect_results']
+    elif json_results['type'] == 'Except':
+        results = json_results['bool_except']
+    else:
+        return json_results
+
+    gene_list = {}
+    for key, table in results.iteritems():
+        gene_list[key] = calculate_gene_list_for_table(table)
+    json_results['gene_list'] = gene_list
+
+    return json_results
+
+
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
@@ -234,6 +259,11 @@ def view_result(task_id):
         emphgeneids = get_emphgenes(user_id)
         json_results = read_results_file(task_id)
 
+        json_results = calculate_gene_list_results(json_results)
+
+        if json_results['type'] == 'Except':
+            json_results['type'] = 'Symmetric Difference'
+
         page = flask.request.args.get('page')
         per_page = flask.request.args.get('per_page')
 
@@ -255,7 +285,7 @@ def view_result(task_id):
 def datatablify(row_dict, draw_value, start=0, length=25):
     dtbls_data = {'data': [
         {"row_genes": {'key': key,
-                       'ids': [it[0] for it in row],
+                       'ids': list(set([it[0] for it in row])),
                        'data': [{'sp': it[2], 'name': it[1]} for it in row]},
          "homology": True if len(row) > 1 else False,
          "genesets": [it[3] for it in row],
@@ -298,6 +328,7 @@ def datatable_data(task_id):
             table = flask.request.args.get('table')
             data = json_results['intersect_results'][table]
         elif json_results['type'] == 'Except':
+            json_results['type'] = 'Symmetric Difference'
             table = flask.request.args.get('table')
             data = json_results['bool_except'][table]
         else:

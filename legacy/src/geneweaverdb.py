@@ -3238,7 +3238,6 @@ def get_results_by_runhash(runhash):
         )
 
         result = cursor.fetchone()
-        print result
 
         return {'res_data': result[0], 'res_tool': result[1]}
 
