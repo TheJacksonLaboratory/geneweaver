@@ -36,11 +36,17 @@
             <div class="form-group">
                 <label class="radio-inline">
                     <input type="radio" name="BooleanAlgebra_Relation" value="union" id="union" checked/>
-                    Union (disjunction)
+                    Union
+                     <span class="tool-description">
+                         Result contains one set with all the unique genes contained in the input sets
+                     </span>
                 </label>
                 <label class="radio-inline">
                     <input type="radio" name="BooleanAlgebra_Relation" value="intersect" id="intersect"/>
-                    Intersect (conjunction)
+                    Intersect
+                    <span class="tool-description">
+                        Result contains sets of genes that are shared across the input sets
+                     </span>
                 </label>
                 <div class="form-group" id="set-intersect" style="display: none">
                     <label class="radio-inline" style="display: inline; white-space: nowrap;">
@@ -51,7 +57,10 @@
                 </div>
                 <label class="radio-inline">
                     <input type="radio" name="BooleanAlgebra_Relation" value="except" id="except"/>
-                    Distinct (negated conjunction)
+                    Distinct
+                    <span class="tool-description">
+                        Result contains sets of genes that are unique to their input set
+                     </span>
                 </label>
             </div>
             <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
