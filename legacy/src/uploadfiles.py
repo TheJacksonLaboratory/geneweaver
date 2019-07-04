@@ -634,10 +634,11 @@ def update_identifier_by_gsid(rargs):
         create_temp_geneset()
         with db.PooledCursor() as cursor:
             gdb_id = db.get_gdb_id_by_name(altId)
-            cursor.execute('''SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
+            cursor.execute('''SELECT sp_id FROM geneset WHERE gs_id=%s''', (gs_id,))
             sp_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
                               temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
+            cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
             cursor.execute('''UPDATE temp_geneset_meta SET gdb_id=%s WHERE gs_id=%s''', (gdb_id, gs_id,))
             cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
