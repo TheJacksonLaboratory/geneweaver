@@ -28,6 +28,7 @@ celery_app.conf.update(
 geneset_html_id_prefix = "geneset_"
 project_html_id_prefix = "project_"
 
+
 def selected_geneset_ids(form):
     """
     this function takes a submitted form and extracts IDs for
@@ -55,6 +56,7 @@ def selected_project_ids(form):
         for id_with_prefix in form.iterkeys()
         if id_with_prefix.startswith(project_html_id_prefix)
     ]
+
 
 def fully_qualified_name(tool_class_name):
     """

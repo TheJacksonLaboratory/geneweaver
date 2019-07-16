@@ -60,6 +60,7 @@ def render_uploadgeneset(genes=None):
             user_id=user_id,
             myGroups=my_groups)
 
+
 @geneset_blueprint.route('/batchupload')
 @login_required()
 def render_batchupload(genes=None):

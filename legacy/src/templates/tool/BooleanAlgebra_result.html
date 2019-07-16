@@ -53,9 +53,142 @@
     pointer-events: none;
   }
 
+    .right {
+        float: right;
+    }
+
+    .left {
+        float: left;
+        width: 100%;
+    }
+
+    .popover {
+        text-transform: none;
+    }
 
 </style>
 
+<script type="text/javascript">
+
+    function create_data_table(selector, ajax_data) {
+        var task_id = "{{ task_id  | safe }}",
+            res = {{ json_results | tojson | safe}};
+        var borders = res.borders,
+            sp_names = res.all_species,
+            bg = res.bg;
+        $(selector).DataTable({
+            "iDisplayLength": 25,
+            "bLengthChange": true,
+            "processing": true,
+            "serverSide": true,
+            "ordering": false,
+            "oLanguage": {
+                "sProcessing": "Fetching Values"
+            },
+            "tableTools": {
+                "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                "sRowSelect": "multi",
+                "aButtons": [
+                    "select_all",
+                    "select_none",
+                    "copy",
+                    "print",
+                    "pdf",
+                    "xls",
+                    "csv"
+                ]
+            },
+            "dom": '<"clear"l><"left"ip><"bottom"rtip>',
+            "ajax": {
+                "url": "/BooleanAlgebra-result/" + task_id + "/output.json",
+                "type": "GET",
+                "data": ajax_data
+            },
+            "columns": [
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        data = data['data'];
+                        if (data.length > 0) {
+                            var first = data.shift();
+                            var sp = first.sp;
+                            var sp_color = bg[sp - 1],
+                                border_color = borders[sp - 1];
+                            var html = "<span style='margin-left: 5px;'>" +
+                                "<span class='group_name' style='font: italic 10px/14px Georgia, serif;" +
+                                "background-color: " + sp_color + "; border:1px solid " + border_color + "'>" + sp_names[sp.toString()] +
+                                "</span></span><strong>" +
+                                " <a href='/search/?searchbar=" + first.name + "&pagination_page=1&searchGenes=yes'>" +
+                                first.name +
+                                "</a></strong>";
+                            data.forEach(function (it, idx, arr) {
+                                if (it['sp'] !== sp) {
+                                    html += "<i class='fa fa-arrows-h'></i>";
+                                    sp = it['sp'];
+                                    var sp_color = bg[sp - 1],
+                                        border_color = borders[sp - 1];
+                                    html += "<span style='margin-left: 5px;'>" +
+                                        "<span class='group_name' style='font: italic 10px/14px Georgia, serif;" +
+                                        "background-color: " + sp_color + "; border:1px solid " + border_color + "'>" + sp_names[sp] +
+                                        "</span></span><strong>" +
+                                        "<a href='/search/?searchbar=" + it.name + "&pagination_page=1&searchGenes=yes'>" +
+                                        it.name +
+                                        "</a></strong>";
+                                }
+                            });
+                            return (html);
+                        } else {
+                            return ("");
+                        }
+                    },
+                    createdCell: function (td, cellData, rowData, row, col) {
+                        $(td).attr('style', 'text-align: left;');
+                    }
+                },
+                {
+                    data: "homology",
+                    render: function (data, type, row) {
+                        var html = "<span class=\"label label-default\">No Mapping</span>\n";
+                        if (data === true) {
+                            html = "<span class=\"label label-info\">Homologene</span>\n"
+                        }
+                        return html;
+                    }
+                },
+                {
+                    data: "genesets",
+                    render: function (data, type, row) {
+                        var html = "";
+                        data.forEach(function (it, idx, arr) {
+                            html += "<span id=" + it + ">" +
+                                "<span data-placement='top' data-toggle='tooltip' data-rel='tooltip'>" +
+                                "<a href='/viewgenesetdetails/" + it + "'>" +
+                                "<strong>GS" + it + "</strong></a>";
+                            if (idx !== arr.length - 1 && arr.length > 1) {
+                                html += ", ";
+                            }
+                            html += "</span></span>";
+                        });
+                        return html;
+                    }
+                },
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        var html = "<input type='checkbox' name='g_id[]a' id='" + data.ids.join('_') + "'" +
+                            "onchange='emphasize([" + data.ids + "],\""+data.ids.join('_')+"\")';" +
+                            "class='switch' data-size='mini'" +
+                            " style='padding: 0px; vertical-align: middle;'>";
+                        return (html)
+                    },
+                    createdCell: function(td, cellData, rowData, row, col) {
+                        $(td).find('input').bootstrapSwitch();
+                    }
+                }
+            ]
+        });
+    }
+</script>
 
 <div class="loader"></div>
 
@@ -66,21 +199,6 @@
 </div>
 
 <div class="panel panel-default">
-
-
-    <div class="row">
-        <div class="col-xs-12 col-md-9">
-            <div class="row">
-            </div>
-        </div>
-        <div class="col-xs-6 col-md-3">
-            <button type="button" class="btn btn-block btn-warning"
-                {#  onclick="newGeneSet()" #} id="addToNewGeneset"
-                    style="margin-bottom: 10px;">
-                <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-            </button>
-        </div>
-    </div>
 
     {# Relation type and Number of Genesets used Title #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -173,150 +291,70 @@
                     <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
                         of {{ json_results.numGS }} GeneSets</h6>
                 </div>
-                <div class="col-md-2" align="right" style="text-align:right">
-                    <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                         style="padding:0; border:0; margin:0">
-                        <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                            Select All
-                            <input type="checkbox"
-                                   name="group-{{ i }}"
-                            />
-                        </label>
+            </div>
+
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
                     </div>
+                </div>
+                <div class="col-xs-6 col-md-3">
+                    <button type="button" class="btn btn-block btn-warning addToNewGeneset"
+                            {#  onclick="newGeneSet()" #} id="addToNewGenesetUnion"
+                            data-genes="{{ json_results['gene_list']['union'] }}"
+                            style="margin-bottom: 10px;">
+                        <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                    </button>
                 </div>
             </div>
 
-            {#
-            <div class="row" id="group-{{ json_results.numGS }}">
-            #}
-            <div class="row" id="group-{{ i }}">
-                <table class="table table-hover">
+            <div class="row">
+                <table class="table table-hover" id="union">
                     <tbody>
+                    <thead>
                     <tr>
-                        <th>Genes</th>
-                        {#                <th>Species</th>#}
-                        <th>Homology</th>
-                        <th>In GeneSets</th>
-                        <th>Emphasis</th>
-                        <th></th>
-                    </tr>
-                    {% for g in results | sort(attribute=0) %}
-                        {% set cluster = results[g] %}
-                        <tr>
-                            <td style="text-align: left;">
-                                {% for gene in cluster %}
-                                    {% if previous != gene[2]|string + gene[1] %}
-                                        {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
-                                        <span style="margin-left: 5px;">
-                                            <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                                    background-color: {{ json_results.bg[(gene[2]|int-1)] }};
-                                                    border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
-                                                {{ json_results.all_species[gene[2]|string] }}.
-                                            </span>
-                                        </span>
-                                        <strong>
-                                            <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
-                                        </strong>
-                                    {% endif %}
-                                    {% set previous = gene[2]|string + gene[1] %}
-                                {% endfor %}
-                            </td>
-
-                            {#                    <td>#}
-                            {# Make boxes for homology blocks #}
-                            {# see tools repor boolean algebra for the list of species and colors #}
-                            {#
-                            {% for i in range(1,12) %}
-                                {# skip elements that are empty #}
-                            {#
-                                {% if json_results.tt[(i-1)] != 'empty' %}
-                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                          data-original-title="{{ json_results.tt[(i-1)] }}"
-                                          title="{{ json_results.tt[(i-1)] }}">
-                                                {% set exists = ['1'] %}
-    {#                                            {{ json_results.grid[json_results.odeLookup[gene]|string] }}#}
-                            {#
-                                        {% for h in json_results.resids[g|string]|sort %}
-                                            {% if h == i %}
-                                                <div class="geneBox"
-                                                     style="background-color: {{ json_results.colors[(i-1)] }};"></div>
-                                                {% if exists.append('1') %}{% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if exists|length == 1 %}
-                                            <div class="geneBox"></div>
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                            {% endfor %}
-                    #}
-                            {#                    </td>#}
-
-                            {# homoology #}
-                            <td>
-                                {% if cluster | length == 1 %}
-                                    <span class="label label-default">No Mapping</span>
-                                {% else %}
-                                    <span class="label label-info">Homologene</span>
-                                {% endif %}
-                            </td>
-
-                            {# In Gene Sets #}
-                            <td>
-                                {% for gene in cluster %}
-                                    <span id="{{ gene[3] }}">
-                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                      data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                <a href="/viewgenesetdetails/{{ gene[3] }}">
-                                <strong>GS{{ gene[3] }}</strong>
-                                </a>
-                                    {% if not loop.last %},{% endif %}
-                                </span>
+                        <th>
+                            <i class="fa fa-sort"></i> GENES
+                            <span id="defaultIdHelp" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
                             </span>
-                                {% endfor %}
-
-                            </td>
-                            {# Emphasize #}
-                            <td nowrap>
-                                <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
-                                       onchange="emphasize('{{ cluster[0] }}');"
-                                       class="switch" data-size="mini"
-                                       style="padding: 0px; vertical-align: middle;" />
-                            </td>
-                            {# Checkbox #}
-                            <td>
-                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                    <label for="addGeneset"
-                                           style="margin: -6px; padding-right: 0;">
-                                        <input type="checkbox" name="gsoptions[]"
-                                               id="addGeneset{{ cluster[0][1] |string}}"
-                                               
-                                               value="{{ cluster[0][1] | string }}"/>
-                                               {#json_results.all_species[gene[2]|string]#}
-                                    </label>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                        </th>
+                        <th>
+                            Homology
+                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th></i> IN GENESETS </th>
+                        <th>Emphasis</th>
+                    </tr>
+                    </thead>
                     </tbody>
                 </table>
             </div>
+            <script type="text/javascript">
+                create_data_table('#union');
+            </script>
+            {#
+            <div class="row" id="group-{{ json_results.numGS }}">
+            #}
+
         {% endif %}
 
-        {% if json_results.type == 'Intersect' or json_results.type == 'Except' %}
+        {% if json_results.type == 'Intersect' or json_results.type == 'Symmetric Difference' %}
             {% if json_results | length > 0 %}
             {% if json_results.type == 'Intersect' %}
                 {% set results = json_results.intersect_results %}
                 {% set union = 'Intersection' %}
-            {% elif json_results.type == 'Except' %}
+            {% elif json_results.type == 'Symmetric Difference' %}
                 {% set results = json_results.bool_except %}
-                {% set union = 'Except Clause' %}
+                {% set union = 'Symmetric Difference' %}
             {% endif %}
 
             <div class="row">
                 <div class="col-md-12">
-                    {% if json_results.type == 'Except' %}
-                        <h6 class="panel-title">Genes that are unique to the
+                    {% if json_results.type == 'Symmetric Difference' %}
+                        <h6 class="panel-title">Genes that are distinct to the
                             {{ json_results.numGS }} input GeneSets</h6>
                     {% else %}
                         <h6 class="panel-title">{{ results | length }} Distinct Sets found in the
@@ -347,7 +385,7 @@
                                                 {% if loop.last %}<strong>{{ loop.length }}</strong>{% endif %}
                                             {% endfor %}
                                             Gene Set(s)
-                                        {% elif json_results.type == 'Except' %}
+                                        {% elif json_results.type == 'Symmetric Difference' %}
                                             <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
                                             GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
                                         {% endif %}
@@ -364,10 +402,10 @@
 
 
                 {% set i = 1 %}
-                <script type="text/javascript">console.log('{{json_results.type}}')</script>
                 {% for gs_group in results | sort(reverse = True) %}
+                    <div class="row"><h1></h1></div>
                     <div class="row">
-                        {% if json_results.type == 'Except' %}
+                        {% if json_results.type == 'Symmetric Difference' %}
                             <div class="col-md-6">
                                 {% set gs_id = results[gs_group].values()[0][0][3] %}
                                 {% set gs_name = results[gs_group].values()[0][0][4] %}
@@ -376,25 +414,30 @@
                             </div>
                         {% elif json_results.type == 'Intersect' %}
                             <div class="col-md-6">
-                            <h2 id="{{ results[gs_group] }}">
-                            {% for g in results[gs_group] %}
-                                {% if loop.last %}
-                                    {{ loop.length }} Distinct Genes found in
-                                    {% for gene in results[gs_group][g] %}
-                                        {% if loop.last %}{{ loop.length }}{% endif %}
+                                <h2 id="{{ results[gs_group] }}">
+                                    {% for g in results[gs_group] %}
+                                        {% if loop.last %}
+                                            {{ loop.length }} Distinct Genes found in
+                                            {% for gene in results[gs_group][g] %}
+                                                {% if loop.last %}{{ loop.length }}{% endif %}
+                                            {% endfor %}
+                                        {% endif %}
                                     {% endfor %}
-                                {% endif %}
-                            {% endfor %}
-                            Gene Set(s)</h2>
+                                    Gene Set(s)</h2>
                             </div>
                         {% endif %}
-                  <div class="col-md-2 pull-right bottom-align-text" align="right" style="text-align:right">
-                            <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                                 style="padding:0; border:0; margin:0">
-                                <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                                    Select Set
-                                    <input type="checkbox" name="group-{{ i }}"/>
-                                </label>
+                        <div class="row">
+                            <div class="col-xs-12 col-md-9">
+                                <div class="row">
+                                </div>
+                            </div>
+                            <div class="col-xs-6 col-md-3">
+                                <button type="button" class="btn btn-block btn-warning addToNewGeneset"
+                                        {#  onclick="newGeneSet()" #} id="addToNewGeneset_{{ gs_group }}"
+                                        data-genes="{{ json_results['gene_list'][gs_group] }}"
+                                        style="margin-bottom: 10px;">
+                                    <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -403,87 +446,23 @@
                 <div class="row" id="group-{{ json_results.numGS }}">
                     #}
                     <div class="row" id="group-{{ i }}">
-                        <table class="table table-hover">
-                            <tbody>
+                        <table class="table table-hover" id="table-{{ gs_group }}-blah">
+                            <thead>
                             <tr>
                                 <th>Genes</th>
-                                {#                <th>Species</th>#}
                                 <th>Homology</th>
                                 <th>In GeneSets</th>
                                 <th>Emphasis</th>
                                 <th></th>
                             </tr>
-                            {% for g in results[gs_group] %}
-
-                                {% set cluster = results[gs_group][g] %}
-                                <tr>
-
-                                    <td style="text-align: left; width: 30%;">
-                                        {% for gene in cluster %}
-                                            {% if previous != gene[2]|string + gene[1] %}
-                                                {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
-                                                <span style="margin-left: 5px;">
-                                                <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                                        background-color: {{ json_results.bg[(gene[2]|int-1)] }};
-                                                        border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
-                                                    {{ json_results.all_species[gene[2]|string] }}.
-                                                </span>
-                                            </span>
-                                                <strong>
-                                                    <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
-                                                </strong>
-                                            {% endif %}
-                                            {% set previous = gene[2]|string + gene[1] %}
-                                        {% endfor %}
-
-                                    </td>
-
-
-                                    {# homoology #}
-                                    <td style="width: 10%;">
-                                        {% if cluster | length == 1 %}
-                                            <span class="label label-default">No Mapping</span>
-                                        {% else %}
-                                            <span class="label label-info">Homologene</span>
-                                        {% endif %}
-                                    </td>
-
-                                    {# In Gene Sets #}
-                                    <td>
-                                        {% for gene in cluster %}
-                                            <span id="{{ gene[3] }}">
-                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                  data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                            <a href="/viewgenesetdetails/{{ gene[3] }}"><strong>GS{{ gene[3] }}</strong>
-                                            </a>
-                                                {% if not loop.last %},{% endif %}
-                                            </span>
-                                        </span>
-                                        {% endfor %}
-                                    </td>
-                                    {# Emphasize #}
-                                    <td nowrap>
-                                        <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
-                                               onchange="emphasize('{{ cluster[0] }}');"
-                                               class="switch" data-size="mini"
-                                               style="padding: 0px; vertical-align: middle;">
-                                    </td>
-                                    {# Checkbox #}
-                                    <td>
-                                        <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                            <label for="addGeneset"
-                                                   style="margin: -6px; padding-right: 0;">
-                                                <input type="checkbox" name="gsoptions[]"
-                                                       id="addGeneset{{ cluster[0][1] | string }}"
-                                                       value="{{ cluster[0][1] | string }}"/>
-                                            </label>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                            </thead>
+                            <tbody>
                             </tbody>
                         </table>
                     </div>
+                    <script type="text/javascript">
+                        create_data_table('#table-{{ gs_group }}-blah', {'table': {{ gs_group }}});
+                    </script>
                     {% set i = i + 1 %}
                 {% endfor %}
         {% endif %}
@@ -574,25 +553,33 @@
 
 {# To update the ephasize genes. #}
 <script type="text/javascript">
-    $("[name='g_id[]']").bootstrapSwitch();
+    // $("[name='g_id[]']").bootstrapSwitch();
 
-    $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
+    //$(function () {
+    //    $("[data-toggle='tooltip']").tooltip();
+    //});
 
 
-    function emphasize(id) {
-        if (document.getElementById(id).checked) {
-            $.get("/emphasize/" + id + ".html", function (data, status) {
+    function emphasize(ids, selector, test) {
+        if (document.getElementById(selector).checked) {
+            ids.forEach(function (it) {
+                $.get("/emphasize/" + it + ".html", function (data, status) {
+                });
             });
-        }
-        else {
-            $.get("/deemphasize/" + id + ".html", function (data, status) {
+
+        } else {
+            ids.forEach(function (it) {
+
+                $.get("/deemphasize/" + it + ".html", function (data, status) {
+                });
             });
         }
     }
 
-    $('#addToNewGeneset').on('click', function () {
+    var genes_to_add = [];
+
+    $('.addToNewGeneset').on('click', function (e) {
+        genes_to_add = $(this).data('genes');
         $('#selectSpeciesForUpload').modal('show');
     });
 
@@ -601,7 +588,7 @@
 
 
     /**
-      * Creates a ne gene set from the bool alg. page. Determines the genes
+      * Creates a ne gene set from the bool alg. page. Symmetric Differenceetermines the genes
       * the user has selected then packages everything in a POST request to the
       * upload gene set page.
       */
@@ -609,13 +596,7 @@
 
         $('#selectSpeciesForUpload').hide();
 
-        var checkedArray = [];
-        var v = [];
-
-        // Retrieves genes that have been check marked
-        $("input:checkbox[name='gsoptions[]']:checked").each(function () {
-            checkedArray.push($(this).val());
-        });
+        var checkedArray = genes_to_add;
 
         if (typeof checkedArray != "undefined" && 
             checkedArray != null && 
@@ -684,6 +665,8 @@
             }));
 
             form.appendTo('body').submit();
+
+            genes_to_add = [];
         }
     };
 
