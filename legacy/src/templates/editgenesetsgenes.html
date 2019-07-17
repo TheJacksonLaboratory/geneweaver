@@ -317,7 +317,7 @@
 
 {% endif %}
 
-<script>
+<script type="text/javascript">
 
     var user_id = {{ user_id }}
 
@@ -614,7 +614,7 @@
         });
 
         $('#editSubmitIdentifier').on('click', function(e){
-            var val = $('#identifier').children('#selectedIdentifier').text();
+            var val = $('#identifier').select2('data')[0].id;
             $.trim(val);
             //update genset_value for the sp_id
             $.ajax({
@@ -725,3 +725,4 @@
 {% include 'modal/verifyGenesetGenesSave.html' %}
 
 {% include 'footer.html' %}
+

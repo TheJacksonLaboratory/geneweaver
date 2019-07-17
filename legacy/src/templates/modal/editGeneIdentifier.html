@@ -1,49 +1,54 @@
 {# This modal allows you to edit the identifier of a gene #}
 
 {% if geneset is defined and geneset.geneset_id is defined and pidts is defined %}
-
-<div class="modal fade" id="editIdentifierByGSID">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editIdentifierName" name="editIdentifierName" method="post" action="#" class="form-horizontal"
-                  novalidate="novalidate">
-                <div class="modal-header bg-green">
-                    <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Identifier</h3>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group-btn">
-                        <div id="identifier" class="btn-group bootstrap-select form-control">
-                                <button id="selectedIdentifier" type="button" class="btn btn-default dropdown-toggle"
-                                        data-toggle="dropdown" aria-expanded="false">
-                                    <span class="selected">
-                                        {% if geneset.gene_id_type < 0 %}
-                                            {{ gidts[-1 * geneset.gene_id_type] }}
-                                        {% else %}
-                                            {{ pidts[geneset.gene_id_type] }}
-                                        {% endif %}
-                                    </span> <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu option" role="menu">
-                                    {% for key in gidts %}
-                                        {% if geneset.gene_id_type < 0 or curation_view %}
-                                            <li id="{{ key }}"><a href="#">{{ gidts[key] }}</a></li>
-                                        {% endif %}
-                                    {% endfor %}
-                                        <li id="MicroArray">MicroArray</li>
-                                    {% for val in pidts %}
-                                        <li id="{{ val }}"><a href="#">{{ pidts[val] }}</a></li>
-                                    {% endfor %}
-                                </ul>
-                        </div>
+    <div class="modal fade" id="editIdentifierByGSID">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editIdentifierName" name="editIdentifierName" method="post" action="#" class="form-horizontal"
+                      novalidate="novalidate">
+                    <div class="modal-header bg-green">
+                        <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Identifier</h3>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmitIdentifier">Submit</button>
-                </div>
-            </form>
+                    <div class="modal-body">
+
+                        <div>
+                            <select id="identifier" class="gene-identifier-select" name="identifiers">
+                                <option disabled selected value> -- select identifier -- </option>>
+                                {% for key in gidts %}
+                                    {% if geneset.gene_id_type < 0 or curation_view %}
+                                        <option label="{{ gidts[key] }}" value="{{ gidts[key] }}">{{ gidts[key] }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                                <optgroup label="microarray">
+                                    {% for val in pidts %}
+                                        <option label="{{ pidts[val] }}" value="{{ pidts[val] }}">{{ pidts[val] }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmitIdentifier">
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.gene-identifier-select').select2({
+                dropdownParent: $('#editIdentifierByGSID'),
+                dropdownAutoWidth : true,
+                width: 'auto'
+            });
+        });
+    </script>
 
 {% endif %}
+
