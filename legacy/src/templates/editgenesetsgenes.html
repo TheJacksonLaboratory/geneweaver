@@ -193,7 +193,7 @@
                         {% if meta[1] != 0 %}
 
                             {% if meta[1] < 0 %}
-                                {{ gidts[-1 * meta[1]] }}
+                                {{ gidts[-1 * meta[1]]|title }}
                             {% else %}
                                 {{ pidts[meta[1]] }}
                             {% endif %}
@@ -201,7 +201,7 @@
                         {% else %}
 
                             {% if geneset.gene_id_type < 0 %}
-                                {{ gidts[-1 * geneset.gene_id_type] }}
+                                {{ gidts[-1 * geneset.gene_id_type]|title }}
                             {% else %}
                                 {{ pidts[geneset.gene_id_type] }}
                             {% endif %}

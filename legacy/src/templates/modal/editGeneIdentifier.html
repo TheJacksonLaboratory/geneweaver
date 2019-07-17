@@ -16,7 +16,7 @@
                                 <option disabled selected value> -- select identifier -- </option>>
                                 {% for key in gidts %}
                                     {% if geneset.gene_id_type < 0 or curation_view %}
-                                        <option label="{{ gidts[key] }}" value="{{ gidts[key] }}">{{ gidts[key] }}</option>
+                                        <option label="{{ gidts[key] }}" value="{{ gidts[key] }}">{{ gidts[key]|title }}</option>
                                     {% endif %}
                                 {% endfor %}
                                 <optgroup label="microarray">
