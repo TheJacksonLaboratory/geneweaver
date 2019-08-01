@@ -4570,7 +4570,9 @@ def report_bug_to_jira():
     results = report_bug.to_jira(
         description=request.values['description'],
         fullname=request.values['fullname'],
-        email=request.values['email']
+        email=request.values['email'],
+        user_id=request.values['user_id'],
+        user_page=request.values['user_page']
     )
 
     return json.dumps(results)

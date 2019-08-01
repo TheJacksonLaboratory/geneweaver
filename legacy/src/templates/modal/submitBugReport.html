@@ -13,6 +13,9 @@
                 </div>
                 <div class="modal-body">
                     <form id="bugReport">
+                        {% if g.user %}
+                        <input type="hidden" id="userID" value="{{ g.user.user_id }}">
+                        {% endif %}
                         <div class="row">
                             <label for="bug_description"><h4>Description:
                             </h4></label>
@@ -40,7 +43,7 @@
                         <button type="button" class="btn btn-default"
                                 data-dismiss="modal">Close
                         </button>
-                        <button type="submit" class="btn btn-warning"
+                        <button type="button" class="btn btn-warning"
                                 data-dismiss="modal" id="submitReport">Submit
                         </button>
                     </div>
@@ -56,21 +59,18 @@
             let params = {
                 "description": $("#bugDescription").val(),
                 "fullname": $("#bugReporterName").val(),
-                "email": $("#bugReporterEmail").val()
+                "email": $("#bugReporterEmail").val(),
+                "user_id": $("#userID").val(),
+                "user_page": document.URL
             };
 
             $.post(
                 "/report_bug.json",
                 params,
                 function (data) {
-                    has_active_curation_assignment = true;
 
-                    $(document).trigger("add-alerts", [
-                        {
-                            'message': "Thank you for your feedback!",
-                            'priority': 'success'
-                        }
-                    ]);
+                    // clear the form after successful submission
+                    $("#submitBugReport").trigger("reset");
 
                 }, "json").fail(handleError);
 
