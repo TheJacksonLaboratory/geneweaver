@@ -4097,7 +4097,6 @@ def transpose_genes_by_species(attr):
         cursor.execute(sql, {'genelist': tuple(g), 'newSpecies': newSpecies})
         res = cursor.fetchall()
         transposedGenes = []
-        print(res)
         if res is not None:
             for r in res:
                 transposedGenes.append(r[0])
