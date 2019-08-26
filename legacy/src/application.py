@@ -1291,7 +1291,6 @@ def update_geneset_ontology_db():
         geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
     else:
         if ro_ont_id:
-            print "trying to remove ro"
             remove_relation_ontology(ont_id, gs_id, ro_ont_id)
         ro_count = geneweaverdb.count_relation_ontologies(gs_id, ont_id)
         if ro_count < 1:
@@ -3657,7 +3656,6 @@ def render_project_groups():
 @app.route('/changePvalues/<setSize1>/<setSize2>/<jaccard>', methods=["GET"])
 def changePvalues(setSize1, setSize2, jaccard):
     tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)
-    print tempDict
     if len(tempDict) > 0:
         pValue = geneweaverdb.getPvalue(setSize1, setSize2, jaccard)
     else:

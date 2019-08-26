@@ -261,14 +261,16 @@ def view_result(task_id):
 
         json_results = calculate_gene_list_results(json_results)
 
+        print(json_results['groups'])
+
         if json_results['type'] == 'Except':
             json_results['type'] = 'Symmetric Difference'
 
-        page = flask.request.args.get('page')
-        per_page = flask.request.args.get('per_page')
-
-        if page and per_page:
-            json_results = paginate_bool_dicts(json_results, page, per_page)
+        # page = flask.request.args.get('page')
+        # per_page = flask.request.args.get('per_page')
+        #
+        # if page and per_page:
+        #     json_results = paginate_bool_dicts(json_results, page, per_page)
 
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
