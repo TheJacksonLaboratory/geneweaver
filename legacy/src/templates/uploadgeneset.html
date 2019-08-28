@@ -476,6 +476,11 @@
         var geneText = '';
         var v;
 
+        var geneIdTye = '';
+        if ('gene-id-type' in json) {
+            geneIdTye = json['gene-id-type' ];
+        }
+
         // Need to transpose all gene ids into a type compatible with geneset species
         // that the user selected.
         // Add some ajax that will query the DB and return IDs of the type needed
@@ -489,7 +494,7 @@
                 url: "../transposeGenesetIDs",
                 dataType: 'json',
                 async: false,
-                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7},
+                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7, 'gene_id_type': geneIdTye},
                 success: function (data) {
                     $('.loader').hide();
                     v = data;

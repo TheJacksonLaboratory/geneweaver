@@ -487,7 +487,6 @@ def create_group(group_name, group_private, user_id):
                 (grp_id, user_id,)
         )
         cursor.connection.commit()
-        print cursor.statusmessage
 
     return group_name
 
@@ -637,7 +636,6 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
                 ''',
                     (grp_id, e, grp_id, user_id,))
             cursor.connection.commit()
-            print cursor.statusmessage
 
             # if we deleted a user from the group send that user a notification
             if cursor.rowcount:
@@ -798,7 +796,6 @@ def remove_group_from_all_projects(grp_id, user_id):
             if grp_id in h:
                 h.remove(grp_id)
                 res = '-1' if len(h) == 0 else str(','.join(h))
-                print res
                 cursor.execute('''UPDATE project SET pj_groups=%s WHERE pj_id=%s''', (res, r[1],))
                 cursor.connection.commit()
 
@@ -4078,19 +4075,26 @@ def transpose_genes_by_species(attr):
     :return:
     """
     genes = json.loads(attr['genes'])
+    gene_id_type = attr['gene_id_type']
+    if gene_id_type == '':
+        gene_id_type = 'ode_ref_id'
     g = []
     for i in genes:
         g.append(str(i))
     newSpecies = json.loads(attr['newSpecies'])
-    with PooledCursor() as cursor:
-        cursor.execute('''SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
+
+    sql = '''SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
                             (SELECT distinct h2.ode_gene_id FROM homology h1
                                 NATURAL JOIN homology h2
                                 NATURAL JOIN gene
                                 WHERE h2.hom_source_name='Homologene'
                                       AND h1.hom_source_id=h2.hom_source_id
-                                      AND ode_ref_id IN %(genelist)s)
-                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;''', {'genelist': tuple(g), 'newSpecies': newSpecies})
+                                      AND {} IN %(genelist)s)
+                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;'''.format(gene_id_type)
+
+
+    with PooledCursor() as cursor:
+        cursor.execute(sql, {'genelist': tuple(g), 'newSpecies': newSpecies})
         res = cursor.fetchall()
         transposedGenes = []
         if res is not None:
