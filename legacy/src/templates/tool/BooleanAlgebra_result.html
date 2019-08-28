@@ -208,20 +208,21 @@
     {#         {{ json_results | safe }}#}
     {# div for venn diagram #}
     {% if json_results.numGS < 11 %}
+        <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
+        <h8>Figure: Homology Overlap of Input Genesets</h8><br>
         <span id="circles">
                 About this figure <i class="fa fa-caret-down"></i>
         </span>
         <div id="circle-explanation" style="display: none;">
             <div class="row">
                 <blockquote>
-                    <p>The Circle Overlap representation is an approximation of Euler fractional overlaps. It is created
-                        without the use of homology and is intended as a broad representation of Gene Set relationships.
-                        It will
-                        not necessarily reflect the results of the Boolean Algebra tool.</p>
+                    <p>This figure is a representation of how the input genesets relate to each other. It uses the same
+                        homology mapping as the Boolean Algebra tool to render an approximate fractional overlap of the
+                        genes shared between each set.
+                    </p>
                 </blockquote>
             </div>
         </div>
-        <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
     {% else %}
         <div class="row">
             <div class="alert alert-warning fade in">

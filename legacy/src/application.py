@@ -1225,7 +1225,7 @@ def save_pub_assignment_note():
     uid = flask.session['user_id']
     pub_assignment_id = request.form.get('assignment_id', type=int)
 
-    notes = bleach.clean(request.form.get('note', ''), strip=True)
+    notes = bleach.clean(request.form.get('notes', ''), strip=True)
 
     assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
     if assignment:
@@ -4570,7 +4570,9 @@ def report_bug_to_jira():
     results = report_bug.to_jira(
         description=request.values['description'],
         fullname=request.values['fullname'],
-        email=request.values['email']
+        email=request.values['email'],
+        user_id=request.values['user_id'],
+        user_page=request.values['user_page']
     )
 
     return json.dumps(results)
