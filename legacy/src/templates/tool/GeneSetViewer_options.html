@@ -31,8 +31,9 @@
 	<div id="gsvCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
 			<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_Homology']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['GeneSetViewer_MinDegree']) }}</div>
-			<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_SupressDisconnected']) }}</div>
+{#			<div class="form-group">{{ macros.tool_param_select(tool.params['GeneSetViewer_MinDegree']) }}</div>#}
+			<div class="form-group">{{ macros.tool_param_textbox(tool.params['GeneSetViewer_MinDegree']) }}</div>
+            <div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_SupressDisconnected']) }}</div>
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>

@@ -104,8 +104,10 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 				params[tool_param.name] = 'On'
         if tool_param.name.endswith('_' + 'MinDegree'):
 		    params[tool_param.name] = minDegree
-		    if minDegree not in ['Auto','1','2','3','4','5','10','20']:
-		        params[tool_param.name] = 'Auto'
+		# if minDegree not in ['Auto','1','2','3','4','5','10','20']:
+		#     params[tool_param.name] = 'Auto'
+        if minDegree not in range(1, 20, 1):
+            params[tool_param.name] = 'Auto'
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
             params[tool_param.name] = 'Excluded'
