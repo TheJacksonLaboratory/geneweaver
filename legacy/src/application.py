@@ -576,7 +576,7 @@ def relationshipOntologies():
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
 @login_required(json=True)
 def assign_genesets_to_curation_group():
-    user = flask.g['user']
+    user = flask.g.user
     user_id = user.user_id
 
     note = bleach.clean(request.form.get('note', ''), strip=True)
@@ -626,7 +626,7 @@ def nominate_public_geneset_for_curation():
 @app.route('/assign_genesets_to_curator.json', methods=['POST'])
 @login_required(json=True)
 def assign_genesets_to_curator():
-    user = flask.g['user']
+    user = flask.g.user
     user_id = user.user_id
 
     note = bleach.clean(request.form.get('note', ''), strip=True)
