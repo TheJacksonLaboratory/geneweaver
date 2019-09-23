@@ -613,7 +613,6 @@
             var species = 'sp-' + $('#selected').attr('data-value');
             var spid = $('#selected').attr('data-value');
 
-
             // Generates a hidden form that is used to submit data to the
             // upload page
             var form = $('<form></form>', {
@@ -675,87 +674,34 @@
 <script type="text/javascript" src="../../static/d3/venn.js"></script>
 
 <script type="text/javascript">
-    // script to make the Euler circles
-    //variables
-
-
-    var sets = {};
-    var data = [];
     var results = {{ json_results | tojson | safe }};
-    var groups = [];
 
     if (results['numGS'] < 11) {
 
-        // This initializes data by creating variables for each of the gs_ids
-        for (var i = 0; i < results['gsids'].length; i++) {
-            groups.push('GS' + results['gsids'][i]);
-        }
-
-        // Initialize the data array with the power set included in groups
-        function powerSet(arr) {
-            var len = arr.length;
-            for (var i = 0; i < Math.pow(2, len); i++) {
-                var aux = [];
-                for (var j = 0; j < len; j++) {
-                    //console.log(j +':'+((1<<j) & j));
-                    if (i & (1 << j)) {
-                        if (arr[j] !== '') {
-                            aux.push(arr[j]);
-                        }
-                    }
-                }
-                sets = {};
-                // initialize variables
-                if (aux[0] !== undefined) {
-                    sets.sets = aux;
-                    sets.size = 0;
-                    if (aux.length === 1) {
-
-                        for (var key in results['bool_results']) {
-                            for (var k = 0; k < results['bool_results'][key].length; k++) {
-                                if (results['bool_results'][key][k][3] == aux[0].substring(2)) {
-                                    sets.abbr = results['bool_results'][key][k][4]
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        sets.abbr = '';
-                    }
-                    data.push(sets);
-                }
-            }
-        }
-
-        powerSet(groups);
-
-
-//Go through the data array and add counts to the appropriate set size elements
+        var venn_dict = {};
         for (var key in results['groups']) {
-            if (results['groups'].hasOwnProperty(key)) {
-                var list = [];
-                for (var k = 0; k < results['groups'][key].length; k++) {
-                    list.push('GS' + results['groups'][key][k])
-                }
-                //loop through data and add/update values
-                for (var j = 0; j < data.length; j++) {
-                    if (data[j]['sets'] == list.join()) {
-                        data[j]['size'] = data[j]['size'] + 1;
-                    }
-                }
+            var gs_id = results['groups'][key];
+            if (!(gs_id in venn_dict)) {
+                venn_dict[gs_id] = 1
+            } else {
+                venn_dict[gs_id] += 1
             }
         }
 
+        var venn_list = [];
+        for (var key in venn_dict) {
+            venn_list.push({sets: key.split(','), size: venn_dict[key]});
+        }
 
-// draw venn diagram
+        // draw venn diagram
         var div = d3.select(".vis");
-        div.datum(data).call(venn.VennDiagram());
+        div.datum(venn_list).call(venn.VennDiagram());
 
-// add a tooltip
+        // add a tooltip
         var tooltip = d3.select("body").append("div")
             .attr("class", "venntooltip");
 
-// add listeners to all the groups to display tooltip on mouseover
+        // add listeners to all the groups to display tooltip on mouseover
         div.selectAll("g")
             .on("mouseover", function (d, i) {
                 // sort all the areas relative to the current item
