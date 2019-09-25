@@ -120,7 +120,7 @@ class PubAssignment(object):
             cursor.connection.commit()
 
         # Send notification to curator
-        subject = "Publication Assigned To You For Review"
+        subject = "Publication Assigned To You For Curation"
         message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
         message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(assignee_id, subject, message)
@@ -342,7 +342,7 @@ def queue_publication(pub_id, group_id, note):
         # send notification to the group admins
         publication = geneweaverdb.get_publication(pub_id)
         group = geneweaverdb.get_group_by_id(group_id)
-        subject = 'Publication Queued for Review'
+        subject = 'New Publication added to Group: {}'.format(group.grp_name)
         message = 'View Assignment: ' + get_pub_assignment_url(assignment_id) +  ' <i>' + publication.title + '</i><br>'
         message += 'Group: {}. <br>'.format(group.grp_name) if group else ''
         message += 'Notes: {}. <br>'.format(note) if note else ''
