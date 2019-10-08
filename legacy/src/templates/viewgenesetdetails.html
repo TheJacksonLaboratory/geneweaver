@@ -726,6 +726,9 @@
 
                     }, "json").fail(handleError);
 
+                    // After POSTing the update, refresh the page
+                    location.reload();
+
                 });
 
                 $('#reviewed').on('click', function () {
