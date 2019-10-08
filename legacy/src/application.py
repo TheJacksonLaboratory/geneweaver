@@ -579,7 +579,7 @@ def assign_genesets_to_curation_group():
     user = flask.g.user
     user_id = user.user_id
 
-    note = bleach.clean(request.form.get('notes', ''), strip=True)
+    note = bleach.clean(request.form.get('note', ''), strip=True)
     grp_id = request.form.get('grp_id')
 
     gs_ids = request.form.getlist('gs_ids[]', type=int)
@@ -629,7 +629,7 @@ def assign_genesets_to_curator():
     user = flask.g.user
     user_id = user.user_id
 
-    note = bleach.clean(request.form.get('notes', ''), strip=True)
+    note = bleach.clean(request.form.get('note', ''), strip=True)
     curator = request.form.get('usr_id')
     gs_ids = request.form.getlist('gs_ids[]', type=int)
     owned_groups = geneweaverdb.get_all_owned_groups(user_id)
@@ -657,7 +657,7 @@ def assign_genesets_to_curator():
 @login_required(json=True)
 def assign_publications_to_curator():
     user_id = flask.session['user_id']
-    notes = bleach.clean(request.form.get('notes', ''), strip=True)
+    notes = bleach.clean(request.form.get('note', ''), strip=True)
     curator = request.form.get('usr_id')
     pub_assign_ids = request.form.getlist('pub_assign_ids[]', type=int)
     group_id = request.form.get('group_id')
@@ -682,7 +682,7 @@ def assign_publications_to_curator():
 def assign_geneset_to_curator():
     user_id = flask.session['user_id']
 
-    notes = bleach.clean(request.form.get('notes', ''), strip=True)
+    notes = bleach.clean(request.form.get('note', ''), strip=True)
     gs_id = request.form.get('gs_id', type=int)
     curator = request.form.get('curator', type=int)
 
@@ -710,7 +710,7 @@ def assign_geneset_to_curator():
 def geneset_ready_for_review():
     user_id = flask.session['user_id']
 
-    notes = bleach.clean(request.form.get('notes', ''), strip=True)
+    notes = bleach.clean(request.form.get('note', ''), strip=True)
     gs_id = request.form.get('gs_id', type=int)
 
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
@@ -734,7 +734,7 @@ def geneset_ready_for_review():
 def mark_geneset_reviewed():
     user = flask.g.user
 
-    notes = bleach.clean(request.form.get('notes', ''), strip=True)
+    notes = bleach.clean(request.form.get('note', ''), strip=True)
     gs_id = request.form.get('gs_id', type=int)
     review_ok = request.form.get('review_ok') in ['true', '1']
 
