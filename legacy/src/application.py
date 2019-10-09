@@ -1003,7 +1003,7 @@ def assign_publications_to_group():
 def assign_publication_to_curator():
     user_id = flask.session['user_id']
 
-    notes = bleach.clean(request.form.get('note', ''), strip=True)
+    notes = bleach.clean(request.form.get('notes', ''), strip=True)
     pub_assignment_id = request.form.get('assignment_id', type=int)
     curator = request.form.get('curator', type=int)
 
@@ -1041,7 +1041,7 @@ def assign_publication_to_curator():
 def mark_pub_assignment_as_complete():
     user_id = flask.session['user_id']
 
-    notes = bleach.clean(request.form.get('note', ''), strip=True)
+    notes = bleach.clean(request.form.get('notes', ''), strip=True)
     pub_assignment_id = request.form.get('assignment_id', type=int)
 
     assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
@@ -1084,7 +1084,7 @@ def mark_pub_assignment_as_complete():
 @login_required(json=True)
 def close_pub_assignment():
     user_id = flask.session['user_id']
-    notes = bleach.clean(request.form.get('note', ''), strip=True)
+    notes = bleach.clean(request.form.get('notes', ''), strip=True)
     pub_assignment_id = request.form.get('assignment_id', type=int)
     assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
 
@@ -1125,7 +1125,7 @@ def close_pub_assignment():
 @login_required(json=True)
 def pub_assignment_rejection():
     user_id = flask.session['user_id']
-    notes = bleach.clean(request.form.get('note', ''), strip=True)
+    notes = bleach.clean(request.form.get('notes', ''), strip=True)
     pub_assignment_id = request.form.get('assignment_id', type=int)
     assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
 
@@ -1228,6 +1228,8 @@ def save_pub_assignment_note():
     notes = bleach.clean(request.form.get('notes', ''), strip=True)
 
     assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
+
+    gid = assignment.group
     if assignment:
         # make sure user is authorized (assignee, assigner, group admin)
         if uid == assignment.assignee or uid == assignment.assigner or int(gid) in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:

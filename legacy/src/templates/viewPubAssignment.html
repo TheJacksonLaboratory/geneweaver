@@ -382,6 +382,8 @@
                     $('#curatorName').html(curatorName);
                 }, 'json').fail(handlePostJsonError);
 
+                // After POSTing the update, refresh the page
+                location.reload();
 
             });
 
