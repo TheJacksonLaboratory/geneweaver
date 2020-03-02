@@ -1,5 +1,8 @@
-import ConfigParser
+# TODO: Should be deprecated with python2
+from __future__ import print_function
 import os
+
+import configparser
 
 ## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
 ## included in version control, especially if it has any usernames, passwords,
@@ -16,36 +19,36 @@ def createConfig():
     """
     Generates a new configuration file in the current directory. The config
     file uses the common INI style which can be parsed with python's
-    ConfigParser module.
+    configparser module.
 
     :ret:
     """
 
     with open(CONFIG_PATH, 'w') as fl:
-        print >> fl, '## GeneWeaver Configuration File'
-        print >> fl, '#'
-        print >> fl, ''
-        print >> fl, '[application]'
-        print >> fl, 'host = 127.0.0.1'
-        print >> fl, 'results = '+rootpath+'website-py/results'
-        print >> fl, 'secret = ' + os.urandom(32).encode('hex')
-        print >> fl, 'help_url = http://geneweaver.org/help'
-        print >> fl, ''
-        print >> fl, '[celery]'
-        print >> fl, 'url = amqp://guest@localhost//'
-        print >> fl, 'backend = amqp'
-        print >> fl, ''
-        print >> fl, '[db]'
-        print >> fl, 'database = dbname'
-        print >> fl, 'user = user'
-        print >> fl, 'password = somepassword'
-        print >> fl, 'host = 127.0.0.1'
-        print >> fl, 'port = 5432'
-        print >> fl, ''
-        print >> fl, '[sphinx]'
-        print >> fl, 'host = 127.0.0.1'
-        print >> fl, 'port = 9312'
-        print >> fl, ''
+        print('## GeneWeaver Configuration File', file=fl)
+        print('#', file=fl)
+        print('', file=fl)
+        print('[application]', file=fl)
+        print('host = 127.0.0.1', file=fl)
+        print('results = '+rootpath+'website-py/results', file=fl)
+        print('secret = ' + os.urandom(32).encode('hex'), file=fl)
+        print('help_url = http://geneweaver.org/help', file=fl)
+        print('', file=fl)
+        print('[celery]', file=fl)
+        print('url = amqp://guest@localhost//', file=fl)
+        print('backend = amqp', file=fl)
+        print('', file=fl)
+        print('[db]', file=fl)
+        print('database = dbname', file=fl)
+        print('user = user', file=fl)
+        print('password = somepassword', file=fl)
+        print('host = 127.0.0.1', file=fl)
+        print('port = 5432', file=fl)
+        print('', file=fl)
+        print('[sphinx]', file=fl)
+        print('host = 127.0.0.1', file=fl)
+        print('port = 9312', file=fl)
+        print('', file=fl)
 
 def checkIntegrity():
     """
@@ -103,7 +106,7 @@ def getInt(section, option):
 ## of the app may need to access its variables. The config will attempt to load
 ## and parse everything as soon as it's imported.
 if not CONFIG:
-    CONFIG = ConfigParser.RawConfigParser(allow_no_value=True)
+    CONFIG = configparser.RawConfigParser(allow_no_value=True)
     loadConfig()
 
 if __name__ == '__main__':

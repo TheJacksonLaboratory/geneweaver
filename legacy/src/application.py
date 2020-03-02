@@ -1,12 +1,15 @@
+# TODO: Should be deprecated with python2
+from __future__ import print_function
+
+import sys
+from sys import exc_info
+
 import flask
 from flask_admin import Admin, BaseView, expose
 from flask_admin.base import MenuLink
 import flask_restful as restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
-from urllib2 import HTTPError
-from sys import exc_info
-from urlparse import parse_qs, urlparse
 import config
 import datetime
 import adminviews
@@ -23,8 +26,6 @@ import json
 import os
 import os.path as path
 import re
-import urllib
-import urllib3
 import itertools
 from collections import OrderedDict, defaultdict
 from tools import abbablueprint
@@ -48,6 +49,14 @@ import bleach
 from psycopg2 import Error
 from psycopg2 import IntegrityError
 import report_bug
+import urllib
+import urllib3
+if sys.version_info[0] < 3:
+    from urllib2 import HTTPError
+    from urlparse import parse_qs, urlparse
+else:
+    from urllib.error import HTTPError
+    from urllib.parse.urlparse import parse_qs, urlparse
 
 from decorators import login_required, create_guest, restrict_to_current_user
 
@@ -276,7 +285,7 @@ def send_mail(to, subject, body):
     p.write(body)
     status = p.close()
     if status != 0:
-        print "Sendmail exit status", status
+        print("Sendmail exit status", status)
 
 
 def _form_register():
@@ -561,7 +570,7 @@ def add_relations_ontology():
                 try:
                     geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
                 except Error as e:
-                    print 'RDF Update Error: ' + e.message
+                    print('RDF Update Error: ' + e.message)
 
     return flask.jsonify({'success': True})
 
@@ -2158,7 +2167,7 @@ def download_result():
 
     if filetype == 'svg':
         with open(img_abs, 'w') as fl:
-            print >> fl, svg.getvalue()
+            print(svg.getvalue(), file=fl)
 
             return img_rel
 
@@ -2447,7 +2456,7 @@ def get_geneset_genes():
     for gsv in gs.geneset_values:
         symbols.append(gsv.ode_ref)
 
-    print gsvs
+    print(gsvs)
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
         gene_id = gsvs[i].ode_gene_id
@@ -3349,7 +3358,7 @@ def render_export_omicssoft(gs_ids):
             results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
             gsv_values = geneweaverdb.export_results_by_gs_id(gs_id)
             omicssoft = geneweaverdb.get_omicssoft(gs_id)
-            print omicssoft
+            print(omicssoft)
             title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
             string += '[GeneSet]\n'
             if results is not None:
