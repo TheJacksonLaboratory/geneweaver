@@ -1,10 +1,22 @@
+# TODO: Should be deprecated with python2
 from __future__ import print_function
+
+import re
+import sys
+import urllib
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from urllib2 import HTTPError
+    from urllib2 import urlopen
+else:
+    from urllib.error import HTTPError
+    from urllib.request import urlopen
+
+import xml.etree.ElementTree as ET
+
 import geneweaverdb
 import pub_assignments
-import re
-import urllib
-import urllib2
-import xml.etree.ElementTree as ET
+
 
 PUBMED_SEARCH_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
 
@@ -98,11 +110,11 @@ class PublicationGenerator(object):
 
         :return: Returns a list of pubmed entries as dictionaries. If the publication already exists
                  in GeneWeaver the dictionary will also contain the associated PubAssignments
-        :raised: If there are communication problems with PubMed an urllib2.HTTPError will be allowed to pass through
+        :raised: If there are communication problems with PubMed an HTTPError will be allowed to pass through
         """
         import time
         start = time.time()
-        pubmed_result = PubmedResult(urllib2.urlopen(PUBMED_SEARCH_URL % (urllib.quote(self.querystring),)).read())
+        pubmed_result = PubmedResult(urlopen(PUBMED_SEARCH_URL % (urllib.quote(self.querystring),)).read())
 
         # Timing for how long the pubmed search took
         new_time = time.time()
@@ -157,9 +169,9 @@ class PubmedResult(object):
             self.retmax = max_result
 
         try:
-            response = urllib2.urlopen(self._PUBMED_DATA_URL % (self.query_key, self.web_env, self.retstart, self.retmax)).read()
+            response = urlopen(self._PUBMED_DATA_URL % (self.query_key, self.web_env, self.retstart, self.retmax)).read()
         # Allow HTTPError from communication problems with PubMed to get propogated up
-        except urllib2.HTTPError as e:
+        except HTTPError as e:
             print("Problem communicating with PubMed. {}".format(e.message))
             raise e
 

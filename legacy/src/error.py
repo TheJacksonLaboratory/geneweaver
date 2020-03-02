@@ -43,7 +43,7 @@ def send_sos(msg):
         s.quit()
 
     ## The most common reason for this failing is the SMTP server isn't running
-    except Exception, e:
+    except Exception as e:
         write_sos('Email failed with ' + str(e))
         write_sos(msg)
 
