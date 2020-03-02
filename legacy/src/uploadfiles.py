@@ -1,12 +1,20 @@
 import re
-import geneweaverdb as db
-from urlparse import parse_qs, urlparse
-from flask import session
-import annotator as ann
+import sys
 import json
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from urlparse import parse_qs, urlparse
+else:
+    from urllib.parse import parse_qs, urlparse
+
+from flask import session
 import psycopg2
 import requests
+
+import annotator as ann
+import geneweaverdb as db
 import tools.toolcommon as tc
+
 
 __author__ = 'baker'
 

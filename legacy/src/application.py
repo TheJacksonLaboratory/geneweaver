@@ -57,7 +57,7 @@ if sys.version_info[0] < 3:
     from urlparse import parse_qs, urlparse
 else:
     from urllib.error import HTTPError
-    from urllib.parse.urlparse import parse_qs, urlparse
+    from urllib.parse import parse_qs, urlparse
 
 from decorators import login_required, create_guest, restrict_to_current_user
 
