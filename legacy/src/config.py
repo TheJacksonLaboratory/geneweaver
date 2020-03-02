@@ -1,8 +1,9 @@
 # TODO: Should be deprecated with python2
 from __future__ import print_function
-import os
 
+import os
 import configparser
+
 
 ## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
 ## included in version control, especially if it has any usernames, passwords,

@@ -111,7 +111,7 @@ class Viewers(Authentication, BaseView):
         elif self.endpoint == 'viewGeneInfo':
             table = 'extsrc.gene_info'
             dbcols = geneweaverdb.get_all_columns(table)
-            print dbcols
+            print(dbcols)
 
             columns = [{'name': 'ode_gene_id'}, {'name': 'gi_accession'}, {'name': 'gi_symbol'}, {'name': 'gi_name'},
                        {'name': 'gi_description'}, {'name': 'gi_type'}, {'name': 'gi_chromosome'},

@@ -58,7 +58,7 @@ def insertPublication(pubDict):
             cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pubDict['pub_pubmed'],))
             pub_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             if pub_id is not None:
-                print 'Old Pub_id: ' + str(pub_id)
+                print('Old Pub_id: ' + str(pub_id))
                 return pub_id
             else:
                 pmid = True
@@ -73,7 +73,7 @@ def insertPublication(pubDict):
                             pubDict['pub_pubmed'],))
             pub_id = cursor.fetchone()[0]
             cursor.connection.commit()
-            print 'New Pub_id: ' + str(pub_id)
+            print('New Pub_id: ' + str(pub_id))
             return pub_id
 
 
@@ -83,7 +83,7 @@ def insert_new_contents_to_file(contents):
                           RETURNING file_id''', (contents, 'uploaded from website',))
         file_id = cursor.fetchone()[0]
         cursor.connection.commit()
-        print 'New File_id: ' + str(file_id)
+        print('New File_id: ' + str(file_id))
         return file_id
 
 
@@ -266,7 +266,7 @@ def create_new_geneset_for_user(args, user_id):
                                          ))
             gs_id = cursor.fetchone()[0]
             cursor.connection.commit()
-            print 'gs_id inserted as: ' + str(gs_id)
+            print('gs_id inserted as: ' + str(gs_id))
 
             # update geneset to add pub_id
             if pub_id is not None:
@@ -427,7 +427,7 @@ def create_new_large_geneset_for_user(args, user_id):
                                          ))
             gs_id = cursor.fetchone()[0]
             cursor.connection.commit()
-            print 'gs_id inserted as: ' + str(gs_id)
+            print('gs_id inserted as: ' + str(gs_id))
 
             # update geneset to add pub_id
             if pub_id is not None:
@@ -676,9 +676,9 @@ def reparse_file_contents_simple(gs_id, species=None, gdb=None):
                     ## Loop through all file_content lines
                     for newline in newlines:
                         if re.match(r'#.*$', newline):
-                            print '[+] First Line Ignored ...'
+                            print('[+] First Line Ignored ...')
                         elif re.match(r'^from', newline):
-                            print '[+] From batch....'
+                            print('[+] From batch....')
                         else:
                             ##
                             ## catching tab delimited values
@@ -688,7 +688,7 @@ def reparse_file_contents_simple(gs_id, species=None, gdb=None):
                             try:
                                 gene = values[0]
                             except:
-                                print 'value error: ' + newline
+                                print('value error: ' + newline)
                                 #print r[0]
                             v = 1.0
                             if len(values) == 2:

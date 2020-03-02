@@ -8,7 +8,11 @@ import psycopg2
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import request
-from HTMLParser import HTMLParser
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from HTMLParser import HTMLParser
+else:
+    from html.parser import HTMLParser
 
 import config
 import geneweaverdb

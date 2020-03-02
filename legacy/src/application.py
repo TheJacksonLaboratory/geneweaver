@@ -52,6 +52,7 @@ import report_bug
 import urllib
 import urllib3
 if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
     from urllib2 import HTTPError
     from urlparse import parse_qs, urlparse
 else:
