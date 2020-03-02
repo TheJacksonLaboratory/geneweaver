@@ -3,11 +3,20 @@
 ## Monarch Initiative) are used since the latter is missing MA annotations.
 ## Separate stand-alone versions of these wrappers can be found, for now,
 ## at bitbucket.org/geneweaver/curation
-
-import geneweaverdb
+import sys
 import json
 import urllib as url
-import urllib2 as url2
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    import urllib2 as url2
+    from urllib2 import HTTPError
+else:
+    from urllib.error import HTTPError
+    # TODO: url2 should be renamed later.
+    from urllib import request as url2
+
+import geneweaverdb
+
 
 NCBO_URL = 'http://data.bioontology.org'
 NCBO_ANNOTATOR = NCBO_URL + '/annotator?'
@@ -78,14 +87,14 @@ def fetch_ncbo_annotations(text, ncboids):
             res = res.read()
 
         except url2.HTTPError as e:
-            print 'Failed to retrieve annotation data from NCBO:'
-            print e
-            print e.read()
+            print('Failed to retrieve annotation data from NCBO:')
+            print(e)
+            print(e.read())
             continue
 
-        except Exception, e:
-            print 'Unkown error fetching annotations:'
-            print e
+        except Exception as e:
+            print('Unkown error fetching annotations:')
+            print(e)
             continue
 
         ## Success
@@ -94,7 +103,7 @@ def fetch_ncbo_annotations(text, ncboids):
     ## for-else construct: if the loop doesn't break (in our case this
     ## indicates success) then this statement is executed
     else:
-        print 'Failed to retrieve annotation data after three attempts'
+        print('Failed to retrieve annotation data after three attempts')
         return []
 
     return json.loads(res)
@@ -121,15 +130,15 @@ def get_ncbo_link(link):
             res = res.read()
 
         except url2.HTTPError as e:
-            print 'Failed to retrieve annotation data from an NCBO link:'
-            print e
+            print('Failed to retrieve annotation data from an NCBO link:')
+            print(e)
             continue
 
         ## Success
         break
 
     else:
-        print 'Failed to retrieve data from an NCBO URL'
+        print('Failed to retrieve data from an NCBO URL')
         return None
 
     return json.loads(res)
@@ -203,14 +212,14 @@ def fetch_monarch_annotations(text):
             res = url2.urlopen(req)
             res = res.read()
 
-        except url2.HTTPError as e:
-            print 'Failed to retrieve annotation data:'
-            print e
+        except HTTPError as e:
+            print('Failed to retrieve annotation data:')
+            print(e)
             continue
 
-        except Exception, e:
-            print 'Unkown error fetching annotations:'
-            print e
+        except Exception as e:
+            print('Unkown error fetching annotations:')
+            print(e)
             continue
 
         ## Success
@@ -219,7 +228,7 @@ def fetch_monarch_annotations(text):
     ## for-else construct: if the loop doesn't break (in our case this
     ## indicates success) then this statement is executed
     else:
-        print 'Failed to retrieve annotation data after three attempts'
+        print('Failed to retrieve annotation data after three attempts')
         return []
 
     return json.loads(res)

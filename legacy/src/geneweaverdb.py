@@ -2377,7 +2377,7 @@ def get_all_columns(table):
         with PooledCursor() as cursor:
             cursor.execute(sql)
             return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2388,7 +2388,7 @@ def get_primary_keys(table):
         with PooledCursor() as cursor:
             cursor.execute(sql)
             return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2400,7 +2400,7 @@ def get_required_columns(table):
         with PooledCursor() as cursor:
             cursor.execute(sql)
             return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2413,7 +2413,7 @@ def get_nullable_columns(table):
         with PooledCursor() as cursor:
             cursor.execute(sql)
             return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2425,7 +2425,7 @@ def admin_get_data(table, cols, keys):
         with PooledCursor() as cursor:
             cursor.execute(sql)
             return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2444,7 +2444,7 @@ def admin_delete(args, keys):
             cursor.execute(sql)
             cursor.connection.commit()
             return "Deletion Successful"
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2471,7 +2471,7 @@ def admin_set_edit(args, keys):
             cursor.execute(sql)
             cursor.connection.commit()
             return "Edit Successful"
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2500,7 +2500,7 @@ def admin_add(args):
             cursor.execute(sql)
             cursor.connection.commit()
             return "Add Successful"
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2537,7 +2537,7 @@ def genesets_per_tier(includeDeleted):
                                     ('Tier 5', five)
                                     ])
         return response
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2574,7 +2574,7 @@ def genesets_per_species_per_tier(includeDeleted):
                                     ('Tier 5', five)
                                     ])
         return response
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2583,7 +2583,7 @@ def get_species_name():
         with PooledCursor() as cursor:
             cursor.execute('''SELECT sp_id, sp_name FROM odestatic.species;''')
         return OrderedDict(cursor)
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2625,7 +2625,7 @@ def monthly_tool_stats():
                         (tool['res_tool'],))
                 response.update({tool['res_tool']: OrderedDict(cursor)})
         return response
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2642,7 +2642,7 @@ def user_tool_stats():
             cursor.execute(
                     '''SELECT usr_id, count(*) FROM production.result WHERE res_created >= now() - INTERVAL '6 months' GROUP BY usr_id ORDER BY count(*) DESC LIMIT 20;''')
         return OrderedDict(cursor)
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2654,7 +2654,7 @@ def tool_stats_by_user(user_id):
 						  WHERE res_created >= now() - interval '30 days' AND usr_id=%s
 						  ORDER BY res_started desc;''', (user_id,))
         return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2664,7 +2664,7 @@ def currently_running_tools():
             cursor.execute(
                     '''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed IS NULL;''')
         return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2674,7 +2674,7 @@ def size_of_genesets():
             cursor.execute(
                     '''SELECT gs_id, gs_count FROM production.geneset WHERE gs_status not like 'de%' ORDER BY gs_count DESC limit 1000;''')
         return OrderedDict(cursor)
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2686,7 +2686,7 @@ def avg_tool_times(keys, tool):
         with PooledCursor() as cursor:
             cursor.execute(sql)
         return cursor.fetchone()[0]
-    except Exception, e:
+    except Exception as e:
         return 0
 
 
@@ -2697,7 +2697,7 @@ def avg_genes(keys):
         with PooledCursor() as cursor:
             cursor.execute(sql)
         return cursor.fetchone()[0]
-    except Exception, e:
+    except Exception as e:
         return 0
 
 
@@ -2707,7 +2707,7 @@ def gs_in_tool_run():
             cursor.execute(
                     '''SELECT res_id, res_tool, gs_ids, res_completed FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_completed DESC LIMIT 500;''')
         return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -2716,7 +2716,7 @@ def tools():
         with PooledCursor() as cursor:
             cursor.execute('''SELECT DISTINCT res_tool FROM production.result;''')
         return list(dictify_cursor(cursor))
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
@@ -4877,7 +4877,7 @@ def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
             gene_id2.append(gid[0])
 
         intersect_id = list(set(gene_id1).intersection(gene_id2))
-        print "intersect_id ", intersect_id
+        print("intersect_id ", intersect_id)
 
         for gene_id in intersect_id:
             cursor.execute(
