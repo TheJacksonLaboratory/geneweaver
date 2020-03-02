@@ -1,13 +1,21 @@
-import flask
-import geneweaverdb
-import pubmedsvc
-import urllib2
 import re
 import batch
 import json
+import sys
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from urllib2 import unquote
+else:
+    from urllib.parse import unquote
+
+import flask
+
+import geneweaverdb
+import pubmedsvc
 import annotator as ann
 from decorators import login_required, create_guest
 import curation_assignments
+
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
@@ -105,7 +113,7 @@ def create_batch_geneset():
     batch_file = flask.request.form['batchFile']
 
     ## The data sent to us should be URL encoded
-    batch_file = urllib2.unquote(batch_file)
+    batch_file = unquote(batch_file)
     batch_file = batch_file.split('\n')
     batch_file = map(lambda s: s.encode('ascii', 'ignore'), batch_file)
 
@@ -357,7 +365,7 @@ def create_temp_geneset():
                         invalid_genes.append(curr_id)
                         pass
 
-                except Exception, e:
+                except Exception as e:
                     return str(e)
                     pass
 
@@ -405,7 +413,7 @@ def create_temp_geneset():
                         cursor.execute(pub_sql)
                         cursor.connection.commit()
                         pub_id = cursor.fetchone()[0]
-                        print pub_sql
+                        print(pub_sql)
 
         file_id = None
         with geneweaverdb.PooledCursor() as cursor:
@@ -414,7 +422,7 @@ def create_temp_geneset():
             cursor.execute(file_sql)
             cursor.connection.commit()
             file_id = cursor.fetchone()[0]
-            print file_sql
+            print(file_sql)
 
         if file_id == None:
             return "Error: Cannot create file"
@@ -432,7 +440,7 @@ def create_temp_geneset():
             cursor.execute(GS_sql)
             cursor.connection.commit()
             gs_id = cursor.fetchone()[0]
-            print GS_sql
+            print(GS_sql)
             if gs_id == None:
                 return "Error: Unable to get GeneSet ID."
 
@@ -440,7 +448,7 @@ def create_temp_geneset():
                 pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
                 cursor.execute(pub_sql)
                 cursor.connection.commit()
-                print pub_sql
+                print(pub_sql)
 
 
 
@@ -473,7 +481,7 @@ def create_temp_geneset():
 
             GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (
             gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values), 0, is_thresh)
-            print GS_value_sql
+            print(GS_value_sql)
             with geneweaverdb.PooledCursor() as cursor:
                 cursor.execute(GS_value_sql)
                 cursor.connection.commit()
@@ -508,7 +516,7 @@ def create_temp_geneset():
             # gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)
             cursor.execute(gs_count_sql)
             gs_count = cursor.fetchone()[0]
-            print gs_count_sql
+            print(gs_count_sql)
 
         # if gs_count == None:
         # print error
@@ -519,17 +527,17 @@ def create_temp_geneset():
             gs_count, gs_threshold, gs_threshold_type, gs_id)
             cursor.execute(gs_update_sql)
             cursor.connection.commit()
-            print gs_update_sql
+            print(gs_update_sql)
 
         return "GeneSet Created"
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 @geneset_blueprint.route('/creategeneset.html', methods=['POST'])
 def create_geneset():
     try:
         form = flask.request.form
-        print form
+        print(form)
 
         gs_name = form['gs_name']
         gs_abbreviation = form['gs_abbreviation']
@@ -620,7 +628,7 @@ def create_geneset():
                         invalid_genes.append(curr_id)
                         pass
 
-                except Exception, e:
+                except Exception as e:
                     return str(e)
                     pass
 
@@ -668,7 +676,7 @@ def create_geneset():
                         cursor.execute(pub_sql)
                         cursor.connection.commit()
                         pub_id = cursor.fetchone()[0]
-                        print pub_sql
+                        print(pub_sql)
 
         file_id = None
         with geneweaverdb.PooledCursor() as cursor:
@@ -677,7 +685,7 @@ def create_geneset():
             cursor.execute(file_sql)
             cursor.connection.commit()
             file_id = cursor.fetchone()[0]
-            print file_sql
+            print(file_sql)
 
         if file_id == None:
             return "Error: Cannot create file"
@@ -695,7 +703,7 @@ def create_geneset():
             cursor.execute(GS_sql)
             cursor.connection.commit()
             gs_id = cursor.fetchone()[0]
-            print GS_sql
+            print(GS_sql)
             if gs_id == None:
                 return "Error: Unable to get GeneSet ID."
 
@@ -703,7 +711,7 @@ def create_geneset():
                 pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
                 cursor.execute(pub_sql)
                 cursor.connection.commit()
-                print pub_sql
+                print(pub_sql)
 
 
 
@@ -736,7 +744,7 @@ def create_geneset():
 
             GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (
             gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values), 0, is_thresh)
-            print GS_value_sql
+            print(GS_value_sql)
             with geneweaverdb.PooledCursor() as cursor:
                 cursor.execute(GS_value_sql)
                 cursor.connection.commit()
@@ -771,7 +779,7 @@ def create_geneset():
             # gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)
             cursor.execute(gs_count_sql)
             gs_count = cursor.fetchone()[0]
-            print gs_count_sql
+            print(gs_count_sql)
 
         # if gs_count == None:
         # print error
@@ -782,10 +790,10 @@ def create_geneset():
             gs_count, gs_threshold, gs_threshold_type, gs_id)
             cursor.execute(gs_update_sql)
             cursor.connection.commit()
-            print gs_update_sql
+            print(gs_update_sql)
 
         return "GeneSet Created"
-    except Exception, e:
+    except Exception as e:
         return str(e)
 
 
