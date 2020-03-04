@@ -9,9 +9,17 @@
 #### auth:  TR
 ##
 
+import sys
 import json
 import urllib as url
-import urllib2 as url2
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from urllib2 import build_opener, urlopen, Request
+    from urllib2 import HTTPError
+else:
+    from urllib.request import build_opener, urlopen, Request
+    from urllib.error import HTTPError
+
 
 NCBO_BASE = 'http://data.bioontology.org'
 NCBO_ANNOTATOR = NCBO_BASE + '/annotator?'
@@ -49,13 +57,13 @@ def fetch_ncbo_annotations(text, ncboids):
     ## exception is handled three times.
     for attempt in range(3):
         try:
-            req = url2.Request(NCBO_ANNOTATOR, params)
-            res = url2.urlopen(req)
+            req = Request(NCBO_ANNOTATOR, params)
+            res = urlopen(req)
             res = res.read()
 
-        except url2.HTTPError as e:
-            print 'Failed to retrieve annotation data from NCBO:'
-            print e
+        except HTTPError as e:
+            print('Failed to retrieve annotation data from NCBO:')
+            print(e)
             continue
 
         ## Success
@@ -64,7 +72,7 @@ def fetch_ncbo_annotations(text, ncboids):
     ## for-else construct: if the loop doesn't break (in our case this
     ## indicates success) then this statement is executed
     else:
-        print 'Failed to retrieve annotation data after three attempts'
+        print('Failed to retrieve annotation data after three attempts')
         exit()
 
     return json.loads(res)
@@ -81,7 +89,7 @@ def get_ncbo_link(link):
     :ret dict: some object representing data at the link
     """
 
-    opener = url2.build_opener()
+    opener = build_opener()
     opener.addheaders = [('Authorization', 'apikey token=' + API_KEY)]
 
     for attempt in range(3):
@@ -89,16 +97,16 @@ def get_ncbo_link(link):
             res = opener.open(link)
             res = res.read()
 
-        except url2.HTTPError as e:
-            print 'Failed to retrieve annotation data from an NCBO link:'
-            print e
+        except HTTPError as e:
+            print('Failed to retrieve annotation data from an NCBO link:')
+            print(e)
             continue
 
         ## Success
         break
 
     else:
-        print 'Failed to retrieve data from an NCBO URL'
+        print('Failed to retrieve data from an NCBO URL')
         return None
 
     return json.loads(res)
@@ -159,5 +167,5 @@ if __name__ == '__main__':
 
     ## Sample usage
     an = fetch_ncbo_annotations(text, NCBO_IDS)
-    print parse_ncbo_annotations(an)
+    print(parse_ncbo_annotations(an))
 

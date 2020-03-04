@@ -6,9 +6,16 @@
 #### auth:  TR
 ##
 
+import sys
 import json
 import urllib as url
-import urllib2 as url2
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from urllib2 import urlopen, Request
+    from urllib2 import HTTPError
+else:
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
 
 BASE_URL = 'https://scigraph-ontology.monarchinitiative.org/scigraph'
 ## Couldn't find this endpoint anywhere in the documentation, but it's buried
@@ -39,8 +46,8 @@ def fetch_monarch_annotations(text):
             res = res.read()
 
         except url2.HTTPError as e:
-            print 'Failed to retrieve annotation data:'
-            print e
+            print('Failed to retrieve annotation data:')
+            print(e)
             continue
 
         ## Success
@@ -49,14 +56,14 @@ def fetch_monarch_annotations(text):
     ## for-else construct: if the loop doesn't break (in our case this
     ## indicates success) then this statement is executed
     else:
-        print 'Failed to retrieve annotation data after three attempts'
+        print('Failed to retrieve annotation data after three attempts')
         return []
 
     return json.loads(res)
 
 def parse_monarch_annotations(annots):
     """
-    Given a list of annotation objects retrieved from MI, this function 
+    Given a list of annotation objects retrieved from MI, this function
     parses out and returns ontology IDs.
 
     :arg list: list of annotation objects from MI
@@ -117,6 +124,6 @@ if __name__ == '__main__':
     an = fetch_monarch_annotations(text)
     an = parse_monarch_annotations(an)
 
-    print an
-    print filter_monarch_annotations(an, ONT_IDS)
+    print(an)
+    print(filter_monarch_annotations(an, ONT_IDS))
 

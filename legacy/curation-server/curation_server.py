@@ -11,10 +11,14 @@ import decimal
 import hashlib
 import logging
 import logging.handlers
-import urllib2
 import psycopg2
 import datetime
 from flask import Flask, request, url_for, session, render_template, redirect, flash, abort
+if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    from urllib2 import urlopen
+else:
+    from urllib.request import urlopen
 
 ## 2016.03.21 - new version of the NCBO Annotator
 ## Will replace the NCBO related functions found in this file.
@@ -178,7 +182,7 @@ def list_stubs():
   stubs={}
   try:
     cur.scroll(25*(int(session['page'])-1))
-  except (psycopg2.ProgrammingError, IndexError), exc:
+  except (psycopg2.ProgrammingError, IndexError) as exc:
     if cur.rowcount>0:
       abort(404)
 
@@ -239,7 +243,7 @@ def add_manual_stubs(cur, pmids, grp_id, priority):
   geninfo = {'name':'Manual','querystring':'-','grp_id':grp_id,'stubgenid':row[0]}
 
   PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
-  response = urllib2.urlopen(PM_DATA % (','.join([str(x) for x in pmids]),)).read()
+  response = urlopen(PM_DATA % (','.join([str(x) for x in pmids]),)).read()
 
   _process_pubmed_response(cur,geninfo,response, priority)
 
@@ -254,7 +258,7 @@ def refresh_stubs(cur,genname):
   geninfo = {'name':row[0],'querystring':row[1],'grp_id':row[2],'stubgenid':row[3]}
 
   PM_SEARCH  = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
-  response = urllib2.urlopen(PM_SEARCH % (urllib.quote(geninfo['querystring']),)).read()
+  response = urlopen(PM_SEARCH % (urllib.quote(geninfo['querystring']),)).read()
   QueryKey = re.search('<QueryKey>([0-9]*)</QueryKey>', response).group(1)
   WebEnv = re.search('<WebEnv>([^<]*)</WebEnv>', response).group(1)
   count = re.search('<Count>([0-9]*)</Count>', response).group(1)
@@ -262,7 +266,7 @@ def refresh_stubs(cur,genname):
   # TODO: batch download these instead of all-at-once (10k max)
   #PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s'
   PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s&retmode=xml'
-  response = urllib2.urlopen(PM_DATA % (QueryKey,WebEnv)).read()
+  response = urlopen(PM_DATA % (QueryKey,WebEnv)).read()
 
   return _process_pubmed_response(cur,geninfo,response)
 
@@ -643,7 +647,7 @@ def list_genesets():
   stubs={}
   try:
     cur.scroll(25*(int(session['gs_page'])-1))
-  except (psycopg2.ProgrammingError, IndexError), exc:
+  except (psycopg2.ProgrammingError, IndexError) as exc:
     if cur.rowcount>0:
       abort(404)
 
@@ -866,7 +870,6 @@ def reject_geneset(gsid):
 ########################################
 
 def fetch_ncbo_terms(db_cur, text, pub_id=None):
-  import urllib2
   import urllib
   ncboids=set()
   db_cur.execute("SELECT ontdb_ncbo_vid FROM odestatic.ontologydb;")
@@ -885,7 +888,7 @@ def fetch_ncbo_terms(db_cur, text, pub_id=None):
   fails=None
   while fails is None or fails<3:
     try:
-      f = urllib2.urlopen(NCBO_URL, urllib.urlencode(params) )
+      f = urlopen(NCBO_URL, urllib.urlencode(params) )
       for line in f:
         fields = line.strip().split('\t')
         ontology_id=fields[1].split('/')[1]
@@ -897,7 +900,7 @@ def fetch_ncbo_terms(db_cur, text, pub_id=None):
         fails=1
       else:
         fails+=1
-      print 'HTTP Fail. Retry #%d' % (fails,)
+      print('HTTP Fail. Retry #%d' % (fails,))
       ontologies=set()
 
   return ontologies
