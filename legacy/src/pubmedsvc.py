@@ -77,14 +77,14 @@ def get_pubmed_info(pub_med_id):
 # run a little test code if this is the main module
 if __name__ == '__main__':
     def print_pubmed_info(pubmed_id):
-        print ''
-        print '====================================================================================='
-        print pubmed_id
-        print PUB_MED_XML_SVC_URL.format(pubmed_id)
+        print('')
+        print('=====================================================================================')
+        print(pubmed_id)
+        print(PUB_MED_XML_SVC_URL.format(pubmed_id))
         for k, v in get_pubmed_info(pubmed_id).iteritems():
-            print '-------'
-            print k
-            print v
+            print('-------')
+            print(k)
+            print(v)
 
     print_pubmed_info(17172759)
     print_pubmed_info(24818216)
