@@ -1,14 +1,17 @@
+from collections import OrderedDict
+from decimal import Decimal
+import json
+import operator
+import os
+import uuid
+
 import celery.states as states
 import flask
-import json
-import uuid
-import operator
+
 import config
-import os
 import geneweaverdb as gwdb
-import toolcommon as tc
-from decimal import Decimal
-from collections import OrderedDict
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'BooleanAlgebra'
 boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)

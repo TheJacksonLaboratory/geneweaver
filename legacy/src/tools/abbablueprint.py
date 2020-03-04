@@ -1,11 +1,14 @@
-import celery.states as states
-import flask
 import json
 import uuid
+from collections import defaultdict, OrderedDict
+
+import celery.states as states
+import flask
+
 import config
 import geneweaverdb as gwdb
-import toolcommon as tc
-from collections import defaultdict, OrderedDict
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'ABBA'
 abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
