@@ -1,13 +1,15 @@
-import celery.states as states
-import flask
+from decimal import Decimal
 import json
 import uuid
 import config
 
-import geneweaverdb as gwdb
-import toolcommon as tc
-from decimal import Decimal
+import celery.states as states
+import flask
 from flask import request
+
+import geneweaverdb as gwdb
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'SimilarGenesets'
 

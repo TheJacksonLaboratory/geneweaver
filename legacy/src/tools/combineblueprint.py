@@ -1,10 +1,12 @@
-import celery.states as states
-import flask
 import json
 import uuid
 
+import celery.states as states
+import flask
+
 import geneweaverdb as gwdb
-import toolcommon as tc
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'Combine'
 combine_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)

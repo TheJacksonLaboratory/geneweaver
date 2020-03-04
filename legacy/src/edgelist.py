@@ -173,7 +173,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     genesets = {}
     counts = {}
 
-    print "theshold value selected : ", threshold
+    print("theshold value selected : ", threshold)
 
     # Dictionary of dictionaries
     # Each entry
@@ -244,9 +244,9 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     fileout = temp + '\n' + fileout
 
     # print results to a file
-    print "file contains:"
-    print fileout
-    print "filepath:", RESULTS + taskid + '.kel'
+    print("file contains:")
+    print(fileout)
+    print("filepath:", RESULTS + taskid + '.kel')
     out = open(RESULTS + taskid + '.kel', 'wb')
     out.write(fileout)
     out.close()
@@ -395,11 +395,11 @@ def get_matrix_value(i, j, identifiers, partitions):
     # Get the actual value in the sorted list of identifiers
     id1 = identifiers[i]
     id2 = identifiers[j]
-    print "In get_matrix_value"
-    print id1
-    print id2
-    print "Identifiers" + str(identifiers)
-    print "Partitions: " + str(partitions)
+    print("In get_matrix_value")
+    print(id1)
+    print(id2)
+    print("Identifiers" + str(identifiers))
+    print("Partitions: " + str(partitions))
 
     # Set variables
     id1Found = []
@@ -439,9 +439,9 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.write("name,gs_name,abbr,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
-    print "identifiers before:", identifiers
+    print("identifiers before:", identifiers)
     genesets = list(identifiers)
-    print "genesets:", genesets
+    print("genesets:", genesets)
     gs_ids = []
     gi_ids = []
     for item in genesets:
@@ -449,8 +449,8 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
             gs_ids.append(item[3:])
         else:
             gi_ids.append(item[3:])
-    print "genesets:", gs_ids
-    print "genes:", gi_ids
+    print("genesets:", gs_ids)
+    print("genes:", gi_ids)
     # Get rid of gs_ and gi
     for x in range(0,len(identifiers)):
         identifiers[x] = identifiers[x][3:]
@@ -475,7 +475,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
         temp2 = temp.replace(',','')
         p_names.append(temp2)
 
-    print "project_names", p_names
+    print("project_names", p_names)
 
     gs_names = []
     # SQL query to the database to get the names of the genes
@@ -511,13 +511,13 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
         g_abbr.append(val[0].encode('ascii'))
 
 
-    print "g_names:", g_names
+    print("g_names:", g_names)
 
     count = 0
     for i in range(len(partitions)):
         for j in range(len(partitions[i])):
             f.write(str(identifiers[count]) + ',' + g_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
-            print str(identifiers[count]) + ',' + g_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i]
+            print(str(identifiers[count]) + ',' + g_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i])
             count = count + 1
     f.close()
 
@@ -559,7 +559,7 @@ def create_json_from_triclique_output_jaccard(taskid, results):
         temp_line = filter(None, re.split("[\t\s]+", line))
         ignored.append(temp_line)
 
-    print "IGNORED,", ignored
+    print("IGNORED,", ignored)
     # Combine those that are in the same project
     gsets = []
     for item in ignored:
@@ -570,14 +570,14 @@ def create_json_from_triclique_output_jaccard(taskid, results):
         for item in temp:
             tempadd.append(str(int(item.geneset_id)))
         gsets.append(tempadd)
-    print "gsets", list(gsets)
+    print("gsets", list(gsets))
     for i in range(0,len(gsets)):
         for j in range(0, len(partitions)):
             p = copy.copy(partitions[j])
             p.append(ignored[i][1])
             set(sorted(set(p)))
-            print p
-            print sorted(set(gsets[i]))
+            print(p)
+            print(sorted(set(gsets[i])))
             if set(sorted(set(gsets[i]))).issubset(p):
                 partitions[j].append(ignored[i][1])
 
@@ -589,8 +589,8 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     sorted(set(identifiers))
     n = len(identifiers)
 
-    print "partitions", partitions
-    print "identifiers", identifiers
+    print("partitions", partitions)
+    print("identifiers", identifiers)
 
     Matrix = [[0 for x in range(n)] for x in range(n)]
 
@@ -631,7 +631,7 @@ def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
     f.write("name,gs_name,abbr,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
-    print "identifiers before:", identifiers
+    print("identifiers before:", identifiers)
     genesets = list(identifiers)
     temp_names = []
     gs_names = []
@@ -664,12 +664,12 @@ def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
     for val in abbr:
         g_abbr.append(val[0].encode('ascii'))
 
-    print abbr
+    print(abbr)
 
     count = 0
     for i in range(len(partitions)):
         for j in range(len(partitions[i])):
-            print str(identifiers[count]) + ',' + gs_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n'
+            print(str(identifiers[count]) + ',' + gs_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
             f.write(str(identifiers[count]) + ',' + gs_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
             count = count + 1
     f.close()
@@ -686,11 +686,11 @@ def get_matrix_value_jaccard(i, j, identifiers, partitions, ignored):
     # Get the actual value in the sorted list of identifiers
     id1 = identifiers[i]
     id2 = identifiers[j]
-    print "In get_matrix_value_jaccard"
-    print id1
-    print id2
-    print "Identifiers" + str(identifiers)
-    print "Partitions: " + str(partitions)
+    print("In get_matrix_value_jaccard")
+    print(id1)
+    print(id2)
+    print("Identifiers" + str(identifiers))
+    print("Partitions: " + str(partitions))
 
     # Set variables
     id1Found = 0

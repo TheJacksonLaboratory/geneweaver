@@ -1,10 +1,12 @@
-import flask
-import celery.states as states
 import json
 import uuid
 
+import flask
+import celery.states as states
+
 import geneweaverdb as gwdb
-import toolcommon as tc
+import tools.toolcommon as tc
+
 
 # BITBUCKET IS DUMB
 # NO. IT'S REALLY DUMB
@@ -131,9 +133,9 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
 
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_' + 'Method'):
-		    paramsAPI[tool_param.name] = method
-		    if method not in ['Ward', 'Single', 'McQuitty', 'Average', 'Complete', 'Heatmap']:
-				paramsAPI[tool_param.name] = 'Ward'
+            paramsAPI[tool_param.name] = method
+            if method not in ['Ward', 'Single', 'McQuitty', 'Average', 'Complete', 'Heatmap']:
+                paramsAPI[tool_param.name] = 'Ward'
         if tool_param.name.endswith('_' + homology_str):
             paramsAPI[homology_str] = 'Excluded'
             paramsAPI[tool_param.name] = 'Excluded'
@@ -174,7 +176,7 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
         },
         task_id=task_id)
 
-	# TODO SOON return file istead of just name of file
+    # TODO SOON return file istead of just name of file
     return task_id
 
 

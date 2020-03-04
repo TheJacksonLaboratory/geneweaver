@@ -1,10 +1,12 @@
-import celery.states as states
-import flask
 import json
 import uuid
 
+import celery.states as states
+import flask
+
 import geneweaverdb as gwdb
-import toolcommon as tc
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'GeneSetViewer'
 geneset_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -99,13 +101,13 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_' + 'SupressDisconnected'):
-		    params[tool_param.name] = supressDisconnected
-		    if supressDisconnected not in ['On','Off']:
-				params[tool_param.name] = 'On'
+            params[tool_param.name] = supressDisconnected
+            if supressDisconnected not in ['On','Off']:
+                params[tool_param.name] = 'On'
         if tool_param.name.endswith('_' + 'MinDegree'):
-		    params[tool_param.name] = minDegree
-		# if minDegree not in ['Auto','1','2','3','4','5','10','20']:
-		#     params[tool_param.name] = 'Auto'
+            params[tool_param.name] = minDegree
+        # if minDegree not in ['Auto','1','2','3','4','5','10','20']:
+        #     params[tool_param.name] = 'Auto'
         if minDegree not in range(1, 20, 1):
             params[tool_param.name] = 'Auto'
         if tool_param.name.endswith('_' + homology_str):
