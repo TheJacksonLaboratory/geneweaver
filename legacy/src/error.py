@@ -3,6 +3,9 @@
 ## message and redirecting them back to where they were, while emailing an
 ## administrator about the nature of the error.
 #
+# TODO: Should be deprecated with python2
+from __future__ import print_function
+
 import flask
 import smtplib
 import traceback
@@ -21,8 +24,8 @@ def write_sos(msg):
     """
 
     with open('gw-exceptions.txt', 'a') as fl:
-        print >> fl, ''
-        print >> fl, msg
+        print('', file=fl)
+        print(msg, file=fl)
 
 def send_sos(msg):
     """
