@@ -27,12 +27,12 @@ drawing = svg2rlg(inputFile.name)
 
 #for other output formats add on to the if statement with your desired format and code
 if(outFormat == 'bmp'):
-	print "Content-Disposition: attachment; filename=\"img.bmp\"\r\n";
+	print("Content-Disposition: attachment; filename=\"img.bmp\"\r\n")
 	renderPM.drawToFile(drawing, outFile.name, dpi=600)
 
 bmpOut = outFile.read()
 
-print bmpOut
+print(bmpOut)
 
 outFile.close()
 inputFile.close()

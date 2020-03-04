@@ -21,7 +21,7 @@ def db_conn():
         conn = psycopg2.connect(("host='127.0.0.1' dbname='geneweaver' user='odeadmin' "
                                  "password='odeadmin'"))
     except:
-        print "[!] Oh noes, failed to connect to the db"
+        print("[!] Oh noes, failed to connect to the db")
 
         exit()
 
@@ -199,7 +199,7 @@ def main():
 
     # get the number of Tier 3 gs_ids
     gsnumber = get_number_tier_3(conn)
-    print gsnumber
+    print(gsnumber)
 
     offset = 0
     limit = 100
@@ -226,7 +226,7 @@ def main():
             fh = open('gw.batch-' + str(offset), 'w')
             fh.write(s)
             fh.close()
-            print 'Written to gw.batch-' + str(offset)
+            print('Written to gw.batch-' + str(offset))
 
         # Update counters
         if gsnumber - offset < 0:
@@ -234,7 +234,7 @@ def main():
         else:
             offset += limit
 
-    print 'Done'
+    print('Done')
 
 if __name__ == "__main__":
     main()

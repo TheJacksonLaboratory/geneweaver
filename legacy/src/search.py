@@ -685,5 +685,5 @@ def api_search(search_term,
     client.SetLimits(0, 1000, 1000)
     results = client.Query(query)
     if (results == None):
-        print client.GetLastError()
+        print(client.GetLastError())
     return results
