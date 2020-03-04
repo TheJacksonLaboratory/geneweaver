@@ -1,12 +1,15 @@
+import itertools
+import json
+import sys
+import uuid
+
 import celery.states as states
 import flask
-import json
-import uuid
+
 import geneweaverdb as gwdb
-import sys
-import itertools
-import toolcommon as tc
 import config
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'DBSCAN'
 dbscan_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
