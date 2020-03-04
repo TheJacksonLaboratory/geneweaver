@@ -38,11 +38,11 @@ class TestViewGenesets(unittest.TestCase):
         ep_root = "/get_geneset_values?gs_id={}".format(self.gs_id)
         ep_test_page = ep_root + '&start=100&gs_len=50'
         ep_search_page = ep_root + '&start=1&gs_len=10' + '&search[value]={}'.format(self.search_term)
-        print "testing route {}".format(ep_test_page)
+        print("testing route {}".format(ep_test_page))
         rqp = self.app.get(ep_test_page)
         self.assertEqual(rqp.status, '200 OK')
         self.assertEqual(self.check_JSON_response(rqp), True)
-        print "testing route {}".format(ep_search_page)
+        print("testing route {}".format(ep_search_page))
         rqs = self.app.get(ep_search_page)
         self.assertEqual(rqs.status, '200 OK')
         json_resp = json.loads(rqs.data)
@@ -60,7 +60,7 @@ class TestViewGenesets(unittest.TestCase):
     def test_view_geneset_details(self):
         '''testing view geneset details page'''
         #this currently will fail  with a python error the way the temp geneset is getting created
-        print "testing view geneset details page for gsid {}".format(self.gs_id)
+        print("testing view geneset details page for gsid {}".format(self.gs_id))
         ep = "/viewgenesetdetails/{}".format(self.gs_id)
         rq = self.app.get(ep)
         assert '200 OK' in rq.status
