@@ -2,17 +2,19 @@
 # Author: Clarissa Jordan
 # Date created: 09/08/2015
 
-import celery.states as states
-import flask
+from decimal import Decimal
 import json
 import uuid
 import os.path
 import config
 
-from geneweaverdb import *
-import toolcommon as tc
+import celery.states as states
+import flask
+
 from edgelist import *
-from decimal import Decimal
+from geneweaverdb import *
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -89,12 +91,12 @@ def run_tool():
     thresholds = {}
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
     if params2[method_str] == 'ExactGeneOverlap':
-        print "Exact gene overlap"
+        print("Exact gene overlap")
         outOfBounds = create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
     elif 'Triclique_ThresholdValues' in form:
         thresholds['Triclique_ThresholdValues'] = form['Triclique_ThresholdValues']
 
-        print "Jaccard"
+        print("Jaccard")
         # Warn the user if the projects selected are too large
         if len(selected_geneset_ids) > 50:
             flask.flash("Warning: Selecting too many genesets will not return results in a timely fashion")
