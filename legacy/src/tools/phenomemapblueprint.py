@@ -1,12 +1,14 @@
-import celery.states as states
-import flask
 import json
 import uuid
 import os
 
+import celery.states as states
+import flask
+
 import config
 import geneweaverdb as gwdb
-import toolcommon as tc
+import tools.toolcommon as tc
+
 
 TOOL_CLASSNAME = 'PhenomeMap'
 phenomemap_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -136,7 +138,7 @@ def run_tool():
 @phenomemap_blueprint.route('/run-phenome-map-api.html', methods=['POST'])
 def run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap,
                  minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
-    print 'dbg run tool api'
+    print('dbg run tool api')
     # TODO need to check for read permissions on genesets
     user_id = gwdb.get_user_id_by_apikey(apikey)
 
@@ -259,7 +261,7 @@ def download_csv(task_id):
 def download_bmp(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
-    print "svg = " + svg
+    print("svg = " + svg)
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
@@ -327,8 +329,8 @@ def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
-    print async_result
-    print async_result.info
+    print(async_result)
+    print(async_result.info)
 
     if async_result.state == states.PENDING:
         ## We haven't given the tool enough time to setup

@@ -1,12 +1,14 @@
-import celery.states as states
-import flask
 import json
 import uuid
+from decimal import Decimal
+
+from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
+import celery.states as states
+import flask
+
 import geneweaverdb
 import geneweaverdb as gwdb
-import toolcommon as tc
-from decimal import Decimal
-from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
+import tools.toolcommon as tc
 
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
