@@ -409,3 +409,31 @@ directories. After editing, you can start the supervisor:
 To manage your applications use:
 
 	$ sudo supervisorctl -c /srv/geneweaver/supervisord.conf
+
+
+
+## Configuring the Python3 Environment
+
+Python3 versions and pip packages can be manged by `pipenv`
+
+### How to run project
+
+#### Initialize packages
+```bash
+$ cd {PROJECT_ROOT}
+$ pip install pipenv
+$ pipenv sync
+```
+
+#### Run packages
+```bash
+$ cd {PROJECT_ROOT}
+$ pipenv run python src/application.py
+```
+
+#### Synchronize packages with current `Pipfile.lock` file
+```
+$ pipenv sync
+```
+
+The more on the `pipenv` [documentation](https://pipenv.kennethreitz.org/en/latest/#install-pipenv-today "documentation").
