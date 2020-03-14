@@ -10,6 +10,9 @@ flask = "*"
 flask-admin = "*"
 flask-restful = "*"
 xmlrunner = "*"
+sphinxapi-py3 = "*"
+wand = "*"
+bleach = "*"
 
 [requires]
 python_version = "3.7"
