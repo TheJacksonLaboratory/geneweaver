@@ -43,7 +43,6 @@ import sphinxapi
 import search
 import math
 from wand.image import Image
-from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
@@ -55,9 +54,11 @@ if sys.version_info[0] < 3:
     # TODO: Should be deprecated with python2
     from urllib2 import HTTPError
     from urlparse import parse_qs, urlparse
+    from cStringIO import StringIO
 else:
     from urllib.error import HTTPError
     from urllib.parse import parse_qs, urlparse
+    from io import StringIO
 
 from decorators import login_required, create_guest, restrict_to_current_user
 
