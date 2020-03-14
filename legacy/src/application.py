@@ -1,53 +1,18 @@
 # TODO: Should be deprecated with python2
 from __future__ import print_function
 
-import sys
-from sys import exc_info
-
-import flask
-from flask_admin import Admin, BaseView, expose
-from flask_admin.base import MenuLink
-import flask_restful as restful
-from flask import request, send_file, Response, make_response, session
+from collections import OrderedDict, defaultdict
 from decimal import Decimal
-import config
+from sys import exc_info
+from werkzeug.routing import BaseConverter
 import datetime
-import adminviews
-import annotator
-import genesetblueprint
-import geneweaverdb
-import notifications
-import curation_assignments
-import pub_assignments
-import publication_generator
-import error
-import uploadfiles
+import itertools
 import json
+import math
 import os
 import os.path as path
 import re
-import itertools
-from collections import OrderedDict, defaultdict
-from tools import abbablueprint
-from tools import booleanalgebrablueprint
-from tools import combineblueprint
-from tools import dbscanblueprint
-from tools import genesetviewerblueprint
-from tools import jaccardclusteringblueprint
-from tools import jaccardsimilarityblueprint
-from tools import msetblueprint
-from tools import phenomemapblueprint
-from tools import tricliqueblueprint
-from tools import similargenesetsblueprint
-import sphinxapi
-import search
-import math
-from wand.image import Image
-from werkzeug.routing import BaseConverter
-import bleach
-from psycopg2 import Error
-from psycopg2 import IntegrityError
-import report_bug
+import sys
 import urllib
 import urllib3
 if sys.version_info[0] < 3:
@@ -60,7 +25,43 @@ else:
     from urllib.parse import parse_qs, urlparse
     from io import StringIO
 
+from flask import request, send_file, Response, make_response, session
+from flask_admin import Admin, BaseView, expose
+from flask_admin.base import MenuLink
+from psycopg2 import Error
+from psycopg2 import IntegrityError
+from wand.image import Image
+import bleach
+import error
+import flask
+import flask_restful as restful
+import sphinxapi
+
 from decorators import login_required, create_guest, restrict_to_current_user
+from tools import abbablueprint
+from tools import booleanalgebrablueprint
+from tools import combineblueprint
+from tools import dbscanblueprint
+from tools import genesetviewerblueprint
+from tools import jaccardclusteringblueprint
+from tools import jaccardsimilarityblueprint
+from tools import msetblueprint
+from tools import phenomemapblueprint
+from tools import similargenesetsblueprint
+from tools import tricliqueblueprint
+import adminviews
+import annotator
+import config
+import curation_assignments
+import genesetblueprint
+import geneweaverdb
+import notifications
+import pub_assignments
+import publication_generator
+import report_bug
+import search
+import uploadfiles
+
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
