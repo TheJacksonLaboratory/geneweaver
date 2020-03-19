@@ -35,88 +35,90 @@ dbcon = psycopg2.connect(app.config['DB_CONNECT_STRING'])
 #app.logger.addHandler(fh)
 
 def login():
-  user_email = request.form.get('email')
-  passwd = request.form.get('password')
-  if user_email is not None and passwd is not None:
-    cur = dbcon.cursor()
-    cur.execute('''SELECT u.usr_id,u.usr_email,g.grp_name,g.grp_id
-       FROM production.usr u,production.grp g,production.usr2grp x
-      WHERE usr_email=%s AND usr_password=%s AND u.usr_id=x.usr_id
-        AND g.grp_id=x.grp_id AND u2g_privileges=1;''',
-        (user_email,hashlib.md5(passwd).hexdigest()))
-    #cur.execute('''SELECT u.usr_id,u.usr_email,g.grp_name,g.grp_id
-    #   FROM production.usr u,production.grp g,production.usr2grp x
-    #  WHERE usr_email=%s AND usr_password=%s AND u.usr_id=x.usr_id
-    #    AND g.grp_id=x.grp_id AND x.u2g_status=2 AND u2g_privileges=1;''',
-    #    (user_email,hashlib.md5(passwd).hexdigest()))
+    user_email = request.form.get('email')
+    passwd = request.form.get('password')
+    if user_email is not None and passwd is not None:
+        cur = dbcon.cursor()
+        cur.execute('''SELECT u.usr_id,u.usr_email,g.grp_name,g.grp_id
+                    FROM production.usr u,production.grp g,production.usr2grp x
+                    WHERE usr_email=%s AND usr_password=%s AND u.usr_id=x.usr_id
+                    AND g.grp_id=x.grp_id AND u2g_privileges=1;''',
+                    (user_email,hashlib.md5(passwd).hexdigest()))
+        #cur.execute('''SELECT u.usr_id,u.usr_email,g.grp_name,g.grp_id
+        #     FROM production.usr u,production.grp g,production.usr2grp x
+        #    WHERE usr_email=%s AND usr_password=%s AND u.usr_id=x.usr_id
+        #        AND g.grp_id=x.grp_id AND x.u2g_status=2 AND u2g_privileges=1;''',
+        #        (user_email,hashlib.md5(passwd).hexdigest()))
 
-    if 'user_id' in session:
-      del session['user_id']
-    if 'user_email' in session:
-      del session['user_email']
-    session['groups']={}
-    for row in cur:
-      session['user_id']=row[0]
-      session['user_email']=row[1]
-      session['groups'][str(row[3])]=row[2]
-      session['curgrp']='0'
-      session['curstat']='1'
-      session['curtier']='4'
+        if 'user_id' in session:
+            del session['user_id']
+        if 'user_email' in session:
+            del session['user_email']
+        session['groups']={}
+        for row in cur:
+            session['user_id']=row[0]
+            session['user_email']=row[1]
+            session['groups'][str(row[3])]=row[2]
+            session['curgrp']='0'
+            session['curstat']='1'
+            session['curtier']='4'
 
-    cur.execute('SELECT cur_id,cur_name FROM odestatic.curation_levels;')
-    tiers = {}
-    for row in cur:
-      tiers[ str(row[0]) ] = row[1]
-    session['tiers']=tiers
+        cur.execute('SELECT cur_id,cur_name FROM odestatic.curation_levels;')
+        tiers = {}
+        for row in cur:
+            tiers[ str(row[0]) ] = row[1]
+        session['tiers']=tiers
 
-    cur.execute('SELECT stid,name,ordercode FROM gwcuration.status_types;')
-    stati = {}
-    stato = {}
-    for row in cur:
-      stati[ str(row[0]) ] = row[1]
-      stato[ row[2] ] = str(row[0])
-    session['stati']=stati
-    session['stato']=[stato[x] for x in sorted(stato.keys())]
+        cur.execute('SELECT stid,name,ordercode FROM gwcuration.status_types;')
+        stati = {}
+        stato = {}
+        for row in cur:
+            stati[ str(row[0]) ] = row[1]
+            stato[ row[2] ] = str(row[0])
+        session['stati']=stati
+        session['stato']=[stato[x] for x in sorted(stato.keys())]
 
-    if 'user_id' in session:
-      return redirect(url_for('list_stubs'))
-    flash('Invalid login - please check your Email and password', 'error')
-  elif user_email is not None or passwd is not None:
-    flash('Email and password must be provided', 'error')
+        if 'user_id' in session:
+            return redirect(url_for('list_stubs'))
+        flash('Invalid login - please check your Email and password', 'error')
+    elif user_email is not None or passwd is not None:
+        flash('Email and password must be provided', 'error')
 
-  return render_template('login.html')
+    return render_template('login.html')
+
 
 def list_generators():
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  cur = dbcon.cursor()
-  if request.args.get('refresh','')!='':
-    refresh_stubs(cur, request.args.get('refresh'))
-    return redirect(url_for('list_generators'))
+    cur = dbcon.cursor()
+    if request.args.get('refresh','')!='':
+        refresh_stubs(cur, request.args.get('refresh'))
+        return redirect(url_for('list_generators'))
 
-  if request.args.get('delete','')!='':
-    cur.execute('DELETE FROM gwcuration.stubgenerators WHERE name=%s AND usr_id=%s;',
-        (request.args.get('delete').strip(), int(session['user_id'])))
-    dbcon.commit()
-    flash('Generator deleted.', 'info')
-    return redirect(url_for('list_generators'))
+    if request.args.get('delete','')!='':
+        cur.execute('DELETE FROM gwcuration.stubgenerators WHERE name=%s AND usr_id=%s;',
+                    (request.args.get('delete').strip(), int(session['user_id'])))
+        dbcon.commit()
+        flash('Generator deleted.', 'info')
+        return redirect(url_for('list_generators'))
 
-  if request.form.get('name','')!='':
-    cur.execute('INSERT INTO gwcuration.stubgenerators (name,querystring,grp_id,usr_id) values (%s,%s,%s,%s);',
-        (request.form.get('name').strip(), request.form.get('querystring').strip(),
-          int(request.form.get('forgroup')), int(session['user_id'])))
-    dbcon.commit()
-    flash('New Generator created!', 'info')
+    if request.form.get('name','')!='':
+        cur.execute('INSERT INTO gwcuration.stubgenerators (name,querystring,grp_id,usr_id) values (%s,%s,%s,%s);',
+                    (request.form.get('name').strip(), request.form.get('querystring').strip(),
+                     int(request.form.get('forgroup')), int(session['user_id'])))
+        dbcon.commit()
+        flash('New Generator created!', 'info')
 
-  cur.execute('SELECT name,querystring,last_update,grp_id FROM gwcuration.stubgenerators WHERE usr_id=%s OR grp_id=ANY(%s);',
-      (int(session['user_id']), '{'+','.join(session['groups'].keys())+'}' ))
-  gens=[]
-  for row in cur:
-    g = {'name': row[0], 'query': row[1], 'updated': row[2], 'group': session['groups'][str(row[3])]}
-    gens.append(g)
+    cur.execute('SELECT name,querystring,last_update,grp_id FROM gwcuration.stubgenerators WHERE usr_id=%s OR grp_id=ANY(%s);',
+                (int(session['user_id']), '{'+','.join(session['groups'].keys())+'}' ))
+    gens=[]
+    for row in cur:
+        g = {'name': row[0], 'query': row[1], 'updated': row[2], 'group': session['groups'][str(row[3])]}
+        gens.append(g)
 
-  return render_template('list_generators.html', list=gens)
+    return render_template('list_generators.html', list=gens)
+
 
 def list_stubs():
   if 'user_id' not in session:
@@ -196,10 +198,18 @@ def list_stubs():
   pmids={}
   cur.execute('SELECT stubid,title,abstract,authors,pubinfo,pmid,link_to_fulltext,added_on FROM gwcuration.stubs WHERE stubid=ANY(%s);', ('{'+','.join(stubs)+'}',))
   for row in cur:
-    stubs[str(row[0])]['atitle'] = row[1].decode('utf-8')
-    stubs[str(row[0])]['abstract'] = row[2].decode('utf-8')
-    stubs[str(row[0])]['authors'] = row[3].decode('utf-8')
-    stubs[str(row[0])]['pubinfo'] = row[4].decode('utf-8')
+    if sys.version_info[0] < 3:
+      # TODO: Should be deprecated with python2
+      stubs[str(row[0])]['atitle'] = row[1].decode('utf-8')
+      stubs[str(row[0])]['abstract'] = row[2].decode('utf-8')
+      stubs[str(row[0])]['authors'] = row[3].decode('utf-8')
+      stubs[str(row[0])]['pubinfo'] = row[4].decode('utf-8')
+    else:
+      stubs[str(row[0])]['atitle'] = row[1]
+      stubs[str(row[0])]['abstract'] = row[2]
+      stubs[str(row[0])]['authors'] = row[3]
+      stubs[str(row[0])]['pubinfo'] = row[4]
+
     stubs[str(row[0])]['pmid'] = row[5]
     stubs[str(row[0])]['fulltext'] = row[6]
     stubs[str(row[0])]['added'] = row[7]
@@ -211,7 +221,7 @@ def list_stubs():
       ('{'+','.join(pmids.keys())+'}',))
   for row in cur:
     for stub in pmids[row[1]]:
-      stubs[stub]['geneset_count']+=1 
+      stubs[stub]['geneset_count']+=1
 
   def _sorter(a,b):
     p = b['priority']-a['priority']
@@ -376,10 +386,17 @@ def _get_stubinfo(cur, stubid):
 
   cur.execute('SELECT stubid,title,abstract,authors,pubinfo,pmid,link_to_fulltext,added_on FROM gwcuration.stubs WHERE stubid=%s;', (stubid,))
   row = cur.fetchone()
-  stub['atitle'] = row[1].decode('utf-8')
-  stub['abstract'] = row[2].decode('utf-8')
-  stub['authors'] = row[3].decode('utf-8')
-  stub['pubinfo'] = row[4].decode('utf-8')
+  if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    stub['atitle'] = row[1].decode('utf-8')
+    stub['abstract'] = row[2].decode('utf-8')
+    stub['authors'] = row[3].decode('utf-8')
+    stub['pubinfo'] = row[4].decode('utf-8')
+  else:
+    stub['atitle'] = row[1]
+    stub['abstract'] = row[2]
+    stub['authors'] = row[3]
+    stub['pubinfo'] = row[4]
   stub['pmid'] = row[5]
   stub['fulltext'] = row[6]
   stub['added'] = row[7]
@@ -395,22 +412,41 @@ def _get_stubinfo(cur, stubid):
 
   stub['genesets']=[]
   for row in cur:
-    stub['genesets'].append({
-      'gs_id': row[0],
-      'gs_name': row[1].decode('utf-8'),
-      'gs_abbreviation': row[2].decode('utf-8'),
-      'gs_description': row[3].decode('utf-8'),
+    if sys.version_info[0] < 3:
+      # TODO: Should be deprecated with python2
+      stub['genesets'].append({
+        'gs_id': row[0],
+        'gs_name': row[1].decode('utf-8'),
+        'gs_abbreviation': row[2].decode('utf-8'),
+        'gs_description': row[3].decode('utf-8'),
 
-      'sp_id': row[4],
-      'species': species[row[4]],
-      'gs_count': row[5],
-      'cur_id': row[6],
-      'usr_email': row[7],
-      'last_updated': row[8],
-      'gs_gene_id_type': row[9],
-      'pmid': stub['pmid'],
-      'view_url': url_for('view_geneset', gsid=row[0]),
-      })
+        'sp_id': row[4],
+        'species': species[row[4]],
+        'gs_count': row[5],
+        'cur_id': row[6],
+        'usr_email': row[7],
+        'last_updated': row[8],
+        'gs_gene_id_type': row[9],
+        'pmid': stub['pmid'],
+        'view_url': url_for('view_geneset', gsid=row[0]),
+        })
+    else:
+      stub['genesets'].append({
+        'gs_id': row[0],
+        'gs_name': row[1],
+        'gs_abbreviation': row[2],
+        'gs_description': row[3],
+
+        'sp_id': row[4],
+        'species': species[row[4]],
+        'gs_count': row[5],
+        'cur_id': row[6],
+        'usr_email': row[7],
+        'last_updated': row[8],
+        'gs_gene_id_type': row[9],
+        'pmid': stub['pmid'],
+        'view_url': url_for('view_geneset', gsid=row[0]),
+        })
 
   return stub
 
@@ -454,9 +490,15 @@ def create_from_stub(stubid):
   stub = _get_stubinfo(cur,stubid)
 
   if request.form.get('gs_name','')!='':
-    name=request.form.get('gs_name').decode('utf-8')
-    label=request.form.get('gs_abbreviation').decode('utf-8')
-    desc=request.form.get('gs_description').decode('utf-8')
+    if sys.version_info[0] < 3:
+      # TODO: Should be deprecated with python2
+      name=request.form.get('gs_name').decode('utf-8')
+      label=request.form.get('gs_abbreviation').decode('utf-8')
+      desc=request.form.get('gs_description').decode('utf-8')
+    else:
+      name=request.form.get('gs_name')
+      label=request.form.get('gs_abbreviation')
+      desc=request.form.get('gs_description')
     sp_id=int(request.form.get('sp_id'))
     idtype=int(request.form.get('id_type'))
 
@@ -522,57 +564,72 @@ def quickadd():
   return redirect( url_for('list_stubs') )
 
 def dashboard():
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  cur = dbcon.cursor()
-  pris = ['low','medium','high','urgent']
-  species={}
-  cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
-  for row in cur:
-    species[row[0]]=row[1]
+    cur = dbcon.cursor()
+    pris = ['low','medium','high','urgent']
+    species={}
+    cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
+    for row in cur:
+        species[row[0]]=row[1]
 
-  cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email
-    FROM production.usr u, production.geneset g
-    WHERE u.usr_id=g.usr_id AND g.gs_status NOT LIKE 'de%%' AND g.cur_id>=4 AND gs_groups='0' LIMIT 10;''')
+    cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email
+                FROM production.usr u, production.geneset g
+                WHERE u.usr_id=g.usr_id AND g.gs_status NOT LIKE 'de%%' AND g.cur_id>=4 AND gs_groups='0' LIMIT 10;''')
 
-  pgenesets=[]
-  for row in cur:
-    pgenesets.append({
-      'gs_id': row[0],
-      'gs_name': row[1].decode('utf-8'),
-      'gs_abbreviation': row[2].decode('utf-8'),
-      'gs_description': row[3].decode('utf-8'),
+    pgenesets=[]
+    for row in cur:
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            pgenesets.append({
+                'gs_id': row[0],
+                'gs_name': row[1].decode('utf-8'),
+                'gs_abbreviation': row[2].decode('utf-8'),
+                'gs_description': row[3].decode('utf-8'),
 
-      'species': species[row[4]],
-      'gs_count': row[5],
-      'cur_id': row[6],
-      'usr_email': row[7],
-      'view_url': url_for('view_geneset', gsid=row[0]),
-      })
+                'species': species[row[4]],
+                'gs_count': row[5],
+                'cur_id': row[6],
+                'usr_email': row[7],
+                'view_url': url_for('view_geneset', gsid=row[0]),
+            })
+        else:
+            pgenesets.append({
+                'gs_id': row[0],
+                'gs_name': row[1],
+                'gs_abbreviation': row[2],
+                'gs_description': row[3],
 
-  cur.execute('''SELECT sg.stubgenid,sg.name,sg.last_update,ss.stid,ss.grp_id,COUNT(ss.stubid)
-      FROM gwcuration.stub_status ss,gwcuration.stubgenerators sg,gwcuration.status_types st
-      WHERE ss.grp_id=ANY(%s) AND sg.stubgenid=ss.stubgenid AND st.stid=ss.stid AND st.ordercode>=0
-        AND ss.stid!=7
-      GROUP BY sg.stubgenid,sg.name,sg.last_update,ss.stid,ss.grp_id;''',
-      ('{'+','.join(session['groups'].keys())+'}',))
+                'species': species[row[4]],
+                'gs_count': row[5],
+                'cur_id': row[6],
+                'usr_email': row[7],
+                'view_url': url_for('view_geneset', gsid=row[0]),
+            })
 
-  stub_stats={}
-  for row in cur:
-    if row[0] not in stub_stats:
-      stub_stats[row[0]] = {
-        'stubgenid': row[0],
-        'name': row[1],
-        'updated': row[2],
-        'group': session['groups'][str(row[4])],
-        'view_url': url_for('list_stubs',grp=row[4]),
-        'refresh_url': url_for('list_generators',refresh=row[1]),
-        'counts': {},
-        }
-    stub_stats[row[0]]['counts'][ session['stati'][str(row[3])] ] = row[5]
+    cur.execute('''SELECT sg.stubgenid,sg.name,sg.last_update,ss.stid,ss.grp_id,COUNT(ss.stubid)
+                FROM gwcuration.stub_status ss,gwcuration.stubgenerators sg,gwcuration.status_types st
+                WHERE ss.grp_id=ANY(%s) AND sg.stubgenid=ss.stubgenid AND st.stid=ss.stid AND st.ordercode>=0
+                AND ss.stid!=7
+                GROUP BY sg.stubgenid,sg.name,sg.last_update,ss.stid,ss.grp_id;''',
+                ('{'+','.join(session['groups'].keys())+'}',))
 
-  return render_template('dashboard.html', pending_genesets=pgenesets, stub_stats=stub_stats)
+    stub_stats={}
+    for row in cur:
+        if row[0] not in stub_stats:
+            stub_stats[row[0]] = {
+                'stubgenid': row[0],
+                'name': row[1],
+                'updated': row[2],
+                'group': session['groups'][str(row[4])],
+                'view_url': url_for('list_stubs',grp=row[4]),
+                'refresh_url': url_for('list_generators',refresh=row[1]),
+                'counts': {},
+            }
+        stub_stats[row[0]]['counts'][ session['stati'][str(row[3])] ] = row[5]
+
+    return render_template('dashboard.html', pending_genesets=pgenesets, stub_stats=stub_stats)
 
 def list_genesets():
   if 'user_id' not in session:
@@ -653,21 +710,38 @@ def list_genesets():
 
   pgenesets=[]
   for row in cur.fetchmany(25):
-    pgenesets.append({
-      'gs_id': row[0],
-      'gs_name': row[1].decode('utf-8'),
-      'gs_abbreviation': row[2].decode('utf-8'),
-      'gs_description': row[3].decode('utf-8'),
+    if sys.version_info[0] < 3:
+      # TODO: Should be deprecated with python2
+      pgenesets.append({
+        'gs_id': row[0],
+        'gs_name': row[1].decode('utf-8'),
+        'gs_abbreviation': row[2].decode('utf-8'),
+        'gs_description': row[3].decode('utf-8'),
 
-      'species': species[row[4]],
-      'gs_count': row[5],
-      'cur_id': row[6],
-      'usr_email': row[7],
-      'last_updated': row[8],
-      'pmid': row[9],
-      'view_url': url_for('view_geneset', gsid=row[0]),
-      })
-  
+        'species': species[row[4]],
+        'gs_count': row[5],
+        'cur_id': row[6],
+        'usr_email': row[7],
+        'last_updated': row[8],
+        'pmid': row[9],
+        'view_url': url_for('view_geneset', gsid=row[0]),
+        })
+    else:
+      pgenesets.append({
+        'gs_id': row[0],
+        'gs_name': row[1],
+        'gs_abbreviation': row[2],
+        'gs_description': row[3],
+
+        'species': species[row[4]],
+        'gs_count': row[5],
+        'cur_id': row[6],
+        'usr_email': row[7],
+        'last_updated': row[8],
+        'pmid': row[9],
+        'view_url': url_for('view_geneset', gsid=row[0]),
+        })
+
   return render_template('list_genesets.html', list=pgenesets, tier_counts=tier_counts)
 
 ############################################
@@ -754,34 +828,66 @@ def _get_genesetinfo(cur, gsid):
   elif row[11]==8:
     threshold_desc = 'Score = %s' % (row[10],)
 
-  geneset = {
-      'gs_id': row[0],
-      'gs_name': row[1].decode('utf-8'),
-      'gs_label': row[2].decode('utf-8'),
-      'gs_description': row[3].decode('utf-8'),
+  if sys.version_info[0] < 3:
+    # TODO: Should be deprecated with python2
+    geneset = {
+        'gs_id': row[0],
+        'gs_name': row[1].decode('utf-8'),
+        'gs_label': row[2].decode('utf-8'),
+        'gs_description': row[3].decode('utf-8'),
 
-      'species': species[row[4]],
-      'gs_count': row[5],
-      'cur_id': row[6],
-      'usr_email': row[7],
-      'last_updated': row[8],
-      'geneid_type': geneid_type,
-      'threshold': threshold_desc,
-      'file_contents': fcontents,
-      'ontology_terms': otermarr,
-      'similarsets': simgs,
-      'last_sim': last_sim_check,
-      'pmid': row[12],
-      'gs_groups': row[14].split(','),
-      '_comments_author': row[15] or '',
-      '_comments_curator': row[16] or '',
-      'gs_attribution': row[17] or '',
-      'gs_uri': row[18] or '',
+        'species': species[row[4]],
+        'gs_count': row[5],
+        'cur_id': row[6],
+        'usr_email': row[7],
+        'last_updated': row[8],
+        'geneid_type': geneid_type,
+        'threshold': threshold_desc,
+        'file_contents': fcontents,
+        'ontology_terms': otermarr,
+        'similarsets': simgs,
+        'last_sim': last_sim_check,
+        'pmid': row[12],
+        'gs_groups': row[14].split(','),
+        '_comments_author': row[15] or '',
+        '_comments_curator': row[16] or '',
+        'gs_attribution': row[17] or '',
+        'gs_uri': row[18] or '',
 
-      'view_url': url_for('view_geneset', gsid=row[0]),
-      'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
-      'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
-      }
+        'view_url': url_for('view_geneset', gsid=row[0]),
+        'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
+        'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
+        }
+  else:
+    geneset = {
+        'gs_id': row[0],
+        'gs_name': row[1],
+        'gs_label': row[2],
+        'gs_description': row[3],
+
+        'species': species[row[4]],
+        'gs_count': row[5],
+        'cur_id': row[6],
+        'usr_email': row[7],
+        'last_updated': row[8],
+        'geneid_type': geneid_type,
+        'threshold': threshold_desc,
+        'file_contents': fcontents,
+        'ontology_terms': otermarr,
+        'similarsets': simgs,
+        'last_sim': last_sim_check,
+        'pmid': row[12],
+        'gs_groups': row[14].split(','),
+        '_comments_author': row[15] or '',
+        '_comments_curator': row[16] or '',
+        'gs_attribution': row[17] or '',
+        'gs_uri': row[18] or '',
+
+        'view_url': url_for('view_geneset', gsid=row[0]),
+        'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
+        'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
+        }
+
 
   return geneset
 
@@ -906,126 +1012,130 @@ def fetch_ncbo_terms(db_cur, text, pub_id=None):
   return ontologies
 
 def load_ncbo_ontologies(gs_id):
-  db_cur = dbcon.cursor()
-  SQL = """SELECT gs_id, gs_name, gs_name||' '||gs_description as gs_text, geneset.pub_id, pub_title||' '||pub_abstract as pub_text
-           FROM production.geneset LEFT OUTER JOIN production.publication ON geneset.pub_id=publication.pub_id
-           WHERE LENGTH(gs_name||gs_description)>30 AND gs_id=%s;"""
-  db_cur.execute(SQL, (gs_id,))
-  texts = db_cur.fetchone()
-  if texts==None:
-    return
+    db_cur = dbcon.cursor()
+    SQL = """SELECT gs_id, gs_name, gs_name||' '||gs_description as gs_text, geneset.pub_id, pub_title||' '||pub_abstract as pub_text
+    FROM production.geneset LEFT OUTER JOIN production.publication ON geneset.pub_id=publication.pub_id
+    WHERE LENGTH(gs_name||gs_description)>30 AND gs_id=%s;"""
+    db_cur.execute(SQL, (gs_id,))
+    texts = db_cur.fetchone()
+    if texts==None:
+        return
 
-  rem_sql = "DELETE FROM extsrc.geneset_ontology WHERE gs_id=%s AND gso_ref_type LIKE '%%, NCBO Annotator';"
-  rem_sql_mi = "DELETE FROM extsrc.geneset_ontology WHERE gs_id=%s AND gso_ref_type LIKE '%%, MI Annotator';"
-  db_cur.execute(rem_sql, (gs_id,))
-  db_cur.execute(rem_sql_mi, (gs_id,))
+    rem_sql = "DELETE FROM extsrc.geneset_ontology WHERE gs_id=%s AND gso_ref_type LIKE '%%, NCBO Annotator';"
+    rem_sql_mi = "DELETE FROM extsrc.geneset_ontology WHERE gs_id=%s AND gso_ref_type LIKE '%%, MI Annotator';"
+    db_cur.execute(rem_sql, (gs_id,))
+    db_cur.execute(rem_sql_mi, (gs_id,))
 
-  black_sql = "SELECT ont_id FROM extsrc.geneset_ontology WHERE gs_id=%s AND gso_ref_type='Blacklist';"
-  db_cur.execute(black_sql, (gs_id,))
-  blacklisted = [str(x[0]) for x in db_cur]
+    black_sql = "SELECT ont_id FROM extsrc.geneset_ontology WHERE gs_id=%s AND gso_ref_type='Blacklist';"
+    db_cur.execute(black_sql, (gs_id,))
+    blacklisted = [str(x[0]) for x in db_cur]
 
-  num_added=0
-  for thetext, refsrc, pub_id in [(texts[2], 'Description',None),(texts[4], 'Publication',texts[3])]:
-    #ontologies = fetch_ncbo_terms(db_cur, thetext, pub_id)
-    ncbo_onts = ncbo.fetch_ncbo_terms(thetext, ['MESH', 'GO', 'MP', 'MA'])
-    ncbo_onts = ncbo.parse_ncbo_annotations(ncbo_onts)
-    mi_onts = mi.fetch_monarch_annotations(thetext)
-    mi_onts = mi.parse_monarch_annotations(mi_onts)
-    mi_onts = mi.filter_monarch_annotations(mi_onts, ['MESH', 'MP', 'MA', 'GO'])
-    ## Monarch initiative returns MESH annotations as MESH:D1234, while 
-    ## NCBO and the GW DB just use the unique ID (D1234). 
-    for i in range(len(mi_onts)):
-      if mi_onts[i].find('MESH') != -1:
-        mi_onts[i] = mi_onts[i].split(':')[1].strip()
-        #print mi_onts[i]
+    num_added=0
+    for thetext, refsrc, pub_id in [(texts[2], 'Description',None),(texts[4], 'Publication',texts[3])]:
+        #ontologies = fetch_ncbo_terms(db_cur, thetext, pub_id)
+        ncbo_onts = ncbo.fetch_ncbo_terms(thetext, ['MESH', 'GO', 'MP', 'MA'])
+        ncbo_onts = ncbo.parse_ncbo_annotations(ncbo_onts)
+        mi_onts = mi.fetch_monarch_annotations(thetext)
+        mi_onts = mi.parse_monarch_annotations(mi_onts)
+        mi_onts = mi.filter_monarch_annotations(mi_onts, ['MESH', 'MP', 'MA', 'GO'])
+        ## Monarch initiative returns MESH annotations as MESH:D1234, while 
+        ## NCBO and the GW DB just use the unique ID (D1234). 
+        for i in range(len(mi_onts)):
+            if mi_onts[i].find('MESH') != -1:
+                mi_onts[i] = mi_onts[i].split(':')[1].strip()
+                #print mi_onts[i]
 
 
-    ins_sql_mi = """INSERT INTO extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
-                 SELECT %s, ont_id, %s||', MI Annotator'
-                 FROM extsrc.ontology WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));"""
-    ins_sql = """INSERT INTO extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
-                 SELECT %s, ont_id, %s||', NCBO Annotator'
-                 FROM extsrc.ontology WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));"""
-    db_cur.execute(ins_sql_mi, (gs_id, refsrc, '{'+','.join(mi_onts)+'}', '{'+','.join(blacklisted)+'}'))
+        ins_sql_mi = """INSERT INTO extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
+        SELECT %s, ont_id, %s||', MI Annotator'
+        FROM extsrc.ontology WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));"""
+        ins_sql = """INSERT INTO extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
+        SELECT %s, ont_id, %s||', NCBO Annotator'
+        FROM extsrc.ontology WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));"""
+        db_cur.execute(ins_sql_mi, (gs_id, refsrc, '{'+','.join(mi_onts)+'}', '{'+','.join(blacklisted)+'}'))
 
-    ## Prevent duplicate insertions, since some annotations from NCBO will
-    ## already have been added using MI
-    ncbo_onts = list(set(ncbo_onts) - set(mi_onts))
-    db_cur.execute(ins_sql, (gs_id, refsrc, '{'+','.join(ncbo_onts)+'}', '{'+','.join(blacklisted)+'}'))
-  dbcon.commit()
+        ## Prevent duplicate insertions, since some annotations from NCBO will
+        ## already have been added using MI
+        ncbo_onts = list(set(ncbo_onts) - set(mi_onts))
+        db_cur.execute(ins_sql, (gs_id, refsrc, '{'+','.join(ncbo_onts)+'}', '{'+','.join(blacklisted)+'}'))
+        dbcon.commit()
+
 
 def _get_stats(cur):
-  qmap = {
-      'jobs': ('res_runhash', 'production.result where res_created'),
-      'genesets': ('gs_id', 'production.geneset where gs_updated'),
-      'projects': ('pj_id', 'production.project2geneset where modified_on'),
-      }
-  dmap = {1: '24h', 7: '1w', 30: '30d', 180: '6m'}
+    qmap = {
+        'jobs': ('res_runhash', 'production.result where res_created'),
+        'genesets': ('gs_id', 'production.geneset where gs_updated'),
+        'projects': ('pj_id', 'production.project2geneset where modified_on'),
+    }
+    dmap = {1: '24h', 7: '1w', 30: '30d', 180: '6m'}
 
-  stats = {}
-  
-  for qname,qwhere in qmap.items():
-    for ndays,dname in dmap.items():
-      cur.execute("SELECT count(distinct %s),count(*) FROM %s > NOW() - INTERVAL '%s days'" % (qwhere[0], qwhere[1], ndays))
-      row=cur.fetchone()
-      stats[ qname+'_'+dname ] = row[0]
-      stats[ qname+'_'+dname+'_full' ] = row[1]
+    stats = {}
 
-  # number of registered, active users
-  cur.execute("SELECT count(*) FROM production.usr WHERE usr_email LIKE '%%@%%' AND (usr_id IN (SELECT DISTINCT usr_id FROM production.project) OR usr_id IN (SELECT DISTINCT usr_id FROM production.geneset));")
-  row=cur.fetchone()
-  stats['active_users_registered'] = row[0]
+    for qname,qwhere in qmap.items():
+        for ndays,dname in dmap.items():
+            cur.execute("SELECT count(distinct %s),count(*) FROM %s > NOW() - INTERVAL '%s days'" % (qwhere[0], qwhere[1], ndays))
+            row=cur.fetchone()
+            stats[ qname+'_'+dname ] = row[0]
+            stats[ qname+'_'+dname+'_full' ] = row[1]
 
-  # number of recently active visitors
-  cur.execute("SELECT count(*) FROM production.usr WHERE (usr_id IN (SELECT DISTINCT usr_id FROM production.project) OR usr_id IN (SELECT DISTINCT usr_id FROM production.geneset));")
-  row=cur.fetchone()
-  stats['active_users'] = row[0]
+    # number of registered, active users
+    cur.execute("SELECT count(*) FROM production.usr WHERE usr_email LIKE '%%@%%' AND (usr_id IN (SELECT DISTINCT usr_id FROM production.project) OR usr_id IN (SELECT DISTINCT usr_id FROM production.geneset));")
+    row=cur.fetchone()
+    stats['active_users_registered'] = row[0]
 
-  return stats
+    # number of recently active visitors
+    cur.execute("SELECT count(*) FROM production.usr WHERE (usr_id IN (SELECT DISTINCT usr_id FROM production.project) OR usr_id IN (SELECT DISTINCT usr_id FROM production.geneset));")
+    row=cur.fetchone()
+    stats['active_users'] = row[0]
+
+    return stats
+
 
 def _get_resources(cur):
-	resinfo={}
-	cur.execute("select count(*), max(gs_updated), gs_attribution from production.geneset where gs_status not like 'de%' and cur_id=1 group by gs_attribution;")
-	for row in cur:
-		resinfo[ row[2] ] = (row[1], row[0])
+    resinfo={}
+    cur.execute("select count(*), max(gs_updated), gs_attribution from production.geneset where gs_status not like 'de%' and cur_id=1 group by gs_attribution;")
+    for row in cur:
+        resinfo[ row[2] ] = (row[1], row[0])
 
-	return resinfo
+    return resinfo
+
 
 def admin_main():
-  admin_role = {
-      '0': 'Normal User',
-      '1': 'Editor',             # can edit any geneset on the site
-      '2': 'Curator',            # can promote/demote any geneset
-      '3': 'Site Administrator', # can update genes and data sources
+    admin_role = {
+        '0': 'Normal User',
+        '1': 'Editor',               # can edit any geneset on the site
+        '2': 'Curator',              # can promote/demote any geneset
+        '3': 'Site Administrator',   # can update genes and data sources
     }
-  admins={}
-  db_cur = dbcon.cursor()
-  db_cur.execute('SELECT usr_email, usr_admin FROM production.usr WHERE usr_admin>0;')
-  for row in db_cur:
-    admins[ row[0] ] = { 'admin_level': row[1], 'role': admin_role[str(row[1])]}
+    admins={}
+    db_cur = dbcon.cursor()
+    db_cur.execute('SELECT usr_email, usr_admin FROM production.usr WHERE usr_admin>0;')
+    for row in db_cur:
+        admins[ row[0] ] = { 'admin_level': row[1], 'role': admin_role[str(row[1])]}
 
-  db_cur.execute("SELECT * FROM odestatic.species WHERE sp_id<>0 ORDER BY sp_name;")
-  allspecies=db_cur.fetchall()
+    db_cur.execute("SELECT * FROM odestatic.species WHERE sp_id<>0 ORDER BY sp_name;")
+    allspecies=db_cur.fetchall()
 
-  db_cur.execute("SELECT * FROM odestatic.genedb NATURAL JOIN odestatic.species WHERE gdb_name<>'Unannotated' ORDER BY sp_name,gdb_id;")
-  allgenedbs = db_cur.fetchall()
+    db_cur.execute("SELECT * FROM odestatic.genedb NATURAL JOIN odestatic.species WHERE gdb_name<>'Unannotated' ORDER BY sp_name,gdb_id;")
+    allgenedbs = db_cur.fetchall()
 
 
-  #db_cur.execute("SELECT *,x.probe_count,x.gene_count FROM platform, (SELECT pf_id,count(probe.prb_id) as probe_count,count(distinct probe2gene.prb_id) as probemap_count, count(distinct ode_gene_id) as gene_count FROM probe left outer join probe2gene ON (probe.prb_id=probe2gene.prb_id) GROUP BY pf_id) x WHERE x.pf_id=platform.pf_id AND pf_gpl_id IS NOT NULL ORDER BY CAST(SUBSTR(pf_gpl_id,4) AS INTEGER);")
-  #allplatforms=db_cur.fetchall()
+    #db_cur.execute("SELECT *,x.probe_count,x.gene_count FROM platform, (SELECT pf_id,count(probe.prb_id) as probe_count,count(distinct probe2gene.prb_id) as probemap_count, count(distinct ode_gene_id) as gene_count FROM probe left outer join probe2gene ON (probe.prb_id=probe2gene.prb_id) GROUP BY pf_id) x WHERE x.pf_id=platform.pf_id AND pf_gpl_id IS NOT NULL ORDER BY CAST(SUBSTR(pf_gpl_id,4) AS INTEGER);")
+    #allplatforms=db_cur.fetchall()
 
-  #db_cur.execute("SELECT gdb_id,sp_id,count(distinct ode_ref_id) FROM gene GROUP BY gdb_id,sp_id;")
-  #genecounts = db_cur.fetchall()
+    #db_cur.execute("SELECT gdb_id,sp_id,count(distinct ode_ref_id) FROM gene GROUP BY gdb_id,sp_id;")
+    #genecounts = db_cur.fetchall()
 
-  #db_cur.execute("SELECT *,x.count as ontdb_count FROM ontologydb, (SELECT ontdb_id,count(ont_id) FROM ontology GROUP BY ontdb_id) x WHERE x.ontdb_id=ontologydb.ontdb_id ORDER BY ontdb_name;")
-  #allonts = db_cur.fetchall()
+    #db_cur.execute("SELECT *,x.count as ontdb_count FROM ontologydb, (SELECT ontdb_id,count(ont_id) FROM ontology GROUP BY ontdb_id) x WHERE x.ontdb_id=ontologydb.ontdb_id ORDER BY ontdb_name;")
+    #allonts = db_cur.fetchall()
 
-  #db_cur.execute("SELECT hom_source_name, MAX(hom_date) AS hom_date FROM homology GROUP BY hom_source_name;")
-  #homcounts = db_cur.fetchall()
+    #db_cur.execute("SELECT hom_source_name, MAX(hom_date) AS hom_date FROM homology GROUP BY hom_source_name;")
+    #homcounts = db_cur.fetchall()
 
-  stats=_get_stats(db_cur)
-  resources=_get_resources(db_cur)
-  return render_template('admin_main.html', admins=admins, stats=stats, resources=resources, num_resources=len(resources))
+    stats=_get_stats(db_cur)
+    resources=_get_resources(db_cur)
+    return render_template('admin_main.html', admins=admins, stats=stats, resources=resources, num_resources=len(resources))
+
 
 #################################
 app.add_url_rule('/curation/', 'dashboard', dashboard, methods=['GET'])
@@ -1044,15 +1154,15 @@ app.add_url_rule('/curation/genesets/<int:gsid>/proc_<procname>', 'process_genes
 app.add_url_rule('/curation/genesets/<int:gsid>/approve/<int:cur_id>', 'approve_geneset', approve_geneset, methods=['GET', 'POST'])
 app.add_url_rule('/curation/genesets/<int:gsid>/reject', 'reject_geneset', reject_geneset, methods=['GET', 'POST'])
 app.add_url_rule('/curation/genesets/<int:gsid>/comment/<kind>', 'comment_geneset', comment_geneset, methods=['GET', 'POST'])
-
 app.add_url_rule('/curation/admin/', 'admin_main', admin_main, methods=['GET', 'POST'])
 
+
 if __name__ == '__main__':
-  #from dbgbar.flask_debugtoolbar import DebugToolbarExtension
-  #app.config['DEBUG']=True
-  #app.config['TESTING']=True
-  #app.config['DEBUG_TB_PROFILER_ENABLED']=True
-  #app.config['DEBUG_TB_INTERCEPT_REDIRECTS']=False
-  #app.debug=True
-  #toolbar = DebugToolbarExtension(app, prefix='/curation')
-  app.run(host='0.0.0.0', port=5005)
+    #from dbgbar.flask_debugtoolbar import DebugToolbarExtension
+    #app.config['DEBUG']=True
+    #app.config['TESTING']=True
+    #app.config['DEBUG_TB_PROFILER_ENABLED']=True
+    #app.config['DEBUG_TB_INTERCEPT_REDIRECTS']=False
+    #app.debug=True
+    #toolbar = DebugToolbarExtension(app, prefix='/curation')
+    app.run(host='0.0.0.0', port=5005)
