@@ -1,18 +1,19 @@
 #!/usr/local/bin/python
 # -*- coding: utf-8 -*-
 
-import os
-import re
-import sys
-import math
-import time
-import json
+import datetime
 import decimal
 import hashlib
+import json
 import logging
 import logging.handlers
+import math
+import os
 import psycopg2
-import datetime
+import re
+import sys
+import time
+import urllib
 from flask import Flask, request, url_for, session, render_template, redirect, flash, abort
 if sys.version_info[0] < 3:
     # TODO: Should be deprecated with python2
@@ -121,447 +122,452 @@ def list_generators():
 
 
 def list_stubs():
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  cur = dbcon.cursor()
+    cur = dbcon.cursor()
 
-  chgchk = (None,None)
-  if 'curstat' in session and 'curgrp' in session:
-    chgchk = (session['curstat'],session['curgrp'])
+    chgchk = (None,None)
+    if 'curstat' in session and 'curgrp' in session:
+        chgchk = (session['curstat'],session['curgrp'])
 
-  curstat=request.args.get('stat')
-  if curstat is None and 'curstat' in session:
-    curstat = session['curstat']
+    curstat=request.args.get('stat')
+    if curstat is None and 'curstat' in session:
+        curstat = session['curstat']
 
-  if curstat is None or curstat not in session['stati']:
-    # default to unreviewed
-    curstat = '0'
-  session['curstat'] = curstat
+    if curstat is None or curstat not in session['stati']:
+        # default to unreviewed
+        curstat = '0'
+    session['curstat'] = curstat
 
-  curgrp = request.args.get('grp')
-  if curgrp is None and 'curgrp' in session:
-    curgrp = session['curgrp']
+    curgrp = request.args.get('grp')
+    if curgrp is None and 'curgrp' in session:
+        curgrp = session['curgrp']
 
-  curgrps = session['groups'].keys()
-  if curgrp is None or curgrp not in session['groups']:
-    # default to all groups
-    curgrp = '0'
-  else:
-    curgrps = [curgrp]
-  session['curgrp'] = curgrp
-
-  if chgchk != (session['curstat'],session['curgrp']) and request.args.get('page','1')!='1':
-    del session['num_results']
-    del session['pages']
-    del session['page']
-    return redirect( url_for('list_stubs', stat=session['curstat'], grp=session['curgrp']) )
-
-  cur.execute('''SELECT COUNT(stubid),stid FROM gwcuration.stub_status
-      WHERE grp_id=ANY(%s) GROUP BY stid;''',
-      ('{'+','.join(curgrps)+'}',))
-  stati_counts={}
-  for stid in session['stati']:
-    stati_counts[stid]=0
-  for row in cur:
-    stati_counts[str(row[1])]=row[0]
-
-  cur.execute('''SELECT ss.stubid,ss.status_comment,ss.priority,ss.rank,ss.grp_id,sg.name
-      FROM gwcuration.stub_status ss,gwcuration.stubgenerators sg
-      WHERE ss.stid=%s AND ss.grp_id=ANY(%s) AND sg.stubgenid=ss.stubgenid
-      ORDER BY ss.priority DESC, ss.rank DESC, ss.stubid ASC;''',
-      (int(curstat), '{'+','.join(curgrps)+'}' ))
-
-  if chgchk != (session['curstat'],session['curgrp']) or 'num_results' not in session:
-    session['num_results'] = cur.rowcount
-    session['pages'] = cur.rowcount/25
-    if cur.rowcount%25 > 0:
-      session['pages']+=1
-    session['page']=1
-  elif request.args.get('page','1')!=str(session['page']):
-    session['page']=int(request.args.get('page','1'))
-
-  stubs={}
-  try:
-    cur.scroll(25*(int(session['page'])-1))
-  except (psycopg2.ProgrammingError, IndexError) as exc:
-    if cur.rowcount>0:
-      abort(404)
-
-  for row in cur.fetchmany(25):
-    stubs[str(row[0])] = {'stubid': row[0], 'comment': row[1], 'priority': row[2], 'rank': row[3], 'group': session['groups'][str(row[4])], 'stubgenerator': row[5]}
-    stubs[str(row[0])]['status'] = session['stati'][ curstat ]
-    stubs[str(row[0])]['mod_url'] = url_for('mod_stub', stubid=row[0], grpid=row[4])
-    stubs[str(row[0])]['view_url'] = url_for('view_stub', stubid=row[0])
-    stubs[str(row[0])]['geneset_count'] = 0
-
-  pmids={}
-  cur.execute('SELECT stubid,title,abstract,authors,pubinfo,pmid,link_to_fulltext,added_on FROM gwcuration.stubs WHERE stubid=ANY(%s);', ('{'+','.join(stubs)+'}',))
-  for row in cur:
-    if sys.version_info[0] < 3:
-      # TODO: Should be deprecated with python2
-      stubs[str(row[0])]['atitle'] = row[1].decode('utf-8')
-      stubs[str(row[0])]['abstract'] = row[2].decode('utf-8')
-      stubs[str(row[0])]['authors'] = row[3].decode('utf-8')
-      stubs[str(row[0])]['pubinfo'] = row[4].decode('utf-8')
+    curgrps = session['groups'].keys()
+    if curgrp is None or curgrp not in session['groups']:
+        # default to all groups
+        curgrp = '0'
     else:
-      stubs[str(row[0])]['atitle'] = row[1]
-      stubs[str(row[0])]['abstract'] = row[2]
-      stubs[str(row[0])]['authors'] = row[3]
-      stubs[str(row[0])]['pubinfo'] = row[4]
+        curgrps = [curgrp]
+    session['curgrp'] = curgrp
 
-    stubs[str(row[0])]['pmid'] = row[5]
-    stubs[str(row[0])]['fulltext'] = row[6]
-    stubs[str(row[0])]['added'] = row[7]
-    if row[5] not in pmids:
-      pmids[row[5]]=set()
-    pmids[row[5]].add(str(row[0]))
+    if chgchk != (session['curstat'],session['curgrp']) and request.args.get('page','1')!='1':
+        del session['num_results']
+        del session['pages']
+        del session['page']
+        return redirect( url_for('list_stubs', stat=session['curstat'], grp=session['curgrp']) )
 
-  cur.execute('''SELECT gs_id,pub_pubmed FROM production.geneset g,production.publication p where g.pub_id=p.pub_id AND pub_pubmed=ANY(%s) AND cur_id<=4 AND gs_groups='0' AND gs_status not like 'de%%';''',
-      ('{'+','.join(pmids.keys())+'}',))
-  for row in cur:
-    for stub in pmids[row[1]]:
-      stubs[stub]['geneset_count']+=1
+    cur.execute('''SELECT COUNT(stubid),stid FROM gwcuration.stub_status
+                WHERE grp_id=ANY(%s) GROUP BY stid;''',
+                ('{'+','.join(curgrps)+'}',))
+    stati_counts={}
+    for stid in session['stati']:
+        stati_counts[stid]=0
+    for row in cur:
+        stati_counts[str(row[1])]=row[0]
 
-  def _sorter(a,b):
-    p = b['priority']-a['priority']
-    if p!=0:
-      return p
-    r = a['rank']-b['rank']
-    if r!=0:
-      return r
+    cur.execute('''SELECT ss.stubid,ss.status_comment,ss.priority,ss.rank,ss.grp_id,sg.name
+                FROM gwcuration.stub_status ss,gwcuration.stubgenerators sg
+                WHERE ss.stid=%s AND ss.grp_id=ANY(%s) AND sg.stubgenid=ss.stubgenid
+                ORDER BY ss.priority DESC, ss.rank DESC, ss.stubid ASC;''',
+                (int(curstat), '{'+','.join(curgrps)+'}' ))
 
-    if a['added']>b['added']:
-      return -1
-    if a['added']<b['added']:
-      return 1
-    return 0
-  stubs = sorted(stubs.values(), cmp=_sorter)
+    if chgchk != (session['curstat'],session['curgrp']) or 'num_results' not in session:
+        session['num_results'] = cur.rowcount
+        session['pages'] = cur.rowcount/25
+        if cur.rowcount%25 > 0:
+            session['pages']+=1
+        session['page']=1
+    elif request.args.get('page','1')!=str(session['page']):
+        session['page']=int(request.args.get('page','1'))
 
-  return render_template('list_stubs.html', list=stubs, stati_counts=stati_counts)
+    stubs={}
+    try:
+        cur.scroll(25*(int(session['page'])-1))
+    except (psycopg2.ProgrammingError, IndexError) as exc:
+        if cur.rowcount>0:
+            abort(404)
+
+    for row in cur.fetchmany(25):
+        stubs[str(row[0])] = {'stubid': row[0], 'comment': row[1], 'priority': row[2], 'rank': row[3], 'group': session['groups'][str(row[4])], 'stubgenerator': row[5]}
+        stubs[str(row[0])]['status'] = session['stati'][ curstat ]
+        stubs[str(row[0])]['mod_url'] = url_for('mod_stub', stubid=row[0], grpid=row[4])
+        stubs[str(row[0])]['view_url'] = url_for('view_stub', stubid=row[0])
+        stubs[str(row[0])]['geneset_count'] = 0
+
+    pmids={}
+    cur.execute('SELECT stubid,title,abstract,authors,pubinfo,pmid,link_to_fulltext,added_on FROM gwcuration.stubs WHERE stubid=ANY(%s);', ('{'+','.join(stubs)+'}',))
+    for row in cur:
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            stubs[str(row[0])]['atitle'] = row[1].decode('utf-8')
+            stubs[str(row[0])]['abstract'] = row[2].decode('utf-8')
+            stubs[str(row[0])]['authors'] = row[3].decode('utf-8')
+            stubs[str(row[0])]['pubinfo'] = row[4].decode('utf-8')
+        else:
+            stubs[str(row[0])]['atitle'] = row[1]
+            stubs[str(row[0])]['abstract'] = row[2]
+            stubs[str(row[0])]['authors'] = row[3]
+            stubs[str(row[0])]['pubinfo'] = row[4]
+
+        stubs[str(row[0])]['pmid'] = row[5]
+        stubs[str(row[0])]['fulltext'] = row[6]
+        stubs[str(row[0])]['added'] = row[7]
+        if row[5] not in pmids:
+            pmids[row[5]]=set()
+        pmids[row[5]].add(str(row[0]))
+
+    cur.execute('''SELECT gs_id,pub_pubmed FROM production.geneset g,production.publication p where g.pub_id=p.pub_id AND pub_pubmed=ANY(%s) AND cur_id<=4 AND gs_groups='0' AND gs_status not like 'de%%';''',
+                ('{'+','.join(pmids.keys())+'}',))
+    for row in cur:
+        for stub in pmids[row[1]]:
+            stubs[stub]['geneset_count']+=1
+
+    def _sorter(a,b):
+        p = b['priority']-a['priority']
+        if p!=0:
+            return p
+        r = a['rank']-b['rank']
+        if r!=0:
+            return r
+
+        if a['added']>b['added']:
+            return -1
+        if a['added']<b['added']:
+            return 1
+        return 0
+    stubs = sorted(stubs.values(), cmp=_sorter)
+
+    return render_template('list_stubs.html', list=stubs, stati_counts=stati_counts)
+
 
 def add_manual_stubs(cur, pmids, grp_id, priority):
-  import urllib
-
-  cur.execute('SELECT stubgenid FROM gwcuration.stubgenerators WHERE name=\'Manual\' AND grp_id=%s;', (grp_id,))
-  row = cur.fetchone()
-  if row is None:
-    cur.execute('INSERT INTO gwcuration.stubgenerators (name,querystring,grp_id) VALUES (\'Manual\',\'-\',%s) RETURNING stubgenid;',
-      (grp_id,))
+    cur.execute('SELECT stubgenid FROM gwcuration.stubgenerators WHERE name=\'Manual\' AND grp_id=%s;', (grp_id,))
     row = cur.fetchone()
+    if row is None:
+        cur.execute('INSERT INTO gwcuration.stubgenerators (name,querystring,grp_id) VALUES (\'Manual\',\'-\',%s) RETURNING stubgenid;',
+                    (grp_id,))
+        row = cur.fetchone()
 
-  geninfo = {'name':'Manual','querystring':'-','grp_id':grp_id,'stubgenid':row[0]}
+    geninfo = {'name':'Manual','querystring':'-','grp_id':grp_id,'stubgenid':row[0]}
 
-  PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
-  response = urlopen(PM_DATA % (','.join([str(x) for x in pmids]),)).read()
+    PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
+    response = urlopen(PM_DATA % (','.join([str(x) for x in pmids]),)).read()
 
-  _process_pubmed_response(cur,geninfo,response, priority)
+    _process_pubmed_response(cur,geninfo,response, priority)
 
-  return geninfo['stubgenid']
+    return geninfo['stubgenid']
+
 
 def refresh_stubs(cur,genname):
-  import urllib
+    cur.execute('SELECT name,querystring,grp_id,stubgenid FROM gwcuration.stubgenerators WHERE name=%s AND (usr_id=%s OR grp_id=ANY(%s));',
+        (genname, int(session['user_id']), '{'+','.join(session['groups'].keys())+'}' ))
+    row = cur.fetchone()
+    geninfo = {'name':row[0],'querystring':row[1],'grp_id':row[2],'stubgenid':row[3]}
 
-  cur.execute('SELECT name,querystring,grp_id,stubgenid FROM gwcuration.stubgenerators WHERE name=%s AND (usr_id=%s OR grp_id=ANY(%s));',
-    (genname, int(session['user_id']), '{'+','.join(session['groups'].keys())+'}' ))
-  row = cur.fetchone()
-  geninfo = {'name':row[0],'querystring':row[1],'grp_id':row[2],'stubgenid':row[3]}
+    PM_SEARCH = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
+    response = urlopen(PM_SEARCH % (urllib.quote(geninfo['querystring']),)).read()
+    QueryKey = re.search('<QueryKey>([0-9]*)</QueryKey>', response).group(1)
+    WebEnv = re.search('<WebEnv>([^<]*)</WebEnv>', response).group(1)
+    count = re.search('<Count>([0-9]*)</Count>', response).group(1)
 
-  PM_SEARCH  = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
-  response = urlopen(PM_SEARCH % (urllib.quote(geninfo['querystring']),)).read()
-  QueryKey = re.search('<QueryKey>([0-9]*)</QueryKey>', response).group(1)
-  WebEnv = re.search('<WebEnv>([^<]*)</WebEnv>', response).group(1)
-  count = re.search('<Count>([0-9]*)</Count>', response).group(1)
+    # TODO: batch download these instead of all-at-once (10k max)
+    #PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s'
+    PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s&retmode=xml'
+    response = urlopen(PM_DATA % (QueryKey,WebEnv)).read()
 
-  # TODO: batch download these instead of all-at-once (10k max)
-  #PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s'
-  PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s&retmode=xml'
-  response = urlopen(PM_DATA % (QueryKey,WebEnv)).read()
+    return _process_pubmed_response(cur,geninfo,response)
 
-  return _process_pubmed_response(cur,geninfo,response)
 
 def _process_pubmed_response(cur, geninfo, response, default_priority=0):
-  nadded=0
-  cur = dbcon.cursor()
-  for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>',response,re.S):
-    article_ids={}
-    abstract=''
-    fulltext_link=None
+    nadded=0
+    cur = dbcon.cursor()
+    for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>',response,re.S):
+        article_ids={}
+        abstract=''
+        fulltext_link=None
 
-    article=match.group(1)
-    articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>',article, re.S)
-    abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>',article,re.S)
-    articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>',article,re.S).group(1).strip()
+        article=match.group(1)
+        articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>',article, re.S)
+        abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>',article,re.S)
+        articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>',article,re.S).group(1).strip()
 
-    for amatch in articleid_matches:
-      article_ids[ amatch.group(1).strip() ] = amatch.group(2).strip()
-    for amatch in abstract_matches:
-      abstract += amatch.group(2).strip()+' '
+        for amatch in articleid_matches:
+            article_ids[ amatch.group(1).strip() ] = amatch.group(2).strip()
+        for amatch in abstract_matches:
+            abstract += amatch.group(2).strip()+' '
 
-    if 'pmc' in article_ids:
-      fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
-    elif 'doi' in article_ids:
-      fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
-    pmid = article_ids['pubmed'].strip()
+        if 'pmc' in article_ids:
+            fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
+        elif 'doi' in article_ids:
+            fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
+        pmid = article_ids['pubmed'].strip()
 
-    author_matches = re.finditer('<Author [^>]*>(.*?)</Author>',article,re.S)
-    authors = []
-    for match in author_matches:
-      name = ''
-      try:
-        name = re.search('<LastName>([^<]*)</LastName>',match.group(1),re.S).group(1).strip()
-        name = name+' '+re.search('<Initials>([^<]*)</Initials>',match.group(1),re.S).group(1).strip()
-      except:
-        pass
-      authors.append(name)
+        author_matches = re.finditer('<Author [^>]*>(.*?)</Author>',article,re.S)
+        authors = []
+        for match in author_matches:
+            name = ''
+            try:
+                name = re.search('<LastName>([^<]*)</LastName>',match.group(1),re.S).group(1).strip()
+                name = name+' '+re.search('<Initials>([^<]*)</Initials>',match.group(1),re.S).group(1).strip()
+            except:
+                pass
+            authors.append(name)
 
-    authors = ', '.join(authors)
+        authors = ', '.join(authors)
 
-    pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>',article,re.S)
-    journal = re.search('<MedlineTA>([^<]*)</MedlineTA>',article,re.S).group(1).strip()
-    # year month journal
-    tomonthname = {
-        '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
-        '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+        pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>',article,re.S)
+        journal = re.search('<MedlineTA>([^<]*)</MedlineTA>',article,re.S).group(1).strip()
+        # year month journal
+        tomonthname = {
+            '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
+            '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
         }
-    pm = pubdate.group(2).strip()
-    if pm in tomonthname:
-      pm = tomonthname[pm]
+        pm = pubdate.group(2).strip()
+        if pm in tomonthname:
+            pm = tomonthname[pm]
 
-    pubinfo = '%s %s %s' % (pubdate.group(1).strip(), pm, journal)
+        pubinfo = '%s %s %s' % (pubdate.group(1).strip(), pm, journal)
 
-    # create the actual article stub
-    cur.execute('SELECT stubid FROM gwcuration.stubs WHERE pmid=%s;', (pmid,))
-    row = cur.fetchone()
-    if row is not None:
-      cur.execute('SELECT stid FROM gwcuration.stub_status WHERE stubid=%s AND grp_id=%s;', (row[0], geninfo['grp_id']))
+        # create the actual article stub
+        cur.execute('SELECT stubid FROM gwcuration.stubs WHERE pmid=%s;', (pmid,))
+        row = cur.fetchone()
+        if row is not None:
+            cur.execute('SELECT stid FROM gwcuration.stub_status WHERE stubid=%s AND grp_id=%s;', (row[0], geninfo['grp_id']))
 
-      row2 = cur.fetchone()
-      if row2 is not None:
-        continue
-    else:
-      cur.execute('''INSERT INTO gwcuration.stubs (pmid,title,authors,abstract,link_to_fulltext,pubinfo)
-          VALUES (%s,%s,%s,%s,%s,%s) RETURNING stubid;''',
-          (pmid,articletitle,authors,abstract,fulltext_link,pubinfo))
-      row = cur.fetchone()
+            row2 = cur.fetchone()
+            if row2 is not None:
+                continue
+        else:
+            cur.execute('''INSERT INTO gwcuration.stubs (pmid,title,authors,abstract,link_to_fulltext,pubinfo)
+                        VALUES (%s,%s,%s,%s,%s,%s) RETURNING stubid;''',
+                        (pmid,articletitle,authors,abstract,fulltext_link,pubinfo))
+            row = cur.fetchone()
 
-    # create this group's stub reference
-    cur.execute('''INSERT INTO gwcuration.stub_status (stubid,stid,grp_id,stubgenid,priority)
-        VALUES (%s,%s,%s,%s,%s);''', (row[0],1,geninfo['grp_id'],geninfo['stubgenid'],default_priority))
+        # create this group's stub reference
+        cur.execute('''INSERT INTO gwcuration.stub_status (stubid,stid,grp_id,stubgenid,priority)
+                    VALUES (%s,%s,%s,%s,%s);''', (row[0],1,geninfo['grp_id'],geninfo['stubgenid'],default_priority))
 
-    nadded+=1
+        nadded+=1
 
-  cur.execute('UPDATE gwcuration.stubgenerators SET last_update=NOW() WHERE name=%s AND (usr_id=%s OR grp_id=ANY(%s));',
-    (geninfo['name'], int(session['user_id']), '{'+','.join(session['groups'].keys())+'}' ))
-  dbcon.commit()
-  return nadded
+    cur.execute('UPDATE gwcuration.stubgenerators SET last_update=NOW() WHERE name=%s AND (usr_id=%s OR grp_id=ANY(%s));',
+        (geninfo['name'], int(session['user_id']), '{'+','.join(session['groups'].keys())+'}' ))
+    dbcon.commit()
+    return nadded
+
 
 def mod_stub(stubid,grpid):
-  newstid = request.args.get('stid')
-  newpri = request.args.get('pri')
-  cur = dbcon.cursor()
-  if newstid is not None:
-    cur.execute('UPDATE gwcuration.stub_status SET stid=%s WHERE stubid=%s and grp_id=%s and stid=%s;',
-        (newstid, stubid, grpid, session['curstat']))
-    if newstid=='':
-      cur.execute('''UPDATE production.geneset SET gs_groups='0', cur_id=4 WHERE gs_id in (SELECT gs_id FROM stub2geneset WHERE stubid=%s);''', (stubid,))
+    newstid = request.args.get('stid')
+    newpri = request.args.get('pri')
+    cur = dbcon.cursor()
+    if newstid is not None:
+        cur.execute('UPDATE gwcuration.stub_status SET stid=%s WHERE stubid=%s and grp_id=%s and stid=%s;',
+                (newstid, stubid, grpid, session['curstat']))
+        if newstid=='':
+            cur.execute('''UPDATE production.geneset SET gs_groups='0', cur_id=4 WHERE gs_id in (SELECT gs_id FROM stub2geneset WHERE stubid=%s);''', (stubid,))
 
-  if newpri is not None:
-    cur.execute('UPDATE gwcuration.stub_status SET priority=%s WHERE stubid=%s and grp_id=%s and stid=%s;',
-        (int(newpri), stubid, grpid, session['curstat']))
-  dbcon.commit()
-  return redirect(request.referrer)
+    if newpri is not None:
+        cur.execute('UPDATE gwcuration.stub_status SET priority=%s WHERE stubid=%s and grp_id=%s and stid=%s;',
+                (int(newpri), stubid, grpid, session['curstat']))
+    dbcon.commit()
+    return redirect(request.referrer)
+
 
 ############################################
 def _get_stubinfo(cur, stubid):
-  cur.execute('''SELECT ss.stubid,ss.status_comment,ss.priority,ss.rank,ss.grp_id,sg.name
-      FROM gwcuration.stub_status ss,gwcuration.stubgenerators sg
-      WHERE ss.stubid=%s AND sg.stubgenid=ss.stubgenid;''', (stubid,))
-  row = cur.fetchone()
-  stub = {'stubid': row[0], 'comment': row[1], 'priority': row[2], 'rank': row[3], 'group': session['groups'][str(row[4])], 'stubgenerator': row[5]}
-  stub['status'] = session['stati'][ session['curstat'] ]
-  stub['mod_url'] = url_for('mod_stub', stubid=stubid, grpid=row[4])
-  stub['add_url'] = url_for('create_from_stub', stubid=stubid)
-  stub['view_url'] = url_for('view_stub', stubid=row[0])
+    cur.execute('''SELECT ss.stubid,ss.status_comment,ss.priority,ss.rank,ss.grp_id,sg.name
+                FROM gwcuration.stub_status ss,gwcuration.stubgenerators sg
+                WHERE ss.stubid=%s AND sg.stubgenid=ss.stubgenid;''', (stubid,))
+    row = cur.fetchone()
+    stub = {'stubid': row[0], 'comment': row[1], 'priority': row[2], 'rank': row[3], 'group': session['groups'][str(row[4])], 'stubgenerator': row[5]}
+    stub['status'] = session['stati'][ session['curstat'] ]
+    stub['mod_url'] = url_for('mod_stub', stubid=stubid, grpid=row[4])
+    stub['add_url'] = url_for('create_from_stub', stubid=stubid)
+    stub['view_url'] = url_for('view_stub', stubid=row[0])
 
-  cur.execute('SELECT stubid,title,abstract,authors,pubinfo,pmid,link_to_fulltext,added_on FROM gwcuration.stubs WHERE stubid=%s;', (stubid,))
-  row = cur.fetchone()
-  if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    stub['atitle'] = row[1].decode('utf-8')
-    stub['abstract'] = row[2].decode('utf-8')
-    stub['authors'] = row[3].decode('utf-8')
-    stub['pubinfo'] = row[4].decode('utf-8')
-  else:
-    stub['atitle'] = row[1]
-    stub['abstract'] = row[2]
-    stub['authors'] = row[3]
-    stub['pubinfo'] = row[4]
-  stub['pmid'] = row[5]
-  stub['fulltext'] = row[6]
-  stub['added'] = row[7]
-
-  species={}
-  cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
-  for row in cur:
-    species[row[0]]=row[1]
-
-  cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email,gs_updated,gs_gene_id_type
-    FROM production.publication p, production.geneset g, production.usr u
-    WHERE g.usr_id=u.usr_id AND p.pub_pubmed=%s and p.pub_id=g.pub_id AND g.gs_status NOT LIKE 'de%%' AND g.cur_id<5;''', (stub['pmid'],))
-
-  stub['genesets']=[]
-  for row in cur:
+    cur.execute('SELECT stubid,title,abstract,authors,pubinfo,pmid,link_to_fulltext,added_on FROM gwcuration.stubs WHERE stubid=%s;', (stubid,))
+    row = cur.fetchone()
     if sys.version_info[0] < 3:
-      # TODO: Should be deprecated with python2
-      stub['genesets'].append({
-        'gs_id': row[0],
-        'gs_name': row[1].decode('utf-8'),
-        'gs_abbreviation': row[2].decode('utf-8'),
-        'gs_description': row[3].decode('utf-8'),
-
-        'sp_id': row[4],
-        'species': species[row[4]],
-        'gs_count': row[5],
-        'cur_id': row[6],
-        'usr_email': row[7],
-        'last_updated': row[8],
-        'gs_gene_id_type': row[9],
-        'pmid': stub['pmid'],
-        'view_url': url_for('view_geneset', gsid=row[0]),
-        })
+        # TODO: Should be deprecated with python2
+        stub['atitle'] = row[1].decode('utf-8')
+        stub['abstract'] = row[2].decode('utf-8')
+        stub['authors'] = row[3].decode('utf-8')
+        stub['pubinfo'] = row[4].decode('utf-8')
     else:
-      stub['genesets'].append({
-        'gs_id': row[0],
-        'gs_name': row[1],
-        'gs_abbreviation': row[2],
-        'gs_description': row[3],
+        stub['atitle'] = row[1]
+        stub['abstract'] = row[2]
+        stub['authors'] = row[3]
+        stub['pubinfo'] = row[4]
+    stub['pmid'] = row[5]
+    stub['fulltext'] = row[6]
+    stub['added'] = row[7]
 
-        'sp_id': row[4],
-        'species': species[row[4]],
-        'gs_count': row[5],
-        'cur_id': row[6],
-        'usr_email': row[7],
-        'last_updated': row[8],
-        'gs_gene_id_type': row[9],
-        'pmid': stub['pmid'],
-        'view_url': url_for('view_geneset', gsid=row[0]),
-        })
+    species={}
+    cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
+    for row in cur:
+        species[row[0]]=row[1]
 
-  return stub
+    cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email,gs_updated,gs_gene_id_type
+                FROM production.publication p, production.geneset g, production.usr u
+                WHERE g.usr_id=u.usr_id AND p.pub_pubmed=%s and p.pub_id=g.pub_id AND g.gs_status NOT LIKE 'de%%' AND g.cur_id<5;''', (stub['pmid'],))
+
+    stub['genesets']=[]
+    for row in cur:
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            stub['genesets'].append({
+                'gs_id': row[0],
+                'gs_name': row[1].decode('utf-8'),
+                'gs_abbreviation': row[2].decode('utf-8'),
+                'gs_description': row[3].decode('utf-8'),
+
+                'sp_id': row[4],
+                'species': species[row[4]],
+                'gs_count': row[5],
+                'cur_id': row[6],
+                'usr_email': row[7],
+                'last_updated': row[8],
+                'gs_gene_id_type': row[9],
+                'pmid': stub['pmid'],
+                'view_url': url_for('view_geneset', gsid=row[0]),
+            })
+        else:
+            stub['genesets'].append({
+                'gs_id': row[0],
+                'gs_name': row[1],
+                'gs_abbreviation': row[2],
+                'gs_description': row[3],
+
+                'sp_id': row[4],
+                'species': species[row[4]],
+                'gs_count': row[5],
+                'cur_id': row[6],
+                'usr_email': row[7],
+                'last_updated': row[8],
+                'gs_gene_id_type': row[9],
+                'pmid': stub['pmid'],
+                'view_url': url_for('view_geneset', gsid=row[0]),
+            })
+
+    return stub
+
 
 def view_stub(stubid):
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  cur = dbcon.cursor()
-  stub = _get_stubinfo(cur,stubid)
+    cur = dbcon.cursor()
+    stub = _get_stubinfo(cur,stubid)
 
-  return render_template('view_stub.html', stub=stub)
+    return render_template('view_stub.html', stub=stub)
+
 
 def comment_stub(stubid):
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  comment = request.form.get('comment','')
-  cur = dbcon.cursor()
-  cur.execute('UPDATE gwcuration.stub_status SET status_comment=%s WHERE stubid=%s;', (comment,stubid))
-
-  dbcon.commit()
-  return comment
-
-def create_from_stub(stubid):
-  genedbs={}
-  platforms={}
-  species={}
-
-  cur = dbcon.cursor()
-  cur.execute('set search_path to production,odestatic,extsrc;')
-  cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
-  for row in cur:
-    species[row[0]]=row[1]
-  cur.execute('select gdb_id,gdb_name from odestatic.genedb;')
-  for row in cur:
-    genedbs[row[0]]=row[1]
-  cur.execute('select pf_id,pf_name from odestatic.platform;')
-  for row in cur:
-    platforms[row[0]]=row[1]
-
-  stub = _get_stubinfo(cur,stubid)
-
-  if request.form.get('gs_name','')!='':
-    if sys.version_info[0] < 3:
-      # TODO: Should be deprecated with python2
-      name=request.form.get('gs_name').decode('utf-8')
-      label=request.form.get('gs_abbreviation').decode('utf-8')
-      desc=request.form.get('gs_description').decode('utf-8')
-    else:
-      name=request.form.get('gs_name')
-      label=request.form.get('gs_abbreviation')
-      desc=request.form.get('gs_description')
-    sp_id=int(request.form.get('sp_id'))
-    idtype=int(request.form.get('id_type'))
-
-    gs_file = request.form.get('gs_filetext','').strip()
-    if gs_file=='':
-      fn = request.files['gs_file'].filename
-      gs_file = open(fn).read()
-    gs_file=gs_file.replace('\r\n', '\n').replace('\r','\n')
-
-    # create the pub_id if necessary
-    cur.execute('SELECT pub_id FROM production.publication WHERE pub_pubmed=%s;', (stub['pmid'],))
-    row = cur.fetchone()
-    if row is None:
-      cur.execute('''INSERT INTO production.publication (pub_pubmed,pub_title,pub_authors,pub_abstract)
-          VALUES (%s,%s,%s,%s) RETURNING pub_id;''', (stub['pmid'],stub['atitle'],stub['authors'],stub['abstract']))
-      row = cur.fetchone()
-    pub_id = row[0]
-
-    # create the file_id
-    cur.execute('INSERT INTO production.file (file_contents,file_size) VALUES (%s,%s) RETURNING file_id;', (gs_file, len(gs_file)))
-    row = cur.fetchone()
-    file_id = row[0]
-
-    # directly into tier 4
-    # gs_threshold_type = 3
-    # gs_threshold = 0.0
-    cur.execute('''INSERT INTO production.geneset (gs_name,gs_abbreviation,gs_description,sp_id,gs_gene_id_type,
-      usr_id,file_id,pub_id,gs_groups,cur_id,gs_status,gs_count,gs_threshold_type,gs_threshold)
-      VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,4,'normal',0,3,'0.0') RETURNING gs_id;''',
-      (name,label,desc,sp_id,idtype, session['user_id'], file_id,pub_id,session['curgrp']))
-    row = cur.fetchone()
-
-    # process the uploaded file (match up gene ids/scores)
-    cur.execute('SELECT production.reparse_geneset_file(%s);', (row[0],))
-    # process thresholds
-    cur.execute('SELECT production.process_thresholds(%s);', (row[0],))
-
-    # update curation status to "in process"
-    cur.execute('UPDATE gwcuration.stub_status SET stid=%s WHERE stubid=%s;', (5,stubid))
-    cur.execute('INSERT INTO gwcuration.stub2geneset (stubid,gs_id) values (%s,%s);', (stubid,row[0]))
+    comment = request.form.get('comment','')
+    cur = dbcon.cursor()
+    cur.execute('UPDATE gwcuration.stub_status SET status_comment=%s WHERE stubid=%s;', (comment,stubid))
 
     dbcon.commit()
-    cur.close()
-    return redirect(url_for('view_stub', stubid=stubid))
+    return comment
 
-  last_sp_id=None
-  last_id_type=None
-  if stub['genesets']:
-    gs=stub['genesets'][-1]
-    last_sp_id=gs['sp_id']
-    last_id_type=gs['gs_gene_id_type']
 
-  return render_template('create_geneset.html', species=species, platforms=platforms, genedbs=genedbs, stub=stub, last_sp_id=last_sp_id, last_id_type=last_id_type)
+def create_from_stub(stubid):
+    genedbs={}
+    platforms={}
+    species={}
+
+    cur = dbcon.cursor()
+    cur.execute('set search_path to production,odestatic,extsrc;')
+    cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
+    for row in cur:
+        species[row[0]]=row[1]
+    cur.execute('select gdb_id,gdb_name from odestatic.genedb;')
+    for row in cur:
+        genedbs[row[0]]=row[1]
+    cur.execute('select pf_id,pf_name from odestatic.platform;')
+    for row in cur:
+        platforms[row[0]]=row[1]
+
+    stub = _get_stubinfo(cur,stubid)
+
+    if request.form.get('gs_name','')!='':
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            name=request.form.get('gs_name').decode('utf-8')
+            label=request.form.get('gs_abbreviation').decode('utf-8')
+            desc=request.form.get('gs_description').decode('utf-8')
+        else:
+            name=request.form.get('gs_name')
+            label=request.form.get('gs_abbreviation')
+            desc=request.form.get('gs_description')
+        sp_id=int(request.form.get('sp_id'))
+        idtype=int(request.form.get('id_type'))
+
+        gs_file = request.form.get('gs_filetext','').strip()
+        if gs_file=='':
+            fn = request.files['gs_file'].filename
+            gs_file = open(fn).read()
+        gs_file=gs_file.replace('\r\n', '\n').replace('\r','\n')
+
+        # create the pub_id if necessary
+        cur.execute('SELECT pub_id FROM production.publication WHERE pub_pubmed=%s;', (stub['pmid'],))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute('''INSERT INTO production.publication (pub_pubmed,pub_title,pub_authors,pub_abstract)
+                        VALUES (%s,%s,%s,%s) RETURNING pub_id;''', (stub['pmid'],stub['atitle'],stub['authors'],stub['abstract']))
+            row = cur.fetchone()
+        pub_id = row[0]
+
+        # create the file_id
+        cur.execute('INSERT INTO production.file (file_contents,file_size) VALUES (%s,%s) RETURNING file_id;', (gs_file, len(gs_file)))
+        row = cur.fetchone()
+        file_id = row[0]
+
+        # directly into tier 4
+        # gs_threshold_type = 3
+        # gs_threshold = 0.0
+        cur.execute('''INSERT INTO production.geneset (gs_name,gs_abbreviation,gs_description,sp_id,gs_gene_id_type,
+                    usr_id,file_id,pub_id,gs_groups,cur_id,gs_status,gs_count,gs_threshold_type,gs_threshold)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,4,'normal',0,3,'0.0') RETURNING gs_id;''',
+                    (name,label,desc,sp_id,idtype, session['user_id'], file_id,pub_id,session['curgrp']))
+        row = cur.fetchone()
+
+        # process the uploaded file (match up gene ids/scores)
+        cur.execute('SELECT production.reparse_geneset_file(%s);', (row[0],))
+        # process thresholds
+        cur.execute('SELECT production.process_thresholds(%s);', (row[0],))
+
+        # update curation status to "in process"
+        cur.execute('UPDATE gwcuration.stub_status SET stid=%s WHERE stubid=%s;', (5,stubid))
+        cur.execute('INSERT INTO gwcuration.stub2geneset (stubid,gs_id) values (%s,%s);', (stubid,row[0]))
+
+        dbcon.commit()
+        cur.close()
+        return redirect(url_for('view_stub', stubid=stubid))
+
+    last_sp_id=None
+    last_id_type=None
+    if stub['genesets']:
+        gs=stub['genesets'][-1]
+        last_sp_id=gs['sp_id']
+        last_id_type=gs['gs_gene_id_type']
+
+    return render_template('create_geneset.html', species=species, platforms=platforms, genedbs=genedbs, stub=stub, last_sp_id=last_sp_id, last_id_type=last_id_type)
+
 
 def quickadd():
-  import re
-  pmids = re.split('[ \r\n\t,;]+', request.form.get('pmids'))
-  cur = dbcon.cursor()
-  stubgenid = add_manual_stubs(cur, pmids, request.form.get('forgroup'), 3)
-  dbcon.commit()
-  session['curstat']='1'
-  session['curgrp']=request.form.get('forgroup')
-  return redirect( url_for('list_stubs') )
+    pmids = re.split('[ \r\n\t,;]+', request.form.get('pmids'))
+    cur = dbcon.cursor()
+    stubgenid = add_manual_stubs(cur, pmids, request.form.get('forgroup'), 3)
+    dbcon.commit()
+    session['curstat']='1'
+    session['curgrp']=request.form.get('forgroup')
+    return redirect( url_for('list_stubs') )
+
 
 def dashboard():
     if 'user_id' not in session:
@@ -631,385 +637,393 @@ def dashboard():
 
     return render_template('dashboard.html', pending_genesets=pgenesets, stub_stats=stub_stats)
 
+
 def list_genesets():
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  chgchk = (None,None)
-  if 'curtier' in session and 'curgrp' in session:
-    chgchk = (session['curtier'],session['curgrp'])
+    chgchk = (None,None)
+    if 'curtier' in session and 'curgrp' in session:
+        chgchk = (session['curtier'],session['curgrp'])
 
-  curtier=request.args.get('tier')
-  if curtier is None and 'curtier' in session:
-    curtier = session['curtier']
+    curtier=request.args.get('tier')
+    if curtier is None and 'curtier' in session:
+        curtier = session['curtier']
 
-  if curtier is None or curtier not in session['tiers']:
-    curtier = '4'
-  session['curtier'] = curtier
+    if curtier is None or curtier not in session['tiers']:
+        curtier = '4'
+    session['curtier'] = curtier
 
-  curgrp = request.args.get('grp')
-  if curgrp is None and 'curgrp' in session:
-    curgrp = session['curgrp']
+    curgrp = request.args.get('grp')
+    if curgrp is None and 'curgrp' in session:
+        curgrp = session['curgrp']
 
-  curgrps = session['groups'].keys()
-  if curgrp is None or curgrp not in session['groups']:
-    # default to all groups
-    curgrp = '0'
-  else:
-    curgrps = [curgrp]
-  session['curgrp'] = curgrp
-  if curgrp=='0':
-    curgrps += ['0']
-
-  # if options chaged, make sure we're on page 1
-  if chgchk != (session['curtier'],session['curgrp']) and request.args.get('page','1')!='1':
-    del session['num_gs_results']
-    del session['gs_pages']
-    del session['gs_page']
-    return redirect( url_for('list_genesets', tier=session['curtier'], grp=session['curgrp']) )
-
-  cur = dbcon.cursor()
-  cur.execute('''SELECT COUNT(cur_id),cur_id FROM production.geneset
-      WHERE gs_groups='0' AND gs_status NOT LIKE 'de%%' 
-        AND usr_id IN (SELECT usr_id FROM production.usr WHERE usr_email LIKE '%%@%%')
-        GROUP BY cur_id;''',
-      ('{'+','.join(curgrps)+'}',))
-
-  tier_counts={}
-  for tierid in session['tiers']:
-    tier_counts[tierid]=0
-  for row in cur:
-    tier_counts[str(row[1])]=row[0]
-
-  species={}
-  cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
-  for row in cur:
-    species[row[0]]=row[1]
-
-  cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email,gs_updated,p.pub_pubmed
-    FROM production.usr u, production.geneset g LEFT OUTER JOIN production.publication p ON (g.pub_id=p.pub_id)
-    WHERE u.usr_id=g.usr_id AND g.gs_status NOT LIKE 'de%%' AND u.usr_email like '%%@%%'
-      AND string_to_array(gs_groups,',') && %s AND cur_id=%s;''',
-      ('{'+','.join(curgrps)+'}',session['curtier']))
-
-  if chgchk != (session['curtier'],session['curgrp']) or 'num_gs_results' not in session:
-    session['num_gs_results'] = cur.rowcount
-    session['gs_pages'] = cur.rowcount/25
-    if cur.rowcount%25 > 0:
-      session['gs_pages']+=1
-    session['gs_page']=1
-  elif request.args.get('page','1')!=str(session['gs_page']):
-    session['gs_page']=int(request.args.get('page','1'))
-
-  stubs={}
-  try:
-    cur.scroll(25*(int(session['gs_page'])-1))
-  except (psycopg2.ProgrammingError, IndexError) as exc:
-    if cur.rowcount>0:
-      abort(404)
-
-  pgenesets=[]
-  for row in cur.fetchmany(25):
-    if sys.version_info[0] < 3:
-      # TODO: Should be deprecated with python2
-      pgenesets.append({
-        'gs_id': row[0],
-        'gs_name': row[1].decode('utf-8'),
-        'gs_abbreviation': row[2].decode('utf-8'),
-        'gs_description': row[3].decode('utf-8'),
-
-        'species': species[row[4]],
-        'gs_count': row[5],
-        'cur_id': row[6],
-        'usr_email': row[7],
-        'last_updated': row[8],
-        'pmid': row[9],
-        'view_url': url_for('view_geneset', gsid=row[0]),
-        })
+    curgrps = session['groups'].keys()
+    if curgrp is None or curgrp not in session['groups']:
+        # default to all groups
+        curgrp = '0'
     else:
-      pgenesets.append({
-        'gs_id': row[0],
-        'gs_name': row[1],
-        'gs_abbreviation': row[2],
-        'gs_description': row[3],
+        curgrps = [curgrp]
+    session['curgrp'] = curgrp
+    if curgrp=='0':
+        curgrps += ['0']
 
-        'species': species[row[4]],
-        'gs_count': row[5],
-        'cur_id': row[6],
-        'usr_email': row[7],
-        'last_updated': row[8],
-        'pmid': row[9],
-        'view_url': url_for('view_geneset', gsid=row[0]),
-        })
+    # if options chaged, make sure we're on page 1
+    if chgchk != (session['curtier'],session['curgrp']) and request.args.get('page','1')!='1':
+        del session['num_gs_results']
+        del session['gs_pages']
+        del session['gs_page']
+        return redirect( url_for('list_genesets', tier=session['curtier'], grp=session['curgrp']) )
 
-  return render_template('list_genesets.html', list=pgenesets, tier_counts=tier_counts)
+    cur = dbcon.cursor()
+    cur.execute('''SELECT COUNT(cur_id),cur_id FROM production.geneset
+                WHERE gs_groups='0' AND gs_status NOT LIKE 'de%%' 
+                AND usr_id IN (SELECT usr_id FROM production.usr WHERE usr_email LIKE '%%@%%')
+                GROUP BY cur_id;''',
+                ('{'+','.join(curgrps)+'}',))
+
+    tier_counts={}
+    for tierid in session['tiers']:
+        tier_counts[tierid]=0
+    for row in cur:
+        tier_counts[str(row[1])]=row[0]
+
+    species={}
+    cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
+    for row in cur:
+        species[row[0]]=row[1]
+
+    cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email,gs_updated,p.pub_pubmed
+                FROM production.usr u, production.geneset g LEFT OUTER JOIN production.publication p ON (g.pub_id=p.pub_id)
+                WHERE u.usr_id=g.usr_id AND g.gs_status NOT LIKE 'de%%' AND u.usr_email like '%%@%%'
+                AND string_to_array(gs_groups,',') && %s AND cur_id=%s;''',
+                ('{'+','.join(curgrps)+'}',session['curtier']))
+
+    if chgchk != (session['curtier'],session['curgrp']) or 'num_gs_results' not in session:
+        session['num_gs_results'] = cur.rowcount
+        session['gs_pages'] = cur.rowcount/25
+        if cur.rowcount%25 > 0:
+            session['gs_pages']+=1
+        session['gs_page']=1
+    elif request.args.get('page','1')!=str(session['gs_page']):
+        session['gs_page']=int(request.args.get('page','1'))
+
+    stubs={}
+    try:
+        cur.scroll(25*(int(session['gs_page'])-1))
+    except (psycopg2.ProgrammingError, IndexError) as exc:
+        if cur.rowcount>0:
+            abort(404)
+
+    pgenesets=[]
+    for row in cur.fetchmany(25):
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            pgenesets.append({
+                'gs_id': row[0],
+                'gs_name': row[1].decode('utf-8'),
+                'gs_abbreviation': row[2].decode('utf-8'),
+                'gs_description': row[3].decode('utf-8'),
+
+                'species': species[row[4]],
+                'gs_count': row[5],
+                'cur_id': row[6],
+                'usr_email': row[7],
+                'last_updated': row[8],
+                'pmid': row[9],
+                'view_url': url_for('view_geneset', gsid=row[0]),
+            })
+        else:
+            pgenesets.append({
+                'gs_id': row[0],
+                'gs_name': row[1],
+                'gs_abbreviation': row[2],
+                'gs_description': row[3],
+
+                'species': species[row[4]],
+                'gs_count': row[5],
+                'cur_id': row[6],
+                'usr_email': row[7],
+                'last_updated': row[8],
+                'pmid': row[9],
+                'view_url': url_for('view_geneset', gsid=row[0]),
+            })
+
+    return render_template('list_genesets.html', list=pgenesets, tier_counts=tier_counts)
+
 
 ############################################
 def _get_genesetinfo(cur, gsid):
-  species={}
-  cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
-  for row in cur:
-    species[row[0]]=row[1]
+    species={}
+    cur.execute('select sp_id,sp_name from odestatic.species where sp_id!=0;')
+    for row in cur:
+        species[row[0]]=row[1]
 
-  start=datetime.datetime.now()
-  cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email,gs_updated,
-       gs_gene_id_type,gs_threshold,gs_threshold_type,p.pub_pubmed,file_id,gs_groups,
-       _comments_author,_comments_curator,gs_attribution,gs_uri
-    FROM production.geneset g LEFT OUTER JOIN production.publication p ON (g.pub_id=p.pub_id), production.usr u
-    WHERE u.usr_id=g.usr_id AND gs_id=%s;''',
-      (gsid,))
+    start=datetime.datetime.now()
+    cur.execute('''SELECT g.gs_id,gs_name,gs_abbreviation,gs_description,sp_id,gs_count,cur_id,usr_email,gs_updated,
+                gs_gene_id_type,gs_threshold,gs_threshold_type,p.pub_pubmed,file_id,gs_groups,
+                _comments_author,_comments_curator,gs_attribution,gs_uri
+                FROM production.geneset g LEFT OUTER JOIN production.publication p ON (g.pub_id=p.pub_id), production.usr u
+                WHERE u.usr_id=g.usr_id AND gs_id=%s;''',
+                (gsid,))
 
-  row = cur.fetchone()
-  if row is None:
-      abort(404)
+    row = cur.fetchone()
+    if row is None:
+            abort(404)
 
-  start=datetime.datetime.now()
-  geneid_type=None
-  if row[9]>0:
-    cur.execute("SELECT pf_name FROM odestatic.platform WHERE pf_id=%s;", (row[9],))
-  else:
-    cur.execute("SELECT gdb_name FROM odestatic.genedb WHERE gdb_id=%s;", (-row[9],))
-  res=cur.fetchone()
-  geneid_type=res[0]
-
-  start=datetime.datetime.now()
-  cur.execute("SELECT file_contents FROM production.file WHERE file_id=%s;", (row[13],))
-  res=cur.fetchone()
-  fcontents='(missing)'
-  if res is not None:
-    fcontents = res[0]
-
-  start=datetime.datetime.now()
-  cur.execute('''SELECT o.ont_id,ont_name||' ('||ont_ref_id||')',gso_ref_type FROM extsrc.geneset_ontology gso, extsrc.ontology o
-      WHERE gso.ont_id=o.ont_id AND gs_id=%s;''', (row[0],))
-  oterms={}
-  for res in cur:
-    if res[0] not in oterms:
-      oterms[res[0]] = (res[1], set([res[2]]) )
+    start=datetime.datetime.now()
+    geneid_type=None
+    if row[9]>0:
+        cur.execute("SELECT pf_name FROM odestatic.platform WHERE pf_id=%s;", (row[9],))
     else:
-      oterms[res[0]][1].add(res[2])
-  otermarr=[]
-  for ont_id,info in oterms.iteritems():
-    otermarr.append( (ont_id, info[0], ", ".join(sorted(info[1]))) )
-  def okey(x):
-    pfx=''
-    if x[2]=='Blacklist':
-      pfx= '~~~~~~~~'       # sort to the end
-    if x[2][:10]=='GeneWeaver':
-      pfx= '        '+x[2]  # sort to beginning
-    return pfx+x[1].lower()
-  otermarr.sort(key=okey)
+        cur.execute("SELECT gdb_name FROM odestatic.genedb WHERE gdb_id=%s;", (-row[9],))
+    res=cur.fetchone()
+    geneid_type=res[0]
 
-  start=datetime.datetime.now()
-  cur.execute("""SELECT x.gs_id,x.jac_value,g.gs_name FROM production.geneset g,
-      (SELECT CASE WHEN j.gs_id_left=%s THEN j.gs_id_right ELSE j.gs_id_left END as gs_id,j.jac_value
-         FROM extsrc.geneset_jaccard j WHERE (j.gs_id_left=%s OR j.gs_id_right=%s) ORDER BY jac_value DESC LIMIT 1000) x
-       WHERE x.gs_id=g.gs_id AND gs_status not like 'de%%' AND gs_groups='0' AND cur_id<=4 LIMIT 10;""", (row[0],row[0],row[0]))
+    start=datetime.datetime.now()
+    cur.execute("SELECT file_contents FROM production.file WHERE file_id=%s;", (row[13],))
+    res=cur.fetchone()
+    fcontents='(missing)'
+    if res is not None:
+        fcontents = res[0]
 
-  simgs=[]
-  for res in cur:
-    simgs.append( {'gs_id': res[0], 'sim': decimal.Decimal('%4.3f' % (res[1],)), 'gs_name': res[2]} )
+    start=datetime.datetime.now()
+    cur.execute('''SELECT o.ont_id,ont_name||' ('||ont_ref_id||')',gso_ref_type FROM extsrc.geneset_ontology gso, extsrc.ontology o
+                WHERE gso.ont_id=o.ont_id AND gs_id=%s;''', (row[0],))
+    oterms={}
+    for res in cur:
+        if res[0] not in oterms:
+            oterms[res[0]] = (res[1], set([res[2]]) )
+        else:
+            oterms[res[0]][1].add(res[2])
+    otermarr=[]
+    for ont_id,info in oterms.iteritems():
+        otermarr.append( (ont_id, info[0], ", ".join(sorted(info[1]))) )
+    def okey(x):
+        pfx=''
+        if x[2]=='Blacklist':
+            pfx= '~~~~~~~~'             # sort to the end
+        if x[2][:10]=='GeneWeaver':
+            pfx= '                '+x[2]    # sort to beginning
+        return pfx+x[1].lower()
+    otermarr.sort(key=okey)
 
-  cur.execute('SELECT gsi_jac_completed FROM production.geneset_info WHERE gs_id=%s;', (gsid,))
-  res=cur.fetchone()
-  last_sim_check=res[0]
+    start=datetime.datetime.now()
+    cur.execute("""SELECT x.gs_id,x.jac_value,g.gs_name FROM production.geneset g,
+                (SELECT CASE WHEN j.gs_id_left=%s THEN j.gs_id_right ELSE j.gs_id_left END as gs_id,j.jac_value
+                FROM extsrc.geneset_jaccard j WHERE (j.gs_id_left=%s OR j.gs_id_right=%s) ORDER BY jac_value DESC LIMIT 1000) x
+                WHERE x.gs_id=g.gs_id AND gs_status not like 'de%%' AND gs_groups='0' AND cur_id<=4 LIMIT 10;""", (row[0],row[0],row[0]))
 
-  threshold_desc = 'Score > %s' % (row[10],)
-  if row[11]==1:
-    threshold_desc = 'p-value < %s' % (row[10],)
-  elif row[11]==2:
-    threshold_desc = 'q-value < %s' % (row[10],)
-  elif row[11]==4 or row[11]==5:
-    threshold_desc = '%s < |Score| < %s' % tuple(row[10].split(','))
-  elif row[11]==6:
-    threshold_desc = '%s < Score < %s' % tuple(row[10].split(','))
-  elif row[11]==7:
-    threshold_desc = 'Score < %s or Score > %s' % tuple(row[10].split(','))
-  elif row[11]==8:
-    threshold_desc = 'Score = %s' % (row[10],)
+    simgs=[]
+    for res in cur:
+        simgs.append( {'gs_id': res[0], 'sim': decimal.Decimal('%4.3f' % (res[1],)), 'gs_name': res[2]} )
 
-  if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    geneset = {
-        'gs_id': row[0],
-        'gs_name': row[1].decode('utf-8'),
-        'gs_label': row[2].decode('utf-8'),
-        'gs_description': row[3].decode('utf-8'),
+    cur.execute('SELECT gsi_jac_completed FROM production.geneset_info WHERE gs_id=%s;', (gsid,))
+    res=cur.fetchone()
+    last_sim_check=res[0]
 
-        'species': species[row[4]],
-        'gs_count': row[5],
-        'cur_id': row[6],
-        'usr_email': row[7],
-        'last_updated': row[8],
-        'geneid_type': geneid_type,
-        'threshold': threshold_desc,
-        'file_contents': fcontents,
-        'ontology_terms': otermarr,
-        'similarsets': simgs,
-        'last_sim': last_sim_check,
-        'pmid': row[12],
-        'gs_groups': row[14].split(','),
-        '_comments_author': row[15] or '',
-        '_comments_curator': row[16] or '',
-        'gs_attribution': row[17] or '',
-        'gs_uri': row[18] or '',
+    threshold_desc = 'Score > %s' % (row[10],)
+    if row[11]==1:
+        threshold_desc = 'p-value < %s' % (row[10],)
+    elif row[11]==2:
+        threshold_desc = 'q-value < %s' % (row[10],)
+    elif row[11]==4 or row[11]==5:
+        threshold_desc = '%s < |Score| < %s' % tuple(row[10].split(','))
+    elif row[11]==6:
+        threshold_desc = '%s < Score < %s' % tuple(row[10].split(','))
+    elif row[11]==7:
+        threshold_desc = 'Score < %s or Score > %s' % tuple(row[10].split(','))
+    elif row[11]==8:
+        threshold_desc = 'Score = %s' % (row[10],)
 
-        'view_url': url_for('view_geneset', gsid=row[0]),
-        'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
-        'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
+    if sys.version_info[0] < 3:
+        # TODO: Should be deprecated with python2
+        geneset = {
+            'gs_id': row[0],
+            'gs_name': row[1].decode('utf-8'),
+            'gs_label': row[2].decode('utf-8'),
+            'gs_description': row[3].decode('utf-8'),
+
+            'species': species[row[4]],
+            'gs_count': row[5],
+            'cur_id': row[6],
+            'usr_email': row[7],
+            'last_updated': row[8],
+            'geneid_type': geneid_type,
+            'threshold': threshold_desc,
+            'file_contents': fcontents,
+            'ontology_terms': otermarr,
+            'similarsets': simgs,
+            'last_sim': last_sim_check,
+            'pmid': row[12],
+            'gs_groups': row[14].split(','),
+            '_comments_author': row[15] or '',
+            '_comments_curator': row[16] or '',
+            'gs_attribution': row[17] or '',
+            'gs_uri': row[18] or '',
+
+            'view_url': url_for('view_geneset', gsid=row[0]),
+            'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
+            'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
         }
-  else:
-    geneset = {
-        'gs_id': row[0],
-        'gs_name': row[1],
-        'gs_label': row[2],
-        'gs_description': row[3],
+    else:
+        geneset = {
+            'gs_id': row[0],
+            'gs_name': row[1],
+            'gs_label': row[2],
+            'gs_description': row[3],
 
-        'species': species[row[4]],
-        'gs_count': row[5],
-        'cur_id': row[6],
-        'usr_email': row[7],
-        'last_updated': row[8],
-        'geneid_type': geneid_type,
-        'threshold': threshold_desc,
-        'file_contents': fcontents,
-        'ontology_terms': otermarr,
-        'similarsets': simgs,
-        'last_sim': last_sim_check,
-        'pmid': row[12],
-        'gs_groups': row[14].split(','),
-        '_comments_author': row[15] or '',
-        '_comments_curator': row[16] or '',
-        'gs_attribution': row[17] or '',
-        'gs_uri': row[18] or '',
+            'species': species[row[4]],
+            'gs_count': row[5],
+            'cur_id': row[6],
+            'usr_email': row[7],
+            'last_updated': row[8],
+            'geneid_type': geneid_type,
+            'threshold': threshold_desc,
+            'file_contents': fcontents,
+            'ontology_terms': otermarr,
+            'similarsets': simgs,
+            'last_sim': last_sim_check,
+            'pmid': row[12],
+            'gs_groups': row[14].split(','),
+            '_comments_author': row[15] or '',
+            '_comments_curator': row[16] or '',
+            'gs_attribution': row[17] or '',
+            'gs_uri': row[18] or '',
 
-        'view_url': url_for('view_geneset', gsid=row[0]),
-        'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
-        'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
+            'view_url': url_for('view_geneset', gsid=row[0]),
+            'ncbo_url': url_for('process_geneset', gsid=row[0], procname='ncbo'),
+            'sims_url': url_for('process_geneset', gsid=row[0], procname='sims'),
         }
 
 
-  return geneset
+    return geneset
+
 
 def view_geneset(gsid):
-  if 'user_id' not in session:
-    return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-  cur = dbcon.cursor()
-  geneset = _get_genesetinfo(cur,gsid)
+    cur = dbcon.cursor()
+    geneset = _get_genesetinfo(cur,gsid)
 
-  for oassoc in geneset['ontology_terms']:
-    if oassoc[2]=='GeneWeaver Data Type':
-      geneset['data_type']=str(oassoc[0])
-      break
+    for oassoc in geneset['ontology_terms']:
+        if oassoc[2]=='GeneWeaver Data Type':
+            geneset['data_type']=str(oassoc[0])
+            break
 
-  geneset_data_types={}
-  cur.execute('''SELECT ont_id,ont_name FROM odestatic.special_terms s,extsrc.ontology o 
-      WHERE s.specialset='data_types' AND s.ont_ref_id=o.ont_ref_id AND s.ontdb_id=o.ontdb_id;''')
-  for row in cur:
-    geneset_data_types[str(row[0])]=row[1]
+    geneset_data_types={}
+    cur.execute('''SELECT ont_id,ont_name FROM odestatic.special_terms s,extsrc.ontology o 
+                WHERE s.specialset='data_types' AND s.ont_ref_id=o.ont_ref_id AND s.ontdb_id=o.ontdb_id;''')
+    for row in cur:
+        geneset_data_types[str(row[0])]=row[1]
 
-  return render_template('view_geneset.html', geneset=geneset, geneset_data_types=geneset_data_types)
+    return render_template('view_geneset.html', geneset=geneset, geneset_data_types=geneset_data_types)
+
 
 def process_geneset(gsid, procname):
-  if procname=='ncbo':
-    load_ncbo_ontologies(gsid)
-    return 'done'
-  if procname=='sims':
-    cur=dbcon.cursor()
-    cur.execute("SET search_path to production,odestatic,extsrc")
-    cur.execute("UPDATE geneset_info SET gsi_jac_started=NOW() WHERE gs_id=%s;", (gsid,))
-    cur.execute("SELECT calculate_jaccard(%s);", (gsid,))
-    cur.execute("UPDATE geneset_info SET gsi_jac_completed=NOW() WHERE gs_id=%s;", (gsid,))
-    dbcon.commit()
-    return 'done'
-  return 'nope'
+    if procname=='ncbo':
+        load_ncbo_ontologies(gsid)
+        return 'done'
+    if procname=='sims':
+        cur=dbcon.cursor()
+        cur.execute("SET search_path to production,odestatic,extsrc")
+        cur.execute("UPDATE geneset_info SET gsi_jac_started=NOW() WHERE gs_id=%s;", (gsid,))
+        cur.execute("SELECT calculate_jaccard(%s);", (gsid,))
+        cur.execute("UPDATE geneset_info SET gsi_jac_completed=NOW() WHERE gs_id=%s;", (gsid,))
+        dbcon.commit()
+        return 'done'
+    return 'nope'
+
 
 def add_geneset_term(gsid, ontid):
-  assoctype=request.args.get('assoctype','nr')
+    assoctype=request.args.get('assoctype','nr')
 
-  cur = dbcon.cursor()
-  cur.execute("DELETE FROM extsrc.geneset_ontology WHERE gs_id=%s AND ont_id=%s;", (gsid,ontid))
-  if assoctype=='bl':
-    cur.execute("INSERT INTO extsrc.geneset_ontology (gs_id,ont_id,gso_ref_type) VALUES (%s,%s,'Blacklist');", (gsid,ontid))
-  if assoctype=='nr':
-    cur.execute("INSERT INTO extsrc.geneset_ontology (gs_id,ont_id,gso_ref_type) VALUES (%s,%s,'Manual');", (gsid,ontid))
-  if assoctype=='pr':
-    cur.execute("INSERT INTO extsrc.geneset_ontology (gs_id,ont_id,gso_ref_type) VALUES (%s,%s,'GeneWeaver Primary Annotation');", (gsid,ontid))
+    cur = dbcon.cursor()
+    cur.execute("DELETE FROM extsrc.geneset_ontology WHERE gs_id=%s AND ont_id=%s;", (gsid,ontid))
+    if assoctype=='bl':
+        cur.execute("INSERT INTO extsrc.geneset_ontology (gs_id,ont_id,gso_ref_type) VALUES (%s,%s,'Blacklist');", (gsid,ontid))
+    if assoctype=='nr':
+        cur.execute("INSERT INTO extsrc.geneset_ontology (gs_id,ont_id,gso_ref_type) VALUES (%s,%s,'Manual');", (gsid,ontid))
+    if assoctype=='pr':
+        cur.execute("INSERT INTO extsrc.geneset_ontology (gs_id,ont_id,gso_ref_type) VALUES (%s,%s,'GeneWeaver Primary Annotation');", (gsid,ontid))
 
-  dbcon.commit()
-  return 'ok'
+    dbcon.commit()
+    return 'ok'
+
 
 def comment_geneset(gsid,kind):
-  if kind not in ['author','curator']:
-    abort(404)
-  thecomment = request.args.get('content','')
-  cur = dbcon.cursor()
-  SQL = 'UPDATE production.geneset SET _comments_'+kind+'=%s WHERE gs_id=%s'
-  cur.execute(SQL, (thecomment,gsid))
-  dbcon.commit()
-  return thecomment
+    if kind not in ['author','curator']:
+        abort(404)
+    thecomment = request.args.get('content','')
+    cur = dbcon.cursor()
+    SQL = 'UPDATE production.geneset SET _comments_'+kind+'=%s WHERE gs_id=%s'
+    cur.execute(SQL, (thecomment,gsid))
+    dbcon.commit()
+    return thecomment
+
 
 def approve_geneset(gsid,cur_id):
-  promote=request.args.get('promote','no')=='yes'
+    promote=request.args.get('promote','no')=='yes'
 
-  cur = dbcon.cursor()
-  cur.execute("UPDATE production.geneset SET gs_groups='0', cur_id=%s WHERE gs_id=%s;", (cur_id,gsid))
-  if promote:
-    cur.execute("INSERT INTO odestatic.special_terms (gs_id,specialset) values (%s,'promoted_genesets')", (gsid,))
+    cur = dbcon.cursor()
+    cur.execute("UPDATE production.geneset SET gs_groups='0', cur_id=%s WHERE gs_id=%s;", (cur_id,gsid))
+    if promote:
+        cur.execute("INSERT INTO odestatic.special_terms (gs_id,specialset) values (%s,'promoted_genesets')", (gsid,))
 
-  # TODO: send email also?
-  dbcon.commit()
-  return redirect(url_for('list_genesets'))
+    # TODO: send email also?
+    dbcon.commit()
+    return redirect(url_for('list_genesets'))
+
 
 def reject_geneset(gsid):
-  demote=request.args.get('demote','no')=='yes'
+    demote=request.args.get('demote','no')=='yes'
 
-  cur = dbcon.cursor()
-  if demote:
-    cur.execute("UPDATE production.geneset SET gs_groups='-1', cur_id=5 WHERE gs_id=%s;", (gsid,))
+    cur = dbcon.cursor()
+    if demote:
+        cur.execute("UPDATE production.geneset SET gs_groups='-1', cur_id=5 WHERE gs_id=%s;", (gsid,))
 
-  # TODO: send email also
-  dbcon.commit()
-  return redirect(url_for('list_genesets'))
+    # TODO: send email also
+    dbcon.commit()
+    return redirect(url_for('list_genesets'))
+
 
 ########################################
-
 def fetch_ncbo_terms(db_cur, text, pub_id=None):
-  import urllib
-  ncboids=set()
-  db_cur.execute("SELECT ontdb_ncbo_vid FROM odestatic.ontologydb;")
-  for row in db_cur:
-    ncboids.add(str(row[0]))
-  ncbo_list=",".join(ncboids);
+    ncboids=set()
+    db_cur.execute("SELECT ontdb_ncbo_vid FROM odestatic.ontologydb;")
+    for row in db_cur:
+        ncboids.add(str(row[0]))
+    ncbo_list=",".join(ncboids);
 
-  ## API Key for me - Jeremy.Jay@jax.org
-  NCBO_URL="http://rest.bioontology.org/obs/annotator"
-  params={'format': 'tabDelimited', 'withDefaultStopWords': 'true',
-      'ontologiesToKeepInResult': ncbo_list, 'textToAnnotate': text,
-      'isVirtualOntologyId': 'true', 'apikey': 'be3a088f-c9dc-4c1d-aef2-ad1b27aa649e'
-      }
+    ## API Key for me - Jeremy.Jay@jax.org
+    NCBO_URL="http://rest.bioontology.org/obs/annotator"
+    params={'format': 'tabDelimited', 'withDefaultStopWords': 'true',
+            'ontologiesToKeepInResult': ncbo_list, 'textToAnnotate': text,
+            'isVirtualOntologyId': 'true', 'apikey': 'be3a088f-c9dc-4c1d-aef2-ad1b27aa649e'
+           }
 
-  ontologies=set()
-  fails=None
-  while fails is None or fails<3:
-    try:
-      f = urlopen(NCBO_URL, urllib.urlencode(params) )
-      for line in f:
-        fields = line.strip().split('\t')
-        ontology_id=fields[1].split('/')[1]
-        if ontology_id!='':
-          ontologies.add(ontology_id)
-      fails=10
-    except:
-      if fails is None:
-        fails=1
-      else:
-        fails+=1
-      print('HTTP Fail. Retry #%d' % (fails,))
-      ontologies=set()
+    ontologies=set()
+    fails=None
+    while fails is None or fails<3:
+        try:
+            f = urlopen(NCBO_URL, urllib.urlencode(params) )
+            for line in f:
+                fields = line.strip().split('\t')
+                ontology_id=fields[1].split('/')[1]
+                if ontology_id!='':
+                    ontologies.add(ontology_id)
+            fails=10
+        except:
+            if fails is None:
+                fails=1
+            else:
+                fails+=1
+            print('HTTP Fail. Retry #%d' % (fails,))
+            ontologies=set()
 
-  return ontologies
+    return ontologies
+
 
 def load_ncbo_ontologies(gs_id):
     db_cur = dbcon.cursor()
