@@ -1,3 +1,4 @@
+import sys
 from collections import OrderedDict, defaultdict
 from hashlib import md5
 import json
@@ -101,7 +102,11 @@ def _dictify_row(cursor, row):
         # TODO find out what the right way to do unicode for postgres is? Is UTF-8 the right encoding here?
         # This prevents exceptions when non-ascii chars show up in a jinja2 template variable
         # but I'm not sure if it's the correct solution
-        d[col[0]] = row[i].decode('utf-8') if type(row[i]) == str else row[i]
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            d[col[0]] = row[i].decode('utf-8') if type(row[i]) == str else row[i]
+        else:
+            d[col[0]] = row[i] if type(row[i]) == str else row[i]
         OrderedDict(sorted(d.items()))
     return d
 
