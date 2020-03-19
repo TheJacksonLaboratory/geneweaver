@@ -126,10 +126,17 @@ def run_tool():
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
 
     # check if parameters are blank, set to a default
-    if params['DBSCAN_minPts'] == '':
-        params['DBSCAN_minPts'] = "1".decode('unicode-escape')
-    if params['DBSCAN_epsilon'] == '':
-        params['DBSCAN_epsilon'] = "1".decode('unicode-escape')
+    if sys.version_info[0] < 3:
+        # TODO: Should be deprecated with python2
+        if params['DBSCAN_minPts'] == '':
+            params['DBSCAN_minPts'] = "1".decode('unicode-escape')
+        if params['DBSCAN_epsilon'] == '':
+            params['DBSCAN_epsilon'] = "1".decode('unicode-escape')
+    else:
+        if params['DBSCAN_minPts'] == '':
+            params['DBSCAN_minPts'] = "1"
+        if params['DBSCAN_epsilon'] == '':
+            params['DBSCAN_epsilon'] = "1"
 
     # genes = 0
     # for set in gs_dict["gene_symbols"]:
