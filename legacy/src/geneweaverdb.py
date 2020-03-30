@@ -3298,7 +3298,11 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
     :param user_password:	the user's password, if not provided use "" as default
     """
     with PooledCursor() as cursor:
-        password_md5 = md5(user_password).hexdigest()
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            password_md5 = md5(user_password).hexdigest()
+        else:
+            password_md5 = md5(user_password.encode('utf-8')).hexdigest()
         cursor.execute(
                 '''INSERT INTO usr
                    (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
@@ -3326,7 +3330,11 @@ def register_user_from_guest(user_first_name, user_last_name, user_email, user_p
     :param guest_id:        the id of the guest account to register
     """
     with PooledCursor() as cursor:
-        password_md5 = md5(user_password).hexdigest()
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            password_md5 = md5(user_password).hexdigest()
+        else:
+            password_md5 = md5(user_password.encode('utf-8')).hexdigest()
         cursor.execute(
             '''UPDATE usr SET
                usr_first_name = %s, usr_last_name = %s, usr_email = %s, usr_admin = '0', usr_password = %s, usr_last_seen = NOW(), usr_created = NOW() , is_guest = 'f'
@@ -3345,7 +3353,11 @@ def reset_password(user_email):
     char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
     new_password = ''.join(random.sample(char_set, 8))
     with PooledCursor() as cursor:
-        password_md5 = md5(new_password).hexdigest()
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            password_md5 = md5(new_password).hexdigest()
+        else:
+            password_md5 = md5(new_password.encode('utf-8')).hexdigest()
         cursor.execute(
                 '''UPDATE usr
                SET usr_password = %s
@@ -3362,7 +3374,11 @@ def change_password(user_id, new_password):
     :param new_password:	 the user's password, if not provided use "" as default
     """
     with PooledCursor() as cursor:
-        password_md5 = md5(new_password).hexdigest()
+        if sys.version_info[0] < 3:
+            # TODO: Should be deprecated with python2
+            password_md5 = md5(new_password).hexdigest()
+        else:
+            password_md5 = md5(new_password.encode('utf-8')).hexdigest()
         cursor.execute(
                 '''UPDATE usr
                SET usr_password = %s

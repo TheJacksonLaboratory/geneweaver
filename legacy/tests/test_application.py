@@ -1,6 +1,9 @@
+# TODO: Should be deprecated with python2
 from __future__ import print_function
+import sys
 import unittest
 import xmlrunner
+
 import application
 import geneweaverdb
 import publication_generator
@@ -43,7 +46,7 @@ class PublicationAssignment(unittest.TestCase):
         self.user_id = user.user_id
 
         groups = geneweaverdb.get_user_groups(self.user_id)
-        if not groups:
+        if len(groups) < 2:
             geneweaverdb.create_group("Testing Users Test Group", "Private", self.user_id)
             geneweaverdb.create_group("Another Test Group", "Private", self.user_id)
             groups = geneweaverdb.get_user_groups(self.user_id)
@@ -144,8 +147,13 @@ class PublicationAssignment(unittest.TestCase):
                                          querystring=gen_qstring,
                                          group_id=gen_group))
             # then expect a 200...
+            # TODO: Use self.assertEqual() function.
             assert '200 OK' in rv.status
             for element in rv.response:
+                if sys.version_info[0] >= 3:
+                    # TODO: Should be deprecated with python2
+                    element = element.decode('utf-8')
+                # TODO: Use self.assertEqual() function.
                 assert 'Generator successfully added to group' in element
                 # There appears to be a second blank entry, so we'll break after assertion
                 break
@@ -172,6 +180,7 @@ class PublicationAssignment(unittest.TestCase):
                                          querystring=gen_qstring,
                                          group_id=gen_group))
             # then expect a response of 412...
+            # TODO: Use self.assertEqual() function.
             assert '412' in rv.status
             # and expect to see message that generator successfully added
             for element in rv.response:
@@ -211,6 +220,10 @@ class PublicationAssignment(unittest.TestCase):
             # then expect a 200...
             assert '200 OK' in rv.status
             for element in rv.response:
+                if sys.version_info[0] >= 3:
+                    # TODO: Should be deprecated with python2
+                    element = element.decode('utf-8')
+                # TODO: Use self.assertEqual() function.
                 assert 'Generator successfully updated' in element
                 # There appears to be a second blank entry, so we'll break after assertion
                 break
