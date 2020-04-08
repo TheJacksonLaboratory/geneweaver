@@ -414,12 +414,17 @@ To manage your applications use:
 
 ## Configuring the Python3 Environment
 
-Python3 versions and pip packages can be manged by `pipenv`
+Python3 (`3.7`) versions and pip packages can be manged by `pipenv`
+
+Detailed version information is specified and locked in `Pipfile.lock`.
+
+(If you want to add or manage the version information, please read `pipenv` document and apply for other developers.)
 
 ### How to run project
 
 #### Initialize packages
 ```bash
+# Install pipenv package and synchronize current python version for this repo.
 $ cd {PROJECT_ROOT}
 $ pip install pipenv
 $ pipenv sync
@@ -432,6 +437,9 @@ $ pipenv run python src/application.py
 ```
 
 #### Synchronize packages with current `Pipfile.lock` file
+
+When package list has been changed, all packages should be synchronized.
+
 ```
 $ pipenv sync
 ```
