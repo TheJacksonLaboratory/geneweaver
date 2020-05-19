@@ -445,3 +445,16 @@ $ pipenv sync
 ```
 
 The more on the `pipenv` [documentation](https://pipenv.kennethreitz.org/en/latest/#install-pipenv-today "documentation").
+
+
+
+### Why `Pipenv`?
+
+`pipenv` can automatically manage the versions of several packages explicitly. Since some packages do not support backward compatibility, `pipenv` can help to keep proper package versions.
+ 
+
+### How to set-up with Pycharm environment.
+
+See Pycharm [official instruction](https://www.jetbrains.com/help/pycharm/pipenv.html).
+
+If you cannot find the `pipenv` on the interpreter settings, you can restart the Pycharm to let it check the `PATH` for pipenv. 
