@@ -13,6 +13,11 @@ xmlrunner = "*"
 sphinxapi-py3 = "*"
 wand = "*"
 bleach = "*"
+psycopg2-binary = "*"
+urllib3 = "*"
+celery = "*"
+configparser = "*"
+requests = "*"
 
 [requires]
 python_version = "3.7"

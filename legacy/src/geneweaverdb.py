@@ -3170,7 +3170,7 @@ def authenticate_user(email, password):
     else:
         with PooledCursor() as cursor:
             password_md5 = md5()
-            password_md5.update(password)
+            password_md5.update(password.encode('utf-8'))
             try:
                 cursor.execute(
                         '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',

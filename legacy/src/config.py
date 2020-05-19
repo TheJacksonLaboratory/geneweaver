@@ -3,12 +3,13 @@ from __future__ import print_function
 
 import os
 import configparser
+import binascii
 
 
 ## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
 ## included in version control, especially if it has any usernames, passwords,
 ## or API keys.
-rootpath="/srv/geneweaver/"
+rootpath=""
 CONFIG_PATH = rootpath+'geneweaver.cfg'
 
 ## Global config object, sholudn't be accessed directly but using the helper
@@ -32,7 +33,7 @@ def createConfig():
         print('[application]', file=fl)
         print('host = 127.0.0.1', file=fl)
         print('results = '+rootpath+'website-py/results', file=fl)
-        print('secret = ' + os.urandom(32).encode('hex'), file=fl)
+        print('secret = ' + binascii.hexlify(os.urandom(32)).decode(), file=fl)
         print('help_url = http://geneweaver.org/help', file=fl)
         print('', file=fl)
         print('[celery]', file=fl)
