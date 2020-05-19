@@ -51,7 +51,11 @@ def fetch_ncbo_annotations(text, ncboids):
               'format': 'json', 
               'ontologies': ncboids,
               'text': text}
-    params = url.urlencode(params)
+    if sys.version_info[0] < 3:
+        # TODO: Should be deprecated with python2
+        params = url.urlencode(params)
+    else:
+        params = url.parse.urlencode(params).encode('utf-8')
 
     ## Attempt connecting to NCBO and pulling annotation data. Quits if an 
     ## exception is handled three times.
