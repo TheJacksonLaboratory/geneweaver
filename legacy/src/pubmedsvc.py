@@ -81,7 +81,7 @@ if __name__ == '__main__':
         print('=====================================================================================')
         print(pubmed_id)
         print(PUB_MED_XML_SVC_URL.format(pubmed_id))
-        for k, v in get_pubmed_info(pubmed_id).iteritems():
+        for k, v in get_pubmed_info(pubmed_id).items():
             print('-------')
             print(k)
             print(v)

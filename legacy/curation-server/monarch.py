@@ -35,17 +35,21 @@ def fetch_monarch_annotations(text):
 
     ## If longestOnly == true, only the longest text matches are returned
     params = {'content': text, 'longestOnly': 'false'}
-    params = url.urlencode(params)
+    if sys.version_info[0] < 3:
+        # TODO: Should be deprecated with python2
+        params = url.urlencode(params)
+    else:
+        params = url.parse.urlencode(params).encode('utf-8')
 
     ## Attempt connecting pulling annotation data. Quits if an exception
     ## is handled three times.
     for attempt in range(3):
         try:
-            req = url2.Request(ANNOTATE_URL, params)
-            res = url2.urlopen(req)
+            req = Request(ANNOTATE_URL, params)
+            res = urlopen(req)
             res = res.read()
 
-        except url2.HTTPError as e:
+        except HTTPError as e:
             print('Failed to retrieve annotation data:')
             print(e)
             continue
