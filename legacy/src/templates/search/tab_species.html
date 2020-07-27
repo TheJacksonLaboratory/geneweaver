@@ -104,7 +104,7 @@
 		<div class="filter-title">Filter by Species</div>
 
 		<ul class="tree">
-			{% for spid, spcount in searchFilters.sp_counts.iteritems() | sort %}
+			{% for spid, spcount in searchFilters.sp_counts.items() | sort %}
 			<li class="tree root">
 				{% if spcount >= 1 %}
 				<label class="filter-checkbox filter-root">
@@ -118,7 +118,7 @@
 						{{searchFilters.spmap[spid]}} ({{spcount}})
 				</label>
 				<ul class="tree">
-					{% for tid, tcount in searchFilters.st_counts[spid].iteritems() | sort %}
+					{% for tid, tcount in searchFilters.st_counts[spid].items() | sort %}
 					{% if tcount > 0 %}
 					<li class="tree">
 						<label class="filter-checkbox" for="{{spid}}Checkbox">
@@ -137,7 +137,7 @@
 								{% endif %}
 						</label>
 						<ul class="tree">
-							{% for atid, atcount in searchFilters.sta_counts[spid][tid].iteritems() | sort %}
+							{% for atid, atcount in searchFilters.sta_counts[spid][tid].items() | sort %}
 							{% if atcount > 0 %}
 							<li class="tree">
 								<label class="filter-checkbox" for="{{atid}}Checkbox">

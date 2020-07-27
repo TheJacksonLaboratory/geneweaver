@@ -236,13 +236,13 @@
     $(document).ready(function () {
 
 		{% if attribs %}
-			makeAttributionTags({{ attribs | tojson | safe }});
+			makeAttributionTags({{ attribs | safe }});
 		{% else %}
 			makeAttributionTags();
 		{% endif %}
 
 		{% if species %}
-			makeSpeciesTags({{ species | tojson | safe }});
+			makeSpeciesTags({{ species | safe }});
 		{% else %}
 			makeSpeciesTags();
 		{% endif %}

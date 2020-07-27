@@ -104,7 +104,7 @@
 		<div class="filter-title">Filter by Tier</div>
 
 		<ul class="tree">
-			{% for tier, count in searchFilters.tier_counts.iteritems() | sort %}
+			{% for tier, count in searchFilters.tier_counts.items() | sort %}
 			<li class="tree root">
 				{% if count >= 1 %}
 				<label class="filter-checkbox filter-root">
@@ -118,7 +118,7 @@
 						{{searchFilters.tiermap[tier]}} ({{count}})
 				</label>
 				<ul class="tree">
-					{% for spid, spcount in searchFilters.ts_counts[tier].iteritems() | sort %}
+					{% for spid, spcount in searchFilters.ts_counts[tier].items() | sort %}
 					{% if spcount > 0 %}
 					<li class="tree">
 						<label class="filter-checkbox" for="{{spid}}Checkbox">
@@ -137,7 +137,7 @@
 								{% endif %}
 						</label>
 						<ul class="tree">
-							{% for atid, atcount in searchFilters.tsa_counts[tier][spid].iteritems() | sort %}
+							{% for atid, atcount in searchFilters.tsa_counts[tier][spid].items() | sort %}
 							{% if atcount > 0 %}
 							<li class="tree">
 								<label class="filter-checkbox" for="{{atid}}Checkbox">
