@@ -329,16 +329,14 @@ def getSearchFilterValues(query):
     attrmap = geneweaverdb.get_all_attributions()
     attrmap[0] = 'No Attribution'  ## The function doesn't add No Att. idk why
 
-    for atid, atname in attrmap.items():
-        attrmap['at' + str(atid)] = atname
-        del attrmap[atid]
+    for atid, atname in attrmap.copy().items():
+        attrmap['at' + str(atid)] = attrmap.pop(atid)
 
     spmap = geneweaverdb.get_all_species()
     spmap[0] = 'No Species'
 
-    for spid, spname in spmap.items():
-        spmap['sp' + str(spid)] = spname
-        del spmap[spid]
+    for spid, spname in spmap.copy().items():
+        spmap['sp' + str(spid)] = spname.pop(spid)
 
     tiermap = {0: 'No Tier', 1: 'I: Resources', 2: 'II: Pro-Curated',
                3: 'III: Curated', 4: 'IV: Provisional', 5: 'V: Private'}
