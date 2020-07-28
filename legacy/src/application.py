@@ -460,7 +460,7 @@ def get_group(user_id):
 @app.route("/gwdb/create_group/<group_name>/<group_private>/<user_id>/")
 def create_group(group_name, group_private, user_id):
     # decode the group_name in case "/" had been encoded at "%2f"
-    group_name = urllib.unquote_plus(group_name)
+    group_name = urllib.parse.unquote_plus(group_name)
     results = geneweaverdb.create_group(group_name, group_private, user_id)
     return json.dumps(results)
 
