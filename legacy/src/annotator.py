@@ -45,7 +45,7 @@ def get_geneweaver_ontologies():
 
     onts = geneweaverdb.get_all_ontologydb()
 
-    return map(lambda d: d.prefix.upper(), onts)
+    return [d.prefix.upper() for d in onts]
 
 
 def fetch_ncbo_annotations(text, ncboids):
@@ -182,8 +182,7 @@ def parse_ncbo_annotations(annots):
 
         ontids.append(ontid)
 
-    ontids = map(lambda s: s.encode('ascii', 'ignore'), ontids)
-    ontids = list(set(ontids))
+    ontids = list(set([s.encode('ascii', 'ignore') for s in ontids]))
 
     return ontids
 
@@ -243,17 +242,11 @@ def parse_monarch_annotations(annots):
     :ret list: list of annotation IDs
     """
 
-    ontids = []
     ## Remove a nested level
-    annots = map(lambda d: d['token'], annots)
+    annots = [d['token'] for d in annots]
 
-    for anno in annots:
-        ontid = anno['id']
-
-        ontids.append(ontid)
-
-    ontids = map(lambda s: s.encode('ascii', 'ignore'), ontids)
-    ontids = list(set(ontids))
+    ontids = [anno['id'] for anno in annots]
+    ontids = list(set([s.encode('ascii', 'ignore') for s in ontids]))
 
     return ontids
 
