@@ -238,7 +238,7 @@
 
     $(function() {
         // The alist returned by the server should already be sorted
-        var splist = {{ species }};
+        var splist = {{ species|safe }};
         makeSpeciesTags(splist);
     });
 
