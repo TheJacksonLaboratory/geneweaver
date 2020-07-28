@@ -2999,7 +2999,7 @@ def get_publication_by_pubmed(pubmed_id, create=False):
 
                     placeholders = ', '.join(['%s'] * len(pub_dict))
                     columns = ', '.join(pub_dict.keys())
-                    values = pub_dict.values()
+                    values = list(pub_dict.values())
 
                     sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
                     cursor.execute(sql, values)
