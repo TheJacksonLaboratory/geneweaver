@@ -3079,7 +3079,7 @@ def group_id_in_groups(id, groups):
         raise TypeError("id must be an integer")
     included = False
     for group in groups:
-        if not group.has_key('grp_id'):
+        if 'grp_id' not in group:
             raise TypeError("geneweaverdb.Groups instance has no grp_id value.  Possibly invalid type...")
         if group['grp_id'] == id:
             included = True
