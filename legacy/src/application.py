@@ -2697,7 +2697,7 @@ def render_viewgenesetoverlap(gs_ids):
     ## Maps gs_ids to geneset data
     gs_map = {}
     ## Homology is only used if sets from multiple species are present
-    sp_ids = list(set(map(lambda g: g.sp_id, genesets)))
+    sp_ids = list(set([g.sp_id for g in genesets]))
 
     if len(sp_ids) > 1:
         use_homology = True
@@ -2740,7 +2740,7 @@ def render_viewgenesetoverlap(gs_ids):
     for gene, gs_ids in gene_intersects.items():
         ## If the intersection is among >1 species, it's a homologous gene
         ## cluster
-        species = list(set(map(lambda i: gs_map[i].sp_id, gs_ids)))
+        species = list(set([gs_map[i].sp_id for i in gs_ids]))
 
         sect_struct = {
             'gene': gene,
