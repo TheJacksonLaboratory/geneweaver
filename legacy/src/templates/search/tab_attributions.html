@@ -104,7 +104,7 @@
 		<div class="filter-title">Filter by Attributions</div>
 
 		<ul class="tree">
-			{% for atid, atcount in searchFilters.att_counts.iteritems() | sort %}
+			{% for atid, atcount in searchFilters.att_counts.items() | sort %}
 			<li class="tree root">
 				{% if atcount >= 1 %}
 				<label class="filter-checkbox filter-root">
@@ -118,7 +118,7 @@
 						{{searchFilters.attrmap[atid]}} ({{atcount}})
 				</label>
 				<ul class="tree">
-					{% for tid, tcount in searchFilters.at_counts[atid].iteritems() | sort %}
+					{% for tid, tcount in searchFilters.at_counts[atid].items() | sort %}
 					{% if tcount > 0 %}
 					<li class="tree">
 						<label class="filter-checkbox" for="{{atid}}Checkbox">
@@ -137,7 +137,7 @@
 								{% endif %}
 						</label>
 						<ul class="tree">
-							{% for spid, spcount in searchFilters.ats_counts[atid][tid].iteritems() | sort %}
+							{% for spid, spcount in searchFilters.ats_counts[atid][tid].items() | sort %}
 							{% if spcount > 0 %}
 							<li class="tree">
 								<label class="filter-checkbox" for="{{atid}}Checkbox">

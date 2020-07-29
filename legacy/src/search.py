@@ -288,7 +288,7 @@ def getSearchFilterValues(query):
 
         nl = []
 
-        for i in xrange(0, len(l), n):
+        for i in range(0, len(l), n):
             nl.append(l[i:i + n])
 
         return nl
@@ -336,7 +336,7 @@ def getSearchFilterValues(query):
     spmap[0] = 'No Species'
 
     for spid, spname in spmap.copy().items():
-        spmap['sp' + str(spid)] = spname.pop(spid)
+        spmap['sp' + str(spid)] = spmap.pop(spid)
 
     tiermap = {0: 'No Tier', 1: 'I: Resources', 2: 'II: Pro-Curated',
                3: 'III: Curated', 4: 'IV: Provisional', 5: 'V: Private'}

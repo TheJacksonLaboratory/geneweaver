@@ -313,7 +313,7 @@
                                     <div class="filter-title">Species</div>
                                     <br/>
 
-                                    {% for spID, spName in searchFilters.sp_counts.iteritems()| sort %}
+                                    {% for spID, spName in searchFilters.sp_counts.items()| sort %}
                                         {% if searchFilters.sp_counts[spID] >0 %}
                                             <input type="checkbox"
                                                     {% if userFilters.speciesList is not defined or userFilters.speciesList[spID] == "yes" %}
@@ -338,7 +338,7 @@
                                     <div class="filter-title">Attribution</div>
                                     <br/>
 
-                                    {% for atID, atName in searchFilters.att_counts.iteritems()| sort %}
+                                    {% for atID, atName in searchFilters.att_counts.items()| sort %}
                                         {% if searchFilters.att_counts[atID] > 0 %}
                                             <input
                                                     type="checkbox"
