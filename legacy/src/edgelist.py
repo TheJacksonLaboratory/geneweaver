@@ -335,7 +335,7 @@ def create_json_from_triclique_output(taskid, results):
     for line in fh:
         if start_parsing:
             if not re.match("[ \n\t\r]", line):
-                temp_line = filter(None, re.split("[\t\s ]+", line))
+                temp_line = [item for item in re.split(r"[\t\s ]+", line) if item]
                 partitions.append(temp_line)
         else:
             matchObj = re.match('edge maximum k-clique', line)
@@ -543,7 +543,7 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     for line in fh:
         if start_parsing:
             if not re.match("[ \n\t\r]", line):
-                temp_line = filter(None, re.split("[\t\s ]+", line))
+                temp_line = [item for item in re.split(r"[\t\s ]+", line) if item]
                 partitions.append(temp_line)
         else:
             matchObj = re.match('edge maximum k-clique', line)
@@ -556,7 +556,7 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     fh = open(os.path.join(results, taskid + '.ign'), 'r')
     ignored = []
     for line in fh:
-        temp_line = filter(None, re.split("[\t\s]+", line))
+        temp_line = [item for item in re.split(r"[\t\s]+", line) if item]
         ignored.append(temp_line)
 
     print("IGNORED,", ignored)

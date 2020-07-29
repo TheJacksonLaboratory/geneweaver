@@ -288,7 +288,7 @@ def getSearchFilterValues(query):
 
         nl = []
 
-        for i in xrange(0, len(l), n):
+        for i in range(0, len(l), n):
             nl.append(l[i:i + n])
 
         return nl
