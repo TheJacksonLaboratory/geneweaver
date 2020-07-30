@@ -480,14 +480,15 @@ The script does the following:
 > NOTE: This does not set up a postgres database
 
 Get the install script:
-```shell script
+
+```
 wget -P /tmp https://bitbucket.org/geneweaver/py3-geneweaver-website/raw/master/sample-configs/install.sh
 chmod u+x /tmp/install.sh
 sudo /tmp/install.sh -h
 ```
 
 Print usage instructions for install script
-```shell script
+```
 # Print usage instructions for install.sh
 sudo install.sh -h
 ```
@@ -505,7 +506,7 @@ vi /opt/compsci/geneweaver/tools/tools.cfg
 ```
 
 You should start and enable the geneweaver service as it suggests:
-```shell script
+```
 sudo systemctl start geneweaver
 sudo systemctl enable geneweaver
 

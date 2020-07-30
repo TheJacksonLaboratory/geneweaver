@@ -137,13 +137,12 @@ function usage_post_install() {
 
 
 
-while getopts ":m:p:u:g:v:e:s:b:xh" opt; do
+while getopts ":m:p:u:g:e:s:b:xh" opt; do
   case ${opt} in
   m) MODE=$OPTARG ;;
   p) INSTALL_PATH=$OPTARG ;;
   u) INSTALL_USER=$OPTARG ;;
   g) INSTALL_GROUP=$OPTARG ;;
-  v) PYTHON_VERSION=$OPTARG ;;
   e) VIRTUALENV_NAME=$OPTARG ;;
   s) GIT_SOURCE=$OPTARG ;;
   b) GIT_BRANCH=$OPTARG ;;
