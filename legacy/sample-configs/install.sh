@@ -32,11 +32,11 @@ function usage() {
 
   Options:
     -m <mode>: The type of install to perform, must
-    be one of [website|worker]
+    be one of [website|tools]
     (default=website)
 
     -p <path>: The base application directory to install
-    modules into. (default=/opt/compsci/geneweaver)
+    modules into. (default=/opt/geneweaver)
 
     -u <user>: The unix user that will own and run the
     application (default=geneweaver)
@@ -44,24 +44,20 @@ function usage() {
     -g <group>: The unix group that owns the application
     directory (default=geneweaver)
 
-    -v <\d\.\d\.\d>: A three number semantic version
-    matching an available python release. e.g. 3.7.8
-    (default=3.7.8)
-
     -e <name>: What to call the virtual environment(s)
     (default=venv.geneweaver)
 
     -s <git-url>: The git url of the source code
     (website default=https://bitbucket.org/geneweaver/py3-geneweaver-website.git)
-    (worker default=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git)
+    (tools default=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git)
 
     -b <branch>: The git branch to use when checking
     out the source code. This can be changed later.
     (default=master)
 
     -x: If set, script will skip the os level installs,
-    git clone, and user creation. It will only perform
-    mode specific tasks.
+    and user creation. It will only perform mode specific
+    tasks.
 
     -h: Print this usage message and exit
   "
@@ -165,14 +161,14 @@ website)
   SERVICE_NAME=geneweaver
   CONFIG_PY="$INSTALL_PATH/$MODULE_DIR/src/config.py"
   ;;
-worker)
+tools)
   if ! $GIT_SOURCE; then GIT_SOURCE=$GIT_TOOLS_SOURCE ; fi
   MODULE_DIR=tools
-  SERVICE_NAME=geneweaver-worker
+  SERVICE_NAME=geneweaver-tools
   CONFIG_PY="$INSTALL_PATH/$MODULE_DIR/config.py"
   ;;
 *)
-  echo "Only 'website' and 'worker' modes are currently supported"
+  echo "Only 'website' and 'tools' modes are currently supported"
   exit 1
 esac
 
@@ -349,9 +345,9 @@ function setup_rabbitmq_server() {
 }
 
 ########################################################################################################################
-## Worker Specific Functions
+## Tool Specific Functions
 ########################################################################################################################
-function install_worker_os_deps() {
+function install_tools_os_deps() {
   yum -y install \
     gcc \
     g++ \
@@ -392,8 +388,8 @@ CELERYD_OPTS="--time-limit=300 --concurrency=8"
 # - %n will be replaced with the first part of the nodename.
 # - %I will be replaced with the current child process index
 #   and is important when using the prefork pool to avoid race conditions.
-CELERYD_PID_FILE="/var/run/celery/%n.pid"
-CELERYD_LOG_FILE="/var/log/celery/%n%I.log"
+CELERYD_PID_FILE="/var/run/celery/geneweaver/%n.pid"
+CELERYD_LOG_FILE="/var/log/celery/geneweaver/%n%I.log"
 CELERYD_LOG_LEVEL="INFO"
 
 # you may wish to add these options for Celery Beat
@@ -403,8 +399,8 @@ CELERYBEAT_LOG_FILE="$INSTALL_PATH/celery_beat.log"
 EOF
 }
 
-function generate_systemd_file_worker() {
-  cat <<EOF >/etc/systemd/system/geneweaver-worker.service
+function generate_systemd_file_tools() {
+  cat <<EOF >/etc/systemd/system/geneweaver-tools.service
 [Unit]
 Description=Geneweaver Celery Service
 After=network.target
@@ -455,10 +451,10 @@ website)
   generate_uwsgi_file
   generate_systemd_file_website
   ;;
-worker)
+tools)
   initialize_celery
   generate_celery_config
-  generate_systemd_file_worker
+  generate_systemd_file_tools
   ;;
 esac
 
