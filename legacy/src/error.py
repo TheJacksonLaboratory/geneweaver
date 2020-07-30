@@ -78,10 +78,10 @@ Exception:      %s
 
     ## Damn unicode shitting over everything
     for key, val in session.items():
-        if type(key) == str:
+        if isinstance(key, str):
             key = key.encode('ascii', 'ignore')
 
-        if type(val) == str:
+        if isinstance(key, str):
             val = val.encode('ascii', 'ignore')
 
         asciisession[key] = val
@@ -176,4 +176,3 @@ def internal_server_error(e):
     send_sos(errmsg)
 
     return render_template('error/500.html')
-
