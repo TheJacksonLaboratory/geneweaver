@@ -13,25 +13,25 @@ import traceback
 from flask import request, render_template, session
 
 
-## List of people to email about errors
+# List of people to email about errors
 DEVS = ['timothy_reynolds@baylor.edu']
+
 
 def write_sos(msg):
     """
     A backup function that is called when sending an error email fails.
     Appends the error message to a file.
     """
-
     with open('gw-exceptions.txt', 'a') as fl:
         print('', file=fl)
         print(msg, file=fl)
+
 
 def send_sos(msg):
     """
     Sends an email to a list of people with details about an error that
     occurred.
     """
-
     me = 'sos@geneweaver.org'
 
     emsg = MIMEText(msg)
@@ -43,18 +43,17 @@ def send_sos(msg):
         s = smtplib.SMTP('localhost')
         s.sendmail(me, DEVS, emsg.as_string())
         s.quit()
-
-    ## The most common reason for this failing is the SMTP server isn't running
+    # The most common reason for this failing is the SMTP server isn't running
     except Exception as e:
         write_sos('Email failed with ' + str(e))
         write_sos(msg)
+
 
 def format_error_message(e):
     """
     Formats message containing information about the exception that
     occurred and the circumstances that caused it.
     """
-
     info = '''
 URL:            %s
 Request type:   %s
@@ -69,14 +68,14 @@ Exception:      %s
     stack = 'Stack trace:\n'
     exception = traceback.format_exception_only(e[0], e[1])[0]
 
-    #for ln in traceback.format_stack(limit=40):
-    #for ln in traceback.format_exception(*e):
+    # for ln in traceback.format_stack(limit=40):
+    # for ln in traceback.format_exception(*e):
     for ln in traceback.format_tb(e[2]):
         stack += '\t' + ln
 
     asciisession = {}
 
-    ## Damn unicode shitting over everything
+    # Damn unicode shitting over everything
     for key, val in session.items():
         if isinstance(key, str):
             key = key.encode('ascii', 'ignore')
@@ -89,8 +88,8 @@ Exception:      %s
     if asciisession and 'usr_id' in asciisession:
         usr_id = asciisession['usr_id']
 
-    ## There's seriously a fucking page somewhere that puts user_id instead
-    ## of usr_id. I have yet to find it.
+    # There's seriously a fucking page somewhere that puts user_id instead
+    # of usr_id. I have yet to find it.
     elif asciisession and 'user_id' in asciisession:
         usr_id = asciisession['user_id']
     else:
@@ -121,8 +120,8 @@ Exception:      %s
             form += '\t%s: %s\n' % (key, val)
 
     msg = info + '\n' + args + '\n\n' + form + '\n\n' + stack
-
     return msg
+
 
 def bad_request(e):
     """
@@ -130,16 +129,16 @@ def bad_request(e):
     Occurs when a user's browser sends a bad or malformed request the server
     can't process.
     """
-
     return render_template('error/400.html')
+
 
 def unauthorized(e):
     """
     Handles 401 (unauthorized) errors, redirecting users to the 401 page.
     Occurs when users visit a page prior to authenticating.
     """
-
     return render_template('error/401.html')
+
 
 def forbidden(e):
     """
@@ -147,15 +146,15 @@ def forbidden(e):
     Occurs when users visit a page or directory that can't be accessed from
     the website.
     """
-
     return render_template('error/403.html')
+
 
 def page_not_found(e):
     """
     Handles 404 (page not found) errors, redirecting users to the 404 page.
     """
-
     return render_template('error/404.html')
+
 
 def internal_server_error(e):
     """
@@ -164,12 +163,12 @@ def internal_server_error(e):
     above functions. Since these are generally more severe (e.g. some
     application component has shit the bed), the function shoots off a couple
     emails containing urls, stack traces, and user information.
-    """
 
-    ## This grabs the exception info and traceback for the last exception
-    ## that occurred. If we give the exception/traceback passed to this
-    ## function (argument e), the stack trace will be incorrect when we
-    ## later print it.
+    This grabs the exception info and traceback for the last exception
+    that occurred. If we give the exception/traceback passed to this
+    function (argument e), the stack trace will be incorrect when we
+    later print it.
+    """
     exc = exc_info()
 
     errmsg = format_error_message(exc)
