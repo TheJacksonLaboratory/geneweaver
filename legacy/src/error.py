@@ -4,14 +4,14 @@ The app is designed to fail gracefully, presenting the user with a nice
 message and redirecting them back to where they were, while emailing an
 administrator about the nature of the error.
 """
-
-import flask
-import smtplib
-import traceback
 from datetime import datetime
 from email.mime.text import MIMEText
-from flask import request, session
 from sys import exc_info
+import smtplib
+import traceback
+
+from flask import request, render_template, session
+
 
 ## List of people to email about errors
 DEVS = ['timothy_reynolds@baylor.edu']
@@ -131,7 +131,7 @@ def bad_request(e):
     can't process.
     """
 
-    return flask.render_template('error/400.html')
+    return render_template('error/400.html')
 
 def unauthorized(e):
     """
@@ -139,7 +139,7 @@ def unauthorized(e):
     Occurs when users visit a page prior to authenticating.
     """
 
-    return flask.render_template('error/401.html')
+    return render_template('error/401.html')
 
 def forbidden(e):
     """
@@ -148,14 +148,14 @@ def forbidden(e):
     the website.
     """
 
-    return flask.render_template('error/403.html')
+    return render_template('error/403.html')
 
 def page_not_found(e):
     """
     Handles 404 (page not found) errors, redirecting users to the 404 page.
     """
 
-    return flask.render_template('error/404.html')
+    return render_template('error/404.html')
 
 def internal_server_error(e):
     """
@@ -175,5 +175,5 @@ def internal_server_error(e):
     errmsg = format_error_message(exc)
     send_sos(errmsg)
 
-    return flask.render_template('error/500.html')
+    return render_template('error/500.html')
 
