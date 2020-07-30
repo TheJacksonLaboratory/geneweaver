@@ -118,7 +118,7 @@ def dictify_cursor(cursor):
 
 class Project:
     def __init__(self, proj_dict):
-        self.name = proj_dict['pj_name']
+        self.name = str(proj_dict['pj_name'])
         self.project_id = proj_dict['pj_id']
         self.user_id = proj_dict['usr_id']
 
