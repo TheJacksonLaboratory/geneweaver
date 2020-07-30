@@ -465,17 +465,17 @@ If you cannot find the `pipenv` on the interpreter settings, you can restart the
 When installing on Centos7, you can use the install bash script in `sample-configs/install.sh`.
 
 The script does the following:
-* Builds and installs python 3.7
-* Installs OS level dependencies
-* Clones geneweaver source
-* Adds geneweaver user
-* Sets up virtualenvironment
-* Generates a default config file
-* Syncs packages with pipenv
-* Configures Nginx (website)
-* Configures RabbitMQ (website)
-* Configures celery (tools)
-* Adds geneweaver or geneweaver-worker systemd service
+*  Builds and installs python 3.7
+*  Installs OS level dependencies
+*  Clones geneweaver source
+*  Adds geneweaver user
+*  Sets up virtualenvironment
+*  Generates a default config file
+*  Syncs packages with pipenv
+*  Configures Nginx (website)
+*  Configures RabbitMQ (website)
+*  Configures celery (tools)
+*  Adds geneweaver or geneweaver-worker systemd service
 
 > NOTE: This does not set up a postgres database
 
