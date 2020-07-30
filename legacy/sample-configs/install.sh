@@ -21,6 +21,9 @@ GIT_TOOLS_SOURCE=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git
 MODE=website
 RUN_BASE_INSTALL=true
 
+CELERY_RUN_DIR=/var/run/celery/
+CELERY_LOG_DIR=/var/log/celery/
+
 ########################################################################################################################
 ## Usage and options/arguments
 ########################################################################################################################
@@ -317,11 +320,12 @@ function install_worker_os_deps() {
 }
 
 function initialize_celery() {
+  mkdir -p $CELERY_LOG_DIR $CELERY_RUN_DIR
+  chmod "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_LOG_DIR -R
+  chmod "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_RUN_DIR -R
   su "$INSTALL_USER" <<EOF
 cd $INSTALL_PATH && source "$MODULE_DIR/$VIRTUALENV_NAME/bin/activate"
 python -c 'from tools.config import createConfig; createConfig()' || true
-# celery -A celeryapp worker --loglevel=info || (echo "Something went wrong" && exit 1)
-# celery -A tools.celeryapp worker --loglevel=info 2>/dev/null || true
 cd $INSTALL_PATH/tools/TOOLBOX && make && cd ../..
 EOF
 }
@@ -329,13 +333,13 @@ EOF
 function generate_celery_config() {
   cat <<EOF >"$INSTALL_PATH/celery.cfg"
 # Name of nodes to start
-# here we have a single node
-CELERYD_NODES="w1"
-# or we could have three nodes:
-#CELERYD_NODES="w1 w2 w3"
+# here we have three nodes
+CELERYD_NODES="w1 w2 w3"
+# or we could have a single node:
+# CELERYD_NODES="w1"
 
 # Absolute or relative path to the 'celery' command:
-CELERY_BIN="$INSTALL_PATH/$VIRTUALENV_NAME/bin/celery"
+CELERY_BIN="$INSTALL_PATH/$MODULE_DIR/$VIRTUALENV_NAME/bin/celery"
 
 # App instance to use
 CELERY_APP="tools.celeryapp"
@@ -349,17 +353,14 @@ CELERYD_OPTS="--time-limit=300 --concurrency=8"
 # - %n will be replaced with the first part of the nodename.
 # - %I will be replaced with the current child process index
 #   and is important when using the prefork pool to avoid race conditions.
-CELERYD_PID_FILE="$INSTALL_PATH/celery_%n.pid"
-CELERYD_LOG_FILE="$INSTALL_PATH/celery_%n%I.log"
+CELERYD_PID_FILE="/var/run/celery/%n.pid"
+CELERYD_LOG_FILE="/var/log/celery/%n%I.log"
 CELERYD_LOG_LEVEL="INFO"
 
 # you may wish to add these options for Celery Beat
 CELERYBEAT_PID_FILE="$INSTALL_PATH/celery_beat.pid"
 CELERYBEAT_LOG_FILE="$INSTALL_PATH/celery_beat.log"
 
-CELERYD_USER="geneweaver"
-CELERYD_GROUP="geneweaver"
-CELERY_CREATE_DIRS=1
 EOF
 }
 
@@ -373,8 +374,7 @@ After=network.target
 Type=forking
 User=geneweaver
 Group=geneweaver
-Group=geneweaver
-EnvironmentFile=$INSTALL_PATH/celery
+EnvironmentFile=$INSTALL_PATH/celery.cfg
 WorkingDirectory=$INSTALL_PATH
 ExecStart=/bin/sh -c '\${CELERY_BIN} multi start \${CELERYD_NODES} \
   -A \${CELERY_APP} --pidfile=\${CELERYD_PID_FILE} \
