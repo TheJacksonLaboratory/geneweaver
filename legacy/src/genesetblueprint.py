@@ -2,12 +2,7 @@ import re
 import batch
 import json
 import sys
-if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    from urllib2 import unquote
-else:
-    from urllib.parse import unquote
-
+import urllib
 import flask
 
 import geneweaverdb
@@ -113,9 +108,9 @@ def create_batch_geneset():
     batch_file = flask.request.form['batchFile']
 
     ## The data sent to us should be URL encoded
-    batch_file = unquote(batch_file)
+    batch_file = urllib.parse.unquote(batch_file)
     batch_file = batch_file.split('\n')
-    batch_file = map(lambda s: s.encode('ascii', 'ignore'), batch_file)
+    batch_file = [s.encode('ascii', 'ignore') for s in batch_file]
 
     user = flask.g.user
     user_id = user.user_id
@@ -248,7 +243,7 @@ def infer_id_kind():
     # find which ID kinds worked best and return those
     max_success_count = 1
     most_successfull_id_kinds = []
-    for id_kind_tuple, success_id_set in id_kind_mapping_dict.iteritems():
+    for id_kind_tuple, success_id_set in id_kind_mapping_dict.items():
         (is_gene_result, source_id, sp_id) = id_kind_tuple
 
         def item_as_dict():
@@ -293,7 +288,7 @@ def create_temp_geneset():
 
         file_text = ""
         file_lines = ""
-        if 'file_text' in form.keys():
+        if 'file_text' in form:
             file_text = form['file_text']
             file_lines = file_text.splitlines()
         else:
@@ -555,7 +550,7 @@ def create_geneset():
 
         file_text = ""
         file_lines = ""
-        if 'file_text' in form.keys():
+        if 'file_text' in form:
             file_text = form['file_text']
             file_lines = file_text.splitlines()
         else:

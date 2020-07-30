@@ -292,7 +292,7 @@ class BatchReader(object):
         else:
             gtype = gtype.lower()
 
-            if gtype not in gene_types.keys():
+            if gtype not in gene_types:
                 self.errors.append('%s is an invalid gene type' % gtype)
 
             else:
@@ -424,7 +424,7 @@ class BatchReader(object):
 
                 spec = lns[i][1:].strip()
 
-                if spec.lower() not in species.keys():
+                if spec.lower() not in species:
                     self.errors.append(
                         'LINE %s: %s is an invalid species' % (i + 1, spec)
                     )
@@ -600,7 +600,7 @@ class BatchReader(object):
         """
 
         ## Isolate gene symbols (ode_ref_ids)
-        gene_refs = map(lambda x: x[0], gs['values'])
+        gene_refs = [x[0] for x in gs['values']]
         gene_type = gs['gs_gene_id_type']
         sp_id = gs['sp_id']
         gs['geneset_values'] = []
@@ -626,7 +626,7 @@ class BatchReader(object):
             ## given platform
             ref2prbid = gwdb.get_platform_probes(gene_type)
             ## This is a mapping of prb_ids -> ode_gene_ids
-            prbid2ode = gwdb.get_probe2gene(ref2prbid.values())
+            prbid2ode = gwdb.get_probe2gene(list(ref2prbid.values()))
 
             ## Just throw everything in the same dict, shouldn't matter since
             ## the prb_refs will be strings and the prb_ids will be ints
@@ -841,11 +841,9 @@ class BatchReader(object):
             self._pub_map = gwdb.get_publication_mapping()
 
         ## These publications already exist in the DB
-        found = filter(lambda g: g['pmid'] in self._pub_map, self.genesets)
+        found = [g for g in self.genesets if g['pmdi'] in self._pub_map]
         ## These don't
-        not_found = filter(
-            lambda g: g['pmid'] not in self._pub_map, self.genesets
-        )
+        not_found = [g for g in self.genesets if g['pmid'] not in self._pub_map]
 
         for gs in found:
             gs['pub_id'] = self._pub_map[gs['pmid']]

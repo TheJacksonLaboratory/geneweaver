@@ -35,7 +35,6 @@
 #    5 - APPROVED
 #
 
-from __future__ import print_function
 import geneweaverdb
 import notifications
 import psycopg2

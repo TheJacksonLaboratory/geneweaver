@@ -1201,15 +1201,13 @@ def render_pub_assignment(assignment_id):
                 genesets = pub_assignment.get_genesets()
                 genesets_for_pub = geneweaverdb.get_genesets_for_publication(pub_assignment.pub_id, uid)
                 other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
-                if pub_assignment.state !=pub_assignment.UNASSIGNED:
+                if pub_assignment.state != pub_assignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(pub_assignment.assignee)
                 group_name = geneweaverdb.get_group_name(pub_assignment.group)
 
                 ## Remove sets that have been deleted by the curators or others
-                genesets = filter(lambda gs: gs.status != 'deleted', genesets)
-                other_genesets = filter(
-                    lambda gs: gs.status != 'deleted', other_genesets
-                )
+                genesets = [gs for gs in genesets if gs.status != 'deleted']
+                other_genesets = [gs for gs in other_genesets if gs.status != 'deleted']
 
                 # create a dictionary that maps each gene set to a curation assignment if there is one
                 all_genesets = genesets + other_genesets
@@ -1549,7 +1547,7 @@ def init_ont_tree():
                         child_node["db"] = False
                         children.append(child_node)
 
-                        if child_node in filter(lambda s: s["title"] == ontpath[i+1]["title"], children):
+                        if child_node in [s for s in children if s["title"] == ontpath[i + 1]["title"]]:
                             children.remove(child_node)
 
                     ontpath[i]["children"] = children
@@ -1571,7 +1569,7 @@ def doesChildExist(child, children):
     ontology tree.
     """
 
-    children = map(lambda c: c['key'], children)
+    children = [c['key'] for c in children]
 
     return child['key'] in children
 
@@ -1801,9 +1799,7 @@ def render_editgeneset_genes(gs_id, curation_view=False):
 
     if contents:
         ## Transform into a gene list
-        contents = contents.split('\n')
-        contents = map(lambda s: s.split('\t'), contents)
-        contents = map(lambda t: t[0], contents)
+        contents = [s.split('\t')[0] for s in contents.split('\n')]
         gene_refs = geneweaverdb.resolve_feature_ids(geneset.sp_id, contents)
         symbol2ode = {}
 
@@ -1921,7 +1917,7 @@ def update_project_groups():
         ## Prevent the user from sharing a project containing a private gene
         ## set that has been shared with them
         genesets = geneweaverdb.get_genesets_for_project(proj_id, user_id)
-        genesets = filter(lambda g: g.cur_id == 5, genesets)
+        genesets = [g for g in genesets if g.cur_id == 5]
 
         for gs in genesets:
             if not geneweaverdb.user_is_owner(user_id, gs.geneset_id):
@@ -1977,7 +1973,7 @@ def update_genesets_groups():
             return json.dumps({'error': 'None'})
 
         else:
-            errors = ', '.join(map(lambda s: 'GS' + s, errors))
+            errors = ', '.join(['GS' + s for s in errors])
 
             return json.dumps({
                 'error': ('The GeneSet(s) %s are private (Tier V) and can '
@@ -2701,7 +2697,7 @@ def render_viewgenesetoverlap(gs_ids):
     ## Maps gs_ids to geneset data
     gs_map = {}
     ## Homology is only used if sets from multiple species are present
-    sp_ids = list(set(map(lambda g: g.sp_id, genesets)))
+    sp_ids = list(set([g.sp_id for g in genesets]))
 
     if len(sp_ids) > 1:
         use_homology = True
@@ -2744,7 +2740,7 @@ def render_viewgenesetoverlap(gs_ids):
     for gene, gs_ids in gene_intersects.items():
         ## If the intersection is among >1 species, it's a homologous gene
         ## cluster
-        species = list(set(map(lambda i: gs_map[i].sp_id, gs_ids)))
+        species = list(set([gs_map[i].sp_id for i in gs_ids]))
 
         sect_struct = {
             'gene': gene,
@@ -3335,10 +3331,10 @@ def render_export_genes(gs_id):
         # create a tab-delimated string to write directly to the download file
         export_string = '\t'.join(gdb_names)
         export_string = 'GeneWeaver ID\t' + export_string + '\n'
-        for key, value in export_list.iteritems():
+        for key, value in export_list.items():
             export_string = export_string + str(key) + '\t'
             for g in gdb_names:
-                for k, v in value.iteritems():
+                for k, v in value.items():
                     if g == k:
                         export_string = export_string + str(v) + '\t'
             export_string = export_string + '\n'
@@ -3371,7 +3367,7 @@ def render_export_omicssoft(gs_ids):
                 string += '##Name=' + str(results.name) + '\n'
                 string += '##Description=' + str(results.description) + '\n'
                 string += '##Tag=' + str(omicssoft['tag']) + '\n'
-                for gene, value in gsv_values.iteritems():
+                for gene, value in gsv_values.items():
                     string += str(gene) + '\t' + str(value) + '\n'
                 string += '\n'
             else:
@@ -4137,10 +4133,7 @@ def check_results():
     runhash = request.args.get('runHash', type=str)
     resultpath = config.get('application', 'results')
 
-    # files = os.listdir(RESULTS_PATH)
-    # files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
-    files = os.listdir(resultpath)
-    files = filter(lambda f: path.isfile(path.join(resultpath, f)), files)
+    files = [f for f in os.listdir(resultpath) if path.isfile(path.join(resultpath, f))]
     found = False
 
     for f in files:
@@ -4162,10 +4155,7 @@ def delete_result():
 
     # Delete the files from the results folder too--traverse the results
     # folder and match based on runhash
-    # files = os.listdir(RESULTS_PATH)
-    # files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
-    files = os.listdir(resultpath)
-    files = filter(lambda f: path.isfile(path.join(resultpath, f)), files)
+    files = [f for f in os.listdir(resultpath) if path.isfile(path.join(resultpath, f))]
 
     for f in files:
         rh = f.split('.')[0]

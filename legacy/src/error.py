@@ -1,10 +1,9 @@
-## This file contains all of the exception handling code for this application.
-## The app is designed to fail gracefully, presenting the user with a nice
-## message and redirecting them back to where they were, while emailing an
-## administrator about the nature of the error.
-#
-# TODO: Should be deprecated with python2
-from __future__ import print_function
+"""
+This file contains all of the exception handling code for this application.
+The app is designed to fail gracefully, presenting the user with a nice
+message and redirecting them back to where they were, while emailing an
+administrator about the nature of the error.
+"""
 
 import flask
 import smtplib
@@ -79,16 +78,17 @@ Exception:      %s
 
     ## Damn unicode shitting over everything
     for key, val in session.items():
-        if type(key) == unicode:
+        if type(key) == str:
             key = key.encode('ascii', 'ignore')
 
-        if type(val) == unicode:
+        if type(val) == str:
             val = val.encode('ascii', 'ignore')
 
         asciisession[key] = val
 
     if asciisession and 'usr_id' in asciisession:
         usr_id = asciisession['usr_id']
+
     ## There's seriously a fucking page somewhere that puts user_id instead
     ## of usr_id. I have yet to find it.
     elif asciisession and 'user_id' in asciisession:

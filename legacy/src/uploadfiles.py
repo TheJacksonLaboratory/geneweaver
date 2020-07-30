@@ -1,11 +1,7 @@
 import re
 import sys
 import json
-if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    from urlparse import parse_qs, urlparse
-else:
-    from urllib.parse import parse_qs, urlparse
+import urllib.parse
 
 from flask import session
 import psycopg2
@@ -36,7 +32,7 @@ def create_temp_geneset():
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_meta (gs_id bigint, sp_id int, gdb_id int)''')
             cursor.connection.commit()
         return 'True'
-    except:
+    except psycopg2.Error:
         return 'False'
 
 
@@ -129,7 +125,7 @@ def create_new_geneset_for_user(args, user_id):
     :return: a results dictionary where {'error': 'None'} is success. Also, return gs_id to be used to make temp file
     '''
     urlString = '/?' + args['formData']
-    formData = parse_qs(urlparse(urlString).query, keep_blank_values=True)
+    formData = urllib.parse.parse_qs(urllib.parse.urlparse(urlString).query, keep_blank_values=True)
 
     ##Create publication dictionary
     ## Insert into publication and return id
@@ -145,7 +141,7 @@ def create_new_geneset_for_user(args, user_id):
     pubDict["pub_journal"] = formData['pub_journal'][0]
 
     # Test to see if all values in publication are null
-    if all(v == '' for v in pubDict.values()) is True:
+    if all(v == '' for v in pubDict.values()):
         pub_id = None
     else:
         pub_id = insertPublication(pubDict)
@@ -351,7 +347,7 @@ def create_new_large_geneset_for_user(args, user_id):
     :return: a results dictionary where {'error': 'None'} is success. Also, return gs_id to be used to make temp file
     '''
     urlString = '/?' + args['formData']
-    formData = parse_qs(urlparse(urlString).query, keep_blank_values=True)
+    formData = urllib.parse.parse_qs(urllib.parse.urlparse(urlString).query, keep_blank_values=True)
 
     ##Create publication dictionary
     ## Insert into publication and return id

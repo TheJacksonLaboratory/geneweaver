@@ -1,18 +1,11 @@
-
-from __future__ import print_function
-
+import sys
 import json
 import smtplib
-import sys
 import psycopg2
+from flask import request
+from html.parser import HTMLParser
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import request
-if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    from HTMLParser import HTMLParser
-else:
-    from html.parser import HTMLParser
 
 import config
 import geneweaverdb

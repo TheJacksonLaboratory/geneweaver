@@ -1,17 +1,6 @@
-# TODO: Should be deprecated with python2
-from __future__ import print_function
-
 import re
 import sys
 import urllib
-if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    from urllib2 import HTTPError
-    from urllib2 import urlopen
-else:
-    from urllib.error import HTTPError
-    from urllib.request import urlopen
-
 import xml.etree.ElementTree as ET
 
 import geneweaverdb
@@ -114,7 +103,7 @@ class PublicationGenerator(object):
         """
         import time
         start = time.time()
-        pubmed_result = PubmedResult(urlopen(PUBMED_SEARCH_URL % (urllib.quote(self.querystring),)).read())
+        pubmed_result = PubmedResult(urllib.request.urlopen(PUBMED_SEARCH_URL % (urllib.parse.quote(self.querystring),)).read())
 
         # Timing for how long the pubmed search took
         new_time = time.time()
@@ -169,9 +158,9 @@ class PubmedResult(object):
             self.retmax = max_result
 
         try:
-            response = urlopen(self._PUBMED_DATA_URL % (self.query_key, self.web_env, self.retstart, self.retmax)).read()
+            response = urllib.request.urlopen(self._PUBMED_DATA_URL % (self.query_key, self.web_env, self.retstart, self.retmax)).read()
         # Allow HTTPError from communication problems with PubMed to get propogated up
-        except HTTPError as e:
+        except urllib.error.HTTPError as e:
             print("Problem communicating with PubMed. {}".format(e.message))
             raise e
 

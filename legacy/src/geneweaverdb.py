@@ -987,7 +987,7 @@ def resolve_feature_ids(sp_id, ref_ids):
     (which is our canonical ID type).
     """
 
-    ref_ids = tuple(map(lambda r: r.lower(), ref_ids))
+    ref_ids = tuple([r.lower() for r in ref_ids])
 
     with PooledCursor() as cursor:
         cursor.execute(
@@ -1532,10 +1532,10 @@ def update_geneset(usr_id, form):
 
 def byteify(input):
     if isinstance(input, dict):
-        return {byteify(key): byteify(value) for key, value in input.iteritems()}
+        return {byteify(key): byteify(value) for key, value in input.items()}
     elif isinstance(input, list):
         return [byteify(element) for element in input]
-    elif isinstance(input, unicode):
+    elif isinstance(input, str):
         return input.encode('utf-8')
     else:
         return input
@@ -1606,7 +1606,7 @@ def get_ontologies_by_refs(ont_ref_ids):
         if not result:
             return []
 
-        return map(lambda t: t[0], result)
+        return [t[0] for t in result]
 
 def does_geneset_have_annotation(gs_id, ont_id):
     """
@@ -4180,7 +4180,7 @@ def get_species_homologs(hom_id):
             FROM homology
             WHERE hom_id = %s''', (hom_id,))
 
-    return map(lambda l: l[0], set(cursor))
+    return [l[0] for l in set(cursor)]
 
 def get_geneset_values_for_mset(pj_tg_id, pj_int_id):
     """
@@ -4574,7 +4574,7 @@ def get_geneset_values(
 
         if gdb_spid != 0 and gdb_spid != sp_id:
             ode2ref = get_gene_homolog_ids(
-                map(lambda v: v.ode_gene_id, gsvs), original_gdb_id
+                [v.ode_gene_id for v in gsvs], original_gdb_id
             )
 
             for gsv in gsvs:
@@ -5036,7 +5036,7 @@ def check_emphasis(gs_id, em_gene):
     if result != None:
         geneList = [gene[1] for gene in result]
 
-    em_gene = long(em_gene)
+    em_gene = int(em_gene)
 
     # If the emphasis gene was found in the geneset return true
     if em_gene in geneList:
@@ -5162,7 +5162,7 @@ def get_missing_ref_ids(refs, sp_id, gdb_id):
             ''', (refs, sp_id, gdb_id)
         )
 
-        return map(lambda t: t[0], cursor.fetchall())
+        return [t[0] for t in cursor.fetchall()]
 
 ## These functions below were added for the new batch parser. If some variant
 ## of them already exists elsewhere in this file (I looked and couldn't find 
