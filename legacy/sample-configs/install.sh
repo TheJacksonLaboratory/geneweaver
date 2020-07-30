@@ -83,6 +83,30 @@ function usage_post_install() {
 
   "
 
+  __RABBITMQ_WEBSITE="
+  Rabbitmq Server should be enabled and running.
+  To check on the status of rabbitmq:
+    sudo systemctl status rabbitmq-server
+
+  This install created a 'geneweaver' user with password 'geneweaver' and granted
+  it all permissions on a 'geneweaver' namespace. The celery url to connect to
+  this looks like:
+    amqp://geneweaver:geneweaver@localhost:5672/geneweaver
+
+  To connect from a seperate server, specify the host
+    amqp://geneweaver:geneweaver@<WEBSITE-SERVER>:5672/geneweaver
+
+  "
+
+  __RABBITMQ_WORKER="
+  This script sets up RabbitMQ Server when installing in 'website' mode. When
+  installed, it creates a 'geneweaver' user with password 'geneweaver' and grants
+  it all permissions on a 'geneweaver' namespace. The url looks something like
+
+    amqp://geneweaver:geneweaver@<WEBSITE-SERVER>:5672/geneweaver
+
+  "
+
   __NGINX_STATUS="
   Nginx should be enabled and running, but we couldn't verify that it is.
   To check on the status of nginx:
@@ -94,6 +118,7 @@ function usage_post_install() {
   Once Ngxinx is setup and able to run, start and enable it with:
     sudo systemctl start nginx
     sudo systemctl enable nginx
+
   "
 
   __NGINX_NEXT="
@@ -101,11 +126,15 @@ function usage_post_install() {
     /etc/nginx/nginx.conf
 
   This is where you can setup https, and other nginx related functionality.
+
   "
   echo "$__NEXT"
   if [[ "$MODE" == "website" ]] ; then
+    echo "$__RABBITMQ_WEBSITE"
     systemctl -q is-active nginx || echo "$__NGINX_STATUS"
     echo "$__NGINX_NEXT"
+  else
+    echo "$__RABBITMQ_WORKER"
   fi
 }
 
@@ -224,6 +253,7 @@ pip3 install -r $REQS_FILE_PATH
 pipenv sync
 EOF
 }
+
 function update_config_file_location() {
   sed -i "/^CONFIG_PATH\ =\ /c\CONFIG_PATH=\"$CONFIG_FILE\"" "$CONFIG_PY"
 }
@@ -309,6 +339,15 @@ WantedBy=multi-user.target
 EOF
 }
 
+function setup_rabbitmq_server() {
+  yum install rabbitmq-server
+  systemctl start rabbitmq-server
+  systemctl enable rabbitmq-server
+  rabbitmqctl add_user geneweaver geneweaver
+  rabbitmqctl add_vhost geneweaver
+  rabbitmqctl set_permissions -p geneweaver geneweaver ".*" ".*" ".*"
+}
+
 ########################################################################################################################
 ## Worker Specific Functions
 ########################################################################################################################
@@ -321,8 +360,8 @@ function install_worker_os_deps() {
 
 function initialize_celery() {
   mkdir -p $CELERY_LOG_DIR $CELERY_RUN_DIR
-  chmod "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_LOG_DIR -R
-  chmod "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_RUN_DIR -R
+  chown "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_LOG_DIR -R
+  chown "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_RUN_DIR -R
   su "$INSTALL_USER" <<EOF
 cd $INSTALL_PATH && source "$MODULE_DIR/$VIRTUALENV_NAME/bin/activate"
 python -c 'from tools.config import createConfig; createConfig()' || true
@@ -410,6 +449,7 @@ initialize_virtual_environment_pipenv "$INSTALL_PATH/$MODULE_DIR/requirements.tx
 
 case $MODE in
 website)
+  setup_rabbitmq_server
   initialize_website_config
   setup_nginx
   generate_uwsgi_file
@@ -422,7 +462,8 @@ worker)
   ;;
 esac
 
-cd "$INSTALL_PATH" || echo "WARNING: Couldn't cd to $INSTALL_PATH. Currently in $(pwd)"
+cd "$INSTALL_PATH" || echo "WARNING: Couldn't cd to $INSTALL_PATH."
+echo "Currently working in: $(pwd)"
 
 usage_post_install
 
