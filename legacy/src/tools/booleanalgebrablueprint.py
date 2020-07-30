@@ -207,16 +207,16 @@ def paginate_bool_dicts(json_results, page, per_page):
         json_results['bool_results'] = paginate_dict(json_results['bool_results'], page, per_page)
     if 'bool_except' in json_results:
         json_results['bool_except'] = {k: paginate_dict(v, page, per_page)
-                                       for k, v in json_results['bool_except'].iteritems()}
+                                       for k, v in json_results['bool_except'].items()}
     if 'intersect_results' in json_results:
         json_results['intersect_results'] = {k: paginate_dict(v, page, per_page)
-                                             for k, v in json_results['intersect_results'].iteritems()}
+                                             for k, v in json_results['intersect_results'].items()}
     return json_results
 
 
 def calculate_gene_list_for_table(table):
     this_gene_list = []
-    for _, row in table.iteritems():
+    for _, row in table.items():
         this_gene_list.append(row[0][0])
     return list(set(this_gene_list))
 
@@ -232,7 +232,7 @@ def calculate_gene_list_results(json_results):
         return json_results
 
     gene_list = {}
-    for key, table in results.iteritems():
+    for key, table in results.items():
         gene_list[key] = calculate_gene_list_for_table(table)
     json_results['gene_list'] = gene_list
 
@@ -288,7 +288,7 @@ def datatablify(row_dict, draw_value, start=0, length=25):
          "genesets": [it[3] for it in row],
          "species": list(set([it[2] for it in row])),
          "emphasis": None}
-        for key, row in row_dict.iteritems()
+        for key, row in row_dict.items()
     ]}
     total = len(dtbls_data['data'])
     dtbls_data['data'] = dtbls_data['data'][start:start + length]

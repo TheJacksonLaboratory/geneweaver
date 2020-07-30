@@ -270,8 +270,6 @@ def view_result(task_id):
         # for row in emphgenes:
         #     emphgeneids.append(str(row['ode_gene_id']))
 
-
-
     else:
         flask.flash('Please log in to view your results')
 
@@ -293,7 +291,7 @@ def view_result(task_id):
         sys.stderr.write("#####################"+str(test['ran'])+"\n")
 
         if test['ran'] == 1 and 'resClusters' in test:
-            genes = len(test['decode'].keys())
+            genes = len(test['decode'])
 
             if genes < 200:
                 for row in emphgenes:
@@ -307,7 +305,7 @@ def view_result(task_id):
                 for gs_id in gs_dict["gene_symbols"]:
                     geneset = gwdb.get_geneset(gs_id, user_id)
                     for gene_value in geneset.geneset_values:
-                        if gene_value.source_list[0] not in gene_info.keys():
+                        if gene_value.source_list[0] not in gene_info:
                             gene_info[gene_value.source_list[0]] = {}
                         gene_info[gene_value.source_list[0]]['gene_rank'] = gene_value.gene_rank
                         # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][gene_rank] = "+str(gene_value.gene_rank)+"\n")
@@ -316,9 +314,9 @@ def view_result(task_id):
                         gene_info[gene_value.source_list[0]]['ode_id'] = gene_value.ode_gene_id
 
                 for gene in gene_info:
-                    if 'gene_rank' not in gene_info[gene].keys():
+                    if 'gene_rank' not in gene_info[gene]:
                         gene_info[gene]['gene_rank'] = 0
-                    if 'homology' not in gene_info[gene].keys():
+                    if 'homology' not in gene_info[gene]:
                         gene_info[gene]['homology'] = []
             else:
                 for row in emphgenes:
