@@ -39,7 +39,7 @@ def selected_geneset_ids(form):
     prefix_len = len(geneset_html_id_prefix)
     return [
         id_with_prefix[prefix_len:]
-        for id_with_prefix in form.iterkeys()
+        for id_with_prefix in form.keys()
         if id_with_prefix.startswith(geneset_html_id_prefix)
     ]
 
@@ -53,7 +53,7 @@ def selected_project_ids(form):
     prefix_len = len(project_html_id_prefix)
     return [
         id_with_prefix[prefix_len:]
-        for id_with_prefix in form.iterkeys()
+        for id_with_prefix in form.keys()
         if id_with_prefix.startswith(project_html_id_prefix)
     ]
 

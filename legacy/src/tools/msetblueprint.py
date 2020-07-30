@@ -205,7 +205,7 @@ def view_result(task_id):
         min_val = min([min(hist_amounts), int(mset_output["List 1/2 Intersect"])])
         max_val = max([max(hist_amounts), int(mset_output["List 1/2 Intersect"])])
         density_data = [{'intersectSize': k, 'frequency': float(hist_data.get(str(k), 0))}
-                        for k in xrange(min_val, max_val+2)]
+                        for k in range(min_val, max_val+2)]
         density_data.sort(key=lambda elem: elem['intersectSize'])
         results['density_data'] = density_data
         del async_result['mset_hist']
