@@ -1,34 +1,31 @@
-## This file contains API wrappers and related functions for annotating user
-## uploaded genesets. For now, two separate annotation services (NCBO and the
-## Monarch Initiative) are used since the latter is missing MA annotations.
-## Separate stand-alone versions of these wrappers can be found, for now,
-## at bitbucket.org/geneweaver/curation
+"""
+This file contains API wrappers and related functions for annotating user
+uploaded genesets. For now, two separate annotation services (NCBO and the
+Monarch Initiative) are used since the latter is missing MA annotations.
+Separate stand-alone versions of these wrappers can be found, for now,
+at bitbucket.org/geneweaver/curation
+"""
+
 import sys
 import json
-import urllib as url
-if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    import urllib2 as url2
-    from urllib2 import HTTPError
-else:
-    from urllib.error import HTTPError
-    # TODO: url2 should be renamed later.
-    from urllib import request as url2
-
+import urllib
 import geneweaverdb
 
 
 NCBO_URL = 'http://data.bioontology.org'
 NCBO_ANNOTATOR = NCBO_URL + '/annotator?'
+
 ## My NCBO API key (Jeremy's no longer worked). If this ever needs to be
 ## replaced, head over to http://bioportal.bioontology.org/accounts/new
 ## and register a new account.
 API_KEY = '2709bdd2-c311-4089-b000-56fa3d33307c'
+
 ## NCBO docs are kinda shitty but I _think_ ontology IDs it uses are just the
 ## abbreviations. This seems to work, and nothing else is specified in the
 ## docs about ontology IDs so...
 ONT_IDS = ['MESH', 'GO', 'MP', 'MA']
 MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
+
 ## Couldn't find this endpoint anywhere in the documentation, but it's buried
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
@@ -43,9 +40,7 @@ def get_geneweaver_ontologies():
     :ret list: a list of ontology prefixes supported by GW
     """
 
-    onts = geneweaverdb.get_all_ontologydb()
-
-    return [d.prefix.upper() for d in onts]
+    return [d.prefix.upper() for d in geneweaverdb.get_all_ontologydb()]
 
 
 def fetch_ncbo_annotations(text, ncboids):
@@ -80,13 +75,13 @@ def fetch_ncbo_annotations(text, ncboids):
 
     ## Attempt connecting to NCBO and pulling annotation data. Quits if an
     ## exception is handled three times.
-    for attempt in range(3):
+    for _ in range(3):
         try:
-            req = url2.Request(NCBO_ANNOTATOR, params)
-            res = url2.urlopen(req)
+            req = urllib.request.Request(NCBO_ANNOTATOR, params)
+            res = urllib.request.urlopen(req)
             res = res.read()
 
-        except url2.HTTPError as e:
+        except urllib.error.HTTPError as e:
             print('Failed to retrieve annotation data from NCBO:')
             print(e)
             print(e.read())
@@ -121,15 +116,15 @@ def get_ncbo_link(link):
     :ret dict: json object representing whatever data we retrieved
     """
 
-    opener = url2.build_opener()
+    opener = urllib.request.build_opener()
     opener.addheaders = [('Authorization', 'apikey token=' + API_KEY)]
 
-    for attempt in range(3):
+    for _ in range(3):
         try:
             res = opener.open(link)
             res = res.read()
 
-        except url2.HTTPError as e:
+        except urllib.error.HTTPError as e:
             print('Failed to retrieve annotation data from an NCBO link:')
             print(e)
             continue
@@ -207,8 +202,8 @@ def fetch_monarch_annotations(text):
     ## is handled three times.
     for attempt in range(3):
         try:
-            req = url2.Request(MONARCH_ANNOTATOR + '?' + params)
-            res = url2.urlopen(req)
+            req = urllib.request.Request(MONARCH_ANNOTATOR + '?' + params)
+            res = urllib.request.urlopen(req)
             res = res.read()
 
         except HTTPError as e:
