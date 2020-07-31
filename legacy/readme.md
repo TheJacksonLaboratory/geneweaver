@@ -465,64 +465,72 @@ If you cannot find the `pipenv` on the interpreter settings, you can restart the
 When installing on Centos7, you can use the install bash script in `sample-configs/install.sh`.
 
 The script does the following:
-* Builds and installs python 3.7
-* Installs OS level dependencies
-* Clones geneweaver source
-* Adds geneweaver user
-* Sets up virtualenvironment
-* Syncs packages with pipenv
-* Configures nginx (web)
-* Configures celery (worker)
-* Adds geneweaver or geneweaver-worker systemd service
+*  Builds and installs python 3.7
+*  Installs OS level dependencies
+*  Clones geneweaver source
+*  Adds geneweaver user
+*  Sets up virtualenvironment
+*  Generates a default config file
+*  Syncs packages with pipenv
+*  Configures Nginx (website)
+*  Configures RabbitMQ (website)
+*  Configures celery (tools)
+*  Adds geneweaver or geneweaver-worker systemd service
 
-> NOTE: This does not set up a postgres database, since production deployments keep the database on it's own machine.
+> NOTE: This does not set up a postgres database
 
 Get the install script:
-```shell script
+
+```
 wget -P /tmp https://bitbucket.org/geneweaver/py3-geneweaver-website/raw/master/sample-configs/install.sh
 chmod u+x /tmp/install.sh
 sudo /tmp/install.sh -h
 ```
 
 Print usage instructions for install script
-```shell script
+```
 # Print usage instructions for install.sh
 sudo install.sh -h
 ```
 
 Install the web or worker backends:
 ```
-sudo ./sample-configs/install.sh -m web
-sudo ./sample-configs/install.sh -m worker
+sudo ./sample-configs/install.sh -m website
+sudo ./sample-configs/install.sh -m tools
 ```
 
 After running the script, you'll need to update the corresponding cfg file to point to a running database:
 ```
-vi /opt/compsci/geneweaver/web/web.cfg
+vi /opt/compsci/geneweaver/website/website.cfg
 vi /opt/compsci/geneweaver/tools/tools.cfg
 ```
 
 You should start and enable the geneweaver service as it suggests:
-```shell script
+```
 sudo systemctl start geneweaver
 sudo systemctl enable geneweaver
 
-sudo systemctl start geneweaver-worker
-sudo systemctl enable geneweaver-worker
+sudo systemctl start geneweaver-tools
+sudo systemctl enable geneweaver-tools
 ```
 
 To view service status
 ```
 sudo systemctl status geneweaver
-sudo systemctl status geneweaver-worker
+sudo systemctl status geneweaver-tools
 ```
 
 To view service logs
 ```
 journalctl -u geneweaver
-journalctl -u geneweaver-worker
+journalctl -u geneweaver-tools
 
 # Add the -f flag to tail/follow the logs as they're created
 journalctl -f -u geneweaver
-journalctl -f -u geneweaver-worker
+journalctl -f -u geneweaver-tools
+```
+
+To view celery logs:
+```
+tail -f /var/log/celery/geneweaver/*
 ```

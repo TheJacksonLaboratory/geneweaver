@@ -21,6 +21,9 @@ GIT_TOOLS_SOURCE=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git
 MODE=website
 RUN_BASE_INSTALL=true
 
+CELERY_RUN_DIR=/var/run/celery/
+CELERY_LOG_DIR=/var/log/celery/
+
 ########################################################################################################################
 ## Usage and options/arguments
 ########################################################################################################################
@@ -29,11 +32,11 @@ function usage() {
 
   Options:
     -m <mode>: The type of install to perform, must
-    be one of [website|worker]
+    be one of [website|tools]
     (default=website)
 
     -p <path>: The base application directory to install
-    modules into. (default=/opt/compsci/geneweaver)
+    modules into. (default=/opt/geneweaver)
 
     -u <user>: The unix user that will own and run the
     application (default=geneweaver)
@@ -41,24 +44,20 @@ function usage() {
     -g <group>: The unix group that owns the application
     directory (default=geneweaver)
 
-    -v <\d\.\d\.\d>: A three number semantic version
-    matching an available python release. e.g. 3.7.8
-    (default=3.7.8)
-
     -e <name>: What to call the virtual environment(s)
     (default=venv.geneweaver)
 
     -s <git-url>: The git url of the source code
     (website default=https://bitbucket.org/geneweaver/py3-geneweaver-website.git)
-    (worker default=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git)
+    (tools default=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git)
 
     -b <branch>: The git branch to use when checking
     out the source code. This can be changed later.
     (default=master)
 
     -x: If set, script will skip the os level installs,
-    git clone, and user creation. It will only perform
-    mode specific tasks.
+    and user creation. It will only perform mode specific
+    tasks.
 
     -h: Print this usage message and exit
   "
@@ -80,6 +79,30 @@ function usage_post_install() {
 
   "
 
+  __RABBITMQ_WEBSITE="
+  Rabbitmq Server should be enabled and running.
+  To check on the status of rabbitmq:
+    sudo systemctl status rabbitmq-server
+
+  This install created a 'geneweaver' user with password 'geneweaver' and granted
+  it all permissions on a 'geneweaver' namespace. The celery url to connect to
+  this looks like:
+    amqp://geneweaver:geneweaver@localhost:5672/geneweaver
+
+  To connect from a seperate server, specify the host
+    amqp://geneweaver:geneweaver@<WEBSITE-SERVER>:5672/geneweaver
+
+  "
+
+  __RABBITMQ_WORKER="
+  This script sets up RabbitMQ Server when installing in 'website' mode. When
+  installed, it creates a 'geneweaver' user with password 'geneweaver' and grants
+  it all permissions on a 'geneweaver' namespace. The url looks something like
+
+    amqp://geneweaver:geneweaver@<WEBSITE-SERVER>:5672/geneweaver
+
+  "
+
   __NGINX_STATUS="
   Nginx should be enabled and running, but we couldn't verify that it is.
   To check on the status of nginx:
@@ -91,6 +114,7 @@ function usage_post_install() {
   Once Ngxinx is setup and able to run, start and enable it with:
     sudo systemctl start nginx
     sudo systemctl enable nginx
+
   "
 
   __NGINX_NEXT="
@@ -98,24 +122,27 @@ function usage_post_install() {
     /etc/nginx/nginx.conf
 
   This is where you can setup https, and other nginx related functionality.
+
   "
   echo "$__NEXT"
   if [[ "$MODE" == "website" ]] ; then
+    echo "$__RABBITMQ_WEBSITE"
     systemctl -q is-active nginx || echo "$__NGINX_STATUS"
     echo "$__NGINX_NEXT"
+  else
+    echo "$__RABBITMQ_WORKER"
   fi
 }
 
 
 
 
-while getopts ":m:p:u:g:v:e:s:b:xh" opt; do
+while getopts ":m:p:u:g:e:s:b:xh" opt; do
   case ${opt} in
   m) MODE=$OPTARG ;;
   p) INSTALL_PATH=$OPTARG ;;
   u) INSTALL_USER=$OPTARG ;;
   g) INSTALL_GROUP=$OPTARG ;;
-  v) PYTHON_VERSION=$OPTARG ;;
   e) VIRTUALENV_NAME=$OPTARG ;;
   s) GIT_SOURCE=$OPTARG ;;
   b) GIT_BRANCH=$OPTARG ;;
@@ -133,14 +160,14 @@ website)
   SERVICE_NAME=geneweaver
   CONFIG_PY="$INSTALL_PATH/$MODULE_DIR/src/config.py"
   ;;
-worker)
+tools)
   if ! $GIT_SOURCE; then GIT_SOURCE=$GIT_TOOLS_SOURCE ; fi
   MODULE_DIR=tools
-  SERVICE_NAME=geneweaver-worker
+  SERVICE_NAME=geneweaver-tools
   CONFIG_PY="$INSTALL_PATH/$MODULE_DIR/config.py"
   ;;
 *)
-  echo "Only 'website' and 'worker' modes are currently supported"
+  echo "Only 'website' and 'tools' modes are currently supported"
   exit 1
 esac
 
@@ -221,6 +248,7 @@ pip3 install -r $REQS_FILE_PATH
 pipenv sync
 EOF
 }
+
 function update_config_file_location() {
   sed -i "/^CONFIG_PATH\ =\ /c\CONFIG_PATH=\"$CONFIG_FILE\"" "$CONFIG_PY"
 }
@@ -306,10 +334,19 @@ WantedBy=multi-user.target
 EOF
 }
 
+function setup_rabbitmq_server() {
+  yum install rabbitmq-server
+  systemctl start rabbitmq-server
+  systemctl enable rabbitmq-server
+  rabbitmqctl add_user geneweaver geneweaver
+  rabbitmqctl add_vhost geneweaver
+  rabbitmqctl set_permissions -p geneweaver geneweaver ".*" ".*" ".*"
+}
+
 ########################################################################################################################
-## Worker Specific Functions
+## Tool Specific Functions
 ########################################################################################################################
-function install_worker_os_deps() {
+function install_tools_os_deps() {
   yum -y install \
     gcc \
     g++ \
@@ -317,11 +354,12 @@ function install_worker_os_deps() {
 }
 
 function initialize_celery() {
+  mkdir -p $CELERY_LOG_DIR $CELERY_RUN_DIR
+  chown "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_LOG_DIR -R
+  chown "$INSTALL_USER":"$INSTALL_GROUP" $CELERY_RUN_DIR -R
   su "$INSTALL_USER" <<EOF
 cd $INSTALL_PATH && source "$MODULE_DIR/$VIRTUALENV_NAME/bin/activate"
 python -c 'from tools.config import createConfig; createConfig()' || true
-# celery -A celeryapp worker --loglevel=info || (echo "Something went wrong" && exit 1)
-# celery -A tools.celeryapp worker --loglevel=info 2>/dev/null || true
 cd $INSTALL_PATH/tools/TOOLBOX && make && cd ../..
 EOF
 }
@@ -329,13 +367,13 @@ EOF
 function generate_celery_config() {
   cat <<EOF >"$INSTALL_PATH/celery.cfg"
 # Name of nodes to start
-# here we have a single node
-CELERYD_NODES="w1"
-# or we could have three nodes:
-#CELERYD_NODES="w1 w2 w3"
+# here we have three nodes
+CELERYD_NODES="w1 w2 w3"
+# or we could have a single node:
+# CELERYD_NODES="w1"
 
 # Absolute or relative path to the 'celery' command:
-CELERY_BIN="$INSTALL_PATH/$VIRTUALENV_NAME/bin/celery"
+CELERY_BIN="$INSTALL_PATH/$MODULE_DIR/$VIRTUALENV_NAME/bin/celery"
 
 # App instance to use
 CELERY_APP="tools.celeryapp"
@@ -349,22 +387,19 @@ CELERYD_OPTS="--time-limit=300 --concurrency=8"
 # - %n will be replaced with the first part of the nodename.
 # - %I will be replaced with the current child process index
 #   and is important when using the prefork pool to avoid race conditions.
-CELERYD_PID_FILE="$INSTALL_PATH/celery_%n.pid"
-CELERYD_LOG_FILE="$INSTALL_PATH/celery_%n%I.log"
+CELERYD_PID_FILE="/var/run/celery/geneweaver/%n.pid"
+CELERYD_LOG_FILE="/var/log/celery/geneweaver/%n%I.log"
 CELERYD_LOG_LEVEL="INFO"
 
 # you may wish to add these options for Celery Beat
 CELERYBEAT_PID_FILE="$INSTALL_PATH/celery_beat.pid"
 CELERYBEAT_LOG_FILE="$INSTALL_PATH/celery_beat.log"
 
-CELERYD_USER="geneweaver"
-CELERYD_GROUP="geneweaver"
-CELERY_CREATE_DIRS=1
 EOF
 }
 
-function generate_systemd_file_worker() {
-  cat <<EOF >/etc/systemd/system/geneweaver-worker.service
+function generate_systemd_file_tools() {
+  cat <<EOF >/etc/systemd/system/geneweaver-tools.service
 [Unit]
 Description=Geneweaver Celery Service
 After=network.target
@@ -373,8 +408,7 @@ After=network.target
 Type=forking
 User=geneweaver
 Group=geneweaver
-Group=geneweaver
-EnvironmentFile=$INSTALL_PATH/celery
+EnvironmentFile=$INSTALL_PATH/celery.cfg
 WorkingDirectory=$INSTALL_PATH
 ExecStart=/bin/sh -c '\${CELERY_BIN} multi start \${CELERYD_NODES} \
   -A \${CELERY_APP} --pidfile=\${CELERYD_PID_FILE} \
@@ -410,19 +444,21 @@ initialize_virtual_environment_pipenv "$INSTALL_PATH/$MODULE_DIR/requirements.tx
 
 case $MODE in
 website)
+  setup_rabbitmq_server
   initialize_website_config
   setup_nginx
   generate_uwsgi_file
   generate_systemd_file_website
   ;;
-worker)
+tools)
   initialize_celery
   generate_celery_config
-  generate_systemd_file_worker
+  generate_systemd_file_tools
   ;;
 esac
 
-cd "$INSTALL_PATH" || echo "WARNING: Couldn't cd to $INSTALL_PATH. Currently in $(pwd)"
+cd "$INSTALL_PATH" || echo "WARNING: Couldn't cd to $INSTALL_PATH."
+echo "Currently working in: $(pwd)"
 
 usage_post_install
 
