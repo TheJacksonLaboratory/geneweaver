@@ -1,31 +1,149 @@
-GeneWeaver 2.0 Setup and Deployment
-===================================
+# Geneweaver (scripted setup)
 
-Documentation for setting up and deploying the GeneWeaver application.
+When installing on Centos7, you can use the install bash script in `sample-configs/install.sh`.
 
-## System Requirements
+The script does the following:
+*  Builds and installs python 3.7
+*  Installs OS level dependencies
+*  Clones geneweaver source
+*  Adds geneweaver user
+*  Sets up virtualenvironment
+*  Generates a default config file
+*  Syncs packages with pipenv
+*  Configures Nginx (website)
+*  Configures RabbitMQ (website)
+*  Configures celery (tools)
+*  Adds geneweaver or geneweaver-worker systemd service
+
+> NOTE: This does not set up a postgres database
+
+Get the install script:
+
+```
+wget -P /tmp https://bitbucket.org/geneweaver/py3-geneweaver-website/raw/master/sample-configs/install.sh
+chmod u+x /tmp/install.sh
+sudo /tmp/install.sh -h
+```
+
+Print usage instructions for install script
+```
+# Print usage instructions for install.sh
+sudo install.sh -h
+```
+
+Install the web or worker backends:
+```
+sudo ./sample-configs/install.sh -m website
+sudo ./sample-configs/install.sh -m tools
+```
+
+After running the script, you'll need to update the corresponding cfg file to point to a running database:
+```
+vi /opt/compsci/geneweaver/website/website.cfg
+vi /opt/compsci/geneweaver/tools/tools.cfg
+```
+
+You should start and enable the geneweaver service as it suggests:
+```
+sudo systemctl start geneweaver
+sudo systemctl enable geneweaver
+
+sudo systemctl start geneweaver-tools
+sudo systemctl enable geneweaver-tools
+```
+
+To view service status
+```
+sudo systemctl status geneweaver
+sudo systemctl status geneweaver-tools
+```
+
+To view service logs
+```
+journalctl -u geneweaver
+journalctl -u geneweaver-tools
+
+# Add the -f flag to tail/follow the logs as they're created
+journalctl -f -u geneweaver
+journalctl -f -u geneweaver-tools
+```
+
+To view celery logs:
+```
+tail -f /var/log/celery/geneweaver/*
+```
+
+# Geneweaver (manual setup)
+
+### System Requirements
 
 GeneWeaver is designed to run on Linux and requires a relatively recent
-release. It has been tested on CentOS 6/7 and Red Hat distributions but should
+release. It has been tested on CentOS 7 and Red Hat distributions but should
 run on other distributions with minimal changes. 
 
 To begin, you'll need the following application dependencies:
 
 RedHat/Fedora/CentOS:
 
-    $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel libpqxx libpqxx-devel postgresql-server postgresql-devel python2 rabbitmq-server sphinx ImageMagick ImageMagick-devel
+    $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel libpqxx libpqxx-devel postgresql-server postgresql-devel rabbitmq-server sphinx ImageMagick ImageMagick-devel
 	
 Debian/Ubuntu:
 
-	$ sudo apt-get install libboost-all-dev libcairo2 libcairo2-dev git graphviz libffi6 libffi-dev libpqxx-4.0 libpqxx-dev postgresql postgresql-server-dev-9.5 python2.7 rabbitmq-server sphinxsearch imagemagick libmagickcore-dev libmagickwand-dev
+	$ sudo apt-get install libboost-all-dev libcairo2 libcairo2-dev git graphviz libffi6 libffi-dev libpqxx-4.0 libpqxx-dev postgresql postgresql-server-dev-9.5 rabbitmq-server sphinxsearch imagemagick libmagickcore-dev libmagickwand-dev
 
 Ensure that the following applications meet these version requirements:
 
-* python == __2.7.*__
+* python == __3.7.*__
 * PostgreSQL >= __9.2__
 * Graphviz >= __2.3__
 * RabbitMQ >= __3.3.*__
 * Sphinx >= __2.1.*__
+
+## Configuring the Python3 Environment
+
+Python3 (`3.7`) versions and pip packages can be manged by `pipenv`
+
+Detailed version information is specified and locked in `Pipfile.lock`.
+
+(If you want to add or manage the version information, please read `pipenv` document and apply for other developers.)
+
+### How to run project
+
+#### Initialize packages
+```bash
+# Install pipenv package and synchronize current python version for this repo.
+$ cd {PROJECT_ROOT}
+$ pip install pipenv
+$ pipenv sync
+```
+
+#### Run packages
+```bash
+$ cd {PROJECT_ROOT}
+$ pipenv run python src/application.py
+```
+
+#### Synchronize packages with current `Pipfile.lock` file
+
+When package list has been changed, all packages should be synchronized.
+
+```
+$ pipenv sync
+```
+
+The more on the `pipenv` [documentation](https://pipenv.kennethreitz.org/en/latest/#install-pipenv-today "documentation").
+
+
+### Why `Pipenv`?
+
+`pipenv` can automatically manage the versions of several packages explicitly. Since some packages do not support backward compatibility, `pipenv` can help to keep proper package versions.
+ 
+
+### How to set-up with Pycharm environment.
+
+See Pycharm [official instruction](https://www.jetbrains.com/help/pycharm/pipenv.html).
+
+If you cannot find the `pipenv` on the interpreter settings, you can restart the Pycharm to let it check the `PATH` for pipenv. 
 
 
 ## Configuring PostgreSQL
@@ -138,8 +256,19 @@ otherwise the restore will fail. This will take several hours.
 
 ## Running RabbitMQ
 
-RabbitMQ is the message broker used by Celery to distribute GW tool runs. It
-can be run in the background:
+RabbitMQ is the message broker used by Celery to distribute GW tool runs. The easiest and most
+expected way to run it is with systemctl:
+
+    # Start Rabbitmq Server
+    sudo systemctl start rabbitmq-server
+    
+    # Enable start on boot
+    sudo systemctl enable rabbitmq-server
+    
+    # Check status
+    sudo systemctl status rabbitmq-server
+
+Alternatively, it can be run in the background:
 
 	$ rabbitmq-server start &
 
@@ -147,13 +276,20 @@ Or it can be configured to start on boot and daemonized:
 
 	$ chkconfig rabbitmq-server on
 	$ /sbin/service rabbitmq-server start
+	
+Once runnning, it's a good idea to create a user, password, namepsace and permissions:
 
-Or daemonization using systemctl: 
+    rabbitmqctl add_user geneweaver geneweaver
+    rabbitmqctl add_vhost geneweaver
+    rabbitmqctl set_permissions -p geneweaver geneweaver ".*" ".*" ".*"
 
-	$ systemctl start rabbitmq-server.service
+This would result in a `[celery]` url that looks like the following
 
+    amqp://geneweaver:geneweaver@<RABBITMQ-SERVER-HOST>:5672/geneweaver
 
 ## Configuring Sphinx
+
+> NOTE: This documentation on setting up Sphinx is in the process of being updated.
 
 A sample sphinx config can be found in the `sample-configs/` directory.
 The following example stores the Sphinx config and indices under `/var/lib`. 
@@ -197,57 +333,15 @@ Start the server as the sphinx user:
 
 ## Configuring the Python Environment
 
-Python 2.7 should automatically come installed with pip. If it is missing from
-your system, bootstrap the installation by downloading and executing the pip
-installer:
+See "Configuring the Python3 Environment for Development" above on how to set up a python environment using `pipenv`.
 
-	$ wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
-
-### Configuring virtualenv (optional)
-
-Installing virtualenv is optional but it creates an easy to use, stand-alone
-environment in which to install python packages and set up the application.
-Installation may require sudo privileges. Use pip to install:
-
-	$ pip install virtualenv
-
-Create the GeneWeaver virtual environment. In this example the GeneWeaver
-application will reside under `/srv`:
-
-	$ mkdir /srv/geneweaver && cd /srv/geneweaver
-	$ virtualenv venv
-
-Activate the environment:
-
-	$ source venv/bin/activate
-
-You can now install any python packages without contaminating the global python
-environment. To deactivate the environment use:
-
-	$ deactivate
 
 ### Installing Packages
 
-GeneWeaver requires the following python packages:
+`Pipenv` should take care of all package dependencies for you. If you run into trouble setting up Sphinx, you may
+have luck with the following Geneweaver hosted package. 
 
-* cairosvg
-* celery
-* flask
-* flask-admin
-* flask-restful
-* numpy
-* psycopg2
-* requests
-* urllib3
-
-These can be installed individually using pip (which should also install their
-dependencies) or using our requirements.txt which also includes all
-dependendent packages. The requirements file can be found in the
-`sample-configs` directory.
-
-	$ pip install -r requirements.txt
-
-GeneWeaver also utilizes Sphinx's python API. The python package can no longer
+GeneWeaver utilizes Sphinx's python API. The python package can no longer
 be found in any of the PyPi repos but we have a custom package that can be
 retrieved and installed: 
 
@@ -260,7 +354,7 @@ retrieved and installed:
 Retrieve the GeneWeaver web application and toolset from the BitBucket repo.
 Create a new project folder if you haven't already:
 
-	$ mkdir /srv/geneweaver && cd /srv/geneweaver
+	$ mkdir /opt/geneweaver && cd /opt/geneweaver
 	$ git clone https://YOUR_USERNAME@bitbucket.org/geneweaver/website-py.git
 	$ git clone https://YOUR_USERNAME@bitbucket.org/geneweaver/tools.git
 
@@ -301,7 +395,7 @@ follow these steps:
 2. Upgrade the package requirements using pip `$ pip install -r website-py/sample-configs/requirements.txt`.
 3. Restart the tool and web applications.
 
-#### NOTE: The tool table may be incompatible with the celeryapp.py tool list. You may drop the tool table data and reload with ODE-data-only-tool.dump to correct.
+> NOTE: The tool table may be incompatible with the celeryapp.py tool list. You may drop the tool table data and reload with ODE-data-only-tool.dump to correct.
 
 #### Compiling the Graph Tools
 
@@ -409,128 +503,3 @@ directories. After editing, you can start the supervisor:
 To manage your applications use:
 
 	$ sudo supervisorctl -c /srv/geneweaver/supervisord.conf
-
-
-
-## Configuring the Python3 Environment for Development
-
-Python3 (`3.7`) versions and pip packages can be manged by `pipenv`
-
-Detailed version information is specified and locked in `Pipfile.lock`.
-
-(If you want to add or manage the version information, please read `pipenv` document and apply for other developers.)
-
-### How to run project
-
-#### Initialize packages
-```bash
-# Install pipenv package and synchronize current python version for this repo.
-$ cd {PROJECT_ROOT}
-$ pip install pipenv
-$ pipenv sync
-```
-
-#### Run packages
-```bash
-$ cd {PROJECT_ROOT}
-$ pipenv run python src/application.py
-```
-
-#### Synchronize packages with current `Pipfile.lock` file
-
-When package list has been changed, all packages should be synchronized.
-
-```
-$ pipenv sync
-```
-
-The more on the `pipenv` [documentation](https://pipenv.kennethreitz.org/en/latest/#install-pipenv-today "documentation").
-
-
-
-### Why `Pipenv`?
-
-`pipenv` can automatically manage the versions of several packages explicitly. Since some packages do not support backward compatibility, `pipenv` can help to keep proper package versions.
- 
-
-### How to set-up with Pycharm environment.
-
-See Pycharm [official instruction](https://www.jetbrains.com/help/pycharm/pipenv.html).
-
-If you cannot find the `pipenv` on the interpreter settings, you can restart the Pycharm to let it check the `PATH` for pipenv. 
-
-## Configuring the Python3 Environment for Production
-
-#### Centos7
-When installing on Centos7, you can use the install bash script in `sample-configs/install.sh`.
-
-The script does the following:
-*  Builds and installs python 3.7
-*  Installs OS level dependencies
-*  Clones geneweaver source
-*  Adds geneweaver user
-*  Sets up virtualenvironment
-*  Generates a default config file
-*  Syncs packages with pipenv
-*  Configures Nginx (website)
-*  Configures RabbitMQ (website)
-*  Configures celery (tools)
-*  Adds geneweaver or geneweaver-worker systemd service
-
-> NOTE: This does not set up a postgres database
-
-Get the install script:
-
-```
-wget -P /tmp https://bitbucket.org/geneweaver/py3-geneweaver-website/raw/master/sample-configs/install.sh
-chmod u+x /tmp/install.sh
-sudo /tmp/install.sh -h
-```
-
-Print usage instructions for install script
-```
-# Print usage instructions for install.sh
-sudo install.sh -h
-```
-
-Install the web or worker backends:
-```
-sudo ./sample-configs/install.sh -m website
-sudo ./sample-configs/install.sh -m tools
-```
-
-After running the script, you'll need to update the corresponding cfg file to point to a running database:
-```
-vi /opt/compsci/geneweaver/website/website.cfg
-vi /opt/compsci/geneweaver/tools/tools.cfg
-```
-
-You should start and enable the geneweaver service as it suggests:
-```
-sudo systemctl start geneweaver
-sudo systemctl enable geneweaver
-
-sudo systemctl start geneweaver-tools
-sudo systemctl enable geneweaver-tools
-```
-
-To view service status
-```
-sudo systemctl status geneweaver
-sudo systemctl status geneweaver-tools
-```
-
-To view service logs
-```
-journalctl -u geneweaver
-journalctl -u geneweaver-tools
-
-# Add the -f flag to tail/follow the logs as they're created
-journalctl -f -u geneweaver
-journalctl -f -u geneweaver-tools
-```
-
-To view celery logs:
-```
-tail -f /var/log/celery/geneweaver/*
-```
