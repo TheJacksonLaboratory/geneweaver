@@ -23,7 +23,7 @@ def run_tool():
         flask.flash(('You need to select at least 2 genesets as input for '
                     'this tool.'))
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -43,7 +43,7 @@ def run_tool():
     else:
         flask.flash('Please log in to run the tool.')
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -149,7 +149,7 @@ def view_result(task_id):
                 'An unkown error occurred. Please contact a GeneWeaver admin.'
             )
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
     elif async_result.state in states.READY_STATES:
         results = json.loads(async_result.result)
@@ -157,7 +157,7 @@ def view_result(task_id):
         if 'error' in results and results['error']:
             flask.flash(results['error'])
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
         # results are ready. render the page for the user
         return flask.render_template(
