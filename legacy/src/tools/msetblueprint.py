@@ -32,7 +32,7 @@ def run_tool():
     user = flask.g.user
     if not user:
         flask.flash('Please log in to run the tool')
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     form = flask.request.form
     number_of_trials = form.get('MSET_NumberofTrials', 5000)
@@ -47,19 +47,19 @@ def run_tool():
         group_2_gsid = selected_geneset_ids[1]
     except IndexError:
         flask.flash("Error: Please select two distinct gene sets.")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # Make sure we don't have too many genesets
     if len(selected_geneset_ids) > 2:
         flask.flash("Error: Please select at most two gene sets before running MSET.")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # Try running the MSET tool with the args provided
     try:
         async_result, task_id, tool = run_tool_exec(group_1_gsid, group_2_gsid, number_of_trials, user.user_id)
     except ValueError as e:
         flask.flash(e.message)
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # Render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
@@ -85,7 +85,7 @@ def run_tool_api(apikey, num_samples, geneset_1, geneset_2):
         async_result, task_id, tool = run_tool_exec(geneset_1, geneset_2, num_samples, user_id)
     except ValueError as e:
         flask.flash(e.message)
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     return task_id
 
@@ -174,7 +174,7 @@ def view_result(task_id):
     user = flask.g.user
     if not user:
         flask.flash('Please log in to view your results')
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     if async_result.state == states.FAILURE:
         async_result = json.loads(async_result.result)
@@ -182,7 +182,7 @@ def view_result(task_id):
             flask.flash(async_result['error'])
         else:
             flask.flash('An unkown error occurred. Please contact a GeneWeaver admin.')
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
     elif async_result.state not in states.READY_STATES:
         return tc.render_tool_pending(async_result, tool)
 

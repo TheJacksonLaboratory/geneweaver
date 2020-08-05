@@ -37,13 +37,13 @@ def run_tool():
         flask.flash(('You need to select at least 2 genesets as input for '
                     'this tool.'))
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
     
     if 'BooleanAlgebra_Relation' not in form:
         flask.flash(('You need to select a boolean algebra relation for '
                     'this tool.'))
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     else:
 
@@ -61,7 +61,7 @@ def run_tool():
         else:
             flask.flash('Please log in to run the tool.')
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
         task_id = str(uuid.uuid4())
         tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -196,7 +196,7 @@ def get_emphgenes(user_id):
 def paginate_dict(dict, page, per_page):
     page = int(page)
     per_page = int(per_page)
-    sorted_items = sorted(dict.items(), key=operator.itemgetter(0))
+    sorted_items = sorted(list(dict.items()), key=operator.itemgetter(0))
     start = page*per_page
     paged = sorted_items[start:start+per_page]
     return OrderedDict(paged)
@@ -249,13 +249,13 @@ def view_result(task_id):
         user_id = flask.session['user_id']
     else:
         flask.flash("Please log in to view results")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     try:
         results = get_results(async_result, tool)
     except BooleanResultError as e:
         flask.flash(e.message)
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     if results:
         # added emphgeneids for the table in the boolean algebra result html file
@@ -305,7 +305,7 @@ def datatable_data(task_id):
 
     if 'user_id' not in flask.session:
         flask.flash("Please log in to view results")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     try:
         results = get_results(async_result, tool)

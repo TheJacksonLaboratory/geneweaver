@@ -59,12 +59,12 @@ def run_tool():
         if len(selected_project_ids) != 2:
             flask.flash('You must select exactly 2 projects.')
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
     elif len(selected_project_ids) < 3:
             flask.flash('You must select at least 3 projects.')
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -74,7 +74,7 @@ def run_tool():
         user_id = flask.session['user_id']
     else:
         flask.flash("Internal error: user ID missing")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     task_id = str(uuid.uuid4())
     tool = get_tool(TOOL_CLASSNAME)
@@ -100,15 +100,15 @@ def run_tool():
         # Warn the user if the projects selected are too large
         if len(selected_geneset_ids) > 50:
             flask.flash("Warning: Selecting too many genesets will not return results in a timely fashion")
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
         outOfBounds = create_kpartite_file_from_jaccard_overlap(task_id, RESULTS_PATH, selected_project_ids, thresholds["Triclique_ThresholdValues"])
 
     if outOfBounds == -1:
         flask.flash("Warning: The genesets for the projects you chose had no intersection")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
     if outOfBounds == -2:
         flask.flash("Warning: These genesets are too large for timely analysis.")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
     #print "task_id",task_id
     #print "Wrote file in the results directory"
 
@@ -225,7 +225,7 @@ def view_result(task_id):
             triclique_result = create_json_from_triclique_output_jaccard(task_id, RESULTS_PATH)
         if triclique_result == 1:
             flask.flash("Warning: The genesets for the projects you chose had no maximal triclique")
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
         # Open files and pass via template
         f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
         json_results = f.readline()
