@@ -348,9 +348,10 @@ function setup_rabbitmq_server() {
 ########################################################################################################################
 function install_tools_os_deps() {
   yum -y install \
-    gcc \
-    g++ \
-    make
+    make \
+    centos-release-scl \
+    devtoolset-8-gcc \
+    devtoolset-8-gcc-c++
 }
 
 function initialize_celery() {
@@ -360,8 +361,9 @@ function initialize_celery() {
   su "$INSTALL_USER" <<EOF
 cd $INSTALL_PATH && source "$MODULE_DIR/$VIRTUALENV_NAME/bin/activate"
 python -c 'from tools.config import createConfig; createConfig()' || true
-cd $INSTALL_PATH/tools/TOOLBOX && make && cd ../..
 EOF
+  cd "$INSTALL_PATH/tools/TOOLBOX" && scl enable devtoolset-8 -- bash -c "make" \
+  || echo "WARNING: Couldn't compile tools"
 }
 
 function generate_celery_config() {
@@ -451,6 +453,7 @@ website)
   generate_systemd_file_website
   ;;
 tools)
+  install_tools_os_deps
   initialize_celery
   generate_celery_config
   generate_systemd_file_tools
