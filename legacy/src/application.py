@@ -1,10 +1,11 @@
-# TODO: Should be deprecated with python2
-from __future__ import print_function
+"""
+application
+~~~~~~~~~~~
 
+Geneweaver web main module.
+"""
 from collections import OrderedDict, defaultdict
 from decimal import Decimal
-from sys import exc_info
-from werkzeug.routing import BaseConverter
 import datetime
 import itertools
 import json
@@ -12,25 +13,19 @@ import math
 import os
 import os.path as path
 import re
-import sys
 import urllib
 import urllib3
-if sys.version_info[0] < 3:
-    # TODO: Should be deprecated with python2
-    from urllib2 import HTTPError
-    from urlparse import parse_qs, urlparse
-    from cStringIO import StringIO
-else:
-    from urllib.error import HTTPError
-    from urllib.parse import parse_qs, urlparse
-    from io import StringIO
+from urllib.error import HTTPError
+from urllib.parse import parse_qs, urlparse
+from io import StringIO
 
-from flask import request, send_file, Response, make_response, session
+from flask import request, send_file, Response, make_response, session, jsonify
 from flask_admin import Admin, BaseView, expose
 from flask_admin.base import MenuLink
 from psycopg2 import Error
 from psycopg2 import IntegrityError
 from wand.image import Image
+from werkzeug.routing import BaseConverter
 import bleach
 import error
 import flask
@@ -317,7 +312,7 @@ def _form_register():
 @app.route('/logout.json', methods=['GET', 'POST'])
 def json_logout():
     _logout()
-    return flask.jsonify({'success': True})
+    return jsonify({'success': True})
 
 
 @app.route('/login.json', methods=['POST'])
@@ -343,20 +338,20 @@ def login_as(as_user_id):
     #if 'user_id' not in args:
     #    return flask.jsonify({'error': ''})
     if not as_user_id:
-        return flask.jsonify({'error': ''})
+        return jsonify({'error': ''})
 
     if 'user' not in flask.g:
-        return flask.jsonify({'error': ''})
+        return jsonify({'error': ''})
 
     user = flask.g.user
 
     if not user.is_admin:
-        return flask.jsonify({'error': ''})
+        return jsonify({'error': ''})
 
     as_user = geneweaverdb.get_user(as_user_id)
 
     if not as_user:
-        return flask.jsonify({'error': ''})
+        return jsonify({'error': ''})
 
 
     flask.session['user_id'] = as_user.user_id
@@ -442,9 +437,9 @@ def get_user_projects():
                 'owner': p.owner
             })
 
-        return flask.jsonify(projects)
+        return jsonify(projects)
     else:
-        return flask.jsonify([])
+        return jsonify([])
 
 @app.route('/projects')
 @login_required(allow_guests=True)
@@ -575,14 +570,14 @@ def add_relations_ontology():
                 except Error as e:
                     print('RDF Update Error: ' + e.message)
 
-    return flask.jsonify({'success': True})
+    return jsonify({'success': True})
 
 
 @app.route('/relationshipOntologies')
 def relationshipOntologies():
     ros = geneweaverdb.get_ontologies_by_ontdb_id(12)
     select2 = {"results": ros, "pagination": {"more": False}}
-    return flask.jsonify(select2)
+    return jsonify(select2)
 
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
@@ -607,7 +602,7 @@ def assign_genesets_to_curation_group():
         else:
             status[gs_id] = {'success': False}
 
-    response = flask.jsonify(results=status)
+    response = jsonify(results=status)
 
     return response
 
@@ -618,19 +613,20 @@ def nominate_public_geneset_for_curation():
         gs_id = request.form.get('gs_id')
         notes = request.form.get('notes')
 
+        # TODO: Exception has no message
         try:
             curation_assignments.nominate_public_gs(gs_id, notes)
             response = flask.Response()
         except IntegrityError as e:
-            response = flask.jsonify(message=e.message)
+            response = jsonify(message=e.message)
             response.status_code = 400
         except Exception as e:
-            response = flask.jsonify(message=e.message)
+            response = jsonify(message=e.message)
             response.status_code = 500
 
     else:
         # user is not logged in
-        response = flask.jsonify(message='You must be logged in to perform this function')
+        response = jsonify(message='You must be logged in to perform this function')
         response.status_code = 401
 
     return response
@@ -660,7 +656,7 @@ def assign_genesets_to_curator():
             status[gs_id] = {'success': False,
                              'message': "Error assigning curator, GeneSet " + str(gs_id) +
                                         "does not have an active curation record"}
-        response = flask.jsonify(results=status)
+        response = jsonify(results=status)
 
     return response
 
@@ -684,7 +680,7 @@ def assign_publications_to_curator():
         else:
             status[pub_assign_id] = {'success': False,
                                      'message': "You are not an owner of the group and cannot assign a curator"}
-        response = flask.jsonify(results=status)
+        response = jsonify(results=status)
 
     return response
 
@@ -708,10 +704,10 @@ def assign_geneset_to_curator():
 
             assignment.assign_curator(curator, user_id, notes)
 
-            response = flask.jsonify(success=True, curator_name=curator_info.first_name + " " + curator_info.last_name, curator_email=curator_info.email)
+            response = jsonify(success=True, curator_name=curator_info.first_name + " " + curator_info.last_name, curator_email=curator_info.email)
 
     else:
-        response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
+        response = jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
         response.status_code = 412
 
     return response
@@ -730,12 +726,12 @@ def geneset_ready_for_review():
     if assignment:
         if user_id == assignment.curator:
             assignment.submit_for_review(notes)
-            response = flask.jsonify(success=True)
+            response = jsonify(success=True)
         else:
-            response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
+            response = jsonify(success=False, message='You do not have permissions to perform this action.')
             response.status_code = 403
     else:
-        response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
+        response = jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
         response.status_code = 412
 
     return response
@@ -759,12 +755,12 @@ def mark_geneset_reviewed():
                 assignment.review_passed(notes, tier, user)
             else:
                 assignment.review_failed(notes)
-            response = flask.jsonify(success=True)
+            response = jsonify(success=True)
         else:
-            response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
+            response = jsonify(success=False, message='You do not have permissions to perform this action.')
             response.status_code = 403
     else:
-        response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
+        response = jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
         response.status_code = 412
 
     return response
@@ -808,13 +804,13 @@ def add_generator():
 
         if not generator:
             # couldn't create a generator
-            response = flask.jsonify(message="Generator not created")
+            response = jsonify(message="Generator not created")
             response.status_code = 500
         else:
             # generator created
-            response = flask.jsonify(message="Generator successfully added to group")
+            response = jsonify(message="Generator successfully added to group")
     else:
-        response = flask.jsonify(success=False, message='You must provide a generator name, query string and group id.')
+        response = jsonify(success=False, message='You must provide a generator name, query string and group id.')
         response.status_code = 412
 
     return response
@@ -841,11 +837,11 @@ def update_generator():
         try:
             generator = publication_generator.PublicationGenerator(**generator_dict)
             generator.save()
-            response = flask.jsonify(message="Generator successfully updated")
+            response = jsonify(message="Generator successfully updated")
         except Error as error:
-            response = flask.jsonify(message="Generator not saved.  Error encountered while updating database: {0}".format(error))
+            response = jsonify(message="Generator not saved.  Error encountered while updating database: {0}".format(error))
     else:
-        response = flask.jsonify(success=False,
+        response = jsonify(success=False,
                                  message='You must provide a generator id, name, query string and group id.')
         response.status_code = 412
 
@@ -858,7 +854,7 @@ def delete_generator(generator_id, usr_id):
     flask_user = flask.session['user_id']
     if not (flask_user == usr_id):
         # user owning generator not current user
-        response = flask.jsonify(message='You cannot delete a generator belonging to another user.')
+        response = jsonify(message='You cannot delete a generator belonging to another user.')
         response.status_code = 412
 
     else:
@@ -867,13 +863,13 @@ def delete_generator(generator_id, usr_id):
             row_count = publication_generator.delete_generator(generator)
             if row_count > 0:
                 # generator deleted
-                response = flask.jsonify(message="Generator successfully deleted")
+                response = jsonify(message="Generator successfully deleted")
             else:
                 # couldn't delete a generator
-                response = flask.jsonify(message="Generator not deleted")
+                response = jsonify(message="Generator not deleted")
                 response.status_code = 500
         else:
-            response = flask.jsonify(message="No generator for that id " + str(generator_id))
+            response = jsonify(message="No generator for that id " + str(generator_id))
             response.status_code = 412
 
     return response
@@ -913,9 +909,9 @@ def get_generator_results():
 def get_publication_by_pubmed_id(pubmed_id):
     publication = geneweaverdb.get_publication_by_pubmed(pubmed_id)
     if publication:
-        response = flask.jsonify(**publication.__dict__)
+        response = jsonify(**publication.__dict__)
     else:
-        response = flask.jsonify(message="Publication Not Found")
+        response = jsonify(message="Publication Not Found")
         response.status_code = 404
 
     return response
@@ -931,7 +927,7 @@ def assign_publication_to_group():
     group_id = request.form.get('group_id', type=int)
 
     if group_id not in geneweaverdb.get_user_groups(user_id):
-        response = flask.jsonify(message="You do not have permissions to assign tasks to this group.")
+        response = jsonify(message="You do not have permissions to assign tasks to this group.")
         response.status_code = 403
 
     else:
@@ -941,7 +937,7 @@ def assign_publication_to_group():
 
         if not publication:
             # didn't find matching publication in database or querying pubmed
-            response = flask.jsonify(message="Publication Not Found")
+            response = jsonify(message="Publication Not Found")
             response.status_code = 404
 
         else:
@@ -950,13 +946,13 @@ def assign_publication_to_group():
 
             if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
                 # is it already an active task for this group?
-                response = flask.jsonify(message="Publication is already assigned to this group.")
+                response = jsonify(message="Publication is already assigned to this group.")
                 response.status_code = 422
 
             else:
                 # everything is good,  do the assignment
                 pub_assignments.queue_publication(publication.pub_id, group_id, notes)
-                response = flask.jsonify(message="Publication successfully assigned to group")
+                response = jsonify(message="Publication successfully assigned to group")
 
     return response
 
@@ -971,7 +967,7 @@ def assign_publications_to_group():
     group_id = request.form.get('group_id', type=int)
 
     if group_id not in geneweaverdb.get_user_groups(user_id):
-        response = flask.jsonify(message="You do not have permissions to assign tasks to this group.")
+        response = jsonify(message="You do not have permissions to assign tasks to this group.")
         response.status_code = 403
 
     else:
@@ -1005,7 +1001,7 @@ def assign_publications_to_group():
                         'success': True,
                         'message': "Publication successfully assigned to group"
                     }
-        response = flask.jsonify(results=status)
+        response = jsonify(results=status)
 
     return response
 
@@ -1028,21 +1024,21 @@ def assign_publication_to_curator():
         # make sure user has permission to assign this publication, and the
         # user they are assigning it to actually belongs to the group
         if assignment.group not in [g['grp_id'] for g in owned_groups]:
-            response = flask.jsonify(message='You do not have permissions to perform this action.')
+            response = jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 401
         elif assignment.group not in [g['grp_id'] for g in curator_groups]:
-            response = flask.jsonify(message='User is not a member of this group.')
+            response = jsonify(message='User is not a member of this group.')
             response.status_code = 401
         else:
             curator_info = geneweaverdb.get_user(curator)
             assignment.assign_to_curator(curator, user_id, notes)
 
-            response = flask.jsonify(success=True,
+            response = jsonify(success=True,
                                      curator_name=curator_info.first_name + " " + curator_info.last_name,
                                      curator_email=curator_info.email)
 
     else:
-        response = flask.jsonify(success=False, message="Error assigning curator, publication does not have an active curation record")
+        response = jsonify(success=False, message="Error assigning curator, publication does not have an active curation record")
         response.status_code = 403
 
     return response
@@ -1061,10 +1057,10 @@ def mark_pub_assignment_as_complete():
     if assignment:
 
         if assignment.assignee != user_id:
-            response = flask.jsonify(message='You do not have permissions to perform this action.')
+            response = jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         elif assignment.state != assignment.ASSIGNED:
-            response = flask.jsonify(message='This assignment must first be assigned to you.')
+            response = jsonify(message='This assignment must first be assigned to you.')
             response.status_code = 403
         else:
             # check to make sure that all attached geneset assignments are approved
@@ -1078,15 +1074,15 @@ def mark_pub_assignment_as_complete():
 
             if all_ready_or_approved:
                 assignment.mark_as_complete(notes)
-                response = flask.jsonify(success=True)
+                response = jsonify(success=True)
             else:
-                response = flask.jsonify(
+                response = jsonify(
                     message='All associated geneset curation tasks must first be reviewed or ready for review.'
                 )
                 response.status_code = 403
 
     else:
-        response = flask.jsonify(message='Publication Assignment Not Found.')
+        response = jsonify(message='Publication Assignment Not Found.')
         response.status_code = 404
 
     return response
@@ -1102,10 +1098,10 @@ def close_pub_assignment():
 
     if assignment:
         if assignment.assigner != user_id:
-            response = flask.jsonify(message='You do not have permissions to perform this action.')
+            response = jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         elif assignment.state != assignment.READY_FOR_REVIEW:
-            response = flask.jsonify(message='The assignment must first be made ready for review.')
+            response = jsonify(message='The assignment must first be made ready for review.')
             response.status_code = 403
         else:
             # check to make sure that all attached geneset assignments are approved
@@ -1119,15 +1115,15 @@ def close_pub_assignment():
 
             if all_approved:
                 assignment.review_accepted(notes)
-                response = flask.jsonify(success=True)
+                response = jsonify(success=True)
             else:
-                response = flask.jsonify(
+                response = jsonify(
                     message='Any associated geneset curation tasks must first be reviewed and approved.'
                 )
                 response.status_code = 403
 
     else:
-        response = flask.jsonify(message='Publication Assignment Not Found.')
+        response = jsonify(message='Publication Assignment Not Found.')
         response.status_code = 404
 
     return response
@@ -1144,16 +1140,16 @@ def pub_assignment_rejection():
     if assignment:
 
         if assignment.assigner != user_id:
-            response = flask.jsonify(message='You do not have permissions to perform this action.')
+            response = jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         elif assignment.state != assignment.READY_FOR_REVIEW:
-            response = flask.jsonify(message='Invalid state.')
+            response = jsonify(message='Invalid state.')
             response.status_code = 403
         else:
             assignment.review_rejected(notes)
-            response = flask.jsonify(success=True)
+            response = jsonify(success=True)
     else:
-        response = flask.jsonify(message='Publication Assignment Not Found.')
+        response = jsonify(message='Publication Assignment Not Found.')
         response.status_code = 404
 
     return response
@@ -1245,12 +1241,12 @@ def save_pub_assignment_note():
         if uid == assignment.assignee or uid == assignment.assigner or int(gid) in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
             # SAVE notes to DB
             assignment.update_notes(notes)
-            response = flask.jsonify(success=True)
+            response = jsonify(success=True)
         else:
-            response = flask.jsonify(message='You do not have permissions to perform this action.')
+            response = jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
     else:
-        response = flask.jsonify(message='Assignment not found.')
+        response = jsonify(message='Assignment not found.')
         response.status_code = 404
 
     return response
@@ -1268,7 +1264,7 @@ def create_geneset_stub():
     assignment = pub_assignments.get_publication_assignment(pub_assign_id)
 
     if assignment.state != assignment.ASSIGNED and assignment.assignee != user_id:
-        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response = jsonify(message='You do not have permissions to perform this action.')
         response.status_code = 403
     else:
         group_id = assignment.group
@@ -1276,7 +1272,7 @@ def create_geneset_stub():
         for gs in gs_ids:
             assignment = curation_assignments.get_geneset_curation_assignment(gs)
             geneset_assignment_map[gs] = {"status_id": assignment.state, "status_name": assignment.status_to_string()}
-        response = flask.jsonify(gs_ids=gs_ids, assignment_map=geneset_assignment_map)
+        response = jsonify(gs_ids=gs_ids, assignment_map=geneset_assignment_map)
 
     return response
 
@@ -1337,7 +1333,7 @@ def rerun_annotator():
             (not geneweaverdb.user_is_owner(user_id, gs_id) and
                      not geneweaverdb.user_is_assigned_curation(user_id,
                                                                 gs_id))):
-        response = flask.jsonify(
+        response = jsonify(
             {'error': 'You do not have permission to update this GeneSet'})
         response.status_code = 403
         return response
@@ -1347,7 +1343,7 @@ def rerun_annotator():
 
     annotator.rerun_annotator(gs_id, publication, description, user_prefs)
 
-    return flask.jsonify({'success': True})
+    return jsonify({'success': True})
 
 
 @app.route('/get_gene_ref_ID.json', methods=['GET'])
@@ -1357,7 +1353,7 @@ def get_gene_ref_ID():
     """
     ids = geneweaverdb.get_ode_ref_id(flask.request.args['search'], flask.request.args['sp_id'])
     data = {'list': ids}
-    return flask.jsonify(data)
+    return jsonify(data)
 
 
 def get_ontology_terms(gsid):
@@ -1433,7 +1429,7 @@ def get_geneset_annotations():
     args = flask.request.args
 
     if 'gsid' not in args:
-        return flask.jsonify({'error': 'Missing gs_id'})
+        return jsonify({'error': 'Missing gs_id'})
 
     gsid = args['gsid']
     annos = get_ontology_terms(gsid)
@@ -1445,7 +1441,7 @@ def get_geneset_annotations():
 
         an['ref_type'] = ref_type
 
-    return flask.jsonify({'annotations': annos})
+    return jsonify({'annotations': annos})
 
 
 @app.route('/ontologyTermSearch.json', methods=['GET'])
@@ -1478,7 +1474,7 @@ def search_ontology_terms():
             'ref_id': ref_id
         })
 
-    return flask.jsonify({'terms': terms})
+    return jsonify({'terms': terms})
 
 
 @app.route('/initOntTree')
@@ -1921,8 +1917,8 @@ def update_project_groups():
 
         for gs in genesets:
             if not geneweaverdb.user_is_owner(user_id, gs.geneset_id):
-                return flask.jsonify(
-                    success=False, 
+                return jsonify(
+                    success=False,
                     message=('You cannot share a private, Tier V GeneSet that '
                              'you do not own. Please remove the GeneSet from '
                              'this project before sharing it with others.')
@@ -1931,7 +1927,7 @@ def update_project_groups():
         if geneweaverdb.get_user(user_id).is_admin != 'False' or \
                 geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
-            return flask.jsonify(success=True, results=results)
+            return jsonify(success=True, results=results)
 
 
 @app.route('/shareGenesetsWithGroups')
@@ -2090,7 +2086,7 @@ def update_notification_pref():
     user_id = int(flask.request.args['user_id'])
     state = int(flask.request.args['new_state'])
     result = geneweaverdb.update_notification_pref(user_id, state)
-    response = flask.jsonify(**result)
+    response = jsonify(**result)
     if 'error' in result:
         response.status_code = 500
 
@@ -2103,7 +2099,7 @@ def update_notification_pref():
 def set_annotator():
     user_id = int(flask.request.args['user_id'])
     result = geneweaverdb.update_annotation_pref(user_id, flask.request.args['annotator'])
-    response = flask.jsonify(**result)
+    response = jsonify(**result)
     if 'error' in result:
         response.status_code = 500
 
@@ -2489,7 +2485,7 @@ def get_geneset_genes():
 
         gene_list['aaData'].append(gene)
 
-    return flask.jsonify(gene_list)
+    return jsonify(gene_list)
 
 def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
     # get values for sorting result columns and saving these to a session variable
@@ -3900,7 +3896,7 @@ def get_db_grouptasks_data():
 @app.route('/assignmentStatusAsString/<int:status>')
 def get_assignment_status_string(status):
     status_text = {'status': curation_assignments.CurationAssignment.status_to_string(status)}
-    return flask.jsonify(status_text)
+    return jsonify(status_text)
 
 
 def str_handler(obj):
@@ -4529,14 +4525,14 @@ def message_group_json():
                 raise KeyError
 
             notifications.send_group_notification(group_id, subject, message)
-            response = flask.jsonify(success=True, message="Message sent.")
+            response = jsonify(success=True, message="Message sent.")
 
         except KeyError:
-            response = flask.jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
+            response = jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
             response.status_code = 400
 
     else:
-        response = flask.jsonify(success=False, message='You must be a group owner to message group members.')
+        response = jsonify(success=False, message='You must be a group owner to message group members.')
         response.status_code = 401
 
     return response
@@ -4552,14 +4548,14 @@ def message_all_json():
             subject = bleach.clean(request.form['subject'], strip=True)
             message = bleach.clean(request.form['message'], strip=True)
             notifications.send_all_users_notification(subject, message)
-            response = flask.jsonify(success=True)
+            response = jsonify(success=True)
 
         except KeyError:
-            response = flask.jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
+            response = jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
             response.status_code = 400
 
     else:
-        response = flask.jsonify(success=False, message='You must be an admin to message all users.')
+        response = jsonify(success=False, message='You must be an admin to message all users.')
         response.status_code = 401
 
     return response
