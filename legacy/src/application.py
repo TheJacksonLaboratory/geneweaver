@@ -607,15 +607,16 @@ def nominate_public_geneset_for_curation():
         gs_id = request.form.get('gs_id')
         notes = request.form.get('notes')
 
-        # TODO: Exception has no message
+        # TODO: Just throwing raw exception message is not prefered.
+        # It should be redirected to error page.
         try:
             curation_assignments.nominate_public_gs(gs_id, notes)
             response = Response()
-        except IntegrityError as e:
-            response = jsonify(message=e.message)
+        except IntegrityError as err:
+            response = jsonify(message=str(err))
             response.status_code = 400
-        except Exception as e:
-            response = jsonify(message=e.message)
+        except Exception as err:
+            response = jsonify(message=str(err))
             response.status_code = 500
 
     else:
