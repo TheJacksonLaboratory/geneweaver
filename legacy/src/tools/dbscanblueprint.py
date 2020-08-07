@@ -43,7 +43,7 @@ def run_tool():
         flask.flash(('You need to select at least 2 genesets as input for '
                     'this tool.'))
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # info dictionary
     gs_dict = {}
@@ -119,7 +119,7 @@ def run_tool():
     else:
         flask.flash('Please log in to run the tool.')
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -273,7 +273,7 @@ def view_result(task_id):
     else:
         flask.flash('Please log in to view your results')
 
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
