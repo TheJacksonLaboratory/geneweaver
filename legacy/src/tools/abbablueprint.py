@@ -42,7 +42,7 @@ def run_tool():
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1:
         # TODO add nice error message about missing genesets
         flask.flash("Warning: You need to have input or/and at least a GeneSet selected!")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
 
 
@@ -84,7 +84,7 @@ def run_tool():
         params['UserId'] = user_id
     else:
         flask.flash("Internal error: user ID missing")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -146,7 +146,7 @@ def view_result(task_id):
                 'An unkown error occurred. Please contact a GeneWeaver admin.'
             )
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
     elif async_result.state in states.READY_STATES:
         results = json.loads(async_result.result)
@@ -154,7 +154,7 @@ def view_result(task_id):
         if 'error' in results and results['error']:
             flask.flash(results['error'])
 
-            return flask.redirect('analyze')
+            return flask.redirect('/analyze')
 
         # Open files and pass via template
         f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')

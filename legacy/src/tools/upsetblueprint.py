@@ -28,7 +28,7 @@ def run_tool():
 
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least 2 genes!")
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -55,7 +55,7 @@ def run_tool():
 
     else:
         flask.flash('Please log in to run the tool.')
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     # Gather emphasis gene ids and put them in parameters
     # I believe this is basically mapping the genes to their
@@ -168,7 +168,7 @@ def view_result(task_id):
 
     else:
         flask.flash('Please log in to view your results')
-        return flask.redirect('analyze')
+        return flask.redirect('/analyze')
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
