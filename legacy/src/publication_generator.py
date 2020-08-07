@@ -136,7 +136,8 @@ class PubmedResult(object):
     total_count = 0
 
     def __init__(self, pubmed_response):
-        self.search_response = pubmed_response
+        # Something that calls this passes bytes. If we can't convert to a string raising that error here makes sense
+        self.search_response = str(pubmed_response)
         self.query_key = re.search('<QueryKey>([0-9]*)</QueryKey>', self.search_response).group(1)
         self.web_env = re.search('<WebEnv>([^<]*)</WebEnv>', self.search_response).group(1)
         self.total_count = int(re.search('<Count>([0-9]*)</Count>', self.search_response).group(1))
