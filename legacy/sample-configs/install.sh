@@ -21,8 +21,8 @@ GIT_TOOLS_SOURCE=https://bitbucket.org/geneweaver/py3-geneweaver-tools.git
 MODE=website
 RUN_BASE_INSTALL=true
 
-CELERY_RUN_DIR=/var/run/celery/
-CELERY_LOG_DIR=/var/log/celery/
+CELERY_RUN_DIR=/var/run/celery/geneweaver
+CELERY_LOG_DIR=/var/log/celery/geneweaver
 
 ########################################################################################################################
 ## Usage and options/arguments
