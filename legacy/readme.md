@@ -146,6 +146,18 @@ See Pycharm [official instruction](https://www.jetbrains.com/help/pycharm/pipenv
 If you cannot find the `pipenv` on the interpreter settings, you can restart the Pycharm to let it check the `PATH` for pipenv. 
 
 
+### Troubleshooting Sphinx Package
+
+`Pipenv` should take care of all package dependencies for you. If you run into trouble setting up Sphinx, you may
+have luck with the following Geneweaver hosted package. 
+
+GeneWeaver utilizes Sphinx's python API. The python package can no longer
+be found in any of the PyPi repos but we have a custom package that can be
+retrieved and installed: 
+
+	$ wget http://geneweaver.org/sphinxapi.tar.gz
+	$ pip install sphinxapi.tar.gz
+
 ## Configuring PostgreSQL
 
 *This will eventually change to support installing and setting up a skeleton
@@ -329,24 +341,6 @@ Generate the search indices:
 Start the server as the sphinx user:
 
 	$ sudo -usphinx searchd --config /var/lib/sphinx/geneweaver/sphinx.conf
-
-
-## Configuring the Python Environment
-
-See "Configuring the Python3 Environment for Development" above on how to set up a python environment using `pipenv`.
-
-
-### Installing Packages
-
-`Pipenv` should take care of all package dependencies for you. If you run into trouble setting up Sphinx, you may
-have luck with the following Geneweaver hosted package. 
-
-GeneWeaver utilizes Sphinx's python API. The python package can no longer
-be found in any of the PyPi repos but we have a custom package that can be
-retrieved and installed: 
-
-	$ wget http://geneweaver.org/sphinxapi.tar.gz
-	$ pip install sphinxapi.tar.gz
 
 
 ## Deploying GeneWeaver
