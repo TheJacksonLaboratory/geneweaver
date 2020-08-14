@@ -277,8 +277,8 @@ def create_new_geneset_for_user(args, user_id):
                 cursor.execute('''UPDATE geneset SET pub_id=%s WHERE gs_id=%s''', (pub_id, gs_id,))
                 cursor.connection.commit()
 
-    except psycopg2.Error as e:
-        return {'error': e}
+    except psycopg2.Error as err:
+        return {'error': str(err)}
 
     # Some genesets contain no genes. We need to remove those genesets
     with db.PooledCursor() as cursor:

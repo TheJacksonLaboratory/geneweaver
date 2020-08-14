@@ -5,10 +5,10 @@ Monarch Initiative) are used since the latter is missing MA annotations.
 Separate stand-alone versions of these wrappers can be found, for now,
 at bitbucket.org/geneweaver/curation
 """
-
-import sys
 import json
 import urllib
+from urllib.parse import urlencode
+
 import geneweaverdb
 
 
@@ -71,7 +71,7 @@ def fetch_ncbo_annotations(text, ncboids):
               'format': 'json',
               'ontologies': ncboids,
               'text': text}
-    params = url.urlencode(params)
+    params = urlencode(params)
 
     ## Attempt connecting to NCBO and pulling annotation data. Quits if an
     ## exception is handled three times.
@@ -196,24 +196,24 @@ def fetch_monarch_annotations(text):
 
     ## If longestOnly == true, the annotator will always use the longest match
     params = {'content': text, 'longestOnly': 'false'}
-    params = url.urlencode(params)
+    params = urlencode(params)
 
     ## Attempt connecting pulling annotation data. Quits if an exception
     ## is handled three times.
-    for attempt in range(3):
+    for _ in range(3):
         try:
             req = urllib.request.Request(MONARCH_ANNOTATOR + '?' + params)
             res = urllib.request.urlopen(req)
             res = res.read()
 
-        except HTTPError as e:
+        except urllib.error.HTTPError as err:
             print('Failed to retrieve annotation data:')
-            print(e)
+            print(err)
             continue
 
-        except Exception as e:
+        except Exception as err:
             print('Unkown error fetching annotations:')
-            print(e)
+            print(err)
             continue
 
         ## Success
