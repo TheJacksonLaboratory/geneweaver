@@ -260,7 +260,7 @@ def filter_monarch_annotations(annots, onts):
 
     onts = map(lambda s: s.lower(), onts)
     ## MI ontology IDs are returned as ONT:1234
-    pure = filter(lambda a: a.split(':')[0].lower() in onts, annots)
+    pure = list(filter(lambda a: a.split(':')[0].lower() in onts, annots))
 
     return pure
 
@@ -287,7 +287,6 @@ def annotate_text(text, onts, ncbo=False, monarch=True):
         mi_onts = filter_monarch_annotations(mi_onts, onts)
     else:
         mi_onts = []
-
 
     ## Monarch initiative returns MESH annotations as MESH:D1234, while
     ## NCBO and the GW DB just use the unique ID (D1234).
