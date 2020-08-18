@@ -1,6 +1,6 @@
 import json
 import uuid
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 
 import celery.states as states
 import flask
@@ -18,7 +18,6 @@ RESULTS_PATH = config.get('application', 'results')
 @abba_blueprint.route('/run-abba.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
-
     form = flask.request.form
 
     # pull out the selected geneset IDs
@@ -29,28 +28,23 @@ def run_tool():
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
-             
-
-
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
-    
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1:
         # TODO add nice error message about missing genesets
         flask.flash("Warning: You need to have input or/and at least a GeneSet selected!")
         return flask.redirect('/analyze')
 
-
-
-    params['ABBA_InputGenes'] = (form.getlist("ABBA_InputGenes")) # Store genes from input genes form
-    if (len(selected_geneset_ids) > 0) : # Store Genes from selected project genesets
-        for gsid in selected_geneset_ids :
-            gs = gwdb.get_genes_by_geneset_id(gsid)
-            for g in gs :
+    # Store genes from input genes form
+    params['ABBA_InputGenes'] = (form.getlist("ABBA_InputGenes"))
+    if len(selected_geneset_ids) > 0:   # Store Genes from selected project genesets
+        for gsid in selected_geneset_ids:
+            genes = gwdb.get_genes_by_geneset_id(gsid)
+            for g in genes:
                 params['ABBA_InputGenes'].append(g[0]['ode_ref_id'])
     if 'ABBA_IgnHom' in form:
         params['ABBA_IgnHom'] = form['ABBA_IgnHom']
@@ -64,10 +58,9 @@ def run_tool():
         #params['ABBA_Tierset'] = form['ABBA_Tierset']
         params['ABBA_Tierset'] = form.getlist('ABBA_Tierset')
     if 'ABBA_RestrictOption' in form:
-        params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']    
+        params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']
     if 'ABBA_RestrictSpecies' in form:
         params['ABBA_RestrictSpecies'] = form.getlist('ABBA_RestrictSpecies')
-
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -131,12 +124,12 @@ def view_result(task_id):
 
     for row in emphgenes:
         emphgeneids.append(int(row['ode_gene_id']))
+
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
 
-    elif async_result.state == states.FAILURE:
-        
+    if async_result.state == states.FAILURE:
         results = json.loads(async_result.result)
 
         if results['error']:
