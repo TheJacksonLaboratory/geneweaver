@@ -120,7 +120,7 @@ def view_result(task_id):
     user_id = flask.session.get('user_id')
     emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
 
-    species = gwdb.get_all_species().items()
+    species = list(gwdb.get_all_species().items())
 
     for row in emphgenes:
         emphgeneids.append(int(row['ode_gene_id']))
