@@ -44,8 +44,8 @@ def run_tool():
     if len(selected_geneset_ids) > 0:   # Store Genes from selected project genesets
         for gsid in selected_geneset_ids:
             genes = gwdb.get_genes_by_geneset_id(gsid)
-            for g in genes:
-                params['ABBA_InputGenes'].append(g[0]['ode_ref_id'])
+            for gene in genes:
+                params['ABBA_InputGenes'].append(gene[0]['ode_ref_id'])
     if 'ABBA_IgnHom' in form:
         params['ABBA_IgnHom'] = form['ABBA_IgnHom']
     if 'ABBA_ShowInter' in form:
@@ -69,10 +69,12 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         projects = gwdb.get_all_projects(user_id)
-        projectDict = OrderedDict()
+        project_dict = OrderedDict()
         for proj in projects:
-            projectDict[proj.project_id] = {'id': proj.project_id, 'name': proj.name, 'count': proj.count}
-        params['UserProjects'] = projectDict
+            project_dict[proj.project_id] = {'id': proj.project_id,
+                                             'name': proj.name,
+                                             'count': proj.count}
+        params['UserProjects'] = project_dict
 
         params['UserId'] = user_id
     else:
@@ -135,24 +137,20 @@ def view_result(task_id):
         if results['error']:
             flask.flash(results['error'])
         else:
-            flask.flash(
-                'An unkown error occurred. Please contact a GeneWeaver admin.'
-            )
-
+            flask.flash('An unkown error occurred.'
+                        'Please contact a GeneWeaver admin.')
             return flask.redirect('/analyze')
 
     elif async_result.state in states.READY_STATES:
         results = json.loads(async_result.result)
 
-        if 'error' in results and results['error']:
+        if results.get('error', False):
             flask.flash(results['error'])
-
             return flask.redirect('/analyze')
 
         # Open files and pass via template
-        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
-        json_results = f.readline()
-        f.close()
+        with open(RESULTS_PATH + '/' + task_id + '.json', 'r') as _file:
+            json_results = _file.readline()
 
         # results are ready. render the page for the user
         return flask.render_template(
@@ -160,9 +158,9 @@ def view_result(task_id):
             json_result=json.loads(json_results),
             async_result=results,
             tool=tool, emphgeneids=emphgeneids, species=species)
-    else:
-        # render a page telling their results are pending
-        return tc.render_tool_pending(async_result, tool)
+
+    # render a page telling their results are pending
+    return tc.render_tool_pending(async_result, tool)
 
 
 @abba_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
@@ -194,4 +192,3 @@ def status_json(task_id):
         'progress': progress,
         'percent': percent
     })
-
