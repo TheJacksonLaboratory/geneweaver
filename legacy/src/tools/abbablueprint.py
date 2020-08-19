@@ -46,21 +46,16 @@ def run_tool():
             genes = gwdb.get_genes_by_geneset_id(gsid)
             for gene in genes:
                 params['ABBA_InputGenes'].append(gene[0]['ode_ref_id'])
-    if 'ABBA_IgnHom' in form:
-        params['ABBA_IgnHom'] = form['ABBA_IgnHom']
-    if 'ABBA_ShowInter' in form:
-        params['ABBA_ShowInter'] = form['ABBA_ShowInter']
-    if 'ABBA_MinGenes' in form:
-        params['ABBA_MinGenes'] = form['ABBA_MinGenes']
-    if 'ABBA_MinGenesets' in form:
-        params['ABBA_MinGenesets'] = form['ABBA_MinGenesets']
-    if 'ABBA_Tierset' in form:
-        #params['ABBA_Tierset'] = form['ABBA_Tierset']
-        params['ABBA_Tierset'] = form.getlist('ABBA_Tierset')
-    if 'ABBA_RestrictOption' in form:
-        params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']
-    if 'ABBA_RestrictSpecies' in form:
-        params['ABBA_RestrictSpecies'] = form.getlist('ABBA_RestrictSpecies')
+
+    for parm, getting in [('ABBA_IgnHom', form.get),
+                          ('ABBA_ShowInter', form.get),
+                          ('ABBA_MinGenes', form.get),
+                          ('ABBA_MinGenesets', form.get),
+                          ('ABBA_RestrictOption', form.get),
+                          ('ABBA_Tierset', form.getlist),
+                          ('ABBA_RestrictSpecies', form.getlist)]:
+        if parm in form:
+            params[parm] = getting(parm)
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
