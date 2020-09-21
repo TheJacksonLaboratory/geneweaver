@@ -17,9 +17,10 @@ __date__ = '2016-12-28'
 def db_conn():
     # Attempt local db connection; only time this really ever fails is when the
     # postgres server isn't running.
+    # TODO: This needs to be moved out of this file
     try:
-        conn = psycopg2.connect(("host='127.0.0.1' dbname='geneweaver' user='odeadmin' "
-                                 "password='odeadmin'"))
+        conn = psycopg2.connect(("host='127.0.0.1' dbname='ODE' user='odeadmin' "
+                                 "password=''"))
     except:
         print("[!] Oh noes, failed to connect to the db")
 
@@ -124,16 +125,17 @@ def metadata_batch(conn, gs_id):
     # ! Q - Value < 0.05
     # ! 0.40 < Correlation < 0.90
     # ! 6.0 < Effect < 22.50
-    if res[0][3] == 1:
-        s += '! P-Value < ' + str(res[0][4]) + '\n'
-    elif res[0][3] == 3:
-        s += '! Q-Value < ' + str(res[0][4]) + '\n'
-    elif res[0][3] == 5:
-        s += '! ' + str(res[0][4].split(',')[0]) + ' < Effect < ' + str(res[0][4].split(',')[0]) + '\n'
-    elif res[0][3] == 4:
-        s += '! ' + str(res[0][4].split(',')[0]) + ' < Correlation < ' + str(res[0][4].split(',')[0]) + '\n'
-    else:
-        s += '! Binary\n'
+    if res[0][3] is not None:
+        if res[0][3] == 1:
+            s += '! P-Value < ' + str(res[0][4]) + '\n'
+        elif res[0][3] == 3:
+            s += '! Q-Value < ' + str(res[0][4]) + '\n'
+        elif res[0][3] == 5:
+            s += '! ' + str(res[0][4].split(',')[0]) + ' < Effect < ' + str(res[0][4].split(',')[0]) + '\n'
+        elif res[0][3] == 4:
+            s += '! ' + str(res[0][4].split(',')[0]) + ' < Correlation < ' + str(res[0][4].split(',')[0]) + '\n'
+        else:
+            s += '! Binary\n'
 
     # species
     s += '@ ' + res[0][5] + '\n'
