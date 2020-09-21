@@ -19,7 +19,7 @@ def db_conn():
     # postgres server isn't running.
     # TODO: This needs to be moved out of this file
     try:
-        conn = psycopg2.connect(("host='127.0.0.1' dbname='ODE' user='odeadmin' "
+        conn = psycopg2.connect(("host='ode-db4.jax.org' dbname='ODE' user='odeadmin' "
                                  "password=''"))
     except:
         print("[!] Oh noes, failed to connect to the db")
