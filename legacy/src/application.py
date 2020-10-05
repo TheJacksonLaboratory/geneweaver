@@ -3141,6 +3141,8 @@ def top_twenty_simgenesets(simgs):
 
 
 def decimal_default(obj):
+    if isinstance(obj, bytes):
+        return obj.decode('utf-8')
     if isinstance(obj, Decimal):
         return float(obj)
     raise TypeError
@@ -3203,7 +3205,7 @@ def render_sim_genesets(gs_id, grp_by):
     i = 1
     for k in simgs:
         d3BarChart.append(
-            {'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation.encode('utf-8')})
+            {'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation})
         i += 1
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
