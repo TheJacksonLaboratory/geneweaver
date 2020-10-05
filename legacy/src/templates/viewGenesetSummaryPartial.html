@@ -317,49 +317,43 @@
         $("[data-toggle='tooltip']").tooltip();
     });
 
-    $(document).ready(function () {
+    /**
+      * Handles the expansion of the element containing GeneSet
+      * metacontent on the search, projects, and analyze pages.
+      * When the '+' icon next to a set is clicked, this function is called
+      * and reveals the metacontent and updates the +/- icons.
+      */
+    $(".rowExpand").on('click', function (event) {
 
-        /**
-          * Handles the expansion of the element containing GeneSet 
-          * metacontent on the search, projects, and analyze pages.
-          * When the '+' icon next to a set is clicked, this function is called
-          * and reveals the metacontent and updates the +/- icons. 
-          */
-        $(".rowExpand").on('click', function (event) {
+        event.stopImmediatePropagation();
 
-            event.stopImmediatePropagation();
+        var childId = $(this).parents("tr").prop("id");
 
-            var childId = $(this).parents("tr").prop("id");
+        // So for some reason this class is added to the
+        // <td colspan="100%"> element that's part of the GS metacontent
+        // row. BUT, this only happens on the search page. It's what is
+        // causing the text/content to overflow out of the search results
+        // borders. Idk why it's getting added so this doesn't solve the
+        // root of the problem but fixes the overflow bug.
+        $("#genesetdetails_" + childId)
+            .children('td')
+            .removeClass('force-table-responsive');
 
-            // So for some reason this class is added to the 
-            // <td colspan="100%"> element that's part of the GS metacontent
-            // row. BUT, this only happens on the search page. It's what is
-            // causing the text/content to overflow out of the search results
-            // borders. Idk why it's getting added so this doesn't solve the 
-            // root of the problem but fixes the overflow bug.
-            $("#genesetdetails_" + childId)
-                .children('td')
-                .removeClass('force-table-responsive');
+        var visible = $("#genesetdetails_" + childId).is(":visible");
 
-            var visible = $("#genesetdetails_" + childId).is(":visible");
+        $("#genesetdetails_" + childId).toggle();
+        $("#offGenesetPlus_" + childId).toggle();
+        $("#onGenesetMinus_" + childId).toggle();
 
-            $("#genesetdetails_" + childId).toggle();
-			$("#offGenesetPlus_" + childId).toggle();
-			$("#onGenesetMinus_" + childId).toggle();
-
-            if (!visible) {
-
-                $('#offGenesetPlus_' + childId)
-                    .parent()
-                    .attr('data-original-title', 'Less Information');
-                        
-            } else {
-
-                $('#offGenesetPlus_' + childId)
-                    .parent()
-                    .attr('data-original-title', 'More Information');
-            }
-        });
+        if (!visible) {
+            $('#offGenesetPlus_' + childId)
+                .parent()
+                .attr('data-original-title', 'Less Information');
+        } else {
+            $('#offGenesetPlus_' + childId)
+                .parent()
+                .attr('data-original-title', 'More Information');
+        }
     });
 
     //Wanted to display the number of checked boxes. Not playing nicely with select all from project
