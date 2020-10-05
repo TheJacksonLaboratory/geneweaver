@@ -110,7 +110,6 @@ def create_batch_geneset():
     ## The data sent to us should be URL encoded
     batch_file = urllib.parse.unquote(batch_file)
     batch_file = batch_file.split('\n')
-    batch_file = [s.encode('ascii', 'ignore') for s in batch_file]
 
     user = flask.g.user
     user_id = user.user_id
