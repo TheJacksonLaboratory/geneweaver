@@ -844,7 +844,7 @@ class BatchReader(object):
             self._pub_map = gwdb.get_publication_mapping()
 
         ## These publications already exist in the DB
-        found = [g for g in self.genesets if g['pmdi'] in self._pub_map]
+        found = [g for g in self.genesets if g['pmid'] in self._pub_map]
         ## These don't
         not_found = [g for g in self.genesets if g['pmid'] not in self._pub_map]
 
