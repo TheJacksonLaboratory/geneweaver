@@ -14,6 +14,7 @@ import geneweaverdb
 def __strip_html_tags(html):
     class HTMLStripper(HTMLParser):
         def __init__(self):
+            super(HTMLStripper, self).__init__()
             self.reset()
             self.fed = []
 
