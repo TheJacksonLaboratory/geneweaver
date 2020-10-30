@@ -2529,7 +2529,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         )
 
 
-    genetypes = geneweaverdb.get_gene_id_types()
+    genetypes = geneweaverdb.get_gene_id_types(geneset.sp_id)
     genedict = {}
 
     for gtype in genetypes:
