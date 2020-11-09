@@ -77,7 +77,7 @@ def get_pubmed_id(conn, gs_id):
     return pubmed id if one exists, otherwise return null
     """
     with conn as cursor:
-        sql = '''SELECT p.pub_pubmed FROM production.publication p, production.geneset gs WHERE gs.gs_id=%s AND gs.pub_id=p.pub_id'''
+        sql = '''SELECT p.pub_pubmed FROM publication p, geneset gs WHERE gs.gs_id=%s AND gs.pub_id=p.pub_id'''
         cursor.execute(sql, [gs_id])
         rows_count = cursor.rowcount
     if rows_count > 0:
