@@ -2,48 +2,51 @@
 
 <div class="panel">
     <div class="panel-heading">
-		<div class="" style="width:100%; display: table">
-			<div style="width:100%; display:table-row">
-				<div style="height:100%; display:table-cell;">
-                    <button type="submit" {{ macros.tool_run_click(tool) }}
-                        style="background:transparent; margin:0; padding:0; border:none !important;">
-                    <img src="/static/images/MSET-Logo.png" width=50 height=50 style="margin-top:5px">
+        <div class="" style="width:100%; display: table">
+            <div style="width:100%; display:table-row">
+                <div style="height:100%; display:table-cell;">
+                    <button type="submit" {{ macros.tool_run_click(tool) }} style="background:transparent; margin:0; padding:0; border:none !important;">
+                        <img src="/static/images/MSET-Logo.png" width=50 height=50 style="margin-top:5px">
                     </button>
                 </div>
-				<div style="padding-left:5px; display:table-cell; vertical-align:middle;">
-                    <a class="tool-link" data-toggle="collapse"
-                        data-parent="#accordion" href="#msetCollapse" style="color:black;">
-						<u class="tool-title">MSET</u>
-						<span id="pm-caret" class="fa fa-caret-left"></span>
-					<span class="tool-description">
-                        Enrichment test for all GeneSets selected.
-                        <span id="mset-wiki">
-                            <span style="text-decoration:underline">Help</span>
-                            <span class="fa fa-question-circle-o"></span>
+                <div style="padding-left:5px; display:table-cell; vertical-align:middle;">
+                    <a class="tool-link" data-toggle="collapse" data-parent="#accordion" href="#msetCollapse" style="color:black;">
+                        <u class="tool-title">MSET</u>
+                        <span id="pm-caret" class="fa fa-caret-left"></span>
+                        <span class="tool-description">
+                            Enrichment test for all GeneSets selected.
+                            <span id="mset-wiki">
+                                <span style="text-decoration:underline">Help</span>
+                                <span class="fa fa-question-circle-o"></span>
+                            </span>
                         </span>
-                    </span>
                     </a>
-			    </div>
-			</div>
-		</div>
-	</div>
-	<div id="msetCollapse" class="panel-collapse collapse">
-		<div class="panel-body">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="msetCollapse" class="panel-collapse collapse">
+        <div class="panel-body">
             <p>Select two gene sets from the "Projects" section to compare using MSET.</p>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['MSET_NumberofTrials']) }}</div>
-			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-		</div>
-	</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['MSET_NumberofTrials']) }}</div>
+            <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+        </div>
+    </div>
 </div>
 <script>
-    $('#mset-wiki').click(function () {
-        window.open('http://geneweaver.org/wiki/index.php?title=MSET');
+    $('#mset-wiki').click(function() {
+        window.open('http://geneweaver.org/help/#mset');
     });
 
-    function updateMultiSelects(){
+    function updateMultiSelects() {
         var selects = $('.mset_group_select');
-        selects.each(function(){ $(this).html(''); });
-        selects.select2({data: selected.genesets.select2(), placeholder: "Choose from selected"});
+        selects.each(function() {
+            $(this).html('');
+        });
+        selects.select2({
+            data: selected.genesets.select2(),
+            placeholder: "Choose from selected"
+        });
     }
 
 
@@ -51,11 +54,13 @@
         var selects = $('.mset_group_select'),
             collapsible = $('#msetCollapse');
 
-        selects.select2({ placeholder: "Choose from selected" });
+        selects.select2({
+            placeholder: "Choose from selected"
+        });
         selected.watch(updateMultiSelects);
 
         /* workaround for select2 bug: https://github.com/select2/select2/issues/3817 */
-        collapsible.on('shown.bs.collapse', function(){
+        collapsible.on('shown.bs.collapse', function() {
             $('.select2-container').find(':input').width('99%');
         });
     });
