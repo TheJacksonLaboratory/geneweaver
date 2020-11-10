@@ -2,19 +2,17 @@
 
 <div class="panel">
     <div class="panel-heading">
-		<div class="" style="width:100%; display:table">
-			<div style="width:100%; display:table-row">
-				<div style="height:100%; display:table-cell;">
-					<button type="submit" {{ macros.tool_run_click(tool) }} 
-						style="background:transparent; margin:0; padding:0; border:none !important;">
-					<img  src="/static/images/GW2-clust.png" width=50 height=50 style="margin-top:5px">
-					</button>
-				</div>
-				<div style="padding-left:5px; display:table-cell; vertical-align:middle;">
-					<a class="tool-link" data-toggle="collapse"
-						data-parent="#accordion" href="#jcCollapse" style="color:black;">
-						<u class="tool-title">GeneSet Clustering</u>
-						<span id="pm-caret" class="fa fa-caret-left"></span>
+        <div class="" style="width:100%; display:table">
+            <div style="width:100%; display:table-row">
+                <div style="height:100%; display:table-cell;">
+                    <button type="submit" {{ macros.tool_run_click(tool) }} style="background:transparent; margin:0; padding:0; border:none !important;">
+                        <img src="/static/images/GW2-clust.png" width=50 height=50 style="margin-top:5px">
+                    </button>
+                </div>
+                <div style="padding-left:5px; display:table-cell; vertical-align:middle;">
+                    <a class="tool-link" data-toggle="collapse" data-parent="#accordion" href="#jcCollapse" style="color:black;">
+                        <u class="tool-title">GeneSet Clustering</u>
+                        <span id="pm-caret" class="fa fa-caret-left"></span>
                         <span class="tool-description">
                             Use Jaccard Distance to cluster GeneSets.
                             <span id="clustering-wiki">
@@ -22,22 +20,22 @@
                                 <span class="fa fa-question-circle-o"></span>
                             </span>
                         </span>
-					</a>
-				</div>
-			</div>
+                    </a>
+                </div>
+            </div>
         </div>
-	</div>
-	<div id="jcCollapse" class="panel-collapse collapse">
-		<div class="panel-body">
-			<div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
-			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-		</div>
-	</div>
+    </div>
+    <div id="jcCollapse" class="panel-collapse collapse">
+        <div class="panel-body">
+            <div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+            <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+        </div>
+    </div>
 </div>
 
 <script>
-    $('#clustering-wiki').click(function () {
-        window.open('http://geneweaver.org/wiki/index.php?title=Clustering_(Beta_2.0)');
+    $('#clustering-wiki').click(function() {
+        window.open('http://geneweaver.org/help/#clustering');
     });
 </script>

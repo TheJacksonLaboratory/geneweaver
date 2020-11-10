@@ -1,41 +1,38 @@
 {% import 'macros.html' as macros %}
 
 <style>
-
     .panel .panel-header .panel-info .panel-heading {
 
         background-color: #F0F0F0;
     }
-
 </style>
 
 <div class="panel">
-	<div class="panel-heading">
-		<div class="" style="width:100%; display:table">
-			<div style="width:100%; display:table-row">
-				<div style="height:100%; display:table-cell;">
-					<button type="submit" {{ macros.tool_run_click(tool) }}
-						style="background:transparent; margin:0; padding:0; border:none !important;">
-					<img  src="/static/images/GW2-hisim.png" width=50 height=50 style="margin-top:5px">
-					</button>
-				</div>
-				<div style="padding-left:5px; display:table-cell; vertical-align:middle;">
-					<a class="tool-link" data-toggle="collapse" data-parent="#accordion" href="#pmCollapse" style="color:black;">
-						<u class="tool-title">HiSim Graph</u>
-						<span id="pm-caret" class="fa fa-caret-left"></span>
-					<span class="tool-description">
-						Biclique-based analysis used to generate hierarchical maps of
-						gene set intersections.
-                        <span id="hisim-wiki">
-                            <span style="text-decoration:underline">Help</span>
-                            <span class="fa fa-question-circle-o"></span>
+    <div class="panel-heading">
+        <div class="" style="width:100%; display:table">
+            <div style="width:100%; display:table-row">
+                <div style="height:100%; display:table-cell;">
+                    <button type="submit" {{ macros.tool_run_click(tool) }} style="background:transparent; margin:0; padding:0; border:none !important;">
+                        <img src="/static/images/GW2-hisim.png" width=50 height=50 style="margin-top:5px">
+                    </button>
+                </div>
+                <div style="padding-left:5px; display:table-cell; vertical-align:middle;">
+                    <a class="tool-link" data-toggle="collapse" data-parent="#accordion" href="#pmCollapse" style="color:black;">
+                        <u class="tool-title">HiSim Graph</u>
+                        <span id="pm-caret" class="fa fa-caret-left"></span>
+                        <span class="tool-description">
+                            Biclique-based analysis used to generate hierarchical maps of
+                            gene set intersections.
+                            <span id="hisim-wiki">
+                                <span style="text-decoration:underline">Help</span>
+                                <span class="fa fa-question-circle-o"></span>
+                            </span>
                         </span>
-					</span>
-					</a>
-				</div>
-			</div>
+                    </a>
+                </div>
+            </div>
         </div>
-			{#
+        {#
 			<!--
 		<div class="row panel-title" style="width:100%;">
 			<div class="col-md-2">
@@ -78,7 +75,7 @@
     </div>
 </div>
 <script>
-    $('#hisim-wiki').click(function () {
-        window.open('http://geneweaver.org/wiki/index.php?title=HiSim_Graph');
+    $('#hisim-wiki').click(function() {
+        window.open('http://geneweaver.org/help/#hisim-graph');
     });
 </script>
