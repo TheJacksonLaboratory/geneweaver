@@ -78,7 +78,8 @@ def get_pubmed_id(conn, gs_id):
     """
     with conn as cursor:
         sql = '''SELECT p.pub_pubmed FROM publication p, geneset gs WHERE gs.gs_id=%s AND gs.pub_id=p.pub_id'''
-        rows_count = cursor.execute(sql, [gs_id])
+        cursor.execute(sql, [gs_id])
+        rows_count = cursor.rowcount
     if rows_count > 0:
         res = cursor.fetchall()
         return res[0][0]
