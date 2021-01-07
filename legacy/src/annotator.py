@@ -241,7 +241,7 @@ def parse_monarch_annotations(annots):
     annots = [d['token'] for d in annots]
 
     ontids = [anno['id'] for anno in annots]
-    ontids = list(set([s.encode('ascii', 'ignore') for s in ontids]))
+    ontids = list(set(ontids))
 
     return ontids
 
