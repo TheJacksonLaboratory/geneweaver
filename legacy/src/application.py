@@ -3081,6 +3081,11 @@ def jaccard(a, b):
     :param b: gs_id of geneset for comparison
     :return: non-normalized jaccard
     """
+    # TODO: This can be improved in better way.
+    if a == 0:
+        a = []
+    if b == 0:
+        b = []
     c = list(set(a).intersection(b))
     return float(len(c)) / (len(a) + len(b) - len(c))
 
