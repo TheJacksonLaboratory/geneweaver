@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-ortholog-normalizer
+  labels:
+    app: geneweaver-ortholog-normalizer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-ortholog-normalizer
+  template:
+    metadata:
+      labels:
+        app: geneweaver-ortholog-normalizer
+    spec:
+      containers:
+        - name: geneweaver-ortholog-normalizer
+          image: geneweaver-ortholog-normalizer
+          resources:
+            requests:
+              memory: "74Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 8000

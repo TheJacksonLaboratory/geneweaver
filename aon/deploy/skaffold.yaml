@@ -1,0 +1,37 @@
+apiVersion: skaffold/v2beta10
+kind: Config
+build:
+  googleCloudBuild:
+    projectId: jax-gedi-sandbox-nc-01
+  artifacts:
+  - image: geneweaver-ortholog-normalizer
+    context: flask
+    docker:
+      dockerfile: deploy/Dockerfile
+test:
+  - image: geneweaver-ortholog-normalizer-api
+    structureTests:
+      - deploy/tests/*
+deploy:
+  kustomize:
+    paths:
+    - deploy/k8s/base
+
+profiles:
+- name: production
+  deploy:
+    kustomize:
+      paths:
+      - deploy/k8s/overlays/production
+- name: testing
+  deploy:
+    kustomize:
+      paths:
+      - deploy/k8s/overlays/testing
+- name: local
+  activation:
+    - kubeContext: minikube
+  deploy:
+    kustomize:
+      paths:
+      - deploy/k8s/overlays/local

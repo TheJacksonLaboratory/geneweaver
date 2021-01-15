@@ -1,0 +1,23 @@
+schemaVersion: 2.0.0
+commandTests:
+  - name: "python package installation"
+    command: "which"
+    args: ["python"]
+    expectedOutput: ["/usr/local/bin/venv.geneweaver_ortholog_normalizer/bin/python"]
+  - name: "gunicorn package installation"
+    command: "which"
+    args: ["gunicorn"]
+    expectedOutput: ["/usr/local/bin/venv.geneweaver_ortholog_normalizer/bin/gunicorn"]
+# TODO: Setup this step to run your unit tests
+#  - name: "Run the unittests"
+#    envVars:
+#      - key: "USE_SQLITE_DB"
+#        value: "true"
+#      - key: "SECRET_KEY"
+#        value: "testing"
+#      - key: "AUTH0_SECRET"
+#        value: "testing"
+#    command: "python"
+#    args: ["manage.py", "test"]
+#    exitCode: 0
+

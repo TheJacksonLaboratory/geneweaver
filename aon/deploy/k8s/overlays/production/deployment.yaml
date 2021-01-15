@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-ortholog-normalizer
+  labels:
+    app: geneweaver-ortholog-normalizer
+spec:
+  template:
+    spec:
+      containers:
+        - image: geneweaver-ortholog-normalizer
+          name: geneweaver-ortholog-normalizer
+          env:
+            - name: DEBUG
+              value: "False"
+          envFrom:
+            - secretRef:
+                name: geneweaver-ortholog-normalizer-secrets

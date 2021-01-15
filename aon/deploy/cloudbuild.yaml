@@ -1,0 +1,45 @@
+steps:
+  - name: 'gcr.io/k8s-skaffold/skaffold:v1.8.0'
+    id: Build, Test & Render K8s Manifest
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        skaffold render -f deploy/skaffold.yaml -p $_PROFILE > $_APP.yaml && cat $_APP.yaml
+    env:
+      - 'PROJECT_ID=$PROJECT_ID'
+      - '_APP=$_APP'
+      - 'COMMIT_SHORT_SHA=$SHORT_SHA'
+  # TODO: We should stop ignoring tests in this step
+  - name: 'gcr.io/jax-cs-cont-reg-prd-01/utilities/kube-score:v1.6.0'
+    id: Test K8s Manifest
+    args: ['score', '$_APP.yaml',
+           '--ignore-test', 'pod-networkpolicy',
+           '--ignore-test', 'container-security-context',
+           '--ignore-test', 'pod-probes',
+    ]
+  - name: 'gcr.io/cloud-builders/docker:18.09.6'
+    id: Tag App Image as latest
+    args:
+    - 'tag'
+    - 'gcr.io/$PROJECT_ID/$_APP:$SHORT_SHA'
+    - 'gcr.io/$PROJECT_ID/$_APP:latest'
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: Deploy K8s Manifest
+    args:
+    - 'apply'
+    - '-f'
+    - '$_APP.yaml'
+    env:
+    - 'CLOUDSDK_COMPUTE_ZONE=$_CLOUDSDK_COMPUTE_ZONE'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=$_CLOUDSDK_CONTAINER_CLUSTER'
+
+timeout: 2400s
+substitutions:
+  _APP: 'geneweaver-ortholog-normalizer'
+  _PROFILE: 'testing'
+  _CLOUDSDK_COMPUTE_ZONE: 'us-east1-b'
+  _CLOUDSDK_CONTAINER_CLUSTER: 'gedi-cluster-testing'
+images:
+  - 'gcr.io/$PROJECT_ID/$_APP:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/$_APP:latest'
