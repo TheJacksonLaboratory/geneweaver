@@ -156,8 +156,7 @@ class ListConverter(BaseConverter):
         returns
             a string
         """
-
-        return '+'.join(BaseConverter.to_url(value) for value in values)
+        return '+'.join(super(ListConverter, self).to_url(value) for value in values)
 
 
 ## Add a custom URL converter to handle list variables
