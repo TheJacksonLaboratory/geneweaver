@@ -154,7 +154,7 @@
                         <tr>
                             <th align="center" style="text-align:center;">
                                 <nobr>
-                                    <i id="geneset" class="fa fa-check"></i>
+                                    <a id="geneset-checkbox" class="fa fa-check"></a>
                                 </nobr>
                             </th>
                             <th>
@@ -270,6 +270,35 @@
             else
                 delete gschecked[gsid];
         }
+    });
+
+    $('#geneset-checkbox').on('click', function(event) {
+        // Click or Un-Click all geneset detail elements on the current page.
+        var details = document.getElementsByClassName('genesetdetails')
+        // console.log("Set clicked for " + details.length + " elements");
+
+        for (let item of details) {
+            var gsid = item.id;
+            // console.log(item.id);
+            var checkbox = item.querySelector('.checkbox');
+            var searchCheck = item.querySelector('.search-check');
+
+            if (checkbox.classList.contains('ui-checkbox-off')) {
+                checkbox.classList.remove('ui-checkbox-off');
+                checkbox.classList.add('ui-checkbox-on');
+
+                searchCheck.setAttribute("data-cacheval", false)
+                gschecked[gsid] = gsid;
+            } else {
+                checkbox.classList.remove('ui-checkbox-on');
+                checkbox.classList.add('ui-checkbox-off');
+
+                searchCheck.setAttribute("data-cacheval", true)
+                delete gschecked[gsid];
+            }
+        }
+        console.log("gschecked list: " + Object.keys(gschecked).length);
+        console.log(gschecked);
     });
 
     // When a user is adding genesets to a new project, this allows them 
