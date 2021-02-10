@@ -264,29 +264,6 @@
         $("#removeModal-" + projID + "-" + gsID).modal('show');
     });
 
-    // gs_ids in the results that are checked and ready to add to a project
-    var gschecked = {};
-
-    // Called every time a checkbox is clicked and updates the list of
-    // checked search results.
-    $('input[type=checkbox]').on('click', function(event) {
-
-        // The element object this event is referring to
-        var box = event.target;
-
-        // All search result checkboxes can be distinguished with this class
-        if (box.className == 'search-check') {
-
-            var idlen = 'gs-check-'.length;
-            var gsid = box.id.slice(idlen);
-
-            if (box.checked)
-                gschecked[gsid] = gsid;
-            else
-                delete gschecked[gsid];
-        }
-    });
-
     $('.addgs-to-project').on('click', function (event) {
         event.stopPropagation();
         var gsid = $(this).attr('data-gs-id');
