@@ -68,12 +68,11 @@
                 </div>
 
                  <table class="table table-striped">
-                    <tr><th>Species Name</th><th>TaxID</th><th>Date Species Added</th></tr>
+                    <tr><th>Species Name</th><th>TaxID</th></tr>
                      {% for s in sp %}
                          <tr><td>{{ s.sp_name }}</td>
                              <td><a href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id={{ s.sp_taxid }}">
                          {{ s.sp_taxid }}</a></td>
-                             <td>{{ s.sp_date }}</td>
                          </tr>
                      {% endfor %}
                  </table>
