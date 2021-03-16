@@ -1009,9 +1009,12 @@ def get_gene_id_types(sp_id=0):
     :return: list of dictify_cursor results
     """
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''SELECT * FROM genedb WHERE sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
-                {'sp_id': sp_id})
+        if sp_id == 0:
+            cursor.execute('''SELECT * FROM genedb ORDER BY gdb_id;''')
+        else:
+            cursor.execute(
+                    '''SELECT * FROM genedb WHERE sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
+                    {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
 
 
