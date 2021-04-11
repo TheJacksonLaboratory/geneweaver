@@ -5,4 +5,5 @@ venv*
 .DS_Store
 *secret*.txt
 .env
-__pycache__
+__pycache__debug.log
+alembic.ini

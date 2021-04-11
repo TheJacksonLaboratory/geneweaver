@@ -17,7 +17,13 @@ depends_on = None
 
 
 def upgrade():
-    pass
+    op.create_table('ortholog_algorithms',
+                    sa.Column('id', sa.Integer(), primary_key=True),
+                    sa.Column('algorithm_id', sa.Integer(), nullable=True),
+                    sa.Column('ortholog_id', sa.Integer(), nullable=True),
+                    sa.ForeignKeyConstraint(['algorithm_id'], ['algorithm.id'], ),
+                    sa.ForeignKeyConstraint(['ortholog_id'], ['ortholog.id'], )
+                    )
 
 
 def downgrade():

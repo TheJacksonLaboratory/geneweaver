@@ -52,6 +52,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('ortholog_algorithms',
+    sa.Column('id', sa.Integer(), primary_key=True),
     sa.Column('algorithm_id', sa.Integer(), nullable=True),
     sa.Column('ortholog_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['algorithm_id'], ['algorithm.id'], ),
