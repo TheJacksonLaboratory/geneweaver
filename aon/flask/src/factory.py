@@ -12,7 +12,7 @@ from src.cli import run_tests
 from src.auth import AUTHORIZATIONS
 from src.config import Config
 from src.database import SessionLocal
-from src.controller import NS
+from src.controller import NS as AGR
 from src.healthcheck import NS as HEALTH_CHECK
 from src.exceptions import AuthError
 
@@ -40,8 +40,8 @@ def create_app(app=None):
     )
 
     # Add our service and healthcheck endpoints
-    api.add_namespace(NS)
     api.add_namespace(HEALTH_CHECK)
+    api.add_namespace(AGR)
 
     api.init_app(app)
 
@@ -50,9 +50,10 @@ def create_app(app=None):
 
     app.session = scoped_session(SessionLocal)
 
-    @app.after_request
+    @app.teardown_request(Exception)
     def close_session():
         app.session.close()
+        return {'message':'END'}
 
     # Handle Auth Errors
     @api.errorhandler(AuthError)

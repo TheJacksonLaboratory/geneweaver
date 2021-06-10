@@ -8,7 +8,7 @@ from src.models import Gene, Species, Ortholog, Algorithm
 
 db = SessionLocal()
 
-ORTHO_FILE = "/Users/aberger/Projects/Roux/CS5200/Project/partB_data/" \
+ORTHO_FILE = "/Users/sophiekearney/PycharmProjects/agr-normalizer/agr-normalizer/" \
              "ORTHOLOGY-ALLIANCE_COMBINED_37.tsv"
 
 def read_file_by_line(file):
@@ -27,8 +27,8 @@ def add_ortholog_batch(batch):
     algorithms_dict = {
         'PANTHER': get_algorithm_by_name('PANTHER'),
         'ZFIN': get_algorithm_by_name('ZFIN'),
-        'PhylomeDB': get_algorithm_by_name('PhylomeDB'),
         'Ensembl Compara': get_algorithm_by_name('Ensembl Compara'),
+        'PhylomeDB': get_algorithm_by_name('PhylomeDB'),
         'OrthoFinder': get_algorithm_by_name('OrthoFinder'),
         'InParanoid': get_algorithm_by_name('InParanoid'),
         'Roundup': get_algorithm_by_name('Roundup'),
@@ -68,9 +68,9 @@ def add_ortholog_batch(batch):
         for algorithm in algorithms:
             ortholog.algorithms.append(algorithm)
 
-        orthologs.append(ortholog)
+        #orthologs.append(ortholog)
 
-    db.bulk_save_objects(orthologs)
+    #db.bulk_save_objects(orthologs)
     db.commit()
 
 
@@ -166,14 +166,14 @@ def add_algorithms():
                 algos.add(algo)
 
         db.bulk_save_objects([
-            Algorithm(name=algo)
-            for algo in algos
+            #Algorithm(name=algo)
+            #for algo in algos
         ])
         db.commit()
 
 
 if __name__ == "__main__":
-    init_species()
+    #init_species()
     add_algorithms()
-    add_genes()
+    #add_genes()
     add_orthologs(1000)
