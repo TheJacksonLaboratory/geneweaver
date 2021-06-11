@@ -68,8 +68,12 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
+            include_schemas=True,
+            version_table_schema='geneweaver'
         )
+
+        connection.execute('CREATE SCHEMA IF NOT EXISTS geneweaver')
 
         with context.begin_transaction():
             context.run_migrations()

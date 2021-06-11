@@ -1,0 +1,110 @@
+[
+  {
+    "id": 31,
+    "from_gene": 20,
+    "to_gene": 18,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 1031,
+    "from_gene": 20,
+    "to_gene": 18,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 50437,
+    "from_gene": 20,
+    "to_gene": 19,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 51437,
+    "from_gene": 20,
+    "to_gene": 19,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 337275,
+    "from_gene": 20,
+    "to_gene": 21,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 336275,
+    "from_gene": 20,
+    "to_gene": 21,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 854197,
+    "from_gene": 20,
+    "to_gene": 17,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 716338,
+    "from_gene": 20,
+    "to_gene": 23,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 717338,
+    "from_gene": 20,
+    "to_gene": 23,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 855197,
+    "from_gene": 20,
+    "to_gene": 17,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1062872,
+    "from_gene": 20,
+    "to_gene": 22,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 1063872,
+    "from_gene": 20,
+    "to_gene": 22,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  }
+]

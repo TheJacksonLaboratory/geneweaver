@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "name": "Ensembl Compara"
+  },
+  {
+    "id": 2,
+    "name": "OrthoInspector"
+  },
+  {
+    "id": 3,
+    "name": "Hieranoid"
+  },
+  {
+    "id": 4,
+    "name": "PANTHER"
+  },
+  {
+    "id": 5,
+    "name": "ZFIN"
+  },
+  {
+    "id": 6,
+    "name": "OMA"
+  },
+  {
+    "id": 7,
+    "name": "TreeFam"
+  },
+  {
+    "id": 8,
+    "name": "HGNC"
+  },
+  {
+    "id": 9,
+    "name": "PhylomeDB"
+  },
+  {
+    "id": 10,
+    "name": "OrthoFinder"
+  },
+  {
+    "id": 11,
+    "name": "Roundup"
+  },
+  {
+    "id": 12,
+    "name": "InParanoid"
+  }
+]

@@ -1,0 +1,578 @@
+[
+  {
+    "id": 88,
+    "from_gene": 84,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 89,
+    "from_gene": 86,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 90,
+    "from_gene": 87,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 91,
+    "from_gene": 88,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 92,
+    "from_gene": 89,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 93,
+    "from_gene": 90,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 94,
+    "from_gene": 91,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 95,
+    "from_gene": 92,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 96,
+    "from_gene": 93,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 97,
+    "from_gene": 94,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 98,
+    "from_gene": 95,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 99,
+    "from_gene": 96,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 100,
+    "from_gene": 97,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 101,
+    "from_gene": 98,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 102,
+    "from_gene": 99,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 103,
+    "from_gene": 100,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 104,
+    "from_gene": 101,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 105,
+    "from_gene": 102,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 106,
+    "from_gene": 103,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 107,
+    "from_gene": 104,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 108,
+    "from_gene": 105,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 109,
+    "from_gene": 106,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 110,
+    "from_gene": 107,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 111,
+    "from_gene": 108,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 112,
+    "from_gene": 109,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 113,
+    "from_gene": 110,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 114,
+    "from_gene": 111,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 115,
+    "from_gene": 112,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 116,
+    "from_gene": 113,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 117,
+    "from_gene": 114,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 118,
+    "from_gene": 115,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 119,
+    "from_gene": 116,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1088,
+    "from_gene": 84,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1089,
+    "from_gene": 86,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1090,
+    "from_gene": 87,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1091,
+    "from_gene": 88,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1092,
+    "from_gene": 89,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1093,
+    "from_gene": 90,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1094,
+    "from_gene": 91,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1095,
+    "from_gene": 92,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1096,
+    "from_gene": 93,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1097,
+    "from_gene": 94,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1098,
+    "from_gene": 95,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1099,
+    "from_gene": 96,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1100,
+    "from_gene": 97,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 1101,
+    "from_gene": 98,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 1102,
+    "from_gene": 99,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 1103,
+    "from_gene": 100,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 1104,
+    "from_gene": 101,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 9
+  },
+  {
+    "id": 1105,
+    "from_gene": 102,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1106,
+    "from_gene": 103,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1107,
+    "from_gene": 104,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1108,
+    "from_gene": 105,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1109,
+    "from_gene": 106,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1110,
+    "from_gene": 107,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1111,
+    "from_gene": 108,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1112,
+    "from_gene": 109,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1113,
+    "from_gene": 110,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1114,
+    "from_gene": 111,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1115,
+    "from_gene": 112,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1116,
+    "from_gene": 113,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1117,
+    "from_gene": 114,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1118,
+    "from_gene": 115,
+    "to_gene": 85,
+    "is_best": false,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1119,
+    "from_gene": 116,
+    "to_gene": 85,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  }
+]
