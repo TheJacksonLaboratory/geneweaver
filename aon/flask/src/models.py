@@ -101,6 +101,7 @@ class Mouse_Human(Base):
     h_id = Column(VARCHAR)
     h_symbol = Column(VARCHAR)
     h_ensembl_id = Column(Integer)
+    is_mouse_to_human = Column(Boolean)
     __table_args__ = (PrimaryKeyConstraint('m_id', 'h_id'),)
 
 

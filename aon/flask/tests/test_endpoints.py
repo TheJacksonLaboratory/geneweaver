@@ -25,7 +25,7 @@ class testEndpoints(unittest.TestCase):
     def test_AlgorithmByName(self):
         rv = self.app.get('/controller/algorithm/ZFIN')
         # only one algorithm is returned, so the assertion verifies the algorithm id and name
-        assert (b'5' in rv.data and b'ZFIN' in rv.data)
+        assert (b'12' in rv.data and b'ZFIN' in rv.data)
         assert '200 OK' in rv.status
 
     def test_AllAlgorithms(self):
@@ -38,18 +38,8 @@ class testEndpoints(unittest.TestCase):
 
     def test_OrthoID(self):
         rv = self.app.get('/controller/ortholog/1')
-        with open('tests/results/OrthoID.json') as file:
-            expected = json.load(file)
         ortholog = json.loads(rv.data.decode('utf8'))
-        assert expected == ortholog
-        assert '200 OK' in rv.status
-
-    def test_OrthoBest(self):
-        rv = self.app.get('/controller/ortholog/best/True')
-        with open('tests/results/OrthoBest.json') as file:
-            expected = json.load(file)
-        orthologs = json.loads(rv.data.decode('utf8'))
-        assert expected == orthologs
+        assert ortholog[0]["id"] == 1
         assert '200 OK' in rv.status
 
     def test_OrthoFrom(self):
@@ -80,16 +70,24 @@ class testEndpoints(unittest.TestCase):
         rv = self.app.get('/controller/ortholog')
         with open('tests/results/OrthologsAll.json') as file:
             expected = json.load(file)
+            ids = []
+            for obj in expected:
+                ids.append(obj["id"])
         orthologs = json.loads(rv.data.decode('utf8'))
-        assert expected == orthologs
+        for obj in orthologs:
+            assert obj["id"] in ids
         assert '200 OK' in rv.status
 
     def test_OrthoToAndFrom(self):
         rv = self.app.get('/controller/ortholog/to_from/WBGene00019900/336853/FBgn0260453/254551')
         with open('tests/results/OrthoToFrom.json') as file:
             expected = json.load(file)
-        ortholog = json.loads(rv.data.decode('utf8'))
-        assert expected == ortholog
+            ids = []
+            for obj in expected:
+                ids.append(obj["id"])
+        orthologs = json.loads(rv.data.decode('utf8'))
+        for obj in orthologs:
+            assert obj["id"] in ids
         assert '200 OK' in rv.status
 
     def test_OrthoBestFrom(self):
@@ -124,13 +122,13 @@ class testEndpoints(unittest.TestCase):
     def test_OrthoReturnFromGene(self):
         rv = self.app.get('/controller/ortholog/return_from_gene/395')
         # only returns one ortholog object, so the assertion just looks for the agr id and ode_ref_id in the results
-        assert (b'415' in rv.data and b'MGI:1351624' in rv.data)
+        assert (b'34754' in rv.data and b'ZFIN:ZDB-GENE-050522-443' in rv.data)
         assert '200 OK' in rv.status
 
     def test_OrthoReturnToGene(self):
-        rv = self.app.get('/controller/ortholog/return_to_gene/1121653')
+        rv = self.app.get('/controller/ortholog/return_to_gene/112199')
         # only returns one ortholog object, so the assertion just looks for the agr id and ode_ref_id in the results
-        assert (b'63899' in rv.data and b'MGI:99960' in rv.data)
+        assert (b'75555' in rv.data and b'FB:FBgn0030607' in rv.data)
         assert '200 OK' in rv.status
 
     def test_Genes(self):
@@ -152,7 +150,7 @@ class testEndpoints(unittest.TestCase):
     def test_GeneRefID(self):
         rv = self.app.get('/controller/gene/refID/HGNC:3211/78104')
         # only returns one gene object, so the assertion just looks for the agr id and ode_ref_id in the results
-        assert (b'82' in rv.data and b'HGNC:3211' in rv.data)
+        assert (b'34375' in rv.data and b'HGNC:3211' in rv.data)
         assert '200 OK' in rv.status
 
     def test_GeneSpecies(self):
@@ -258,15 +256,15 @@ class testEndpoints(unittest.TestCase):
         assert '200 OK' in rv.status
 
     def test_IDConvertAGRtoODE(self):
-        rv = self.app.get('/controller/ode_gene_id/661')
+        rv = self.app.get('/controller/ode_gene_id/34387')
         # returns the corresponding ode_gene_id to the agr_gene_id 661
-        assert b'322787' in rv.data
+        assert b'366222' in rv.data
         assert '200 OK' in rv.status
 
     def test_IDConvertODEtoAGR(self):
         rv = self.app.get('/controller/agr_gene_id/366222/S000000004')
         # returns only the agr gene id
-        assert b'85' in rv.data
+        assert b'34387' in rv.data
         assert '200 OK' in rv.status
 
     def test_ODEGeneDbId(self):
@@ -291,46 +289,29 @@ class testEndpoints(unittest.TestCase):
         assert b'LOC100363817' in rv.data and b'RGD2322238' in rv.data
         assert '200 OK' in rv.status
 
-    # def test_HumanToMouse(self):
-    #     rv = self.app.get('/controller/ortholog/human_to_mouse')
-    #     with open('tests/results/HumanToMouse.json') as file:
-    #         expected = json.load(file)
-    #     orthologs = json.loads(rv.data.decode('utf8'))
-    #     i = 0
-    #     for o in orthologs:
-    #         i += 1
-    #     assert i == 19535
-    #     assert '200 OK' in rv.status
+    def test_HumanToMouse(self):
+        rv = self.app.get('/controller/ortholog/human_to_mouse')
+        with open('tests/results/HumanToMouse.json') as file:
+            expected = json.load(file)
+        orthologs = json.loads(rv.data.decode('utf8'))
+        assert len(expected) == len(orthologs)
+        assert '200 OK' in rv.status
 
+    def test_MouseToHuman(self):
+        rv = self.app.get('/controller/ortholog/mouse_to_human')
+        with open('tests/results/MouseToHuman.json') as file:
+            expected = json.load(file)
+        orthologs = json.loads(rv.data.decode('utf8'))
+        assert len(expected) == len(orthologs)
+        assert '200 OK' in rv.status
 
-    # def test_MouseToHuman(self):
-    #     #rv = self.app.get('/controller/ortholog/mouse_to_human')
-    #     with open('tests/results/all.json') as file:
-    #         expected = json.load(file)
-
-        # orthologs = json.loads(rv.data.decode('utf8'))
-        # i = 0
-        # for o in orthologs:
-        #     i += 1
-        # print(i)
-
-        # with open('tests/results/MouseToHuman.json') as file:
-        #     expected = json.load(file)
-        # orthologs = json.loads(rv.data.decode('utf8'))
-        # i = 0
-        # for o in orthologs:
-        #     i += 1
-        # assert i ==
-
-        #assert '200 OK' in rv.status
-
-    # def test_MouseToHuman(self):
-    #     rv = self.app.get('/controller/ortholog/mouse_human_all')
-    #     orthologs = json.loads(rv.data.decode('utf8'))
-    #     i = 0
-    #     for o in orthologs:
-    #         i += 1
-    #     print(i)
+    def test_MouseHumanAll(self):
+        rv = self.app.get('/controller/ortholog/mouse_human_all')
+        with open('tests/results/MouseHumanAll.json') as file:
+            expected = json.load(file)
+        orthologs = json.loads(rv.data.decode('utf8'))
+        assert len(expected) == len(orthologs)
+        assert '200 OK' in rv.status
 
 if __name__ == '__main__':
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='reports/test-application'))

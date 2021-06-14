@@ -5,31 +5,31 @@
   },
   {
     "id": 2,
-    "name": "OrthoInspector"
-  },
-  {
-    "id": 3,
-    "name": "Hieranoid"
-  },
-  {
-    "id": 4,
     "name": "PANTHER"
   },
   {
-    "id": 5,
-    "name": "ZFIN"
-  },
-  {
-    "id": 6,
-    "name": "OMA"
-  },
-  {
-    "id": 7,
+    "id": 3,
     "name": "TreeFam"
   },
   {
+    "id": 4,
+    "name": "Roundup"
+  },
+  {
+    "id": 5,
+    "name": "OrthoFinder"
+  },
+  {
+    "id": 6,
+    "name": "InParanoid"
+  },
+  {
+    "id": 7,
+    "name": "OMA"
+  },
+  {
     "id": 8,
-    "name": "HGNC"
+    "name": "Hieranoid"
   },
   {
     "id": 9,
@@ -37,14 +37,14 @@
   },
   {
     "id": 10,
-    "name": "OrthoFinder"
+    "name": "OrthoInspector"
   },
   {
     "id": 11,
-    "name": "Roundup"
+    "name": "HGNC"
   },
   {
     "id": 12,
-    "name": "InParanoid"
+    "name": "ZFIN"
   }
 ]

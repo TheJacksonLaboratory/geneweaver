@@ -1,17 +1,17 @@
 [
   {
-    "id": 103,
-    "from_gene": 100,
-    "to_gene": 85,
+    "id": 73,
+    "from_gene": 34406,
+    "to_gene": 34387,
     "is_best": true,
     "is_best_revised": false,
     "is_best_adjusted": null,
     "num_possible_match_algorithms": 9
   },
   {
-    "id": 1103,
-    "from_gene": 100,
-    "to_gene": 85,
+    "id": 1073,
+    "from_gene": 34406,
+    "to_gene": 34387,
     "is_best": true,
     "is_best_revised": false,
     "is_best_adjusted": null,

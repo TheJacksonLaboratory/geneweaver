@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '3a8c36f0d3f6'
-down_revision = '60996baf46a6'
+down_revision = '4297df5638d7'
 branch_labels = None
 depends_on = None
 
@@ -52,5 +52,19 @@ def upgrade():
                     )
     op.create_primary_key('gene_pkey', 'gene', ['ode_gene_id', 'ode_ref_id'], 'geneweaver')
 
+    op.create_table('mouse_human_map',
+                    sa.Column('m_id', sa.VARCHAR()),
+                    sa.Column('m_symbol', sa.VARCHAR()),
+                    sa.Column('m_ensembl_id', sa.VARCHAR()),
+                    sa.Column('h_id', sa.VARCHAR()),
+                    sa.Column('m_symbol', sa.VARCHAR()),
+                    sa.Column('m_ensembl_id', sa.VARCHAR()),
+                    sa.Column('is_mouse_to_human', sa.Boolean()),
+                    )
+
 def downgrade():
+    op.drop_table('species', schema='geneweaver')
+    op.drop_table('genedb', schema='geneweaver')
+    op.drop_table('gene', schema='geneweaver')
+    op.drop_table('mouse_human_map')
     pass

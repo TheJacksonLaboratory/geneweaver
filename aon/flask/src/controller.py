@@ -4,7 +4,7 @@ Definition of our API interface
 
 from flask_restx import Namespace, Resource, fields, abort
 from src.service import get_algorithm_by_name, db
-from src.models import Algorithm, Ortholog, Gene, Species, OrthologAlgorithms, Geneweaver_Species, Geneweaver_Gene,\
+from src.models import Algorithm, Ortholog, Gene, Species, OrthologAlgorithms, Geneweaver_Species, Geneweaver_Gene, \
     Geneweaver_GeneDB, Mouse_Human
 
 # Namespaces group API endpoints
@@ -46,7 +46,7 @@ ortholog_algorithms_model = NS.model('ortholog_algortihms', {
     'ortholog_id': fields.Integer()
 })
 
-ode_gene_model = NS.model('geneweaver_genes',{
+ode_gene_model = NS.model('geneweaver_genes', {
     'ode_gene_id': fields.Integer(),
     'ode_ref_id': fields.String(),
     'gdb_id': fields.Integer(),
@@ -56,14 +56,16 @@ ode_gene_model = NS.model('geneweaver_genes',{
     'old_ode_gene_ids': fields.Integer()
 })
 
-mouse_human_model = NS.model('mouse_human_map',{
-    'm_id' : fields.String(),
+mouse_human_model = NS.model('mouse_human_map', {
+    'm_id': fields.String(),
     'm_symbol': fields.String(),
     'm_ensembl_id': fields.String(),
-    'h_id' : fields.String(),
+    'h_id': fields.String(),
     'h_symbol': fields.String(),
-    'h_ensembl_id': fields.String()
+    'h_ensembl_id': fields.String(),
+    'is_mouse_to_human': fields.Boolean()
 })
+
 
 # CONVERTER FUNCTIONS
 # these functions convert between ODE gene ids and the gene ids used within the AGR database
@@ -77,28 +79,29 @@ def convertODEtoAGR(ode_ref, ode_id):
     prefix = (db.query(Geneweaver_GeneDB).filter(Geneweaver_GeneDB.gdb_id == genedb_id).first()).gdb_name
     ref = ode_gene.ode_ref_id
     # convert the ref_ids into how the agr ref ids are stored
-    if (prefix == "Wormbase"):
+    if prefix == "Wormbase":
         prefix = "WB"
         ref = prefix + ":" + ref
-    if (prefix == "FlyBase"):
+    if prefix == "FlyBase":
         prefix = "FB"
         ref = prefix + ":" + ref
-    if (prefix == "SGD" or prefix == "ZFIN"):
+    if prefix == "SGD" or prefix == "ZFIN":
         ref = prefix + ":" + ref
-    if (prefix == "RGD"):
+    if prefix == "RGD":
         ref = ref[:3] + ":" + ref[3:]
 
     agr = db.query(Gene).filter(Gene.reference_id == ref).first()
     return agr
+
 
 def convertAGRtoODE(agr_gene_id):
     agr_gene = db.query(Gene).filter(Gene.id == agr_gene_id).first()
     ref = agr_gene.reference_id
     prefix = agr_gene.id_prefix
     # convert the ref ids into the format they are stored in the geneweaver gene table
-    if (prefix == "RGD"):
+    if prefix == "RGD":
         ref = ref.replace(":", "")
-    elif (prefix == "WB" or prefix == "FB" or prefix == "SGD" or prefix == "ZFIN"):
+    elif prefix == "WB" or prefix == "FB" or prefix == "SGD" or prefix == "ZFIN":
         ind = ref.find(":") + 1
         ref = ref[ind:]
     ode_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_ref_id == ref).first()).ode_gene_id
@@ -126,14 +129,6 @@ class AllAlgorithms(Resource):
 
 
 # ortholog Table Endpoints
-@NS.route('/ortholog/best/<best>')
-class OrthoBest(Resource):
-    @NS.doc('list orthologs by filtering by best column')
-    @NS.marshal_with(ortholog_model)
-    def get(self, best):
-        return db.query(Ortholog).filter(Ortholog.is_best == best).all()
-
-
 @NS.route('/ortholog/from/<ode_ref_id>/<ode_id>')
 class OrthoFrom(Resource):
     @NS.doc('returns orthologs that are from the ode_ref_id')
@@ -198,7 +193,7 @@ class OrthoBestFrom(Resource):
     def get(self, from_ode_ref_id, from_ode_id, best):
         best = best.upper()
         # best variable is a string, convert to bool to query the is_best column
-        if (best == "FALSE" or best == "F"):
+        if best == "FALSE" or best == "F":
             inp = False
         else:
             inp = True
@@ -217,7 +212,7 @@ class OrthoBestFromTo(Resource):
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id, best):
         best = best.upper()
         # best variable is a string, convert to bool to query the is_best column
-        if (best == "FALSE" or best == "F"):
+        if best == "FALSE" or best == "F":
             inp = False
         else:
             inp = True
@@ -238,7 +233,7 @@ class OrthoBestRevisedFromTo(Resource):
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id, best_revised):
         best_revised = best_revised.upper()
-        if (best_revised == "FALSE" or best_revised == "F"):
+        if best_revised == "FALSE" or best_revised == "F":
             inp = False
         else:
             inp = True
@@ -275,6 +270,7 @@ class OrthoReturnToGene(Resource):
         if not ortho:
             abort(404, message="Could not find any orthologs with the given parameters")
         return result
+
 
 # gene Table Endpoints
 @NS.route('/gene')
@@ -333,6 +329,7 @@ class GeneReturnSpeciesName(Resource):
             abort(404, message="Species not found for that reference_id")
         return result.name
 
+
 # species Table Endpoints
 @NS.route('/species')
 class SpeciesList(Resource):
@@ -345,12 +342,12 @@ class SpeciesList(Resource):
         return result
 
 
-@NS.route('/species/<id>')
+@NS.route('/species/<s_id>')
 class SpeciesID(Resource):
     @NS.doc('query Species with species id')
     @NS.marshal_with(species_model)
-    def get(self, id):
-        return db.query(Species).filter(Species.id == id).all()
+    def get(self, s_id):
+        return db.query(Species).filter(Species.id == s_id).all()
 
 
 # ortholog_algorithms Table Endpoints
@@ -476,6 +473,7 @@ class OrthologToFromSpeciesAlgorithm(Resource):
             abort(404, message="Could not find any matching orthologs")
         return orthos
 
+
 # AGR and Geneweaver Database Endpoints
 # The following endpoints allow for connections to be made between the agr database and the geneweweaver database
 #    by linking the species table and gene ids
@@ -483,28 +481,30 @@ class OrthologToFromSpeciesAlgorithm(Resource):
 class AGRtoGeneweaverSpecies(Resource):
     @NS.doc('translate an AGR species id to the species id in the geneweaver database')
     def get(self, species_id):
-        agr_name = (db.query(Species).filter(Species.id==species_id).first()).name
-        geneweaver_id = (db.query(Geneweaver_Species).filter(Geneweaver_Species.sp_name==agr_name).first()).sp_id
+        agr_name = (db.query(Species).filter(Species.id == species_id).first()).name
+        geneweaver_id = (db.query(Geneweaver_Species).filter(Geneweaver_Species.sp_name == agr_name).first()).sp_id
         if not geneweaver_id:
             abort(404, message="No matching species_id in the Geneweaver Species Table")
         return geneweaver_id
+
 
 @NS.route('/ode_gene_id/<agr_gene_id>')
 class IDCovertAGRtoODE(Resource):
     @NS.doc('converts an agr gene id to the corresponding ode_gene_ide')
     def get(self, agr_gene_id):
-        agr_gene = db.query(Gene).filter(Gene.id==agr_gene_id).first()
+        agr_gene = db.query(Gene).filter(Gene.id == agr_gene_id).first()
         ref = agr_gene.reference_id
         prefix = agr_gene.id_prefix
-        if (prefix == "RGD"):
+        if prefix == "RGD":
             ref = ref.replace(":", "")
-        elif (prefix == "WB" or prefix == "FB" or prefix == "SGD" or prefix == "ZFIN"):
+        elif prefix == "WB" or prefix == "FB" or prefix == "SGD" or prefix == "ZFIN":
             ind = ref.find(":") + 1
             ref = ref[ind:]
         ode_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_ref_id == ref).first()).ode_gene_id
         if not ode_id:
             abort(404, message="mathcing ode_gene_id not found")
         return ode_id
+
 
 @NS.route('/agr_gene_id/<ode_gene_id>/<ode_ref_id>')
 class IDConvertODEtoAGR(Resource):
@@ -515,30 +515,32 @@ class IDConvertODEtoAGR(Resource):
         genedb_id = ode_gene.gdb_id
         prefix = (db.query(Geneweaver_GeneDB).filter(Geneweaver_GeneDB.gdb_id == genedb_id).first()).gdb_name
         ref = ode_gene.ode_ref_id
-        if (prefix == "Wormbase"):
+        if prefix == "Wormbase":
             prefix = "WB"
             ref = prefix + ":" + ref
-        if (prefix == "FlyBase"):
+        if prefix == "FlyBase":
             prefix = "FB"
             ref = prefix + ":" + ref
-        if (prefix == "SGD" or prefix == "ZFIN"):
+        if prefix == "SGD" or prefix == "ZFIN":
             ref = prefix + ":" + ref
-        if (prefix == "RGD"):
+        if prefix == "RGD":
             ref = ref[:3] + ":" + ref[3:]
         agr_id = (db.query(Gene).filter(Gene.reference_id == ref).first()).id
         if not agr_id:
             abort(404, message="No matching agr gene found")
         return agr_id
 
+
 @NS.route('/ode_gene/database/<gdb_id>')
 class ODEGeneDbId(Resource):
     @NS.doc('return all ode_genes with the specified gdb_id')
     @NS.marshal_with(ode_gene_model)
     def get(self, gdb_id):
-        genes = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.gdb_id==gdb_id).all()
+        genes = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.gdb_id == gdb_id).all()
         if not genes:
-            abort(404, message = "No genes were found with specified gdb_id")
+            abort(404, message="No genes were found with specified gdb_id")
         return genes
+
 
 @NS.route('/ode_gene/<ode_gene_id>')
 class ODEGeneId(Resource):
@@ -547,94 +549,55 @@ class ODEGeneId(Resource):
     def get(self, ode_gene_id):
         genes = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id).all()
         if not genes:
-            abort(404, message = "No genes were found matching that ode_gene_id")
+            abort(404, message="No genes were found matching that ode_gene_id")
         return genes
+
 
 @NS.route('/ode_gene/species/<ode_gene_id>/<species_name>')
 class ODEGeneIdBySpecies(Resource):
     @NS.doc('return all genes with matching ode_gene_id and species')
     @NS.marshal_with(ode_gene_model)
     def get(self, ode_gene_id, species_name):
-        sp_id = (db.query(Geneweaver_Species).filter(Geneweaver_Species.sp_name==species_name).first()).sp_id
-        genes = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id,
-                                                 Geneweaver_Gene.sp_id==sp_id).all()
+        sp_id = (db.query(Geneweaver_Species).filter(Geneweaver_Species.sp_name == species_name).first()).sp_id
+        genes = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id,
+                                                 Geneweaver_Gene.sp_id == sp_id).all()
         if not genes:
-            abort(404, message = "No genes were found matching that ode_gene_id and species")
+            abort(404, message="No genes were found matching that ode_gene_id and species")
         return genes
 
+
 # Mouse Human Mapping
-# The following endpoints map from mouse to humand and from human to mouse while also returning the corresponding Ensembl ID
+# The following endpoints map from mouse to humand and from human to mouse while also returning
+# the corresponding Ensembl ID
 
 @NS.route('/ortholog/human_to_mouse')
 class HumanToMouse(Resource):
     @NS.doc('returns all orthologs from human to mouse with Ensembl IDs')
     @NS.marshal_with(mouse_human_model)
     def get(self):
-        # to mouse
-        to_genes = db.query(Gene).filter(Gene.species == 1).all()
-        # from human
-        from_genes = db.query(Gene).filter(Gene.species == 7).all()
+        orthologs = db.query(Mouse_Human).filter(Mouse_Human.is_mouse_to_human == False).all()
+        if not orthologs:
+            abort(404, message="No orthologs were found")
+        return orthologs
 
-        to_gene_ids = []
-        from_gene_ids = []
-
-        for g in to_genes:
-            to_gene_ids.append(g.id)
-        for g in from_genes:
-            from_gene_ids.append(g.id)
-
-        orthos = db.query(Ortholog).filter(Ortholog.to_gene.in_(to_gene_ids),
-                                           Ortholog.from_gene.in_(from_gene_ids)).all()
-
-        mouse_ref_ids = []
-        human_ref_ids = []
-        for o in orthos:
-            mouse_id = (db.query(Gene).filter(Gene.id == o.to_gene).first()).reference_id
-            mouse_ref_ids.append(mouse_id)
-            human_id = (db.query(Gene).filter(Gene.id == o.from_gene).first()).reference_id
-            human_ref_ids.append(human_id)
-
-        info = db.query(Mouse_Human).filter(Mouse_Human.m_id.in_(mouse_ref_ids),
-                                            Mouse_Human.h_id.in_(human_ref_ids)).all()
-        return info
 
 @NS.route('/ortholog/mouse_to_human')
 class MouseToHuman(Resource):
     @NS.doc('returns all orthologs from human to mouse with Ensembl IDs')
     @NS.marshal_with(mouse_human_model)
     def get(self):
-        # to human
-        to_genes = db.query(Gene).filter(Gene.species == 7).all()
-        # from mouse
-        from_genes = db.query(Gene).filter(Gene.species == 1).all()
+        orthologs = db.query(Mouse_Human).filter(Mouse_Human.is_mouse_to_human == True).all()
+        if not orthologs:
+            abort(404, message="No orthologs were found")
+        return orthologs
 
-        to_gene_ids = []
-        from_gene_ids = []
-
-        for g in to_genes:
-            to_gene_ids.append(g.id)
-        for g in from_genes:
-            from_gene_ids.append(g.id)
-
-        orthos = db.query(Ortholog).filter(Ortholog.to_gene.in_(to_gene_ids),
-                                           Ortholog.from_gene.in_(from_gene_ids)).all()
-
-        mouse_ref_ids = []
-        human_ref_ids = []
-        for o in orthos:
-            mouse_id = (db.query(Gene).filter(Gene.id == o.from_gene).first()).reference_id
-            mouse_ref_ids.append(mouse_id)
-            human_id = (db.query(Gene).filter(Gene.id == o.to_gene).first()).reference_id
-            human_ref_ids.append(human_id)
-
-        info = db.query(Mouse_Human).filter(Mouse_Human.m_id.in_(mouse_ref_ids),
-                                            Mouse_Human.h_id.in_(human_ref_ids)).all()
-        return orthos
 
 @NS.route('/ortholog/mouse_human_all')
-class MouseToHuman(Resource):
+class MouseHumanAll(Resource):
     @NS.doc('returns all orthologs containing human and mouse with Ensembl IDs')
     @NS.marshal_with(mouse_human_model)
     def get(self):
-        orthos = db.query(Mouse_Human).all()
-        return orthos
+        orthologs = db.query(Mouse_Human).all()
+        if not orthologs:
+            abort(404, message="No orthologs were found")
+        return orthologs

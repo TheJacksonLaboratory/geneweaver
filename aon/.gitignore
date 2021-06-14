@@ -7,9 +7,13 @@ venv*
 .env
 __pycache__debug.log
 ORTHOLOGY-ALLIANCE_COMBINED_37.tsv
+ORTHOLOGY-ALLIANCE_COMBINED.tsv
 fix.py
 map.py
 test.py
 env.py
 .gitignore
 __pycache__
+flask/src/config.py
+flask/alembic.ini
+alembic.ini
