@@ -1,4 +1,6 @@
-"""First commit
+"""
+Creates AGR tables algorithm, species, gene, ortholog, and ortholog_algorithms.
+These tables will be filled from the AGR file by running service.py
 
 Revision ID: 4297df5638d7
 Revises: 

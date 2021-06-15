@@ -29,13 +29,28 @@ vim .env
 ## Geneweaver Ortholog Normalizer Management
 
 ### Current Development Usage
+
+If the AGR tables have not been created, create them with alembic from the flask directory:
+```
+cd flask
+alembic upgrade head
+```
+
 For now, database loading is achieved by calling the service.py module as a script:
 ```
-python flask/service.py
+python flask/src/service.py
 ```
-
 Make sure to set the `ORTHO_FILE` constant to tell the module which file to load.
 
+Then, to fill the tables in the geneweaver schema and the mouse_human_map table, load the data from the migration scripts:
+```
+cd migration
+psql -U user -data-only -d database -t geneweaver.species -f geneweaver_species.sql
+psql -U user -data-only -d database -t geneweaver.gene_db -f geneweaver_genedb.sql
+psql -U user -data-only -d database -t geneweaver.gene -f geneweaver_gene.sql
+psql -U user -data-only -d database -t public.mouse_human_map -f mouse_human_map.sql
+```
+Edit the command information to locate the correct database.
 
 ### Service Usage
 The flask service is managed with the manage.py module. Depending on the template options you selected, some features 

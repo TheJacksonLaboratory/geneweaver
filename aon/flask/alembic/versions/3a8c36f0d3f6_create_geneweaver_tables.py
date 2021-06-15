@@ -1,4 +1,8 @@
-"""create geneweaver tables
+"""
+Create tables gene, species, and genedb from the geneweaver database to be used
+in this AGR service to allow linking between the two.
+Mouse_human_map table is also created to track orthologs strictly between mouse and human,
+as well as store the Ensembl ID of these genes.
 
 Revision ID: 3a8c36f0d3f6
 Revises: 60996baf46a6
@@ -17,6 +21,8 @@ depends_on = None
 
 
 def upgrade():
+    # geneweaver schema should be created if it does not exist already. The following three
+    # tables are inserted into this schema to differentiate them from the agr gene and species tables.
     op.create_table('species',
                     sa.Column('sp_id', sa.Integer(), primary_key=True),
                     sa.Column('sp_name', sa.VARCHAR()),
@@ -52,6 +58,7 @@ def upgrade():
                     )
     op.create_primary_key('gene_pkey', 'gene', ['ode_gene_id', 'ode_ref_id'], 'geneweaver')
 
+    # this table is inserted into the public schema
     op.create_table('mouse_human_map',
                     sa.Column('m_id', sa.VARCHAR()),
                     sa.Column('m_symbol', sa.VARCHAR()),
