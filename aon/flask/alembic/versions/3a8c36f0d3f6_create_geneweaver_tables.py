@@ -64,8 +64,8 @@ def upgrade():
                     sa.Column('m_symbol', sa.VARCHAR()),
                     sa.Column('m_ensembl_id', sa.VARCHAR()),
                     sa.Column('h_id', sa.VARCHAR()),
-                    sa.Column('m_symbol', sa.VARCHAR()),
-                    sa.Column('m_ensembl_id', sa.VARCHAR()),
+                    sa.Column('h_symbol', sa.VARCHAR()),
+                    sa.Column('h_ensembl_id', sa.VARCHAR()),
                     sa.Column('is_mouse_to_human', sa.Boolean()),
                     )
 
