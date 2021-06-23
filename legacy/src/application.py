@@ -519,6 +519,7 @@ def render_editgenesets(gs_id, curation_view=False):
     ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
     ros = json.dumps(geneweaverdb.get_ontologies_by_ontdb_id(12))
+    user_pref = json.loads(geneweaverdb.get_user(user_id).prefs)
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
@@ -544,7 +545,8 @@ def render_editgenesets(gs_id, curation_view=False):
         ref_types=ref_types,
         ont_dbs=ont_dbs,
         curation_view=curation_view,
-        relation_onts=ros
+        relation_onts=ros,
+        user_pref=user_pref
     )
 
 @app.route('/addRelationsOntology', methods=['POST'])
