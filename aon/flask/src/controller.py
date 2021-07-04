@@ -112,7 +112,7 @@ def convertAGRtoODE(agr_gene_id):
 
 # Algorithm Table Endpoints
 @NS.route('/algorithm/<algorithm_name>')
-class AlgorithmByName(Resource):
+class get_algorithm_by_name(Resource):
     @NS.doc('returns algorithm object with specified name')
     @NS.marshal_with(algorithm_model)
     def get(self, algorithm_name):
@@ -121,7 +121,7 @@ class AlgorithmByName(Resource):
 
 
 @NS.route('/algorithm')
-class AllAlgorithms(Resource):
+class all_algorithms(Resource):
     @NS.doc('returns all algorithms')
     @NS.marshal_with(algorithm_model)
     def get(self):
@@ -130,7 +130,7 @@ class AllAlgorithms(Resource):
 
 # Ortholog Table Endpoints
 @NS.route('/ortholog/from/<ode_ref_id>/<ode_id>')
-class OrthologFrom(Resource):
+class get_orthologs_by_from_gene(Resource):
     @NS.doc('returns orthologs from the specified gene')
     @NS.marshal_with(ortholog_model)
     def get(self, ode_ref_id, ode_id):
@@ -143,7 +143,7 @@ class OrthologFrom(Resource):
 
 
 @NS.route('/ortholog/to/<ode_ref_id>/<ode_id>')
-class OrthologTo(Resource):
+class get_orthologs_by_to_gene(Resource):
     @NS.doc('returns orthologs to specified the gene')
     @NS.marshal_with(ortholog_model)
     def get(self, ode_ref_id, ode_id):
@@ -155,7 +155,7 @@ class OrthologTo(Resource):
 
 
 @NS.route('/ortholog')
-class OrthologsAll(Resource):
+class all_orthologs(Resource):
     @NS.doc('returns all orthologs')
     @NS.marshal_with(ortholog_model)
     def get(self):
@@ -163,7 +163,7 @@ class OrthologsAll(Resource):
 
 
 @NS.route('/ortholog/<ortho_id>')
-class OrthologID(Resource):
+class get_ortholog_by_id(Resource):
     @NS.doc('returns orthologs with specified id')
     @NS.marshal_with(ortholog_model)
     def get(self, ortho_id):
@@ -174,7 +174,7 @@ class OrthologID(Resource):
 
 
 @NS.route('/ortholog/to_from/<from_ode_ref_id>/<from_ode_id>/<to_ode_ref_id>/<to_ode_id>')
-class OrthologToAndFrom(Resource):
+class get_orthologs_by_to_and_from_gene(Resource):
     @NS.doc('returns all orthologs to and from the specified genes')
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id):
@@ -188,7 +188,7 @@ class OrthologToAndFrom(Resource):
 
 
 @NS.route('/ortholog/best_and_from/<from_ode_ref_id>/<from_ode_id>/<best>')
-class OrthologBestFrom(Resource):
+class get_orthologs_by_from_gene_and_best(Resource):
     @NS.doc('returns all orthologs from specified gene and by the best variable')
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_id, best):
@@ -207,7 +207,7 @@ class OrthologBestFrom(Resource):
 
 
 @NS.route('/ortholog/best_from_to/<from_ode_ref_id>/<from_ode_id>/<to_ode_ref_id>/<to_ode_id>/<best>')
-class OrthologBestFromTo(Resource):
+class get_orthologs_by_from_to_gene_and_best(Resource):
     @NS.doc('returns all orthologs from and to specified gene and by the best variable')
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id, best):
@@ -230,7 +230,7 @@ class OrthologBestFromTo(Resource):
 
 
 @NS.route('/ortholog/best_revised_from_to/<from_ode_ref_id>/<from_ode_id>/<to_ode_ref_id>/<to_ode_id>/<best_revised>')
-class OrthologBestRevisedFromTo(Resource):
+class get_orthologs_by_from_to_gene_and_revised(Resource):
     @NS.doc('returns all orthologs from and to specified gene and by the best_revised variable')
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id, best_revised):
@@ -251,7 +251,7 @@ class OrthologBestRevisedFromTo(Resource):
 
 
 @NS.route('/ortholog/return_from_gene/<ortho_id>')
-class OrthologReturnFromGene(Resource):
+class get_from_gene_of_ortholog_by_id(Resource):
     @NS.doc('return from_gene object of a ortholog')
     @NS.marshal_with(gene_model)
     def get(self, ortho_id):
@@ -263,7 +263,7 @@ class OrthologReturnFromGene(Resource):
 
 
 @NS.route('/ortholog/return_to_gene/<ortho_id>')
-class OrthologReturnToGene(Resource):
+class get_to_gene_of_ortholog_by_id(Resource):
     @NS.doc('return to_gene object of a specific ortholog')
     @NS.marshal_with(gene_model)
     def get(self, ortho_id):
@@ -276,7 +276,7 @@ class OrthologReturnToGene(Resource):
 
 # gene Table Endpoints
 @NS.route('/gene')
-class Genes(Resource):
+class get_genes(Resource):
     @NS.doc('return all genes')
     @NS.marshal_with(gene_model)
     def get(self):
@@ -284,7 +284,7 @@ class Genes(Resource):
 
 
 @NS.route('/gene/prefix/<prefix>')
-class GenePrefix(Resource):
+class get_genes_by_prefix(Resource):
     @NS.doc('return all genes with specified prefix')
     @NS.marshal_with(gene_model)
     def get(self, prefix):
@@ -296,7 +296,7 @@ class GenePrefix(Resource):
 
 
 @NS.route('/gene/refID/<ode_ref_id>/<ode_id>')
-class GeneRefID(Resource):
+class get_genes_by_ode_id(Resource):
     @NS.doc('return gene with specified ode_ref_id and ode_id')
     @NS.marshal_with(gene_model)
     def get(self, ode_ref_id, ode_id):
@@ -307,7 +307,7 @@ class GeneRefID(Resource):
 
 
 @NS.route('/gene/species/<species_name>')
-class GeneSpecies(Resource):
+class get_genes_by_species(Resource):
     @NS.doc('returns ode_gene_ids for genes of a certain species')
     @NS.marshal_with(gene_model)
     def get(self, species_name):
@@ -319,7 +319,7 @@ class GeneSpecies(Resource):
 
 
 @NS.route('/gene/return_species_name/<ode_ref_id>/<ode_id>')
-class GeneReturnSpeciesName(Resource):
+class get_gene_species_name(Resource):
     @NS.doc('returns the species of a specified gene')
     def get(self, ode_ref_id, ode_id):
         gene = convertODEtoAGR(ode_ref_id, ode_id)
@@ -331,7 +331,7 @@ class GeneReturnSpeciesName(Resource):
 
 # species Table Endpoints
 @NS.route('/species')
-class SpeciesList(Resource):
+class get_species(Resource):
     @NS.doc('return all species')
     @NS.marshal_with(species_model)
     def get(self):
@@ -339,7 +339,7 @@ class SpeciesList(Resource):
 
 
 @NS.route('/species/<s_id>')
-class SpeciesID(Resource):
+class get_species_by_id(Resource):
     @NS.doc('return species specified by id')
     @NS.marshal_with(species_model)
     def get(self, s_id):
@@ -348,7 +348,7 @@ class SpeciesID(Resource):
 
 # ortholog_algorithms Table Endpoints
 @NS.route('/ortholog/num_algorithms/<num>')
-class OrthologNumAlgorithms(Resource):
+class get_orthologs_by_num_algoritms(Resource):
     @NS.doc('return all orthologs with specified num_possible_match_algorithms')
     @NS.marshal_with(ortholog_model)
     def get(self, num):
@@ -360,7 +360,7 @@ class OrthologNumAlgorithms(Resource):
 
 
 @NS.route('/ortholog_algorithms/ortholog/<algorithm>')
-class OrthologAlgorithm(Resource):
+class get_ortholog_by_algorithm(Resource):
     @NS.doc('return all orthologs for an algorithm')
     @NS.marshal_with(ortholog_algorithms_model)
     def get(self, algorithm):
@@ -372,7 +372,7 @@ class OrthologAlgorithm(Resource):
 
 # ORTHOLOG AND SPECIES TABLES
 @NS.route('/ortholog/from_species/<species_name>')
-class OrthologFromSpecies(Resource):
+class get_ortholog_by_from_species(Resource):
     @NS.doc('return all orthologs from given species')
     @NS.marshal_with(ortholog_model)
     def get(self, species_name):
@@ -391,7 +391,7 @@ class OrthologFromSpecies(Resource):
 
 
 @NS.route('/ortholog/to_species/<species_name>')
-class OrthologToSpecies(Resource):
+class get_ortholog_by_to_species(Resource):
     @NS.doc('return all orthologs to a given species')
     @NS.marshal_with(ortholog_model)
     def get(self, species_name):
@@ -407,7 +407,7 @@ class OrthologToSpecies(Resource):
 
 
 @NS.route('/ortholog/to_and_from_species/<to_species>/<from_species>')
-class OrthologToFromSpecies(Resource):
+class get_ortholog_by_to_and_from_species(Resource):
     @NS.doc('return all orthologs to and from given species')
     @NS.marshal_with(ortholog_model)
     def get(self, to_species, from_species):
@@ -433,7 +433,7 @@ class OrthologToFromSpecies(Resource):
 
 
 @NS.route('/ortholog/to_from_species_algo/<to_species>/<from_species>/<algorithm>')
-class OrthologToFromSpeciesAlgorithm(Resource):
+class get_ortholog_by_to_from_species_and_algorithm(Resource):
     @NS.doc('return all orthologs to and from given species with specific algorithm')
     @NS.marshal_with(ortholog_model)
     def get(self, to_species, from_species, algorithm):
@@ -478,7 +478,7 @@ class OrthologToFromSpeciesAlgorithm(Resource):
 #    by linking the species table and gene ids
 
 @NS.route('/species/AGRSpecies_to_geneweaverSpecies/<species_id>')
-class AGRtoGeneweaverSpecies(Resource):
+class agr_to_geneweaver_species(Resource):
     @NS.doc('translate an AGR species id to the corresponding species id in the geneweaver database')
     def get(self, species_id):
         agr_name = (db.query(Species).filter(Species.id == species_id).first()).name
@@ -490,7 +490,7 @@ class AGRtoGeneweaverSpecies(Resource):
 
 # similar to the convertAGRtoODE function
 @NS.route('/ode_gene_id/<agr_gene_id>')
-class IDCovertAGRtoODE(Resource):
+class id_convert_agr_to_ode(Resource):
     @NS.doc('converts an agr gene id to the corresponding ode_gene_ide')
     def get(self, agr_gene_id):
         agr_gene = db.query(Gene).filter(Gene.id == agr_gene_id).first()
@@ -510,7 +510,7 @@ class IDCovertAGRtoODE(Resource):
 
 # similar to the convertODEtoAGR function
 @NS.route('/agr_gene_id/<ode_gene_id>/<ode_ref_id>')
-class IDConvertODEtoAGR(Resource):
+class id_convert_ode_to_agr(Resource):
     @NS.doc('converts an ode gene id to the corresponding agr gene id')
     def get(self, ode_gene_id, ode_ref_id):
         ode_gene = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id,
@@ -537,7 +537,7 @@ class IDConvertODEtoAGR(Resource):
 
 
 @NS.route('/ode_gene/database/<gdb_id>')
-class ODEGeneDbId(Resource):
+class get_ode_gene_by_gdb_id(Resource):
     @NS.doc('return all ode_genes with the specified gdb_id')
     @NS.marshal_with(ode_gene_model)
     def get(self, gdb_id):
@@ -548,7 +548,7 @@ class ODEGeneDbId(Resource):
 
 
 @NS.route('/ode_gene/<ode_gene_id>')
-class ODEGeneId(Resource):
+class get_ode_gene_by_gene_id(Resource):
     @NS.doc('return all ode_genes with the same ode_gene_id')
     @NS.marshal_with(ode_gene_model)
     def get(self, ode_gene_id):
@@ -559,7 +559,7 @@ class ODEGeneId(Resource):
 
 
 @NS.route('/ode_gene/species/<ode_gene_id>/<species_name>')
-class ODEGeneIdBySpecies(Resource):
+class get_ode_gene_by_species(Resource):
     @NS.doc('return all genes with matching ode_gene_id and species')
     @NS.marshal_with(ode_gene_model)
     def get(self, ode_gene_id, species_name):
@@ -598,7 +598,7 @@ class MouseToHuman(Resource):
 
 
 @NS.route('/ortholog/mouse_human_all')
-class MouseHumanAll(Resource):
+class get_mouse_human_all(Resource):
     @NS.doc('returns all orthologs containing human and mouse with Ensembl IDs')
     @NS.marshal_with(mouse_human_model)
     def get(self):
