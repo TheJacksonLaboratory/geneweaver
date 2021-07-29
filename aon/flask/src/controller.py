@@ -66,6 +66,7 @@ mouse_human_model = NS.model('mouse_human_map', {
     'is_mouse_to_human': fields.Boolean()
 })
 
+
 # CONVERTER FUNCTIONS
 # description: converts into agr gene_id using the ode_ref_id and ode_gene_id (both used
 #     as primary key in geneweaver.gene table)
@@ -273,6 +274,7 @@ class get_to_gene_of_ortholog_by_id(Resource):
             abort(404, message="Could not find any orthologs with the given parameters")
         return result
 
+
 @NS.route('/ortholog/get_id_by_from_gene/<ode_gene_id>/<ode_ref_id>/<gdb_id>')
 class get_id_by_from_gene(Resource):
     @NS.doc('returns the ortholog id filtering by the ortholog from gene, including the gdb_id')
@@ -297,6 +299,108 @@ class get_id_by_from_gene(Resource):
         agr_gene_id = (db.query(Gene).filter(Gene.reference_id == ref).first()).id
         id = ((db.query(Ortholog).filter(Ortholog.from_gene == agr_gene_id)).first()).id
         return id
+
+
+@NS.route('/ortholog/get_ortholog_by_from_gene_and_gdb/<from_ode_gene_id>/<gdb_id>')
+class get_ortholog_by_from_gene_and_gdb(Resource):
+    @NS.doc('returns to gene ode_gene_id and ode_ref_id of any ortholog with the from gene matching'
+            'the ode_gene_id and to gene matching the gdb_id')
+    def get(self, from_ode_gene_id, gdb_id):
+        agr_compatible_gdb_ids = [10, 11, 12, 13, 14, 15, 16]
+        genes = db.query(Geneweaver_Gene.ode_ref_id, Geneweaver_Gene.gdb_id).filter(Geneweaver_Gene.ode_gene_id
+                                                                                    == from_ode_gene_id,
+                                                                                    Geneweaver_Gene.gdb_id.in_(
+                                                                                        agr_compatible_gdb_ids)).all()
+        gdb_id = int(gdb_id)
+        # mouse
+        if gdb_id == 10: agr_species = 1
+        # human
+        elif gdb_id == 11: agr_species = 7
+        # rat
+        elif gdb_id == 12: agr_species = 2
+        # danio rerio
+        elif gdb_id == 13: agr_species = 6
+        # drosophilia
+        elif gdb_id == 14: agr_species = 5
+        # c elegans
+        elif gdb_id == 15: agr_species = 11
+        # sacc
+        elif gdb_id == 16: agr_species = 3
+        else: agr_species = 0
+
+        from_gene_refs = []
+        for g in genes:
+            ref = str(g[0])
+            from_gdb_id = int(g[1])
+            if from_gdb_id == 15:
+                prefix = "WB"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 14:
+                prefix = "FB"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 16:
+                prefix = "SGD"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 13:
+                prefix = "ZFIN"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 12:
+                print("in loop")
+                ref = ref[:3] + ":" + ref[3:]
+            from_gene_refs.append(ref)
+        from_genes = db.query(Gene.id).filter(Gene.reference_id.in_(from_gene_refs)).all()
+        to_gene_ids = db.query(Ortholog.to_gene).filter(Ortholog.from_gene.in_(from_genes)).all()
+        to_gene_info = db.query(Gene.reference_id, Gene.id_prefix).filter(Gene.id.in_(to_gene_ids), Gene.species == agr_species).all()
+
+        to_gene_ode_refs = []
+        for r in to_gene_info:
+            ref = str(r[0])
+            prefix = str(r[1])
+            if prefix == "RGD":
+                ref = ref.replace(":", "")
+            elif prefix == "WB" or prefix == "FB" or prefix == "SGD" or prefix == "ZFIN":
+                ind = ref.find(":") + 1
+                ref = ref[ind:]
+            to_gene_ode_refs.append(ref)
+        return to_gene_ode_refs
+
+@NS.route('/ortholog/if_ode_gene_has_ortholog/<ode_gene_id>')
+class if_ode_gene_has_ortholog(Resource):
+    @NS.doc('check if ode gene is an ortholog')
+    def get(self, ode_gene_id):
+        is_ortholog = 1
+        agr_compatible_gdb_ids = [10, 11, 12, 13, 14, 15, 16]
+        ode_genes = db.query(Geneweaver_Gene.ode_ref_id, Geneweaver_Gene.gdb_id).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id, Geneweaver_Gene.gdb_id.in_(
+                                                                                        agr_compatible_gdb_ids)).all()
+        agr_refs = []
+        for g in ode_genes:
+            ref = str(g[0])
+            from_gdb_id = int(g[1])
+            if from_gdb_id == 15:
+                prefix = "WB"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 14:
+                prefix = "FB"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 16:
+                prefix = "SGD"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 13:
+                prefix = "ZFIN"
+                ref = prefix + ":" + ref
+            if from_gdb_id == 12:
+                ref = ref[:3] + ":" + ref[3:]
+            agr_refs.append(ref)
+
+        agr_gene_ids = db.query(Gene.id).filter(Gene.reference_id.in_(agr_refs)).all()
+        from_gene = db.query(Ortholog.id).filter(Ortholog.from_gene.in_(agr_gene_ids)).all()
+
+        if (len(from_gene) == 0):
+            to_gene = db.query(Ortholog.id).filter(Ortholog.to_gene.in_(agr_gene_ids)).all()
+            if (len(to_gene) == 0):
+                is_ortholog = 0
+
+        return is_ortholog
 
 # gene Table Endpoints
 @NS.route('/gene')
