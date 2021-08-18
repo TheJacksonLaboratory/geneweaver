@@ -35,12 +35,14 @@ If the AGR tables have not been created, create them with alembic from the flask
 cd flask
 alembic upgrade head
 ```
+Download the most recent ORTHO_FILE from https://www.alliancegenome.org/downloads#orthology as TSV.
+
+Make sure to set the `ORTHO_FILE` constant to tell the module which file to load.
 
 For now, database loading is achieved by calling the service.py module as a script:
 ```
 python flask/src/service.py
 ```
-Make sure to set the `ORTHO_FILE` constant to tell the module which file to load.
 
 Then, to fill the tables in the geneweaver schema and the mouse_human_map table, load the data from the migration scripts:
 ```
