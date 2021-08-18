@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Mus musculus",
+    "taxon_id": 10090
+  },
+  {
+    "id": 2,
+    "name": "Rattus norvegicus",
+    "taxon_id": 10116
+  },
+  {
+    "id": 3,
+    "name": "Saccharomyces cerevisiae",
+    "taxon_id": 559292
+  },
+  {
+    "id": 4,
+    "name": "Caenorhabditis elegans",
+    "taxon_id": 6239
+  },
+  {
+    "id": 5,
+    "name": "Drosophila melanogaster",
+    "taxon_id": 7227
+  },
+  {
+    "id": 6,
+    "name": "Danio rerio",
+    "taxon_id": 7955
+  },
+  {
+    "id": 7,
+    "name": "Homo sapiens",
+    "taxon_id": 9606
+  },
+  {
+    "id": 8,
+    "name": "Mus musculus",
+    "taxon_id": 10090
+  },
+  {
+    "id": 9,
+    "name": "Rattus norvegicus",
+    "taxon_id": 10116
+  },
+  {
+    "id": 10,
+    "name": "Saccharomyces cerevisiae",
+    "taxon_id": 559292
+  },
+  {
+    "id": 11,
+    "name": "Caenorhabditis elegans",
+    "taxon_id": 6239
+  },
+  {
+    "id": 12,
+    "name": "Drosophila melanogaster",
+    "taxon_id": 7227
+  },
+  {
+    "id": 13,
+    "name": "Danio rerio",
+    "taxon_id": 7955
+  },
+  {
+    "id": 14,
+    "name": "Homo sapiens",
+    "taxon_id": 9606
+  }
+]

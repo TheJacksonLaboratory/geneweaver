@@ -1,0 +1,128 @@
+[
+  {
+    "id": 43,
+    "from_gene": 34375,
+    "to_gene": 34373,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 1043,
+    "from_gene": 34375,
+    "to_gene": 34373,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 122648,
+    "from_gene": 34375,
+    "to_gene": 34384,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 123648,
+    "from_gene": 34375,
+    "to_gene": 34384,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 422386,
+    "from_gene": 34375,
+    "to_gene": 34377,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 252433,
+    "from_gene": 34375,
+    "to_gene": 34383,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 253433,
+    "from_gene": 34375,
+    "to_gene": 34383,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 980105,
+    "from_gene": 34375,
+    "to_gene": 34380,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 423386,
+    "from_gene": 34375,
+    "to_gene": 34377,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 521942,
+    "from_gene": 34375,
+    "to_gene": 34378,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 894247,
+    "from_gene": 34375,
+    "to_gene": 34372,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 520942,
+    "from_gene": 34375,
+    "to_gene": 34378,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  },
+  {
+    "id": 895247,
+    "from_gene": 34375,
+    "to_gene": 34372,
+    "is_best": true,
+    "is_best_revised": false,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 10
+  },
+  {
+    "id": 981105,
+    "from_gene": 34375,
+    "to_gene": 34380,
+    "is_best": true,
+    "is_best_revised": true,
+    "is_best_adjusted": null,
+    "num_possible_match_algorithms": 11
+  }
+]
