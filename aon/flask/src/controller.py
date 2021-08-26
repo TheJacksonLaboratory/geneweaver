@@ -73,23 +73,23 @@ mouse_human_model = NS.model('mouse_human_map', {
 #         ode_id - ode_gene_id of gene
 # returns: agr gene object
 def convertODEtoAGR(ode_ref, ode_id):
-    ode_gene = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_ref_id == ode_ref,
-                                                Geneweaver_Gene.ode_gene_id == ode_id).first()
-    genedb_id = ode_gene.gdb_id
-    prefix = (db.query(Geneweaver_GeneDB).filter(Geneweaver_GeneDB.gdb_id == genedb_id).first()).gdb_name
-    ref = ode_gene.ode_ref_id
     # convert the ref_ids into how the agr ref ids are stored, same values but formatted
     #    slightly different in each database
-    if prefix == "Wormbase":
+    ref = ode_ref
+    if ode_ref[0] == 'W':
         prefix = "WB"
-        ref = prefix + ":" + ref
-    if prefix == "FlyBase":
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'F':
         prefix = "FB"
-        ref = prefix + ":" + ref
-    if prefix == "SGD" or prefix == "ZFIN":
-        ref = prefix + ":" + ref
-    if prefix == "RGD":
-        ref = ref[:3] + ":" + ref[3:]
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'S':
+        prefix = "SGD"
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'Z':
+        prefix = "ZFIN"
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'R':
+        ref = ode_ref[:3] + ":" + ode_ref[3:]
 
     agr = db.query(Gene).filter(Gene.reference_id == ref).first()
     return agr
@@ -349,7 +349,7 @@ class get_to_gene_of_ortholog_by_id(Resource):
         return result
 
 
-@NS.route('/get_id_by_from_gene/<ode_gene_id>/<ode_ref_id>/<gdb_id>')
+@NS.route('/get_ortho_id_by_from_gene/<ode_gene_id>/<ode_ref_id>/<gdb_id>')
 class get_id_by_from_gene(Resource):
     '''
     :param ode_ref_id - ode_ref_id of to gene
@@ -378,7 +378,6 @@ class get_id_by_from_gene(Resource):
             prefix = "ZFIN"
             ref = prefix + ":" + ref
         if gdb_id == 12:
-            print("in loop")
             ref = ref[:3] + ":" + ref[3:]
 
         # find matching agr gene and filter the ortholog table with the agr gene id
@@ -396,7 +395,7 @@ class get_ortholog_by_from_gene_and_gdb(Resource):
              gene. the goal is to find info about the orthologous gene from the given gene.
     '''
     @NS.doc('returns to gene ode_gene_id and ode_ref_id of any ortholog with the from gene matching'
-            'the ode_gene_id and to gene matching the gdb_id')
+            'the given ode_gene_id and to gene matching the gdb_id')
     def get(self, from_ode_gene_id, gdb_id):
         # any gene with a gdb_id that is not in the agr_compatible_gdb_ids will not be found in the agr
         #    database, so it is filtered out in the search.
@@ -444,7 +443,6 @@ class get_ortholog_by_from_gene_and_gdb(Resource):
                 prefix = "ZFIN"
                 ref = prefix + ":" + ref
             if from_gdb_id == 12:
-                print("in loop")
                 ref = ref[:3] + ":" + ref[3:]
             from_gene_refs.append(ref)
 
@@ -967,3 +965,72 @@ class get_mouse_human_all(Resource):
         if not orthologs:
             abort(404, message="No orthologs were found")
         return orthologs
+
+def convert_ode_ref_to_agr(ode_ref):
+    ref = ode_ref
+    if ode_ref[0] == 'W':
+        prefix = "WB"
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'F':
+        prefix = "FB"
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'S':
+        prefix = "SGD"
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'Z':
+        prefix = "ZFIN"
+        ref = prefix + ":" + ode_ref
+    if ode_ref[0] == 'R':
+        ref = ode_ref[:3] + ":" + ode_ref[3:]
+    return ref
+
+def convert_species_ode_to_agr(ode_sp_id):
+    sp_dict = {1:1, 2:7, 3:9, 4:6, 5:12, 8:4, 9:3}
+    return sp_dict[ode_sp_id]
+
+def convert_agr_ref_to_ode(agr_ref):
+    ref = agr_ref
+    remove_first_letters = ['W', 'F', 'S', 'Z']
+    if agr_ref[0] == "R":
+        ref = ref.replace(":", "")
+    elif agr_ref[0] in remove_first_letters:
+        ind = ref.find(":") + 1
+        ref = ref[ind:]
+    return ref
+
+parser = reqparse.RequestParser()
+@NS.route('/transpose_genes_by_species', methods=['GET','POST'])
+class transpose_genes_by_homology(Resource):
+    '''
+    :params: genes - taken through parser, list of ode_ref_ids to be tranposed
+             species - newSpecies that genes will be transposed to through orthology
+    :return: list of ode_ref_ids of transposed genes, genes that are orthologs to the
+             original genes but are of the specified newSpecies
+    '''
+    @NS.expect(parser)
+    def get(self):
+        parser.add_argument('genes', type=str, action="append")
+        parser.add_argument('species', type=int)
+        data = parser.parse_args()
+        sp = data['species']
+
+        if sp not in [1, 2, 3, 4, 5, 8, 9]:
+            abort(404, message = "No matching genes with that species")
+        else:
+            sp = convert_species_ode_to_agr(sp)
+
+        refs = []
+        for g in data['genes']:
+            refs.append(convert_ode_ref_to_agr(g))
+
+        from_gene_ids = db.query(Gene.id).filter(Gene.reference_id.in_(refs)).all()
+
+        to_gene_ids = db.query(Ortholog.to_gene).filter(Ortholog.from_gene.in_(from_gene_ids)).all()
+        to_gene_filtered_refs = db.query(Gene.reference_id).filter(Gene.id.in_(to_gene_ids),
+                                                                   Gene.species == sp).all()
+
+        ode_refs = []
+        for r in to_gene_filtered_refs:
+            ode_refs.append(convert_agr_ref_to_ode(r[0]))
+
+        return ode_refs
