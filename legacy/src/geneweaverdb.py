@@ -3025,6 +3025,42 @@ def get_publication_by_pubmed(pubmed_id, create=False):
 
         return publication
 
+# SRP IMPLEMENTATION
+
+class SRP:
+    def __init__(self, srp_dict):
+        self.srp_accession = srp_dict['srp_accession'] if 'srp_accession' in srp_dict else ''
+        self.srp_date = srp_dict['srp_date']
+
+def get_srp(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT p.pub_pubmed FROM publication p, geneset gs WHERE gs.gs_id=%s AND p.pub_id=gs.pub_id''', (gs_id, ))
+        pmid = cursor.fetchall()
+        if len(pmid) > 0:
+            srp = pubmedsvc.get_SRP(pmid[0])
+            if len(srp) > 0:
+                cursor.execute('''INSERT INTO srp_sequence_read_archive(srp_accession, srp_date) SELECT %s, now() WHERE NOT EXISTS(SELECT 1 FROM srp_sequence_read_archive WHERE srp_accession=%s)''',(srp, srp, ))
+                cursor.connection.commit()
+                cursor.execute('''SELECT srp_id from srp_sequence_read_archive WHERE srp_accession=%s''', (srp, ))
+                srp_id = cursor.fetchone()[0]
+                cursor.execute('''INSERT INTO g2_geneset2srp(gs_id,srp_id) SELECT %s, %s WHERE NOT EXISTS(SELECT 1 FROM g2_geneset2srp WHERE srp_id=%s)''', (gs_id, srp_id, srp_id, ))
+                cursor.connection.commit()
+                cursor.execute('''SELECT s.srp_accession, s.srp_date FROM extsrc.srp_sequence_read_archive s, production.g2_geneset2srp g WHERE s.srp_id = g.srp_id AND gs_id = %s ''', (gs_id, ))
+                srp_dict = [SRP(row_dict) for row_dict in dictify_cursor(cursor)]
+                return srp_dict[0] if len(srp_dict) == 1 else None
+            else:
+                return None
+        else:
+            return None
+
+def update_geneset_date(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''UPDATE geneset SET gs_updated = NOW() WHERE gs_id = %s RETURNING gs_updated''', (gs_id, ))
+        cursor.connection.commit()
+        gs_updated = cursor.fetchone()[0]
+    return gs_updated
+
+# END SRP IMPLEMENTATION
 
 def get_publication(pub_id):
     with PooledCursor() as cursor:
