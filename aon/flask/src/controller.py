@@ -12,37 +12,37 @@ db = SessionLocal()
 
 # MODELS - correspond with models in models.py file, allow for output in JSON format
 algorithm_model = NS.model('algorithms', {
-    'id': fields.Integer(),
-    'name': fields.String()
+    'alg_id': fields.Integer(),
+    'alg_name': fields.String()
 })
 
 ortholog_model = NS.model('orthologs', {
-    'id': fields.Integer(),
+    'ort_id': fields.Integer(),
     'from_gene': fields.Integer(),
     'to_gene': fields.Integer(),
-    'is_best': fields.Boolean(),
-    'is_best_revised': fields.Boolean(),
-    'is_best_adjusted': fields.Boolean(),
-    'num_possible_match_algorithms': fields.Integer()
+    'ort_is_best': fields.Boolean(),
+    'ort_is_best_revised': fields.Boolean(),
+    'ort_is_best_adjusted': fields.Boolean(),
+    'ort_num_possible_match_algorithms': fields.Integer()
 })
 
 gene_model = NS.model('genes', {
-    'id': fields.Integer(),
-    'reference_id': fields.String(),
-    'id_prefix': fields.String(),
-    'species': fields.Integer()
+    'gn_id': fields.Integer(),
+    'gn_ref_id': fields.String(),
+    'gn_prefix': fields.String(),
+    'sp_id': fields.Integer()
 })
 
 species_model = NS.model('species', {
-    'id': fields.Integer(),
-    'name': fields.String(),
-    'taxon_id': fields.Integer()
+    'sp_id': fields.Integer(),
+    'sp_name': fields.String(),
+    'sp_taxon_id': fields.Integer()
 })
 
 ortholog_algorithms_model = NS.model('ortholog_algorithms', {
-    'id': fields.Integer(),
-    'algorithm_id': fields.Integer(),
-    'ortholog_id': fields.Integer()
+    'ora_id': fields.Integer(),
+    'alg_id': fields.Integer(),
+    'ort_id': fields.Integer()
 })
 
 gw_gene_model = NS.model('geneweaver_genes', {
@@ -55,14 +55,14 @@ gw_gene_model = NS.model('geneweaver_genes', {
     'old_ode_gene_ids': fields.Integer()
 })
 
-mouse_human_model = NS.model('mouse_human_map', {
-    'm_id': fields.String(),
-    'm_symbol': fields.String(),
-    'm_ensembl_id': fields.String(),
-    'h_id': fields.String(),
-    'h_symbol': fields.String(),
-    'h_ensembl_id': fields.String(),
-    'is_mouse_to_human': fields.Boolean()
+mouse_human_model = NS.model('mhm_mouse_human_map', {
+    'mhm_m_ref_id': fields.String(),
+    'mhm_mhm_m_symbol': fields.String(),
+    'mhm_mhm_m_ensembl_id': fields.String(),
+    'mhm_h_ref_id': fields.String(),
+    'mhm_mhm_h_symbol': fields.String(),
+    'mhm_mhm_h_ensembl_id': fields.String(),
+    'mhm_mhm_is_mouse_to_human': fields.Boolean()
 })
 
 
@@ -91,7 +91,7 @@ def convertODEtoAGR(ode_ref, ode_id):
     if ode_ref[0] == 'R':
         ref = ode_ref[:3] + ":" + ode_ref[3:]
 
-    agr = db.query(Gene).filter(Gene.reference_id == ref).first()
+    agr = db.query(Gene).filter(Gene.gn_ref_id == ref).first()
     return agr
 
 
@@ -99,9 +99,9 @@ def convertODEtoAGR(ode_ref, ode_id):
 # params: agr_gene_id - id from gene table in agr database
 # returns: ode gene object
 def convertAGRtoODE(agr_gene_id):
-    agr_gene = db.query(Gene).filter(Gene.id == agr_gene_id).first()
-    ref = agr_gene.reference_id
-    prefix = agr_gene.id_prefix
+    agr_gene = db.query(Gene).filter(Gene.gn_id == agr_gene_id).first()
+    ref = agr_gene.gn_ref_id
+    prefix = agr_gene.gn_prefix
     # convert the ref ids into the format they are stored in the geneweaver gene table
     if prefix == "RGD":
         ref = ref.replace(":", "")
@@ -124,7 +124,7 @@ class get_algorithm_by_name(Resource):
     @NS.doc('returns algorithm object with specified name')
     @NS.marshal_with(algorithm_model)
     def get(self, algorithm_name):
-        result = db.query(Algorithm).filter(Algorithm.name == algorithm_name).first()
+        result = db.query(Algorithm).filter(Algorithm.alg_name == algorithm_name).first()
         return result
 
 
@@ -146,8 +146,8 @@ class get_orthologs_by_from_gene(Resource):
     '''
     :param ode_ref_id - ode_ref_id of from gene
            ode_id - ode_gene_id of from gene
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for any ortholog with specified from_gene
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for any ortholog with specified from_gene
     '''
 
     @NS.doc('returns orthologs from a specified gene')
@@ -155,7 +155,7 @@ class get_orthologs_by_from_gene(Resource):
     def get(self, ode_ref_id, ode_id):
         # find gene and search orthologs based on gene_id
         gene = convertODEtoAGR(ode_ref_id, ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == gene.id).all()
+        result = db.query(Ortholog).filter(Ortholog.from_gene == gene.gn_id).all()
         if not result:
             abort(404, message="Could not find any orthologs from the specified gene")
         return result
@@ -166,15 +166,15 @@ class get_orthologs_by_to_gene(Resource):
     '''
     :param ode_ref_id - ode_ref_id of to gene
            ode_id - ode_gene_id of to gene
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for any ortholog with specified to_gene
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for any ortholog with specified to_gene
     '''
 
     @NS.doc('returns orthologs to a specified gene')
     @NS.marshal_with(ortholog_model)
     def get(self, ode_ref_id, ode_id):
         gene = convertODEtoAGR(ode_ref_id, ode_id)
-        result = db.query(Ortholog).filter(Ortholog.to_gene == gene.id).all()
+        result = db.query(Ortholog).filter(Ortholog.to_gene == gene.gn_id).all()
         if not result:
             abort(404, message="Could not find any orthologs to the specified gene")
         return result
@@ -183,8 +183,8 @@ class get_orthologs_by_to_gene(Resource):
 @NS.route('/all_orthologs')
 class all_orthologs(Resource):
     '''
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms)
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms)
     '''
 
     @NS.doc('returns all orthologs')
@@ -197,14 +197,14 @@ class all_orthologs(Resource):
 class get_ortholog_by_id(Resource):
     '''
     :param ortho_id - id from ortholog table
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for any ortholog with specified ortho_id
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for any ortholog with specified ortho_id
     '''
 
     @NS.doc('returns orthologs with specified id')
     @NS.marshal_with(ortholog_model)
     def get(self, ortho_id):
-        result = db.query(Ortholog).filter(Ortholog.id == ortho_id).all()
+        result = db.query(Ortholog).filter(Ortholog.ort_id == ortho_id).all()
         if not result:
             abort(404, message="Could not find any orthologs with that ortholog id")
         return result
@@ -217,8 +217,8 @@ class get_orthologs_by_to_and_from_gene(Resource):
            from_ode_id - ode_gene_id of from gene
            to_ode_ref_id - ode_ref_id of to gene
            to_ode_id - ode_gene_id of to gene
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for any ortholog with specified from_gene and to_gene
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for any ortholog with specified from_gene and to_gene
     '''
 
     @NS.doc('returns all orthologs to and from the specified genes')
@@ -226,8 +226,8 @@ class get_orthologs_by_to_and_from_gene(Resource):
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id):
         from_gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
         to_gene = convertODEtoAGR(to_ode_ref_id, to_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.id,
-                                           Ortholog.to_gene == to_gene.id).all()
+        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.gn_id,
+                                           Ortholog.to_gene == to_gene.gn_id).all()
         if not result:
             abort(404, message="Could not find any orthologs with that from and to gene")
         return result
@@ -238,10 +238,10 @@ class get_orthologs_by_from_gene_and_best(Resource):
     '''
     :param from_ode_ref_id - ode_ref_id of from gene
            from_ode_id - ode_gene_id of from gene
-           best - boolean to query the is_best column in ortholog table
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for any ortholog from a specific gene and T or F for
-             the is_best column
+           best - boolean to query the ort_is_best column in ortholog table
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for any ortholog from a specific gene and T or F for
+             the ort_is_best column
     '''
 
     @NS.doc('returns all orthologs from specified gene and by the best variable')
@@ -254,10 +254,10 @@ class get_orthologs_by_from_gene_and_best(Resource):
         else:
             modified_best = True
         gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == gene.id,
-                                           Ortholog.is_best == modified_best).all()
+        result = db.query(Ortholog).filter(Ortholog.from_gene == gene.gn_id,
+                                           Ortholog.ort_is_best == modified_best).all()
         if not result:
-            abort(404, message="Could not find any orthologs with that from gene and is_best value")
+            abort(404, message="Could not find any orthologs with that from gene and ort_is_best value")
         return result
 
 
@@ -268,10 +268,10 @@ class get_orthologs_by_from_to_gene_and_best(Resource):
            from_ode_id - ode_gene_id of from gene
            to_ode_ref_id - ode_ref_id of to gene
            to_ode_id - ode_gene_id of to gene
-           best - boolean to query the is_best column in ortholog table
-    :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for any ortholog with specified from_gene and to_gene
-             and T or F for the is_best column
+           best - boolean to query the ort_is_best column in ortholog table
+    :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for any ortholog with specified from_gene and to_gene
+             and T or F for the ort_is_best column
     '''
 
     @NS.doc('returns all orthologs from and to specified gene and by the best variable')
@@ -286,12 +286,12 @@ class get_orthologs_by_from_to_gene_and_best(Resource):
         # find from and to gene objects
         from_gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
         to_gene = convertODEtoAGR(to_ode_ref_id, to_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.id,
-                                           Ortholog.to_gene == to_gene.id,
-                                           Ortholog.is_best == modified_best).all()
+        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.gn_id,
+                                           Ortholog.to_gene == to_gene.gn_id,
+                                           Ortholog.ort_is_best == modified_best).all()
         if not result:
             abort(404, message="Could not find any orthologs with that "
-                               "from_gene, to_gene and is_best value")
+                               "from_gene, to_gene and ort_is_best value")
         return result
 
 
@@ -303,10 +303,10 @@ class get_orthologs_by_from_to_gene_and_revised(Resource):
                from_ode_id - ode_gene_id of from gene
                to_ode_ref_id - ode_ref_id of to gene
                to_ode_id - ode_gene_id of to gene
-               best_revised - boolean to query the is_best_revised column in ortholog table
-        :return: all ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-                 and num_possible_match_algorithms) for any ortholog with specified from_gene and to_gene
-                 and T or F for the is_best_revised column
+               best_revised - boolean to query the ort_is_best_revised column in ortholog table
+        :return: all ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+                 and ort_num_possible_match_algorithms) for any ortholog with specified from_gene and to_gene
+                 and T or F for the ort_is_best_revised column
         '''
 
     @NS.doc('returns all orthologs from and to specified gene and by the best_revised variable')
@@ -319,12 +319,12 @@ class get_orthologs_by_from_to_gene_and_revised(Resource):
             inp = True
         from_gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
         to_gene = convertODEtoAGR(to_ode_ref_id, to_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.id,
-                                           Ortholog.to_gene == to_gene.id,
-                                           Ortholog.is_best_revised == inp).all()
+        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.gn_id,
+                                           Ortholog.to_gene == to_gene.gn_id,
+                                           Ortholog.ort_is_best_revised == inp).all()
         if not result:
             abort(404, message="Could not find any orthologs with that from_gene,"
-                               " to_gene and is_best_revised value")
+                               " to_gene and ort_is_best_revised value")
         return result
 
 
@@ -338,8 +338,8 @@ class get_from_gene_of_ortholog_by_id(Resource):
     @NS.doc('return from_gene object of a ortholog')
     @NS.marshal_with(gene_model)
     def get(self, ortho_id):
-        ortholog = db.query(Ortholog).filter(Ortholog.id == ortho_id).first()
-        result = db.query(Gene).filter(Gene.id == ortholog.from_gene).first()
+        ortholog = db.query(Ortholog).filter(Ortholog.ort_id == ortho_id).first()
+        result = db.query(Gene).filter(Gene.gn_id == ortholog.from_gene).first()
         if not ortholog:
             abort(404, message="Could not find any orthologs with the given parameters")
         return result
@@ -355,8 +355,8 @@ class get_to_gene_of_ortholog_by_id(Resource):
     @NS.doc('return to_gene object of a specific ortholog')
     @NS.marshal_with(gene_model)
     def get(self, ortho_id):
-        ortho = db.query(Ortholog).filter(Ortholog.id == ortho_id).first()
-        result = db.query(Gene).filter(Gene.id == ortho.to_gene).first()
+        ortho = db.query(Ortholog).filter(Ortholog.ort_id == ortho_id).first()
+        result = db.query(Gene).filter(Gene.gn_id == ortho.to_gene).first()
         if not ortho:
             abort(404, message="Could not find any orthologs with the given parameters")
         return result
@@ -386,7 +386,7 @@ class get_genes_by_prefix(Resource):
     @NS.marshal_with(gene_model)
     def get(self, prefix):
         prefix = prefix.upper()
-        result = db.query(Gene).filter(Gene.id_prefix == prefix).all()
+        result = db.query(Gene).filter(Gene.gn_prefix == prefix).all()
         if not result:
             abort(404, message="Could not find any genes with that prefix")
         return result
@@ -420,8 +420,8 @@ class get_genes_by_species(Resource):
     @NS.doc('returns ode_gene_ids for genes of a certain species')
     @NS.marshal_with(gene_model)
     def get(self, species_name):
-        species = db.query(Species).filter(Species.name == species_name).first()
-        genes = db.query(Gene).filter(Gene.species == species.id).all()
+        species = db.query(Species).filter(Species.sp_name == species_name).first()
+        genes = db.query(Gene).filter(Gene.species == species.sp_id).all()
         if not genes:
             abort(404, message="Could not find any genes with that species")
         return genes
@@ -438,17 +438,17 @@ class get_gene_species_name(Resource):
     @NS.doc('returns the species of a specified gene')
     def get(self, ode_ref_id, ode_id):
         gene = convertODEtoAGR(ode_ref_id, ode_id)
-        result = db.query(Species).filter(Species.id == gene.species).first()
+        result = db.query(Species.sp_name).filter(Species.sp_id == gene.species).first()
         if not result:
-            abort(404, message="Species not found for that reference_id")
-        return result.name
+            abort(404, message="Species not found for that gn_ref_id")
+        return result
 
 
 # species Table Endpoints
 @NS.route('/all_species')
 class all_species(Resource):
     '''
-    :return: species info (id, name, taxon_id) for all species
+    :return: species info (id, name, sp_taxon_id) for all species
     '''
 
     @NS.doc('return all species')
@@ -461,13 +461,13 @@ class all_species(Resource):
 class get_species_by_id(Resource):
     '''
     :param: s_id
-    :return: species info (id, name, taxon_id) for species by id
+    :return: species info (id, name, sp_taxon_id) for species by id
     '''
 
     @NS.doc('return species specified by id')
     @NS.marshal_with(species_model)
     def get(self, s_id):
-        return db.query(Species).filter(Species.id == s_id).all()
+        return db.query(Species).filter(Species.sp_id == s_id).all()
 
 
 # ortholog_algorithms Table Endpoints
@@ -475,14 +475,14 @@ class get_species_by_id(Resource):
 class get_orthologs_by_num_algoritms(Resource):
     '''
     :param: num - number of algoirthms
-    :return: ortholog info ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for all orthologs with num_algorithms
+    :return: ortholog info ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for all orthologs with num_algorithms
     '''
 
-    @NS.doc('return all orthologs with specified num_possible_match_algorithms')
+    @NS.doc('return all orthologs with specified ort_num_possible_match_algorithms')
     @NS.marshal_with(ortholog_model)
     def get(self, num):
-        result = db.query(Ortholog).filter(Ortholog.num_possible_match_algorithms == num).all()
+        result = db.query(Ortholog).filter(Ortholog.ort_num_possible_match_algorithms == num).all()
         if not result:
             abort(404, message="Could not find any orthologs with that number "
                                "of possible match algorithms")
@@ -493,16 +493,16 @@ class get_orthologs_by_num_algoritms(Resource):
 class get_ortholog_by_algorithm(Resource):
     '''
     :param: algorithm - str algorithm by name
-    :return: ortholog info ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for all orthologs with that algorithm
+    :return: ortholog info ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for all orthologs with that algorithm
     '''
 
     @NS.doc('return all orthologs for an algorithm')
     @NS.marshal_with(ortholog_algorithms_model)
     def get(self, algorithm):
         # get algorithm id from string of algorithm name
-        algo_id = (db.query(Algorithm).filter(Algorithm.name == algorithm).first()).id
-        orthologs = db.query(OrthologAlgorithms).filter(OrthologAlgorithms.algorithm_id == algo_id).all()
+        algo_id = db.query(Algorithm.alg_id).filter(Algorithm.alg_name == algorithm).first()
+        orthologs = db.query(OrthologAlgorithms).filter(OrthologAlgorithms.alg_id == algo_id).all()
         return orthologs
 
 
@@ -511,20 +511,20 @@ class get_ortholog_by_algorithm(Resource):
 class get_ortholog_by_from_species(Resource):
     '''
     :param: species_name - str, case sensitive, from gene species
-    :return: ortholog info ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for all orthologs from given species
+    :return: ortholog info ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for all orthologs from given species
     '''
 
     @NS.doc('return all orthologs from given species')
     @NS.marshal_with(ortholog_model)
     def get(self, species_name):
         # get species id from species_name string
-        species_id = (db.query(Species).filter(Species.name == species_name).first()).id
+        species_id = db.query(Species.sp_id).filter(Species.sp_name == species_name).first()
         # find all genes with specified species and make a list of all the gene ids
         genes = db.query(Gene).filter(Gene.species == species_id).all()
         gene_ids = []
         for g in genes:
-            gene_ids.append(g.id)
+            gene_ids.append(g.gn_id)
         # query orthologs for any from genes in the list of gene_ids
         from_orthos = db.query(Ortholog).filter(Ortholog.from_gene.in_(gene_ids)).all()
         if not from_orthos:
@@ -536,18 +536,18 @@ class get_ortholog_by_from_species(Resource):
 class get_ortholog_by_to_species(Resource):
     '''
     :param: species_name - str, case sensitive, to gene species
-    :return: ortholog info ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for all orthologs to given species
+    :return: ortholog info ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for all orthologs to given species
     '''
 
     @NS.doc('return all orthologs to a given species')
     @NS.marshal_with(ortholog_model)
     def get(self, species_name):
-        species_id = (db.query(Species).filter(Species.name == species_name).first()).id
+        species_id = db.query(Species.sp_id).filter(Species.sp_name == species_name).first()
         genes = db.query(Gene).filter(Gene.species == species_id).all()
         gene_ids = []
         for g in genes:
-            gene_ids.append(g.id)
+            gene_ids.append(g.gn_id)
         to_orthos = db.query(Ortholog).filter(Ortholog.to_gene.in_(gene_ids)).all()
         if not to_orthos:
             abort(404, message="Could not find any matching orthologs")
@@ -559,16 +559,16 @@ class get_ortholog_by_to_and_from_species(Resource):
     '''
     :param: to_sepcies - str, case sensitive, to gene species name
             from_species - str, case sensitive, from gene species name
-    :return: ortholog info ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for all orthologs to and from the given species
+    :return: ortholog info ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for all orthologs to and from the given species
     '''
 
     @NS.doc('return all orthologs to and from given species')
     @NS.marshal_with(ortholog_model)
     def get(self, to_species, from_species):
         # get both species ids
-        to_species_id = (db.query(Species).filter(Species.name == to_species).first()).id
-        from_species_id = (db.query(Species).filter(Species.name == from_species).first()).id
+        to_species_id = db.query(Species.sp_id).filter(Species.sp_name == to_species).first()
+        from_species_id = db.query(Species.sp_id).filter(Species.sp_name == from_species).first()
 
         # create a list of all gene_ids to and from the species
         to_genes = db.query(Gene).filter(Gene.species == to_species_id).all()
@@ -576,9 +576,9 @@ class get_ortholog_by_to_and_from_species(Resource):
         to_gene_ids = []
         from_gene_ids = []
         for g in to_genes:
-            to_gene_ids.append(g.id)
+            to_gene_ids.append(g.gn_id)
         for g in from_genes:
-            from_gene_ids.append(g.id)
+            from_gene_ids.append(g.gn_id)
 
         orthos = db.query(Ortholog).filter(Ortholog.to_gene.in_(to_gene_ids),
                                            Ortholog.from_gene.in_(from_gene_ids)).all()
@@ -593,8 +593,8 @@ class get_ortholog_by_to_from_species_and_algorithm(Resource):
     :param: to_sepcies - str, case sensitive, to gene species name
             from_species - str, case sensitive, from gene species name
             algorithm - str, algoirthm name
-    :return: ortholog info ortholog info (id, from_gene, to_gene, is_best, is_best_revised, is_best_adjusted,
-             and num_possible_match_algorithms) for all orthologs to and from the given species
+    :return: ortholog info ortholog info (id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
+             and ort_num_possible_match_algorithms) for all orthologs to and from the given species
              and by algorithm
     '''
 
@@ -602,35 +602,35 @@ class get_ortholog_by_to_from_species_and_algorithm(Resource):
     @NS.marshal_with(ortholog_model)
     def get(self, to_species, from_species, algorithm):
 
-        to_species_id = (db.query(Species).filter(Species.name == to_species).first()).id
-        from_species_id = (db.query(Species).filter(Species.name == from_species).first()).id
+        to_species_id = db.query(Species.sp_id).filter(Species.sp_name == to_species).first()
+        from_species_id = db.query(Species.sp_id).filter(Species.sp_name == from_species).first()
 
-        to_genes = db.query(Gene).filter(Gene.species == to_species_id).all()
-        from_genes = db.query(Gene).filter(Gene.species == from_species_id).all()
+        to_genes = db.query(Gene.gn_id).filter(Gene.species == to_species_id).all()
+        from_genes = db.query(Gene.gn_id).filter(Gene.species == from_species_id).all()
 
         to_gene_ids = []
         from_gene_ids = []
 
         for g in to_genes:
-            to_gene_ids.append(g.id)
+            to_gene_ids.append(g)
         for g in from_genes:
-            from_gene_ids.append(g.id)
+            from_gene_ids.append(g)
 
         # get algorithm id from algorithm string
-        algo_id = (db.query(Algorithm).filter(Algorithm.name == algorithm).first()).id
+        algo_id = db.query(Algorithm.alg_id).filter(Algorithm.alg_name == algorithm).first()
 
-        orthos_algorithm = db.query(OrthologAlgorithms).filter(OrthologAlgorithms.algorithm_id == algo_id).all()
+        orthos_algorithm = db.query(OrthologAlgorithms).filter(OrthologAlgorithms.alg_id == algo_id).all()
 
         # get list of ortholog ids using the algorithm
         ortho_ids = []
         for o in orthos_algorithm:
-            ortho_ids.append(o.ortholog_id)
+            ortho_ids.append(o.ort_id)
 
         # filter for Orthologs with from and to genes with given species and orthologs
         # using specified algorithm
         orthos = db.query(Ortholog).filter(Ortholog.to_gene.in_(to_gene_ids),
                                            Ortholog.from_gene.in_(from_gene_ids),
-                                           Ortholog.id.in_(ortho_ids)).all()
+                                           Ortholog.ort_id.in_(ortho_ids)).all()
 
         if not orthos:
             abort(404, message="Could not find any matching orthologs")
@@ -652,7 +652,7 @@ class agr_to_geneweaver_species(Resource):
 
     @NS.doc('translate an AGR species id to the corresponding species id in the geneweaver database')
     def get(self, species_id):
-        agr_name = (db.query(Species).filter(Species.id == species_id).first()).name
+        agr_name = db.query(Species.sp_name).filter(Species.sp_id == species_id).first()
         geneweaver_id = (db.query(Geneweaver_Species).filter(Geneweaver_Species.sp_name == agr_name).first()).sp_id
         if not geneweaver_id:
             abort(404, message="No matching species_id in the Geneweaver Species Table")
@@ -669,10 +669,10 @@ class id_convert_agr_to_ode(Resource):
 
     @NS.doc('converts an agr gene id to the corresponding ode_gene_ide')
     def get(self, agr_gene_id):
-        agr_gene = db.query(Gene).filter(Gene.id == agr_gene_id).first()
+        agr_gene = db.query(Gene).filter(Gene.gn_id == agr_gene_id).first()
         # edit the ref id to be in the format of the ode_ref_id, then search geneweaver.gene
-        ref = agr_gene.reference_id
-        prefix = agr_gene.id_prefix
+        ref = agr_gene.gn_ref_id
+        prefix = agr_gene.gn_prefix
         if prefix == "RGD":
             ref = ref.replace(":", "")
         elif prefix == "WB" or prefix == "FB" or prefix == "SGD" or prefix == "ZFIN":
@@ -696,7 +696,7 @@ class id_convert_ode_to_agr(Resource):
     @NS.doc('converts an ode gene id to the corresponding agr gene id')
     def get(self, ode_gene_id, ode_ref_id):
         agr_gene = convertODEtoAGR(ode_ref_id, ode_gene_id)
-        agr_id = (db.query(Gene).filter(Gene.reference_id == agr_gene.reference_id).first()).id
+        agr_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == agr_gene.gn_ref_id).first()
         if not agr_id:
             abort(404, message="No matching agr gene found")
         return agr_id
@@ -771,14 +771,14 @@ class get_ode_gene_by_species(Resource):
 @NS.route('/HumanToMouse')
 class HumanToMouse(Resource):
     '''
-    :return: ortholog info (m_id, m_symbol, m_ensembl_id, h_id, h_symbol,
-             h_ensembl_id, is_mouse_to_human) for human to mouse orthologs
+    :return: ortholog info (mhm_m_id, mhm_m_symbol, mhm_m_ensembl_id, mhm_h_id, mhm_h_symbol,
+             mhm_h_ensembl_id, mhm_is_mouse_to_human) for human to mouse orthologs
     '''
 
     @NS.doc('returns all orthologs from human to mouse with Ensembl IDs')
     @NS.marshal_with(mouse_human_model)
     def get(self):
-        orthologs = db.query(Mouse_Human).filter(Mouse_Human.is_mouse_to_human
+        orthologs = db.query(Mouse_Human).filter(Mouse_Human.mhm_is_mouse_to_human
                                                  == False).all()
         if not orthologs:
             abort(404, message="No orthologs were found")
@@ -788,14 +788,14 @@ class HumanToMouse(Resource):
 @NS.route('/MouseToHuman')
 class MouseToHuman(Resource):
     '''
-    :return: ortholog info (m_id, m_symbol, m_ensembl_id, h_id, h_symbol,
-             h_ensembl_id, is_mouse_to_human) for mouse to human orthologs
+    :return: ortholog info (mhm_m_id, mhm_m_symbol, mhm_m_ensembl_id, mhm_h_id, mhm_h_symbol,
+             mhm_h_ensembl_id, mhm_is_mouse_to_human) for mouse to human orthologs
     '''
 
     @NS.doc('returns all orthologs from mouse to human with Ensembl IDs')
     @NS.marshal_with(mouse_human_model)
     def get(self):
-        orthologs = db.query(Mouse_Human).filter(Mouse_Human.is_mouse_to_human
+        orthologs = db.query(Mouse_Human).filter(Mouse_Human.mhm_is_mouse_to_human
                                                  == True).all()
         if not orthologs:
             abort(404, message="No orthologs were found")
@@ -805,8 +805,8 @@ class MouseToHuman(Resource):
 @NS.route('/get_mouse_human_all')
 class get_mouse_human_all(Resource):
     '''
-    :return: ortholog info (m_id, m_symbol, m_ensembl_id, h_id, h_symbol,
-             h_ensembl_id, is_mouse_to_human) any mouse to human or human
+    :return: ortholog info (mhm_m_id, mhm_m_symbol, mhm_m_ensembl_id, mhm_h_id, mhm_h_symbol,
+             mhm_h_ensembl_id, mhm_is_mouse_to_human) any mouse to human or human
              to mouse ortholog
     '''
 
@@ -819,6 +819,9 @@ class get_mouse_human_all(Resource):
             abort(404, message="No orthologs were found")
         return orthologs
 
+#################################################
+# GW-AGR Integration Endpoints
+#################################################
 
 def convert_ode_ref_to_agr(ode_ref):
     ref = ode_ref
@@ -838,15 +841,9 @@ def convert_ode_ref_to_agr(ode_ref):
         ref = ode_ref[:3] + ":" + ode_ref[3:]
     return ref
 
-
-#################################################
-# GW-AGR Integration Endpoints
-#################################################
-
 def convert_species_ode_to_agr(ode_sp_id):
     sp_dict = {1: 1, 2: 7, 3: 9, 4: 6, 5: 12, 8: 4, 9: 3}
     return sp_dict[ode_sp_id]
-
 
 def convert_agr_ref_to_ode(agr_ref):
     ref = agr_ref
@@ -857,6 +854,25 @@ def convert_agr_ref_to_ode(agr_ref):
         ind = ref.find(":") + 1
         ref = ref[ind:]
     return ref
+
+parser = reqparse.RequestParser()
+
+@NS.route('/get_ortho_id_if_gene_is_ortholog/<ode_gene_id>/<ode_ref_id>')
+class get_id_by_from_gene(Resource):
+    '''
+    :param ode_ref_id - ode_ref_id of to gene
+           ode_id - ode_gene_id of to gene
+    :return: list of ortholog ids that have specified gene as the from_gene
+    '''
+
+    @NS.doc('returns the ortholog id filtering by the ortholog from gene, including the gdb_id')
+    def get(self, ode_gene_id, ode_ref_id):
+        ref = convert_ode_ref_to_agr(ode_ref_id)
+        # find matching agr gene and filter the ortholog table with the agr gene id
+        agr_gene_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == ref).first()
+        ortho_id = (
+            db.query(Ortholog.ort_id).filter((Ortholog.from_gene == agr_gene_id) | (Ortholog.to_gene == agr_gene_id))).all()
+        return ortho_id
 
 
 @NS.route('/get_ortholog_by_from_gene_and_gdb/<from_ode_gene_id>/<gdb_id>')
@@ -893,13 +909,13 @@ class get_ortholog_by_from_gene_and_gdb(Resource):
             from_gene_refs.append(ref)
 
         # a list of agr gene ids that match the ref ids
-        from_gene_ids = db.query(Gene.id).filter(Gene.reference_id.in_(from_gene_refs)).all()
+        from_gene_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(from_gene_refs)).all()
 
         # a list of to_gene ids where the from_gene value is in the from_genes list of ids
         to_gene_ids = db.query(Ortholog.to_gene).filter(Ortholog.from_gene.in_(from_gene_ids)).all()
 
         # agr ref ids of to_genes
-        to_gene_refs = db.query(Gene.reference_id).filter(Gene.id.in_(to_gene_ids), Gene.species == agr_species).all()
+        to_gene_refs = db.query(Gene.gn_ref_id).filter(Gene.gn_id.in_(to_gene_ids), Gene.species == agr_species).all()
 
         # translate the agr format ref_ids back to ode format
         to_gene_ode_refs = []
@@ -933,74 +949,17 @@ class if_ode_gene_has_ortholog(Resource):
             agr_refs.append(convert_ode_ref_to_agr(ref))
 
         # find ortholog ids that are from the gene with given ode_gene_id
-        agr_gene_ids = db.query(Gene.id).filter(Gene.reference_id.in_(agr_refs)).all()
-        from_gene = db.query(Ortholog.id).filter(Ortholog.from_gene.in_(agr_gene_ids)).all()
+        agr_gene_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(agr_refs)).all()
+        from_gene = db.query(Ortholog.ort_id).filter(Ortholog.from_gene.in_(agr_gene_ids)).all()
 
         # if the agr_gene_ids are not in any of the ortholog's from_gene or to_gene columns,
         #   the gene is not an ortholog
         if (len(from_gene) == 0):
-            to_gene = db.query(Ortholog.id).filter(Ortholog.to_gene.in_(agr_gene_ids)).all()
+            to_gene = db.query(Ortholog.ort_id).filter(Ortholog.to_gene.in_(agr_gene_ids)).all()
             if (len(to_gene) == 0):
                 is_ortholog = 0
 
         return is_ortholog
-
-
-@NS.route('/get_ortho_id_if_gene_is_ortholog/<ode_gene_id>/<ode_ref_id>')
-class get_id_by_from_gene(Resource):
-    '''
-    :param ode_ref_id - ode_ref_id of to gene
-           ode_id - ode_gene_id of to gene
-    :return: list of ortholog ids that have specified gene as the from_gene
-    '''
-
-    @NS.doc('returns the ortholog id filtering by the ortholog from gene, including the gdb_id')
-    def get(self, ode_gene_id, ode_ref_id):
-        ref = convert_ode_ref_to_agr(ode_ref_id)
-        # find matching agr gene and filter the ortholog table with the agr gene id
-        agr_gene_id = (db.query(Gene).filter(Gene.reference_id == ref).first()).id
-        ortho_id = (
-            db.query(Ortholog.id).filter((Ortholog.from_gene == agr_gene_id) | (Ortholog.to_gene == agr_gene_id))).all()
-        return ortho_id
-
-
-parser = reqparse.RequestParser()
-@NS.route('/transpose_genes_by_species', methods=['GET', 'POST'])
-class transpose_genes_by_homology(Resource):
-    '''
-    :params: genes - taken through parser, list of ode_ref_ids to be tranposed
-             species - newSpecies that genes will be transposed to through orthology
-    :return: list of ode_ref_ids of transposed genes, genes that are orthologs to the
-             original genes but are of the specified newSpecies
-    '''
-
-    @NS.expect(parser)
-    def get(self):
-        parser.add_argument('genes', type=str, action="append")
-        parser.add_argument('species', type=int)
-        data = parser.parse_args()
-        sp = data['species']
-
-        if sp not in [1, 2, 3, 4, 5, 8, 9]:
-            abort(404, message="No matching genes with that species")
-        else:
-            sp = convert_species_ode_to_agr(sp)
-
-        refs = []
-        for g in data['genes']:
-            refs.append(convertODEtoAGR(g))
-
-        from_gene_ids = db.query(Gene.id).filter(Gene.reference_id.in_(refs)).all()
-
-        to_gene_ids = db.query(Ortholog.to_gene).filter(Ortholog.from_gene.in_(from_gene_ids)).all()
-        to_gene_filtered_refs = db.query(Gene.reference_id).filter(Gene.id.in_(to_gene_ids),
-                                                                   Gene.species == sp).all()
-
-        ode_refs = []
-        for r in to_gene_filtered_refs:
-            ode_refs.append(convert_agr_ref_to_ode(r[0]))
-
-        return ode_refs
 
 @NS.route('/get_intersect_by_orthology',methods=['GET','POST'])
 class get_intersect_by_orthology(Resource):
@@ -1009,7 +968,7 @@ class get_intersect_by_orthology(Resource):
         '''
         :param: gs1 - taken from parser, list of gene info in geneset 1
                 gs2 - taken from parser, list of gene info in geneset 2
-        :return: gene info (gi_symbol, ode_gene_id, and ortholog_id) of
+        :return: gene info (gi_symbol, ode_gene_id, and ort_id) of
                  genes that intersect both genesets
         '''
 
@@ -1035,7 +994,7 @@ class get_intersect_by_orthology(Resource):
             # get agr id of gene 1
             ref1 = str(gene1_info[1])
             gene_1_ref = convert_ode_ref_to_agr(ref1)
-            gene1_id = db.query(Gene.id).filter(Gene.reference_id == gene_1_ref).first()
+            gene1_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_1_ref).first()
 
             for j in range(1, gs2_len):
                 ndx2 = j * 4
@@ -1045,10 +1004,10 @@ class get_intersect_by_orthology(Resource):
                 # get agr id of gene 2
                 ref2 = str(gene2_info[1])
                 gene_2_ref = convert_ode_ref_to_agr(ref2)
-                gene2_id = db.query(Gene.id).filter(Gene.reference_id == gene_2_ref).first()
+                gene2_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_2_ref).first()
 
                 # check orthologs with gene1 as from_gene and gene2 as to_gene
-                ortho_1_2 = db.query(Ortholog.id).filter(Ortholog.from_gene == gene1_id,
+                ortho_1_2 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene1_id,
                                                       Ortholog.to_gene == gene2_id).all()
 
                 if len(ortho_1_2) != 0:
@@ -1056,7 +1015,7 @@ class get_intersect_by_orthology(Resource):
                     genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
                 else:
                     # check orthologs with gene2 as from_gene and gene1 as to_gene
-                    ortho_2_1 = db.query(Ortholog.id).filter(Ortholog.from_gene == gene2_id,
+                    ortho_2_1 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene2_id,
                                                           Ortholog.to_gene == gene1_id).all()
                     if len(ortho_2_1) != 0:
                         gene_1_ortho = True
@@ -1066,3 +1025,40 @@ class get_intersect_by_orthology(Resource):
             if gene_1_ortho:
                 genes.append([gene1_info[0], gene1_info[2], gene1_info[3]])
         return genes
+
+@NS.route('/transpose_genes_by_species', methods=['GET', 'POST'])
+class transpose_genes_by_homology(Resource):
+    '''
+    :params: genes - taken through parser, list of ode_ref_ids to be tranposed
+             species - newSpecies that genes will be transposed to through orthology
+    :return: list of ode_ref_ids of transposed genes, genes that are orthologs to the
+             original genes but are of the specified newSpecies
+    '''
+
+    @NS.expect(parser)
+    def get(self):
+        parser.add_argument('genes', type=str, action="append")
+        parser.add_argument('species', type=int)
+        data = parser.parse_args()
+        sp = data['species']
+
+        if sp not in [1, 2, 3, 4, 5, 8, 9]:
+            abort(404, message="No matching genes with that species")
+        else:
+            sp = convert_species_ode_to_agr(sp)
+
+        refs = []
+        for g in data['genes']:
+            refs.append(convertODEtoAGR(g))
+
+        from_gene_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(refs)).all()
+
+        to_gene_ids = db.query(Ortholog.to_gene).filter(Ortholog.from_gene.in_(from_gene_ids)).all()
+        to_gene_filtered_refs = db.query(Gene.gn_ref_id).filter(Gene.gn_id.in_(to_gene_ids),
+                                                                   Gene.species == sp).all()
+
+        ode_refs = []
+        for r in to_gene_filtered_refs:
+            ode_refs.append(convert_agr_ref_to_ode(r[0]))
+
+        return ode_refs

@@ -11,53 +11,53 @@ Base = declarative_base()
 
 
 class Gene(Base):
-    __tablename__ = "gene"
+    __tablename__ = "gn_gene"
 
-    id = Column(Integer, primary_key=True)
-    reference_id = Column('ref_id', String, unique=True)
-    id_prefix = Column('prefix', String)
-    species = Column(ForeignKey("species.id"))
+    gn_id = Column(Integer, primary_key=True) # id
+    gn_ref_id = Column('gn_ref_id', String, unique=True)
+    gn_prefix = Column('gn_prefix', String)
+    sp_id = Column(ForeignKey("sp_species.sp_id")) # species
 
 
 class Species(Base):
-    __tablename__ = "species"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    taxon_id = Column(Integer, nullable=False)
+    __tablename__ = "sp_species"
+    sp_id = Column(Integer, primary_key=True) # id
+    sp_name = Column(String, nullable=False) # name
+    sp_taxon_id = Column(Integer, nullable=False)
 
 
-ortholog_algorithms = Table("ortholog_algorithms", Base.metadata,
-                            Column("id", Integer, primary_key=True),
-                            Column("algorithm_id", Integer, ForeignKey("algorithm.id")),
-                            Column("ortholog_id", Integer, ForeignKey("ortholog.id")))
+ora_ortholog_algorithms = Table("ora_ortholog_algorithms", Base.metadata,
+                            Column("ora_id", Integer, primary_key=True), # id
+                            Column("alg_id", Integer, ForeignKey("alg_algorithm.alg_id")),
+                            Column("ort_id", Integer, ForeignKey("ort_ortholog.ort_id")))
 
 
 class Ortholog(Base):
-    __tablename__ = "ortholog"
-    id = Column(Integer, primary_key=True)
-    from_gene = Column(ForeignKey("gene.id"))
-    to_gene = Column(ForeignKey("gene.id"))
-    is_best = Column(Boolean)
-    is_best_revised = Column(Boolean)
-    is_best_is_adjusted = Column(Boolean)
-    num_possible_match_algorithms = Column(Integer)
+    __tablename__ = "ort_ortholog"
+    ort_id = Column(Integer, primary_key=True) # id
+    from_gene = Column(ForeignKey("gn_gene.gn_id"))
+    to_gene = Column(ForeignKey("gn_gene.gn_id"))
+    ort_is_best = Column(Boolean)
+    ort_is_best_revised = Column(Boolean)
+    ort_is_best_is_adjusted = Column(Boolean)
+    ort_num_possible_match_algorithms = Column(Integer)
     algorithms = relationship("Algorithm",
-                              secondary=ortholog_algorithms,
+                              secondary=ora_ortholog_algorithms,
                               backref="orthologs")
 
 
 class Algorithm(Base):
-    __tablename__ = "algorithm"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
+    __tablename__ = "alg_algorithm"
+    alg_id = Column(Integer, primary_key=True) # id
+    alg_name = Column(String, unique=True) # name
 
 
 # This format of model allowed for mapping between the algorithm id and orthorithm id. Errors
 #    were thrown otherwise. This could be improved upon in the future.
 class OrthologAlgorithms(object):
-    def __init__(self, algorithm_id, ortholog_id):
-        self.algorithm_id = algorithm_id
-        self.ortholog_id = ortholog_id
+    def __init__(self, alg_id, ort_id):
+        self.alg_id = alg_id
+        self.ort_id = ort_id
 
 
 # The following models correspond to datatables in the geneweaver schema that come from the geneweaver database
@@ -105,15 +105,15 @@ class Geneweaver_GeneDB(Base):
 # The PrimaryKeyConstraint is not present in the table, but it must be added to prevent inaccuracies in running
 #   queries.
 class Mouse_Human(Base):
-    __tablename__ = "mouse_human_map"
-    m_id = Column(VARCHAR)
-    m_symbol = Column(VARCHAR)
-    m_ensembl_id = Column(Integer)
-    h_id = Column(VARCHAR)
-    h_symbol = Column(VARCHAR)
-    h_ensembl_id = Column(Integer)
-    is_mouse_to_human = Column(Boolean)
-    __table_args__ = (PrimaryKeyConstraint('m_id', 'h_id'),)
+    __tablename__ = "mhm_mouse_human_map"
+    mhm_m_ref_id = Column(VARCHAR)
+    mhm_m_symbol = Column(VARCHAR)
+    mhm_m_ensembl_id = Column(Integer)
+    mhm_h_ref_id = Column(VARCHAR)
+    mhm_h_symbol = Column(VARCHAR)
+    mhm_h_ensembl_id = Column(Integer)
+    mhm_is_mouse_to_human = Column(Boolean)
+    __table_args__ = (PrimaryKeyConstraint('mhm_m_ref_id', 'mhm_h_ref_id'),)
 
 
-mapper(OrthologAlgorithms, ortholog_algorithms)
+mapper(OrthologAlgorithms, ora_ortholog_algorithms)
