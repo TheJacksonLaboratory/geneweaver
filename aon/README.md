@@ -30,58 +30,37 @@ vim .env
 
 ### Current Development Usage
 
+If an agr database does not exist, create an empty database to store the agr data.
+
+The service connects to the geneweaver database to access the tables gene, species, and genedb.
+The database URLs in flask/src/config.py should be updated to point to the revelant databases.
+The database URL in flask/alembic.ini should point to the agr database.
+
 If the AGR tables have not been created, create them with alembic from the flask directory:
 ```
 cd flask
 alembic upgrade head
 ```
-Download the most recent ORTHO_FILE from https://www.alliancegenome.org/downloads#orthology as TSV.
 
-Make sure to set the `ORTHO_FILE` constant to tell the module which file to load.
+Download the most recent ORTHO_FILE from https://www.alliancegenome.org/downloads#orthology as TSV.
+Make sure to set the `ORTHO_FILE` constant in flask/src/service.py to tell the module which file to load.
 
 For now, database loading is achieved by calling the service.py module as a script:
 ```
 python flask/src/service.py
 ```
 
-Then, to fill the tables in the geneweaver schema and the mouse_human_map table, load the data from the migration scripts:
+The mouse_human_map table was created using the ensembl API, which took quite a while to create, so for now, the mouse_human_map table is loaded from a sql file in the migration folder.
+
+The following command fills the mouse_human_map table, but this can be improved in the future. The user and database name can be adjusted to fit the appropriate database:
 ```
 cd migration
-psql -U user -data-only -d database -t geneweaver.species -f geneweaver_species.sql
-psql -U user -data-only -d database -t geneweaver.gene_db -f geneweaver_genedb.sql
-psql -U user -data-only -d database -t geneweaver.gene -f geneweaver_gene.sql
 psql -U user -data-only -d database -t public.mouse_human_map -f mouse_human_map.sql
 ```
-Edit the command information to locate the correct database.
 
-### Service Usage
-The flask service is managed with the manage.py module. Depending on the template options you selected, some features 
-may be unavailable.
-
-It can be accessed with either:
-```bash
-python -m manage --help
+The agr database should be filled. The following command runs the service:
 ```
-or
-```bash
-python manage.py --help
-```
-
-```bash
-usage: manage.py [-?] {run,db,start_workers,test,test_xml,shell,runserver} ...
-
-positional arguments:
-  {run,db,start_workers,test,test_xml,shell,runserver}
-    run                 The main entrypoint to running the app :return: None
-    celery              Start the celery worker(s)
-    test                Run unit tests
-    test_xml            Runs the unit tests specifically for bamboo CI/CD
-    shell               Runs a Python shell inside Flask application context.
-    runserver           Runs the Flask development server i.e. app.run()
-
-optional arguments:
-  -?, --help            show this help message and exit
-
+python flask/app.py
 ```
 
 -----

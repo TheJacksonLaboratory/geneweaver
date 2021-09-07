@@ -72,27 +72,29 @@ mouse_human_model = NS.model('mhm_mouse_human_map', {
 # params: ode_ref - ode_ref_id of gene
 #         ode_id - ode_gene_id of gene
 # returns: agr gene object
-def convertODEtoAGR(ode_ref, ode_id):
+def convertODEtoAGR(ode_ref, gdb_id):
     # convert the ref_ids into how the agr ref ids are stored, same values but formatted
     #    slightly different in each database
     ref = ode_ref
-    if ode_ref[0] == 'W':
-        prefix = "WB"
-        ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'F':
-        prefix = "FB"
-        ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'S':
-        prefix = "SGD"
-        ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'Z':
-        prefix = "ZFIN"
-        ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'R':
-        ref = ode_ref[:3] + ":" + ode_ref[3:]
-
-    agr = db.query(Gene).filter(Gene.gn_ref_id == ref).first()
-    return agr
+    gdb_id = int(gdb_id)
+    if gdb_id in [10, 11, 12, 13, 14, 15, 16]:
+        if gdb_id == 15:
+            prefix = "WB"
+            ref = prefix + ":" + ode_ref
+        if gdb_id == 14:
+            prefix = "FB"
+            ref = prefix + ":" + ode_ref
+        if gdb_id == 16:
+            prefix = "SGD"
+            ref = prefix + ":" + ode_ref
+        if gdb_id == 13:
+            prefix = "ZFIN"
+            ref = prefix + ":" + ode_ref
+        if gdb_id == 12:
+            ref = ode_ref[:3] + ":" + ode_ref[3:]
+    return ref
+    # agr = db.query(Gene).filter(Gene.gn_ref_id == ref).first()
+    # return agr
 
 
 # description: converts an agr gene_id into the ode gene_id
@@ -154,8 +156,11 @@ class get_orthologs_by_from_gene(Resource):
     @NS.marshal_with(ortholog_model)
     def get(self, ode_ref_id, ode_id):
         # find gene and search orthologs based on gene_id
-        gene = convertODEtoAGR(ode_ref_id, ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == gene.gn_id).all()
+        gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_id,
+                                                   Geneweaver_Gene.ode_ref_id == ode_ref_id).first()).gdb_id
+        agr_ref = convertODEtoAGR(ode_ref_id, gdb_id)
+        agr_gene_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == agr_ref).first()
+        result = db.query(Ortholog).filter(Ortholog.from_gene == agr_gene_id).all()
         if not result:
             abort(404, message="Could not find any orthologs from the specified gene")
         return result
@@ -173,8 +178,11 @@ class get_orthologs_by_to_gene(Resource):
     @NS.doc('returns orthologs to a specified gene')
     @NS.marshal_with(ortholog_model)
     def get(self, ode_ref_id, ode_id):
-        gene = convertODEtoAGR(ode_ref_id, ode_id)
-        result = db.query(Ortholog).filter(Ortholog.to_gene == gene.gn_id).all()
+        gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_id,
+                                                   Geneweaver_Gene.ode_ref_id == ode_ref_id).first()).gdb_id
+        agr_ref = convertODEtoAGR(ode_ref_id, gdb_id)
+        agr_gene_id = (db.query(Gene).filter(Gene.gn_ref_id == agr_ref).first()).gn_id
+        result = db.query(Ortholog).filter(Ortholog.to_gene == agr_gene_id).all()
         if not result:
             abort(404, message="Could not find any orthologs to the specified gene")
         return result
@@ -224,10 +232,18 @@ class get_orthologs_by_to_and_from_gene(Resource):
     @NS.doc('returns all orthologs to and from the specified genes')
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_id, to_ode_ref_id, to_ode_id):
-        from_gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
-        to_gene = convertODEtoAGR(to_ode_ref_id, to_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.gn_id,
-                                           Ortholog.to_gene == to_gene.gn_id).all()
+        to_gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == to_ode_id,
+                                                      Geneweaver_Gene.ode_ref_id == to_ode_ref_id).first()).gdb_id
+        from_gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == from_ode_id,
+                                                      Geneweaver_Gene.ode_ref_id == from_ode_ref_id).first()).gdb_id
+        from_agr_ref = convertODEtoAGR(from_ode_ref_id, from_gdb_id)
+        to_agr_ref = convertODEtoAGR(to_ode_ref_id, to_gdb_id)
+
+        to_agr_gn_id = (db.query(Gene).filter(Gene.gn_ref_id == to_agr_ref).first()).gn_id
+        from_agr_gn_id = (db.query(Gene).filter(Gene.gn_ref_id == from_agr_ref).first()).gn_id
+
+        result = db.query(Ortholog).filter(Ortholog.from_gene == from_agr_gn_id,
+                                           Ortholog.to_gene == to_agr_gn_id).all()
         if not result:
             abort(404, message="Could not find any orthologs with that from and to gene")
         return result
@@ -253,8 +269,11 @@ class get_orthologs_by_from_gene_and_best(Resource):
             modified_best = False
         else:
             modified_best = True
-        gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == gene.gn_id,
+        gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == from_ode_id,
+                                                   Geneweaver_Gene.ode_ref_id == from_ode_ref_id).first()).gdb_id
+        agr_ref = convertODEtoAGR(from_ode_ref_id, gdb_id)
+        agr_gene_id = (db.query(Gene).filter(Gene.gn_ref_id == agr_ref).first()).gn_id
+        result = db.query(Ortholog).filter(Ortholog.from_gene == agr_gene_id,
                                            Ortholog.ort_is_best == modified_best).all()
         if not result:
             abort(404, message="Could not find any orthologs with that from gene and ort_is_best value")
@@ -284,10 +303,18 @@ class get_orthologs_by_from_to_gene_and_best(Resource):
         else:
             modified_best = True
         # find from and to gene objects
-        from_gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
-        to_gene = convertODEtoAGR(to_ode_ref_id, to_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.gn_id,
-                                           Ortholog.to_gene == to_gene.gn_id,
+        to_gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == to_ode_id,
+                                                      Geneweaver_Gene.ode_ref_id == to_ode_ref_id).first()).gdb_id
+        from_gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == from_ode_id,
+                                                        Geneweaver_Gene.ode_ref_id == from_ode_ref_id).first()).gdb_id
+        from_agr_ref = convertODEtoAGR(from_ode_ref_id, from_gdb_id)
+        to_agr_ref = convertODEtoAGR(to_ode_ref_id, to_gdb_id)
+
+        to_agr_gn_id = (db.query(Gene).filter(Gene.gn_ref_id == to_agr_ref).first()).gn_id
+        from_agr_gn_id = (db.query(Gene).filter(Gene.gn_ref_id == from_agr_ref).first()).gn_id
+
+        result = db.query(Ortholog).filter(Ortholog.from_gene == from_agr_gn_id,
+                                           Ortholog.to_gene == to_agr_gn_id,
                                            Ortholog.ort_is_best == modified_best).all()
         if not result:
             abort(404, message="Could not find any orthologs with that "
@@ -317,10 +344,18 @@ class get_orthologs_by_from_to_gene_and_revised(Resource):
             inp = False
         else:
             inp = True
-        from_gene = convertODEtoAGR(from_ode_ref_id, from_ode_id)
-        to_gene = convertODEtoAGR(to_ode_ref_id, to_ode_id)
-        result = db.query(Ortholog).filter(Ortholog.from_gene == from_gene.gn_id,
-                                           Ortholog.to_gene == to_gene.gn_id,
+        to_gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == to_ode_id,
+                                                      Geneweaver_Gene.ode_ref_id == to_ode_ref_id).first()).gdb_id
+        from_gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == from_ode_id,
+                                                        Geneweaver_Gene.ode_ref_id == from_ode_ref_id).first()).gdb_id
+        from_agr_ref = convertODEtoAGR(from_ode_ref_id, from_gdb_id)
+        to_agr_ref = convertODEtoAGR(to_ode_ref_id, to_gdb_id)
+
+        to_agr_gn_id = (db.query(Gene).filter(Gene.gn_ref_id == to_agr_ref).first()).gn_id
+        from_agr_gn_id = (db.query(Gene).filter(Gene.gn_ref_id == from_agr_ref).first()).gn_id
+
+        result = db.query(Ortholog).filter(Ortholog.from_gene == from_agr_gn_id,
+                                           Ortholog.to_gene == to_agr_gn_id,
                                            Ortholog.ort_is_best_revised == inp).all()
         if not result:
             abort(404, message="Could not find any orthologs with that from_gene,"
@@ -404,7 +439,10 @@ class get_genes_by_ode_id(Resource):
     @NS.doc('return gene with specified ode_ref_id and ode_id')
     @NS.marshal_with(gene_model)
     def get(self, ode_ref_id, ode_id):
-        gene = convertODEtoAGR(ode_ref_id, ode_id)
+        gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_id,
+                                                   Geneweaver_Gene.ode_ref_id == ode_ref_id).first()).gdb_id
+        agr_ref = convertODEtoAGR(ode_ref_id, gdb_id)
+        gene = db.query(Gene).filter(Gene.gn_ref_id == agr_ref).first()
         if not gene:
             abort(404, message="Could not find any matching genes")
         return gene
@@ -437,8 +475,11 @@ class get_gene_species_name(Resource):
 
     @NS.doc('returns the species of a specified gene')
     def get(self, ode_ref_id, ode_id):
-        gene = convertODEtoAGR(ode_ref_id, ode_id)
-        result = db.query(Species.sp_name).filter(Species.sp_id == gene.species).first()
+        gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_id,
+                                                   Geneweaver_Gene.ode_ref_id == ode_ref_id).first()).gdb_id
+        agr_ref = convertODEtoAGR(ode_ref_id, gdb_id)
+        agr_species = (db.query(Gene).filter(Gene.gn_ref_id == agr_ref).first()).sp_id
+        result = db.query(Species.sp_name).filter(Species.sp_id == agr_species).first()
         if not result:
             abort(404, message="Species not found for that gn_ref_id")
         return result
@@ -695,11 +736,13 @@ class id_convert_ode_to_agr(Resource):
 
     @NS.doc('converts an ode gene id to the corresponding agr gene id')
     def get(self, ode_gene_id, ode_ref_id):
-        agr_gene = convertODEtoAGR(ode_ref_id, ode_gene_id)
-        agr_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == agr_gene.gn_ref_id).first()
-        if not agr_id:
+        gdb_id = (db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id,
+                                                   Geneweaver_Gene.ode_ref_id == ode_ref_id).first()).gdb_id
+        agr_ref = convertODEtoAGR(ode_ref_id, gdb_id)
+        agr_gene_id = (db.query(Gene).filter(Gene.gn_ref_id == agr_ref).first()).gn_id
+        if not agr_gene_id:
             abort(404, message="No matching agr gene found")
-        return agr_id
+        return agr_gene_id
 
 
 @NS.route('/get_ode_gene_by_gdb_id/<gdb_id>')
@@ -819,6 +862,7 @@ class get_mouse_human_all(Resource):
             abort(404, message="No orthologs were found")
         return orthologs
 
+
 #################################################
 # GW-AGR Integration Endpoints
 #################################################
@@ -841,9 +885,11 @@ def convert_ode_ref_to_agr(ode_ref):
         ref = ode_ref[:3] + ":" + ode_ref[3:]
     return ref
 
+
 def convert_species_ode_to_agr(ode_sp_id):
-    sp_dict = {1: 1, 2: 7, 3: 9, 4: 6, 5: 12, 8: 4, 9: 3}
+    sp_dict = {1: 1, 2: 7, 3: 9, 4: 6, 5: 12, 8: 4, 9: 3, 6: 10, 11: 9, 10: 8}
     return sp_dict[ode_sp_id]
+
 
 def convert_agr_ref_to_ode(agr_ref):
     ref = agr_ref
@@ -854,6 +900,7 @@ def convert_agr_ref_to_ode(agr_ref):
         ind = ref.find(":") + 1
         ref = ref[ind:]
     return ref
+
 
 parser = reqparse.RequestParser()
 
@@ -871,7 +918,8 @@ class get_id_by_from_gene(Resource):
         # find matching agr gene and filter the ortholog table with the agr gene id
         agr_gene_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == ref).first()
         ortho_id = (
-            db.query(Ortholog.ort_id).filter((Ortholog.from_gene == agr_gene_id) | (Ortholog.to_gene == agr_gene_id))).all()
+            db.query(Ortholog.ort_id).filter(
+                (Ortholog.from_gene == agr_gene_id) | (Ortholog.to_gene == agr_gene_id))).all()
         return ortho_id
 
 
@@ -939,7 +987,7 @@ class if_ode_gene_has_ortholog(Resource):
         #    database, so it is filtered out in the search.
         agr_compatible_gdb_ids = [10, 11, 12, 13, 14, 15, 16]
         ode_refs = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                                                                Geneweaver_Gene.gdb_id.in_(agr_compatible_gdb_ids)).all()
+                                                               Geneweaver_Gene.gdb_id.in_(agr_compatible_gdb_ids)).all()
 
         # ode_ref_ids are translated into the agr format found in the ref_id column of the
         #   agr gene table
@@ -961,7 +1009,8 @@ class if_ode_gene_has_ortholog(Resource):
 
         return is_ortholog
 
-@NS.route('/get_intersect_by_orthology',methods=['GET','POST'])
+
+@NS.route('/get_intersect_by_orthology', methods=['GET', 'POST'])
 class get_intersect_by_orthology(Resource):
     @NS.expect(parser)
     def get(self):
@@ -1008,7 +1057,7 @@ class get_intersect_by_orthology(Resource):
 
                 # check orthologs with gene1 as from_gene and gene2 as to_gene
                 ortho_1_2 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene1_id,
-                                                      Ortholog.to_gene == gene2_id).all()
+                                                             Ortholog.to_gene == gene2_id).all()
 
                 if len(ortho_1_2) != 0:
                     gene_1_ortho = True
@@ -1016,7 +1065,7 @@ class get_intersect_by_orthology(Resource):
                 else:
                     # check orthologs with gene2 as from_gene and gene1 as to_gene
                     ortho_2_1 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene2_id,
-                                                          Ortholog.to_gene == gene1_id).all()
+                                                                 Ortholog.to_gene == gene1_id).all()
                     if len(ortho_2_1) != 0:
                         gene_1_ortho = True
                         genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
@@ -1025,6 +1074,7 @@ class get_intersect_by_orthology(Resource):
             if gene_1_ortho:
                 genes.append([gene1_info[0], gene1_info[2], gene1_info[3]])
         return genes
+
 
 @NS.route('/transpose_genes_by_species', methods=['GET', 'POST'])
 class transpose_genes_by_homology(Resource):
@@ -1049,13 +1099,13 @@ class transpose_genes_by_homology(Resource):
 
         refs = []
         for g in data['genes']:
-            refs.append(convertODEtoAGR(g))
+            refs.append(convert_ode_ref_to_agr(g))
 
         from_gene_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(refs)).all()
 
         to_gene_ids = db.query(Ortholog.to_gene).filter(Ortholog.from_gene.in_(from_gene_ids)).all()
         to_gene_filtered_refs = db.query(Gene.gn_ref_id).filter(Gene.gn_id.in_(to_gene_ids),
-                                                                   Gene.species == sp).all()
+                                                                Gene.species == sp).all()
 
         ode_refs = []
         for r in to_gene_filtered_refs:

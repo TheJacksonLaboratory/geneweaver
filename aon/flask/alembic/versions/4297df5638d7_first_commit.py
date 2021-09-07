@@ -60,6 +60,16 @@ def upgrade():
     sa.ForeignKeyConstraint(['alg_id'], ['alg_algorithm.alg_id'], ),
     sa.ForeignKeyConstraint(['ort_id'], ['ort_ortholog.ort_id'], )
     )
+
+    op.create_table('mhm_mouse_human_map',
+                    sa.Column('mhm_m_ref_id', sa.VARCHAR()),
+                    sa.Column('mhm_m_symbol', sa.VARCHAR()),
+                    sa.Column('mhm_m_ensembl_id', sa.VARCHAR()),
+                    sa.Column('mhm_h_ref_id', sa.VARCHAR()),
+                    sa.Column('mhm_h_symbol', sa.VARCHAR()),
+                    sa.Column('mhm_h_ensembl_id', sa.VARCHAR()),
+                    sa.Column('mhm_is_mouse_to_human', sa.Boolean()),
+                    )
     # ### end Alembic commands ###
 
 
@@ -70,4 +80,5 @@ def downgrade():
     op.drop_table('gn_gene')
     op.drop_table('sp_species')
     op.drop_table('alg_algorithm')
+    op.drop_table('mouse_human_map')
     # ### end Alembic commands ###

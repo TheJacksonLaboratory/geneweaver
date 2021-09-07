@@ -5,12 +5,9 @@ Database models for our service
 from sqlalchemy import Column, String, Integer, Boolean, Table, ForeignKey, VARCHAR, Date, Text, BIGINT, \
     PrimaryKeyConstraint
 from sqlalchemy.orm import relationship, mapper
-from sqlalchemy.ext.declarative import declarative_base
+from src.database import BaseAGR, BaseGW
 
-Base = declarative_base()
-
-
-class Gene(Base):
+class Gene(BaseAGR):
     __tablename__ = "gn_gene"
 
     gn_id = Column(Integer, primary_key=True) # id
@@ -19,20 +16,20 @@ class Gene(Base):
     sp_id = Column(ForeignKey("sp_species.sp_id")) # species
 
 
-class Species(Base):
+class Species(BaseAGR):
     __tablename__ = "sp_species"
     sp_id = Column(Integer, primary_key=True) # id
     sp_name = Column(String, nullable=False) # name
     sp_taxon_id = Column(Integer, nullable=False)
 
 
-ora_ortholog_algorithms = Table("ora_ortholog_algorithms", Base.metadata,
+ora_ortholog_algorithms = Table("ora_ortholog_algorithms", BaseAGR.metadata,
                             Column("ora_id", Integer, primary_key=True), # id
                             Column("alg_id", Integer, ForeignKey("alg_algorithm.alg_id")),
                             Column("ort_id", Integer, ForeignKey("ort_ortholog.ort_id")))
 
 
-class Ortholog(Base):
+class Ortholog(BaseAGR):
     __tablename__ = "ort_ortholog"
     ort_id = Column(Integer, primary_key=True) # id
     from_gene = Column(ForeignKey("gn_gene.gn_id"))
@@ -46,7 +43,7 @@ class Ortholog(Base):
                               backref="orthologs")
 
 
-class Algorithm(Base):
+class Algorithm(BaseAGR):
     __tablename__ = "alg_algorithm"
     alg_id = Column(Integer, primary_key=True) # id
     alg_name = Column(String, unique=True) # name
@@ -63,9 +60,9 @@ class OrthologAlgorithms(object):
 # The following models correspond to datatables in the geneweaver schema that come from the geneweaver database
 # Each of these tables are found in a seperate schema geneweaver, so this must be specified in the model.
 
-class Geneweaver_Species(Base):
+class Geneweaver_Species(BaseGW):
     __tablename__ = "species"
-    __table_args__ = {"schema": "geneweaver"}
+    __table_args__ = {"schema": "odestatic"}
     sp_id = Column(Integer, primary_key=True, unique=True)
     sp_name = Column(VARCHAR)
     sp_taxid = Column(Integer)
@@ -75,7 +72,7 @@ class Geneweaver_Species(Base):
     sp_source_data = Column(Text)
 
 
-class Geneweaver_Gene(Base):
+class Geneweaver_Gene(BaseGW):
     __tablename__ = "gene"
     ode_gene_id = Column(BIGINT)
     ode_ref_id = Column(VARCHAR)
@@ -84,12 +81,13 @@ class Geneweaver_Gene(Base):
     ode_pref = Column(Boolean)
     ode_date = Column(Date)
     old_ode_gene_ids = Column(BIGINT)
-    __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "geneweaver"})
+    __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "extsrc"})
+    # __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "geneweaver"})
 
 
-class Geneweaver_GeneDB(Base):
+class Geneweaver_GeneDB(BaseGW):
     __tablename__ = "genedb"
-    __table_args__ = {"schema": "geneweaver"}
+    __table_args__ = {"schema": "odestatic"}
     gdb_id = Column(Integer, primary_key=True, unique=True)
     gdb_name = Column(VARCHAR)
     sp_id = Column(ForeignKey("species.sp_id"))
@@ -104,7 +102,7 @@ class Geneweaver_GeneDB(Base):
 #   orthologs from mouse to human or human to mouse.
 # The PrimaryKeyConstraint is not present in the table, but it must be added to prevent inaccuracies in running
 #   queries.
-class Mouse_Human(Base):
+class Mouse_Human(BaseAGR):
     __tablename__ = "mhm_mouse_human_map"
     mhm_m_ref_id = Column(VARCHAR)
     mhm_m_symbol = Column(VARCHAR)
