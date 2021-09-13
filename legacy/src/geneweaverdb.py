@@ -3043,9 +3043,9 @@ def get_srp(gs_id):
                 cursor.connection.commit()
                 cursor.execute('''SELECT srp_id from srp_sequence_read_archive WHERE srp_accession=%s''', (srp, ))
                 srp_id = cursor.fetchone()[0]
-                cursor.execute('''INSERT INTO g2_geneset2srp(gs_id,srp_id) SELECT %s, %s WHERE NOT EXISTS(SELECT 1 FROM g2_geneset2srp WHERE srp_id=%s)''', (gs_id, srp_id, srp_id, ))
+                cursor.execute('''INSERT INTO g2s_geneset2srp(gs_id,srp_id) SELECT %s, %s WHERE NOT EXISTS(SELECT 1 FROM g2s_geneset2srp WHERE srp_id=%s)''', (gs_id, srp_id, srp_id, ))
                 cursor.connection.commit()
-                cursor.execute('''SELECT s.srp_accession, s.srp_date FROM extsrc.srp_sequence_read_archive s, production.g2_geneset2srp g WHERE s.srp_id = g.srp_id AND gs_id = %s ''', (gs_id, ))
+                cursor.execute('''SELECT s.srp_accession, s.srp_date FROM extsrc.srp_sequence_read_archive s, production.g2s_geneset2srp g WHERE s.srp_id = g.srp_id AND gs_id = %s ''', (gs_id, ))
                 srp_dict = [SRP(row_dict) for row_dict in dictify_cursor(cursor)]
                 return srp_dict[0] if len(srp_dict) == 1 else None
             else:
