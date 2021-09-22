@@ -156,7 +156,18 @@
                     Annotation Information <span id="genesetOntologyInfo" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span>
                 </h2>
             </div>
-
+            <!--SRP IMPLEMENTATION ADD HEADER SRP INFORMATION-->
+                {% if srp %}
+                <a href="http://trace.ncbi.nlm.nih.gov/Traces/sra/?study={{ srp.srp_accession }}">
+                    <br>
+                    <b>Study: {{ srp.srp_accession }}</b>
+                </a>
+                {% else %}
+                <div class="row">
+                    <div class="alert bg-gray-light">No sequence read archive data associated with this GeneSet.</div>
+                </div>
+                {% endif %}
+            <!-- END SRP IMPLEMENTATION-->
             <div style="margin-left: 1em;">
                 <br />
                 {% if curation_view is not defined or (curation_view == 'curator' and curation_assignment.state == curation_assignment.ASSIGNED) %}
