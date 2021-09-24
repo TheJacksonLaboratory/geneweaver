@@ -277,6 +277,7 @@
         </div>
 
         {# Elissa will probably want these buttons moved #}
+        {% if user_pref.get("annotator") in ["monarch", "ncbo", "both"] %}
         <div class="row">
             <div class="col-md-2 col-md-offset-6">
                 <button type="submit" class="btn btn-block btn-warning"
@@ -287,6 +288,7 @@
                     </span>
                 </button>
             </div>
+            {% endif %}
 
             <div class="col-md-2">
                 <button type="submit" class="btn btn-block btn-warning"
