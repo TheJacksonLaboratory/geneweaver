@@ -52,10 +52,10 @@ python flask/src/service.py
 
 The mouse_human_map table was created using the ensembl API, which took quite a while to create, so for now, the mouse_human_map table is loaded from a sql file in the migration folder.
 
-The following command fills the mouse_human_map table, but this can be improved in the future. The user and database name can be adjusted to fit the appropriate database:
+The following command fills the mhm_mouse_human_map table, but this can be improved in the future. The user and database name can be adjusted to fit the appropriate database:
 ```
 cd migration
-psql -U user -data-only -d database -t public.mouse_human_map -f mouse_human_map.sql
+psql -U user -data-only -d database -t public.mhm_mouse_human_map -f mhm_mouse_human_map.sql
 ```
 
 The agr database should be filled. The following command runs the service:
