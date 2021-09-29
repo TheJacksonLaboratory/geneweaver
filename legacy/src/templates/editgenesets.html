@@ -304,8 +304,7 @@
                     <i class="fa fa-fast-forward "></i> Edit Genes
                 </button>
             </div>
-
-        </div>
+        <!--</div>--><!--Delete this div for the final-->
             <!--srp implementation-->
             <br><br>
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -326,6 +325,8 @@
                     <div class="col-md-4">
                         <label id="srp_id" size="10" class="font-weight-normal"> {{ srp.srp_accession }} </label>&nbsp;
                     </div>
+                </div> <!--Add div here to terminate row-->
+                <br><!--Add br here to give more room-->
                 <div class="row">
                     <div class="col-md-2">
                         Last Updated:
@@ -334,8 +335,10 @@
                         <label id="srp_date" size="10" class="font-weight-light"> {{ srp.srp_date | string | truncate(10, True, "") }} </label>&nbsp;
                         <i id="clickableSRP" class="fa fa-refresh"></i>
                     </div>
+                </div> <!--Add div here to terminate row-->
+        <br><br><!--<br><br>--><!--Remove 2 breaks to make it more similar to past iterations-->
 
-        <br><br><br><br>
+            </div> <!--Add div here to terminate this margin-->
 
         {# Annotation Information #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -529,8 +532,8 @@
                 {data: 'name'},
                 {data: 'reference_id'},
                 {data: 'ref_type'},
-                {data: 'ro_name'},
-                {data: 'ro_ref_id'},
+                {data: 'ro_name', visible: false},
+                {data: 'ro_ref_id', visible: false},
                 {data: 'ro_id', visible: false}
             ],
             'aoColumnDefs': [{
