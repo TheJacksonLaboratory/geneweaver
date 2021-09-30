@@ -49,6 +49,7 @@ def upgrade():
     sa.Column('ort_is_best_revised', sa.Boolean(), nullable=True),
     sa.Column('ort_is_best_is_adjusted', sa.Boolean(), nullable=True),
     sa.Column('ort_num_possible_match_algorithms', sa.Integer(), nullable=True),
+    sa.Column('ort_source_name', sa.VARCHAR()),
     sa.ForeignKeyConstraint(['from_gene'], ['gn_gene.gn_id'], ),
     sa.ForeignKeyConstraint(['to_gene'], ['gn_gene.gn_id'], ),
     sa.PrimaryKeyConstraint('ort_id')

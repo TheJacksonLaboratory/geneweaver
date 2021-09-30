@@ -63,7 +63,8 @@ def add_ortholog_batch(batch):
         ortholog = Ortholog(from_gene=gene1.gn_id, to_gene=gene2.gn_id,
                             ort_is_best=is_best, ort_is_best_revised=is_best_revised,
                             ort_is_best_is_adjusted=is_best_is_adjusted,
-                            ort_num_possible_match_algorithms=num_algo)
+                            ort_num_possible_match_algorithms=num_algo,
+                            ort_source_name = "AGR")
 
         algorithms = [algorithms_dict[algo] for algo in spl[8].split('|')]
         for algorithm in algorithms:
@@ -83,7 +84,10 @@ def init_species():
         (6239, 'Caenorhabditis elegans'),
         (7227, 'Drosophila melanogaster'),
         (7955, 'Danio rerio'),
-        (9606, 'Homo sapiens')
+        (9606, 'Homo sapiens'),
+        (9031, 'Gallus gallus'),
+        (9615, 'Canis familiaris'),
+        (9544, 'Macaca mulatta')
     ]
     db.bulk_save_objects([
         Species(sp_name=s[1], sp_taxon_id=s[0])
