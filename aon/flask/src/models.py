@@ -2,11 +2,10 @@
 Database models for our service
 """
 
-from sqlalchemy import Column, String, Integer, Boolean, Table, ForeignKey, VARCHAR, Date, Text, BIGINT, \
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, VARCHAR, Date, Text, BIGINT, \
     PrimaryKeyConstraint
-from sqlalchemy.orm import relationship, mapper
-from database import BaseAGR, BaseGW
-
+from sqlalchemy.orm import relationship
+from src.database import BaseAGR, BaseGW, SessionLocal, agr_engine
 
 class Gene(BaseAGR):
     __tablename__ = "gn_gene"
@@ -23,12 +22,11 @@ class Species(BaseAGR):
     sp_name = Column(String, nullable=False)  # name
     sp_taxon_id = Column(Integer, nullable=False)
 
-
-ora_ortholog_algorithms = Table("ora_ortholog_algorithms", BaseAGR.metadata,
-                                Column("ora_id", Integer, primary_key=True),  # id
-                                Column("alg_id", Integer, ForeignKey("alg_algorithm.alg_id")),
-                                Column("ort_id", Integer, ForeignKey("ort_ortholog.ort_id")))
-
+class OrthologAlgorithms(BaseAGR):
+    __tablename__ = "ora_ortholog_algorithms"
+    ora_id = Column(Integer, primary_key=True)
+    alg_id = Column(ForeignKey("alg_algorithm.alg_id"))
+    ort_id = Column(ForeignKey("ort_ortholog.ort_id"))
 
 class Ortholog(BaseAGR):
     __tablename__ = "ort_ortholog"
@@ -41,9 +39,8 @@ class Ortholog(BaseAGR):
     ort_num_possible_match_algorithms = Column(Integer)
     ort_source_name = Column(VARCHAR)
     algorithms = relationship("Algorithm",
-                              secondary=ora_ortholog_algorithms,
+                              secondary="ora_ortholog_algorithms",
                               backref="orthologs")
-
 
 class Algorithm(BaseAGR):
     __tablename__ = "alg_algorithm"
@@ -59,16 +56,6 @@ class Homology(BaseAGR):
     hom_source_name = Column(VARCHAR)
     __table_args__ = (PrimaryKeyConstraint('hom_id', 'gn_id'),)
 
-
-class OrthologAlgorithms(object):
-    def __init__(self, alg_id, ort_id):
-        self.alg_id = alg_id
-        self.ort_id = ort_id
-
-
-mapper(OrthologAlgorithms, ora_ortholog_algorithms)
-
-
 # The following models correspond to tables in the geneweaver database, so they are created using BaseGW
 class Geneweaver_Species(BaseGW):
     __tablename__ = "species"
@@ -82,7 +69,7 @@ class Geneweaver_Species(BaseGW):
     sp_source_data = Column(Text)
 
 
-class Geneweaver_Gene(BaseAGR):
+class Geneweaver_Gene(BaseGW):
     __tablename__ = "gene"
     ode_gene_id = Column(BIGINT)
     ode_ref_id = Column(VARCHAR)
@@ -91,8 +78,7 @@ class Geneweaver_Gene(BaseAGR):
     ode_pref = Column(Boolean)
     ode_date = Column(Date)
     old_ode_gene_ids = Column(BIGINT)
-    # __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "extsrc"})
-    __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "geneweaver"})
+    __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "extsrc"})
 
 
 class Geneweaver_GeneDB(BaseGW):
