@@ -643,7 +643,7 @@ class get_homology_by_id_and_species(Resource):
             return homologs
 
 
-@NS.route('/get_homolgy_by_id_and_source/<hom_id>/<hom_source_name>')
+@NS.route('/get_homology_by_id_and_source/<hom_id>/<hom_source_name>')
 class get_homology_by_id_and_source(Resource):
     '''
         :param: hom_id - hom_id of set of desired homologs
@@ -663,7 +663,7 @@ class get_homology_by_id_and_source(Resource):
             return homologs
 
 
-@NS.route('/get_homolgy_by_gene_and_source/<gn_id>/<hom_source_name>')
+@NS.route('/get_homology_by_gene_and_source/<gn_id>/<hom_source_name>')
 class get_homology_by_gene_and_source(Resource):
     '''
         :param: gn_id - gene id from gn_gene table in agr database
@@ -844,7 +844,7 @@ class id_convert_agr_to_ode(Resource):
     :return: ode_gene_id of corresponding gene in geneweaver database
     '''
 
-    @NS.doc('converts an agr gene id to the corresponding ode_gene_ide')
+    @NS.doc('converts an agr gene id to the corresponding ode_gene_id')
     def get(self, gn_id):
         agr_gene = db.query(Gene).filter(Gene.gn_id == gn_id).first()
         # edits the ref id to be in the format of the ode_ref_id, then search geneweaver.gene
@@ -985,7 +985,7 @@ def convert_agr_ref_to_ode(gn_ref_id):
 
 
 @NS.route('/get_ort_id_if_gene_is_ortholog/<ode_gene_id>/<ode_ref_id>')
-class get_id_by_from_gene(Resource):
+class get_ort_id_if_gene_is_ortholog(Resource):
     '''
     :param ode_ref_id - ode_ref_id of to gene
            ode_gene_id - ode_gene_id of to gene
