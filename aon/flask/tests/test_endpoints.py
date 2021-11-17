@@ -13,7 +13,6 @@ will not pass in the first place.
 """
 import unittest
 import xmlrunner
-import json
 
 import sys, os
 
@@ -47,20 +46,22 @@ class testEndpoints(unittest.TestCase):
         rv = self.app.get('/agr-service/all_algorithms')
         assert len(rv.json) == 12
 
+
     def test_all_orthologs(self):
         rv = self.app.get('/agr-service/all_orthologs')
-        assert len(rv.json) == 560722
+        assert len(rv.json) == 558386
 
     def test_get_orthologs_by_from_gene(self):
         rv = self.app.get('/agr-service/get_orthologs_by_from_gene/ZDB-GENE-040426-960/181874')
-        assert len(rv.json) == 6
-        assert (rv.json)[0]['ort_id'] == 1335999
+        data = rv.json
+        ids = [element['ort_id'] for element in data]
+        assert len(data) == 6
+        assert 25183 in ids and 425204 in ids
 
     def test_get_orthologs_by_to_gene(self):
         rv = self.app.get('/agr-service/get_orthologs_by_to_gene/S000000004/366222')
-        print(rv.json)
         assert len(rv.json) == 32
-        assert (rv.json)[0]['ort_id'] == 1310653
+        assert (rv.json)[0]['ort_id'] == 3546
 
     def test_get_ortholog_by_id(self):
         rv = self.app.get('/agr-service/get_ortholog_by_id/1')
@@ -70,7 +71,7 @@ class testEndpoints(unittest.TestCase):
 
     def test_get_orthologs_by_to_and_from_gene(self):
         rv = self.app.get('/agr-service/get_orthologs_by_to_and_from_gene/WBGene00019900/336853/FBgn0260453/254551')
-        assert (rv.json)[0]['from_gene'] == 47057 and (rv.json)[0]['to_gene'] == 47074
+        assert (rv.json)[0]['from_gene'] == 12620 and (rv.json)[0]['to_gene'] == 12635
 
     def test_get_orthologs_by_from_gene_and_best(self):
         rv = self.app.get('/agr-service/get_orthologs_by_from_gene_and_best/HGNC:3211/78104/T')
@@ -78,12 +79,12 @@ class testEndpoints(unittest.TestCase):
 
     def test_get_orthologs_by_from_to_gene_and_best(self):
         rv = self.app.get('/agr-service/get_orthologs_by_from_to_gene_and_best/RGD620664/91714/S000000004/366222/true')
-        assert (rv.json)[0]['from_gene'] == 34406 and (rv.json)[0]['to_gene'] == 34387 and (rv.json)[0]['ort_is_best'] == True
+        assert (rv.json)[0]['from_gene'] == 3793 and (rv.json)[0]['to_gene'] == 3786 and (rv.json)[0]['ort_is_best'] == True
 
     def test_get_orthologs_by_from_to_gene_and_revised(self):
         rv = self.app.get('/agr-service/get_orthologs_by_from_to_gene_and_revised/RGD620664/91714/S000000004/366222/false')
         assert len(rv.json) == 1
-        assert (rv.json)[0]['ort_id'] == 1310672
+        assert (rv.json)[0]['ort_id'] == 3553
 
     def test_get_from_gene_of_ortholog_by_id(self):
         rv = self.app.get('/agr-service/get_from_gene_of_ortholog_by_id/1')
@@ -129,8 +130,10 @@ class testEndpoints(unittest.TestCase):
 
     def test_get_ortholog_by_algorithm(self):
         rv = self.app.get('/agr-service/get_ortholog_by_algorithm/HGNC')
-        assert rv.json[0]['ora_id'] == 1219047
-        assert len(rv.json) == 70474
+        data = rv.json
+        ids = [element['ort_id'] for element in data]
+        assert all(i in ids for i in [199869, 199959, 204513, 215632, 209234, 240617, 527434, 558257])
+        assert len(data) == 70474
 
     def test_all_homology(self):
         rv = self.app.get('/agr-service/all_homology')
@@ -240,6 +243,21 @@ class testEndpoints(unittest.TestCase):
     def test_if_ode_gene_has_ortholog(self):
         rv = self.app.get('/agr-service/if_ode_gene_has_ortholog/133128')
         assert rv.json == 1
+
+    def test_get_intersect_by_orthology(self):
+        rv = self.app.get('/agr-service/get_intersect_by_orthology?gs1=329155&gs1=WBGene00011502&gs1'
+                          '=vps-53&gs1=6264&gs1=366400&gs1=S000003566&gs1=VPS53&gs1=68774&gs2=366400&'
+                          'gs2=S000003566&gs2=VPS53&gs2=68774&gs2=329155&gs2=WBGene00011502&gs2=vps-53'
+                          '&gs2=6264')
+        assert len(rv.json) == 2
+        assert (rv.json)[0][0] == '366400' and (rv.json)[1][0] == '329155'
+
+    def test_transpose_genes_by_homology(self):
+        rv = self.app.get('/agr-service/transpose_genes_by_species?genes=AAG12&genes=PEMP&genes=DXS552'
+                          'E&genes=EMP55&genes=4354&genes=HGNC%3A7219&genes=Hs.496984&genes=Hs.1861&ge'
+                          'nes=Hs.372714&genes=Hs.422215&genes=Hs.322719&genes=Hs.376448&genes=Hs.3476'
+                          '0&genes=Hs.75304&genes=ENSG00000130830&genes=MPP1&species=1')
+        assert (rv.json)[0] == 'MGI:105941'
 
 if __name__ == '__main__':
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='reports/test-application'))
