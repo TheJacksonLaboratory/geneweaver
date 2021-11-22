@@ -568,7 +568,7 @@ class all_homology(Resource):
         return db.query(Homology).all()
 
 
-@NS.route('/get_homolgy_by_id/<hom_id>')
+@NS.route('/get_homology_by_id/<hom_id>')
 class get_homology_by_id(Resource):
     '''
         :param: hom_id - hom_id of set of desired homologs
@@ -1123,7 +1123,7 @@ class get_intersect_by_orthology(Resource):
             # get agr id of gene 1
             ref1 = str(gene1_info[1])
             gene_1_ref = convert_ode_ref_to_agr(ref1)
-            gene1_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_1_ref).first()
+            gene1_id = (db.query(Gene).filter(Gene.gn_ref_id == gene_1_ref).first()).gn_id
 
             for j in range(1, gs2_len):
                 ndx2 = j * 4
@@ -1133,7 +1133,7 @@ class get_intersect_by_orthology(Resource):
                 # get agr id of gene 2
                 ref2 = str(gene2_info[1])
                 gene_2_ref = convert_ode_ref_to_agr(ref2)
-                gene2_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_2_ref).first()
+                gene2_id = (db.query(Gene).filter(Gene.gn_ref_id == gene_2_ref).first()).gn_id
 
                 # check orthologs with gene1 as from_gene and gene2 as to_gene
                 ortho_1_2 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene1_id,
