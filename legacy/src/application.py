@@ -54,7 +54,7 @@ import notifications
 import pub_assignments
 import publication_generator
 import report_bug
-import search
+#import search
 import uploadfiles
 
 
@@ -1826,7 +1826,7 @@ def render_editgeneset_genes(gs_id, curation_view=False):
 def render_remove_genesets(gs_id):
     user_id = session['user_id'] if 'user_id' in session else 0
     gs_and_proj = None
-    if user_id is not 0:
+    if user_id != 0:
         gs_and_proj = geneweaverdb.get_selected_genesets_by_projects(gs_id)
     return render_template('removegenesets.html', user_id=user_id, gs_and_proj=gs_and_proj)
 
@@ -4313,6 +4313,23 @@ def render_datasources():
 
     return render_template('datasources.html', attributions=attlist, attcounts=attcounts)
 
+####################################################################################
+####################################################################################
+
+@app.route('/landing_page')
+def landing_page():
+    user_id = session['user_id'] if session['user_id'] else 0
+    apikey = 'KgDVlYT0n42fuFcUO9mJW3MH'
+    genes137132 = GetGenesetById.get(137132, 137132)
+    genes192691 = GetGenesetById.get(192691, 192691)
+    genes352766 = GetGenesetById.get(352766, 352766)
+
+    return render_template('landing_page.html', genes137132=genes137132[0][0]['gs_count'],
+                           genes192691=genes192691[0][0]['gs_count'],
+                           genes352766=genes352766[0][0]['gs_count'])
+
+####################################################################################
+####################################################################################
 
 @app.route('/privacy')
 def render_privacy():
