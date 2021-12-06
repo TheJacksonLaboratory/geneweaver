@@ -30,7 +30,7 @@ MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
 
-ANNOTATORS = ['monarch', 'ncbo', 'both']
+ANNOTATORS = ['monarch', 'ncbo', 'both', 'none']
 DEFAULT_ANNOTATOR = 'monarch'
 
 def get_geneweaver_ontologies():
@@ -387,6 +387,9 @@ def rerun_annotator(gs_id, publication, description, user_prefs={}):
         monarch = False
     elif annotator_pref == 'monarch':
         monarch = True
+        ncbo = False
+    elif annotator_pref == 'none':
+        monarch = False
         ncbo = False
 
     gw_ontologies = get_geneweaver_ontologies()

@@ -8,6 +8,10 @@
         cursor: pointer;
     }
 
+    #clickableSRP {
+        cursor: pointer;
+    }
+
     #clickableGenes {
         cursor: pointer;
     }
@@ -272,9 +276,8 @@
             </div>
         </div>
 
-        <br>
-
         {# Elissa will probably want these buttons moved #}
+        {% if user_pref.get("annotator") in ["monarch", "ncbo", "both"] %}
         <div class="row">
             <div class="col-md-2 col-md-offset-6">
                 <button type="submit" class="btn btn-block btn-warning"
@@ -285,6 +288,7 @@
                     </span>
                 </button>
             </div>
+            {% endif %}
 
             <div class="col-md-2">
                 <button type="submit" class="btn btn-block btn-warning"
@@ -300,10 +304,41 @@
                     <i class="fa fa-fast-forward "></i> Edit Genes
                 </button>
             </div>
+        <!--</div>--><!--Delete this div for the final-->
+            <!--srp implementation-->
+            <br><br>
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h2 class="panel-title">
+                    Sequence Read Archive Information
+                </h2>
+            </div>
+            <div style="margin-left: 1em;">
+                <br>
+                <p>
+                    If this GeneSet has an associated sequence read archive study identification (SRP ID), it will be show below, otherwise you may attempt to retrieve it by clicking the button.
+                    If an SRP ID exists, it will be retrieved, and the GeneSet will be updated.
+                </p>
+                <div class="row">
+                    <div class="col-md-2">
+                        SRA Study ID:
+                        </div>
+                    <div class="col-md-4">
+                        <label id="srp_id" size="10" class="font-weight-normal"> {{ srp.srp_accession }} </label>&nbsp;
+                    </div>
+                </div> <!--Add div here to terminate row-->
+                <br><!--Add br here to give more room-->
+                <div class="row">
+                    <div class="col-md-2">
+                        Last Updated:
+                        </div>
+                    <div class="col-md-4">
+                        <label id="srp_date" size="10" class="font-weight-light"> {{ srp.srp_date | string | truncate(10, True, "") }} </label>&nbsp;
+                        <i id="clickableSRP" class="fa fa-refresh"></i>
+                    </div>
+                </div> <!--Add div here to terminate row-->
+        <br><br><!--<br><br>--><!--Remove 2 breaks to make it more similar to past iterations-->
 
-        </div>
-
-        <br>
+            </div> <!--Add div here to terminate this margin-->
 
         {# Annotation Information #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -497,8 +532,8 @@
                 {data: 'name'},
                 {data: 'reference_id'},
                 {data: 'ref_type'},
-                {data: 'ro_name'},
-                {data: 'ro_ref_id'},
+                {data: 'ro_name', visible: false},
+                {data: 'ro_ref_id', visible: false},
                 {data: 'ro_id', visible: false}
             ],
             'aoColumnDefs': [{
@@ -1047,5 +1082,20 @@
     }
 </script>
 
+<script>
+
+        $('#clickableSRP').click(function() {
+        if ('{{ srp.srp_accession }}' !== '') {
+        document.getElementById("srp_id").innerHTML='{{ srp.srp_accession }}';
+        document.getElementById("srp_date").innerHTML='{{ gs_update | string | truncate(10,True,"") }}';
+            }
+        else if ('{{ srp.srp_accession }}' == '') {
+        document.getElementById("srp_id").innerHTML='No SRP ID associated with this study at this time.';
+        document.getElementById("srp_date").innerHTML='{{ gs_update | string |truncate(10,True,"") }}';
+            }
+        }
+        );
+
+</script>
 
 {% include 'footer.html' %}

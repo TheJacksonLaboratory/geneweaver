@@ -519,8 +519,12 @@ def render_editgenesets(gs_id, curation_view=False):
     ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
     ros = json.dumps(geneweaverdb.get_ontologies_by_ontdb_id(12))
+    user_pref = json.loads(geneweaverdb.get_user(user_id).prefs)
 
     user_info = geneweaverdb.get_user(user_id)
+    # SRP Implementation
+    srp = geneweaverdb.get_srp(gs_id)
+    gs_update = geneweaverdb.update_geneset_date(gs_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id or geneweaverdb.user_is_assigned_curation(user_id, gs_id) else None
     else:
@@ -544,7 +548,11 @@ def render_editgenesets(gs_id, curation_view=False):
         ref_types=ref_types,
         ont_dbs=ont_dbs,
         curation_view=curation_view,
-        relation_onts=ros
+        relation_onts=ros,
+        user_pref=user_pref,
+        # SRP Implementation
+        srp=srp,
+        gs_update=gs_update
     )
 
 @app.route('/addRelationsOntology', methods=['POST'])
@@ -1746,6 +1754,9 @@ def render_editgeneset_genes(gs_id, curation_view=False):
     geneset = geneweaverdb.get_geneset(gs_id, user_id, temp='temp')
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
+    #SRP IMPLEMENTATION
+    srp = geneweaverdb.get_srp(gs_id)
+    #SRP IMPLEMENTATION END
 
     # get unmapped gene ids (this is only an approximation and will not work
     # for probe sets
@@ -1818,7 +1829,10 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         ontology=ontology,
         id_map=symbol2ode,
         curation_view=curation_view,
-        genesnotfound=genesnotfound
+        genesnotfound=genesnotfound,
+        # SRP IMPLEMENTATION
+        srp=srp
+        # SRP IMPLEMENTATION END
     )
 
 
@@ -2505,6 +2519,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     numgenes = geneweaverdb.get_genecount_in_geneset(gs_id)
     user_info = flask.g.user
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    # SRP IMPLEMENTATION
+    srp = geneweaverdb.get_srp(gs_id)
+    #SRP IMPLEMENTATIOn END
 
     # can the user see this geneset?
     ## User account
@@ -2642,7 +2659,10 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curator_info=curator_info,
         show_gene_list=show_gene_list,
         totalGenes=numgenes,
-        uploaded_as=uploaded_as
+        uploaded_as=uploaded_as,
+        #SRP IMPLEMENTATION
+        srp=srp
+        #SRP IMPLEMENTATION END
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
