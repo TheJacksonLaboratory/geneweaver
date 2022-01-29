@@ -4339,9 +4339,10 @@ def render_datasources():
 
 @app.route('/landing_page')
 def landing_page():
-    apikey = 'KgDVlYT0n42fuFcUO9mJW3MH'
-    agr_url = 'https://www.alliancegenome.org/api/'
-        agr_url = 'https://www.alliancegenome.org/api/'
+    apikey_geneweaver = config.get('landing_page','apikey_geneweaver')
+    agr_url = config.get('landing_page','agr_url')
+    api_key_disgenet = config.get('landing_page','api_key_disgenet')
+    api_host_disgenet = config.get('landing_page','api_host_disgenet')
 
     # get the geneset ids for Macaca mulatta
     with PooledCursor() as cursor:
@@ -4352,7 +4353,7 @@ def landing_page():
     # get the number of genes in each geneset
     for i in ids:
         id = i[0]
-        gene = GetGenesetById.get(apikey, id)
+        gene = GetGenesetById.get(apikey_geneweaver, id)
         gs_counts.append(gene[0][0]['gs_count'])
         gs_dates.append(gene[0][0]['gs_created'])
 
@@ -4395,9 +4396,7 @@ def landing_page():
 
     # get table information about the 10 most used genes
     s = requests.Session()
-    api_key = '77bc866c8d81fa150d51b57f9c8fc0001fc2b077'
-    api_host = "https://www.disgenet.org/api"
-    s.headers.update({"Authorization": "Bearer %s" % api_key})
+    s.headers.update({"Authorization": "Bearer %s" % api_key_disgenet})
     with PooledCursor() as cursor:
         cursor.execute('''SELECT ode_gene_id, COUNT(*)
                           FROM extsrc.geneset_value
@@ -4415,7 +4414,7 @@ def landing_page():
     data = []
     for ode_gene_id in ode_to_gs_count.keys():
         sym = ode_to_symbol[ode_gene_id]
-        gda_response = (s.get(api_host + '/gda/gene/' + sym, params={'type': 'disease'})).json()
+        gda_response = (s.get(api_host_disgenet + '/gda/gene/' + sym, params={'type': 'disease'})).json()
         disease = gda_response[0]['disease_name']
         data.append([sym, ode_gene_id, ode_to_gs_count[ode_gene_id], disease])
 
