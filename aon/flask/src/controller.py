@@ -3,8 +3,8 @@ Definition of our API interface - Endpoints query the AGR database
 """
 
 from flask_restx import Namespace, Resource, fields, abort, reqparse
-from database import SessionLocal
-from models import Algorithm, Ortholog, Gene, Species, OrthologAlgorithms, \
+from src.database import SessionLocal
+from src.models import Algorithm, Ortholog, Gene, Species, OrthologAlgorithms, \
     Geneweaver_Species, Geneweaver_Gene, Geneweaver_GeneDB, Homology
 
 NS = Namespace('agr-service', description='Endpoints to query database')
@@ -1198,3 +1198,65 @@ class transpose_genes_by_homology(Resource):
             ode_refs.append(convert_agr_ref_to_ode(r[0]))
 
         return ode_refs
+
+@NS.route('/get_orthologs_by_symbol/<sym>/<orig_species>/<homologous_species>')
+class get_orthologs_by_symbol(Resource):
+    '''
+    :params: sym - list of gene symbols, in csv format (ex: Nptx2,Tnfrsf12a,Elk1)
+             orig_species - species that all the gene symbols come from
+             homologous species - species the user wants to map to
+    :return: data - dictionary with keys being the original symbols provide in the
+                    sym list. the values are a list of genes that are the homologs of the key
+                    gene and are the correct species. The genes are in the format [ode_ref_id, symbol].
+    '''
+    def get(self, sym, orig_species, homologous_species):
+        symbols = sym.split(',')
+
+        orig_sp_id = db.query(Geneweaver_Species.sp_id).filter(Geneweaver_Species.sp_name==orig_species).first()
+        gdb_id = db.query(Geneweaver_GeneDB.gdb_id).filter(Geneweaver_GeneDB.sp_id==orig_sp_id).first()
+        homologous_sp_id = db.query(Species.sp_id).filter(Species.sp_name==homologous_species).first()
+
+        not_in_gene = []
+        not_in_agr = []
+        data = {}
+        for s in symbols:
+            gene_id = db.query(Geneweaver_Gene.ode_gene_id).filter(Geneweaver_Gene.ode_ref_id == s,
+                                                                   Geneweaver_Gene.sp_id.in_(orig_sp_id)).first()
+            if gene_id is None:
+                # not_in_gene.append(s)
+                continue
+            else:
+                ref = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id == gene_id,
+                                                                  Geneweaver_Gene.gdb_id.in_(gdb_id)).first()
+                if ref is None:
+                    continue
+
+            ref = convert_ode_ref_to_agr(ref)
+            agr_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == ref).first()
+
+            if agr_id is None:
+                # not_in_agr.append(s)
+                continue
+
+            orthos = db.query(Ortholog.to_gene).filter(Ortholog.from_gene == agr_id).all()
+            orthos.extend(db.query(Ortholog.from_gene).filter(Ortholog.to_gene == agr_id).all())
+            orthos = list(list(zip(*orthos))[0])
+
+            agr_ortho_refs = db.query(Gene.gn_ref_id).filter(Gene.gn_id.in_(orthos),
+                                                             Gene.sp_id == homologous_sp_id).all()
+            ortho_refs = []
+            for o in agr_ortho_refs:
+                ortho_refs.append(convert_agr_ref_to_ode(o[0]))
+
+            ortho_syms = []
+            ortho_data = []
+            for o in ortho_refs:
+                ortho_id = db.query(Geneweaver_Gene.ode_gene_id).filter(Geneweaver_Gene.ode_ref_id == o).first()
+                ortho_sym = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id == ortho_id,
+                                                                        Geneweaver_Gene.gdb_id == 7,
+                                                                        Geneweaver_Gene.ode_pref == True).first()
+                ortho_syms.append(ortho_sym[0])
+                ortho_data.append([o, ortho_sym[0]])
+            data[s] = ortho_data
+
+        return data
