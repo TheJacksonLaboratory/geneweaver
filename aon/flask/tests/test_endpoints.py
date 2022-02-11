@@ -13,38 +13,12 @@ will not pass in the first place.
 """
 import unittest
 import xmlrunner
-import json
 
-from src.wsgi import application
+import sys, os
 
-# description: opens file from given file path and asserts that the information in the
-#     file is the same as the resulting data from the endpoint
-# file_path: path to corresponding json file in flask/tests/results directory
-# return_value: response_class object storing output from request
-def testExactOutput(file_path, return_value):
-    output = json.loads(return_value.data.decode('utf8'))
-    with open(file_path) as file:
-        expected = json.load(file)
-    assert output == expected
-    assert '200 OK' in return_value.status
+sys.path.append(os.path.abspath(os.path.join('..', 'src')))
 
-# description: tests that each ortholog in the output from the endpoint has an ID
-#     found in the file of expected output
-# file_path: path to corresponding json file in flask/tests/results directory
-# return_value: response_class object storing output from request
-def testOutputIDs(file_path, return_value):
-    output = json.loads(return_value.data.decode('utf8'))
-    with open(file_path) as file:
-        expected = json.load(file)
-        # creates a list of the expected ortholog ids from the json file
-        ids = []
-        for obj in expected:
-            ids.append(obj["id"])
-    # iterates through the returned orthologs to check if the item's id is in the list
-    # of expected ids
-    for obj in output:
-        assert obj["id"] in ids
-    assert '200 OK' in return_value.status
+from wsgi import application
 
 class testEndpoints(unittest.TestCase):
 
@@ -64,188 +38,226 @@ class testEndpoints(unittest.TestCase):
         assert '200 OK' in rv.status
 
     def test_get_algorithm_by_name(self):
-        rv = self.app.get('/agr-service/algorithm/ZFIN')
-        # only one algorithm is returned, so the assertion verifies the algorithm id and name
+        rv = self.app.get('/agr-service/get_algorithm_by_name/ZFIN')
         assert (b'12' in rv.data and b'ZFIN' in rv.data)
         assert '200 OK' in rv.status
 
     def test_all_algorithms(self):
-        rv = self.app.get('/agr-service/algorithm')
-        testExactOutput('tests/results/AllAlgorithms.json', rv)
+        rv = self.app.get('/agr-service/all_algorithms')
+        assert len(rv.json) == 12
 
-    def test_get_ortholog_by_id(self):
-        rv = self.app.get('/agr-service/ortholog/1')
-        ortholog = json.loads(rv.data.decode('utf8'))
-        # only one ortholog should be returned, the first one, so the ortholog id is checked
-        assert ortholog[0]["id"] == 1
-        assert '200 OK' in rv.status
-
-    def test_get_orthologs_by_from_gene(self):
-        rv = self.app.get('/agr-service/ortholog/from/ZDB-GENE-040426-960/181874')
-        testOutputIDs('tests/results/OrthologFrom.json', rv)
-
-    def test_orthologs_by_to_gene(self):
-        rv = self.app.get('/agr-service/ortholog/to/S000000004/366222')
-        testOutputIDs('tests/results/OrthologTo.json', rv)
 
     def test_all_orthologs(self):
-        rv = self.app.get('/agr-service/ortholog')
-        testOutputIDs('tests/results/OrthologsAll.json', rv)
+        rv = self.app.get('/agr-service/all_orthologs')
+        assert len(rv.json) == 558386
+
+    def test_get_orthologs_by_from_gene(self):
+        rv = self.app.get('/agr-service/get_orthologs_by_from_gene/ZDB-GENE-040426-960/181874')
+        data = rv.json
+        ids = [element['ort_id'] for element in data]
+        assert len(data) == 6
+        assert 25183 in ids and 425204 in ids
+
+    def test_get_orthologs_by_to_gene(self):
+        rv = self.app.get('/agr-service/get_orthologs_by_to_gene/S000000004/366222')
+        assert len(rv.json) == 32
+        assert (rv.json)[0]['ort_id'] == 3546
+
+    def test_get_ortholog_by_id(self):
+        rv = self.app.get('/agr-service/get_ortholog_by_id/1')
+        ortholog = rv.json
+        assert ortholog[0]['ort_id'] == 1
+        assert '200 OK' in rv.status
 
     def test_get_orthologs_by_to_and_from_gene(self):
-        rv = self.app.get('/agr-service/ortholog/to_from/WBGene00019900/336853/FBgn0260453/254551')
-        testOutputIDs('tests/results/OrthologToAndFrom.json', rv)
+        rv = self.app.get('/agr-service/get_orthologs_by_to_and_from_gene/WBGene00019900/336853/FBgn0260453/254551')
+        assert (rv.json)[0]['from_gene'] == 12620 and (rv.json)[0]['to_gene'] == 12635
 
     def test_get_orthologs_by_from_gene_and_best(self):
-        rv = self.app.get('/agr-service/ortholog/best_and_from/HGNC:3211/78104/T')
-        testOutputIDs('tests/results/OrthologBestFrom.json', rv)
+        rv = self.app.get('/agr-service/get_orthologs_by_from_gene_and_best/HGNC:3211/78104/T')
+        assert len(rv.json) == 7
 
     def test_get_orthologs_by_from_to_gene_and_best(self):
-        rv = self.app.get('/agr-service/ortholog/best_from_to/RGD620664/91714/S000000004/366222/true')
-        testExactOutput('tests/results/OrthologBestFromTo.json', rv)
+        rv = self.app.get('/agr-service/get_orthologs_by_from_to_gene_and_best/RGD620664/91714/S000000004/366222/true')
+        assert (rv.json)[0]['from_gene'] == 3793 and (rv.json)[0]['to_gene'] == 3786 and (rv.json)[0]['ort_is_best'] == True
 
     def test_get_orthologs_by_from_to_gene_and_revised(self):
-        rv = self.app.get('/agr-service/ortholog/best_revised_from_to/RGD620664/91714/S000000004/366222/false')
-        # same results as the OrthoBestFromTo endpoint, so the same file is used to verify results
-        testExactOutput('tests/results/OrthologBestFromTo.json', rv)
+        rv = self.app.get('/agr-service/get_orthologs_by_from_to_gene_and_revised/RGD620664/91714/S000000004/366222/false')
+        assert len(rv.json) == 1
+        assert (rv.json)[0]['ort_id'] == 3553
 
     def test_get_from_gene_of_ortholog_by_id(self):
-        rv = self.app.get('/agr-service/ortholog/return_from_gene/395')
-        # only returns one ortholog object, so the assertion just looks for the agr id and ode_ref_id in the results
-        assert (b'34754' in rv.data and b'ZFIN:ZDB-GENE-050522-443' in rv.data)
-        assert '200 OK' in rv.status
+        rv = self.app.get('/agr-service/get_from_gene_of_ortholog_by_id/1')
+        assert (rv.json)['gn_id'] == 1 and (rv.json)['gn_ref_id'] == 'WB:WBGene00011502'
 
     def test_get_to_gene_of_ortholog_by_id(self):
-        rv = self.app.get('/agr-service/ortholog/return_to_gene/112199')
-        # only returns one ortholog object, so the assertion just looks for the agr id and ode_ref_id in the results
-        assert (b'75555' in rv.data and b'FB:FBgn0030607' in rv.data)
-        assert '200 OK' in rv.status
+        rv = self.app.get('/agr-service/get_to_gene_of_ortholog_by_id/112199')
+        assert rv.json['gn_id'] == 65603 and rv.json['gn_ref_id'] == 'ZFIN:ZDB-GENE-010309-3'
 
-    def test_get_genes(self):
-        rv = self.app.get('/agr-service/gene')
-        testExactOutput('tests/results/Genes.json', rv)
+    def test_all_genes(self):
+        rv = self.app.get('/agr-service/all_genes')
+        assert len(rv.json) == 100430
 
     def test_get_genes_by_prefix(self):
-        rv = self.app.get('/agr-service/gene/prefix/MGI')
-        testExactOutput('tests/results/GenePrefix.json', rv)
+        rv = self.app.get('/agr-service/get_genes_by_prefix/MGI')
+        assert len(rv.json) == 20670
 
-    def test_get_genes_by_ode_id(self):
-        rv = self.app.get('/agr-service/gene/refID/HGNC:3211/78104')
-        # only returns one gene object, so the assertion just looks for the agr id and ode_ref_id in the results
-        assert (b'34375' in rv.data and b'HGNC:3211' in rv.data)
-        assert '200 OK' in rv.status
+    def test_get_genes_by_ode_gene_id(self):
+        rv = self.app.get('/agr-service/get_genes_by_ode_gene_id/HGNC%3A3211/78104')
+        assert rv.json['gn_id'] == 3781 and rv.json['gn_ref_id'] == 'HGNC:3211'
 
     def test_get_genes_by_species(self):
-        rv = self.app.get('/agr-service/gene/species/Danio%20rerio')
-        testExactOutput('tests/results/GeneSpecies.json', rv)
+        rv = self.app.get('/agr-service/get_genes_by_species/Danio%20rerio')
+        assert len(rv.json) == 18660
 
     def test_get_gene_species_name(self):
-        rv = self.app.get('/agr-service/gene/return_species_name/FBgn0013275/267529')
-        # This endpoint only returns the species name of the gene specified
+        rv = self.app.get('/agr-service/get_gene_species_name/FBgn0013275/267529')
         assert (b'Drosophila melanogaster' in rv.data)
         assert '200 OK' in rv.status
 
-    def test_get_species(self):
-        rv = self.app.get('/agr-service/species')
-        testExactOutput('tests/results/SpeciesList.json', rv)
+    def test_all_species(self):
+        rv = self.app.get('/agr-service/all_species')
+        assert len(rv.json) == 7
 
     def test_get_species_by_id(self):
-        rv = self.app.get('/agr-service/species/3')
-        # this endpoint returns a Species object, so the species name and taxon id are verified
+        rv = self.app.get('/agr-service/get_species_by_id/3')
         assert (b'Saccharomyces cerevisiae' in rv.data and b'559292' in rv.data)
         assert '200 OK' in rv.status
 
     def test_get_orthologs_by_num_algoritms(self):
-        rv = self.app.get('/agr-service/ortholog/num_algorithms/11')
-        testExactOutput('tests/results/OrthologNumAlgorithms.json', rv)
+        rv = self.app.get('/agr-service/get_orthologs_by_num_algoritms/11')
+        assert len(rv.json) == 160862
 
     def test_get_ortholog_by_algorithm(self):
-        rv = self.app.get('/agr-service/ortholog_algorithms/ortholog/HGNC')
-        testOutputIDs('tests/results/OrthologAlgorithm.json', rv)
+        rv = self.app.get('/agr-service/get_ortholog_by_algorithm/HGNC')
+        data = rv.json
+        ids = [element['ort_id'] for element in data]
+        assert all(i in ids for i in [199869, 199959, 204513, 215632, 209234, 240617, 527434, 558257])
+        assert len(data) == 70474
+
+    def test_all_homology(self):
+        rv = self.app.get('/agr-service/all_homology')
+        assert len(rv.json) == 481484
+        assert (rv.json)[0]['hom_id'] == 1
+
+    def test_get_homology_by_id(self):
+        rv = self.app.get('/agr-service/get_homolgy_by_id/14')
+        assert len(rv.json) == 22
+        assert (rv.json)[0]['gn_id'] == 128
+
+    def test_get_homology_by_gene(self):
+        rv = self.app.get('/agr-service/get_homology_by_gene/147')
+        assert len(rv.json) == 6
+        assert (rv.json)[0]['gn_id'] == 147 and (rv.json)[0]['hom_id'] == 14
+
+    def test_get_homology_by_species(self):
+        rv = self.app.get('/agr-service/get_homology_by_species/2')
+        data = rv.json
+        ids = [element['sp_id'] for element in data]
+        assert len(data) == 84552
+        assert list(set(ids))[0] == 2
+
+    def test_get_homology_by_id_and_species(self):
+        rv = self.app.get('/agr-service/get_homology_by_id_and_species/12/2')
+        data = rv.json
+        assert len(data) == 1
+        assert data[0]['hom_id'] == 12 and data[0]['sp_id'] == 2
+
+    def test_get_homology_by_id_and_source(self):
+        rv = self.app.get('/agr-service/get_homology_by_id_and_source/6/AGR')
+        data = rv.json
+        assert len(data) == 12
+        assert data[2]['hom_id'] == 6 and data[0]['hom_source_name'] == 'AGR'
+
+    def test_get_homology_by_gene_and_source(self):
+        rv = self.app.get('/agr-service/get_homology_by_gene_and_source/28220/AGR')
+        data = rv.json
+        assert len(data) == 10
+        assert data[2]['gn_id'] == 28220 and data[0]['hom_source_name'] == 'AGR'
 
     def test_get_ortholog_by_from_species(self):
-        rv = self.app.get('/agr-service/ortholog/from_species/Homo%20sapiens')
-        testOutputIDs('tests/results/OrthologFromSpecies.json', rv)
+        rv = self.app.get('/agr-service/get_ortholog_by_from_species/Homo%20sapiens')
+        assert len(rv.json) == 101329
+        assert (rv.json)[0]['from_gene'] == 6
 
     def test_get_ortholog_by_to_species(self):
-        rv = self.app.get('/agr-service/ortholog/to_species/Saccharomyces%20cerevisiae')
-        testOutputIDs('tests/results/OrthologToSpecies.json', rv)
+        rv = self.app.get('/agr-service/get_ortholog_by_to_species/Saccharomyces%20cerevisiae')
+        assert len(rv.json) == 31859
+        assert (rv.json)[0]['to_gene'] == 2
 
     def test_get_ortholog_by_to_and_from_species(self):
-        rv = self.app.get('/agr-service/ortholog/to_and_from_species/Danio%20rerio/Mus%20musculus')
-        testOutputIDs('tests/results/OrthologToFromSpecies.json', rv)
+        rv = self.app.get('/agr-service/get_ortholog_by_to_and_from_species/Danio%20rerio/Mus%20musculus')
+        data = list(rv.json)
+        ids = [element['ort_id'] for element in data]
+        assert len(rv.json) == 22707
+        assert 178696 in ids and 106886 in ids and 108579 in ids
 
     def test_get_ortholog_by_to_from_species_and_algorithm(self):
-        rv = self.app.get('/agr-service/ortholog/to_from_species_algo/Saccharomyces%20cerevisiae/Drosophila'
+        rv = self.app.get('/agr-service/get_ortholog_by_to_from_species_and_algorithm/Saccharomyces%20cerevisiae/Drosophila'
                           '%20melanogaster/PANTHER')
-        testOutputIDs('tests/results/OrthologToFromSpeciesAlgorithm.json', rv)
+        assert len(rv.json) == 3680
+        assert (rv.json)[0]['from_gene'] == 7 and (rv.json)[0]['to_gene'] == 2
 
     def test_agr_to_geneweaver_species(self):
-        rv = self.app.get('/agr-service/species/AGRSpecies_to_geneweaverSpecies/2')
+        rv = self.app.get('/agr-service/agr_to_geneweaver_species/2')
         assert b'3' in rv.data
         assert '200 OK' in rv.status
 
     def test_id_convert_agr_to_ode(self):
-        rv = self.app.get('/agr-service/ode_gene_id/34387')
-        # returns the corresponding ode_gene_id to the agr_gene_id 661
-        assert b'366222' in rv.data
-        assert '200 OK' in rv.status
+        rv = self.app.get('/agr-service/id_convert_agr_to_ode/34387')
+        assert rv.json == 270952
 
     def test_id_convert_ode_to_agr(self):
-        rv = self.app.get('/agr-service/agr_gene_id/366222/S000000004')
-        assert b'34387' in rv.data
-        assert '200 OK' in rv.status
+        rv = self.app.get('/agr-service/id_convert_ode_to_agr/366222/S000000004')
+        assert rv.json == 3786
 
     def test_get_ode_gene_by_gdb_id(self):
-        rv = self.app.get('/agr-service/ode_gene/database/13')
-        with open('tests/results/ODEGeneDbId.json') as file:
-            expected = json.load(file)
-            ids = []
-            for obj in expected:
-                ids.append(obj["ode_ref_id"])
-        genes = json.loads(rv.data.decode('utf8'))
-        for obj in genes:
-            assert obj["ode_ref_id"] in ids
-        assert '200 OK' in rv.status
+        rv = self.app.get('/agr-service/get_ode_gene_by_gdb_id/13')
+        data = list(rv.json)
+        ode_gene_ids = [element['ode_gene_id'] for element in data]
+        assert len(rv.json) == 111648
+        assert all(ids in ode_gene_ids for ids in [163896, 165108, 165168, 139768, 141616, 143806])
 
     def test_get_ode_gene_by_gene_id(self):
-        rv = self.app.get('/agr-service/ode_gene/96483')
-        # two genes are returned, so their ode_ref_ids are checked in the following assertion
+        rv = self.app.get('/agr-service/get_ode_gene_by_gene_id/96483')
         assert b'LOC100363666' in rv.data and b'RGD2322584' in rv.data
         assert '200 OK' in rv.status
 
     def test_get_ode_gene_by_species(self):
-        rv = self.app.get('/agr-service/ode_gene/species/96602/Rattus%20norvegicus')
-        # the same two genes from the ODEGeneId endpoint are returned, so their ode_ref_ids are checked
+        rv = self.app.get('/agr-service/get_ode_gene_by_species/96602/Rattus%20norvegicus')
         assert b'LOC100363817' in rv.data and b'RGD2322238' in rv.data
         assert '200 OK' in rv.status
 
-    def test_HumanToMouse(self):
-        rv = self.app.get('/agr-service/ortholog/human_to_mouse')
-        with open('tests/results/HumanToMouse.json') as file:
-            expected = json.load(file)
-        orthologs = json.loads(rv.data.decode('utf8'))
-        # this assertion checks that both the file and the request return the same number
-        # of orthologs
-        assert len(expected) == len(orthologs)
-        assert '200 OK' in rv.status
+    def test_get_ort_id_if_gene_is_ortholog(self):
+        rv = self.app.get('/agr-service/get_ort_id_if_gene_is_ortholog/191876/ZDB-GENE-070112-1002')
+        data = list(rv.json)
+        assert len(data) == 14
+        assert all(ids in data for ids in [[24382], [139827], [139830], [139832], [255497], [7]])
 
-    def test_MouseToHuman(self):
-        rv = self.app.get('/agr-service/ortholog/mouse_to_human')
-        with open('tests/results/MouseToHuman.json') as file:
-            expected = json.load(file)
-        orthologs = json.loads(rv.data.decode('utf8'))
-        assert len(expected) == len(orthologs)
-        assert '200 OK' in rv.status
+    def test_get_ortholog_by_from_gene_and_gdb(self):
+        rv = self.app.get('/agr-service/get_ortholog_by_from_gene_and_gdb/12/11')
+        data = list(rv.json)
+        assert len(data) == 1
+        assert data[0][0] == 'HGNC:88'
 
-    def test_get_mouse_human_all(self):
-        rv = self.app.get('/agr-service/ortholog/mouse_human_all')
-        with open('tests/results/MouseHumanAll.json') as file:
-            expected = json.load(file)
-        orthologs = json.loads(rv.data.decode('utf8'))
-        assert len(expected) == len(orthologs)
-        assert '200 OK' in rv.status
+    def test_if_ode_gene_has_ortholog(self):
+        rv = self.app.get('/agr-service/if_ode_gene_has_ortholog/133128')
+        assert rv.json == 1
 
+    def test_get_intersect_by_orthology(self):
+        rv = self.app.get('/agr-service/get_intersect_by_orthology?gs1=329155&gs1=WBGene00011502&gs1'
+                          '=vps-53&gs1=6264&gs1=366400&gs1=S000003566&gs1=VPS53&gs1=68774&gs2=366400&'
+                          'gs2=S000003566&gs2=VPS53&gs2=68774&gs2=329155&gs2=WBGene00011502&gs2=vps-53'
+                          '&gs2=6264')
+        assert len(rv.json) == 2
+        assert (rv.json)[0][0] == '366400' and (rv.json)[1][0] == '329155'
+
+    def test_transpose_genes_by_homology(self):
+        rv = self.app.get('/agr-service/transpose_genes_by_species?genes=AAG12&genes=PEMP&genes=DXS552'
+                          'E&genes=EMP55&genes=4354&genes=HGNC%3A7219&genes=Hs.496984&genes=Hs.1861&ge'
+                          'nes=Hs.372714&genes=Hs.422215&genes=Hs.322719&genes=Hs.376448&genes=Hs.3476'
+                          '0&genes=Hs.75304&genes=ENSG00000130830&genes=MPP1&species=1')
+        assert (rv.json)[0] == 'MGI:105941'
 
 if __name__ == '__main__':
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='reports/test-application'))

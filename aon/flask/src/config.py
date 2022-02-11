@@ -21,4 +21,6 @@ class Config:
     TESTING = env.bool('TESTING', default=False)
     LOG_LEVEL = env.str("LOG_LEVEL", default="WARNING")
 
-    DATABASE_URL = env.str('DATABASE_URL', "postgresql://user:pass@localhost:5432/database")
+    # TODO - update to point to relevant databases
+    DATABASE_URL_AGR = 'postgresql://user:pass@localhost:5432/agr'
+    DATABASE_URL_GW = 'postgresql://user:pass@localhost:2222/geneweaver'
