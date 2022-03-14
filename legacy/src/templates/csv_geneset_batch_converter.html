@@ -1,0 +1,79 @@
+{% set title="Batch GeneSet Upload" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+
+    #clickablePubmed {
+        cursor: pointer;
+    }
+
+    #clickableGenes {
+        cursor: pointer;
+    }
+
+    #clickableUpload, #clickableManual {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    #pubmed_button_div, #pubmed_button_div_minus {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    .panel-underline {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .btn-file {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-file input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        background: white;
+        cursor: inherit;
+        display: block;
+    }
+
+    .required {
+        color: #ee0000;
+        font-weight: bold;
+    }
+
+    .optional {
+        color: #5Cb85C;
+        font-weight: bold;
+    }
+
+</style>
+
+<div class="panel panel-default panel-heading bg-gray-light">
+        <h3 class="panel-title"><strong>CSV Converter</strong>
+</div>
+
+<form id="csv-coverter-form" name="converterUploadForm" enctype="multipart/form-data" method="POST">
+    <input type="file" id="file" name="filename" accept=".csv">
+    <input type="submit">
+</form>
+
+
+{% include 'modal/confirmUpload.html' %}
+
+{% include 'footer.html' %}

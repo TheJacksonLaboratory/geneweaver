@@ -172,6 +172,31 @@ SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rer
                  'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
                  'Canis familiaris']
 
+@app.route('/csv_geneset_batch_converter', methods = ['GET','POST'])
+def csv_geneset_batch_converter():
+    header = {}
+    LENGTH_OF_HEADER = 11
+    if request.method == 'POST':
+        f = request.files['filename']
+        content = str(f.read())
+        content = content[2:(len(content)-1)]
+        content = content.split('\\r')
+        for i in range(LENGTH_OF_HEADER):
+            raw = content[i].split(',')
+            header[raw[0]] = raw[1]
+
+        output = '! ' + header['Score Type'] + '\n'
+        output = output + '@ ' + header['Species'] + '\n'
+        output = output + '% ' + header['Gene ID Type'] + '\n\n'
+        output = output + ': ' + header['GeneSet Abbreviation'] + '\n'
+        output = output + '= ' + header['GeneSet Name'] + '\n'
+        output = output + '+ ' + header['GeneSet Description'] + '\n\n'
+
+        for i in range((LENGTH_OF_HEADER+1),len(content)):
+            gene_info = content[i].split(',')
+            output = output + gene_info[0] + ' ' + gene_info[1] + '\n'
+        return Response(output, mimetype='text/plain')
+    return render_template('csv_geneset_batch_converter.html')
 
 @app.route('/register_or_login')
 def register_or_login():
@@ -1840,7 +1865,7 @@ def render_editgeneset_genes(gs_id, curation_view=False):
 def render_remove_genesets(gs_id):
     user_id = session['user_id'] if 'user_id' in session else 0
     gs_and_proj = None
-    if user_id is not 0:
+    if user_id != 0:
         gs_and_proj = geneweaverdb.get_selected_genesets_by_projects(gs_id)
     return render_template('removegenesets.html', user_id=user_id, gs_and_proj=gs_and_proj)
 
