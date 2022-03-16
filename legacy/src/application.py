@@ -180,7 +180,11 @@ def csv_geneset_batch_converter():
         f = request.files['filename']
         content = str(f.read())
         content = content[2:(len(content)-1)]
-        content = content.split('\\r')
+        if (content.find('\\r\\n') != -1):
+            content = content.split('\\r\\n')
+        else:
+            content = content.split('\\r')
+
         for i in range(LENGTH_OF_HEADER):
             raw = content[i].split(',')
             header[raw[0]] = raw[1]
