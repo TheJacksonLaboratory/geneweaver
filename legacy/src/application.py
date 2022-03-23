@@ -189,12 +189,30 @@ def csv_geneset_batch_converter():
             raw = content[i].split(',')
             header[raw[0]] = raw[1]
 
-        output = '! ' + header['Score Type'] + '\n'
+        output = '! ' + "1.5 < Effect < 2.0" + '\n'
         output = output + '@ ' + header['Species'] + '\n'
         output = output + '% ' + header['Gene ID Type'] + '\n\n'
         output = output + ': ' + header['GeneSet Abbreviation'] + '\n'
-        output = output + '= ' + header['GeneSet Name'] + '\n'
-        output = output + '+ ' + header['GeneSet Description'] + '\n\n'
+
+        num_of_lines = len(header['GeneSet Name']) // 130
+        end = 0
+        for i in range(0, num_of_lines):
+            start = i * 130
+            end = i * 130 + 130
+            output = output + '= ' + (header['GeneSet Name'])[start:end] + '\n'
+        if (end != len(header['GeneSet Name'])):
+            output = output + '= ' + (header['GeneSet Name'])[end:] + '\n'
+
+        num_of_lines = len(header['GeneSet Description']) // 130
+        end = 0
+        for i in range(0,num_of_lines):
+            start = i*130
+            end = i*130 + 130
+            output = output + '+ ' + (header['GeneSet Description'])[start:end] + '\n'
+        if(end != len(header['GeneSet Description'])):
+            output = output + '+ ' + (header['GeneSet Description'])[end:] + '\n\n'
+        else:
+            output = output + '\n'
 
         for i in range((LENGTH_OF_HEADER+1),len(content)):
             gene_info = content[i].split(',')

@@ -1,34 +1,33 @@
-{% set title="Batch GeneSet Upload" %}
+{% set title="HBA-DEALS Format Converter" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
 <style type="text/css">
 
-    #clickablePubmed {
-        cursor: pointer;
+    .inputfile {
+	    width: 0.1px;
+	    height: 0.1px;
+	    opacity: 0;
+	    overflow: hidden;
+	    position: absolute;
+	    z-index: -1;
     }
 
-    #clickableGenes {
-        cursor: pointer;
-    }
-
-    #clickableUpload, #clickableManual {
-        cursor: pointer;
-        color: #0090D9;
-    }
-
-    #pubmed_button_div, #pubmed_button_div_minus {
-        cursor: pointer;
-        color: #0090D9;
+    .submitButton {
+        background-color: #DCDCDC;
+        border: none;
+        color: #696969;
+        padding: 7px 24px;
+        text-align: center;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        cursor: inherit;
     }
 
     #clickableFontAwesome {
         cursor: pointer;
-    }
-
-    .panel-underline {
-        border-bottom-width: thick;
-        border-bottom-color: #006400;
     }
 
     .btn-file {
@@ -65,14 +64,100 @@
 </style>
 
 <div class="panel panel-default panel-heading bg-gray-light">
-        <h3 class="panel-title"><strong>CSV Converter</strong>
+        <h3 class="panel-title"><strong>Covert from HBA-DEALS Format</strong>
+            <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span>
+        </h3>
 </div>
 
 <form id="csv-coverter-form" name="converterUploadForm" enctype="multipart/form-data" method="POST">
-    <input type="file" id="file" name="filename" accept=".csv">
-    <input type="submit">
+    <input class="inputfile" type="file" id="file" name="filename" accept=".csv">
+    <label for="file" class="btn btn-warning btn-file ">Choose a file</label>
+    <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">No file selected</span>
+
+    <div class='help-block'></div>
+    <input class="submitButton" type="submit">
 </form>
 
+<h2>Formatting for the CSV file input</h2>
+</form>
+        <div style="">
+            <br>
+            {# Keep this indentation since <pre> preserves whitespace. #}
+            <pre style="border-radius: 10px; border: 1px solid #337700; border-left: 11px solid #337700;">
+    GW id,id <span class="required">(required)</span>
+    GeneSet Name,name <span class="required">(required)</span>
+    Geneset Figure Label,label <span class="required">(required)</span>
+    Score Type,1.5 < Effect < 2.0
+    GeneSet Description,description <span class="required">(required)</span>
+    Species,species <span class="required">(required)</span>
+    Gene ID Type,type <span class="required">(required)</span>
+    GeneSet Abbreviation,abbreviation <span class="required">(required)</span>
+    ,
+    ,
+    id,LogFC(2)
+    ENSMUSG00000000782,-1.560668638
+    ENSMUSG00000003279,-1.904293377
+        </pre>
+            {#  </code> #}
+
+    </div>
+
+<script>
+    $(document).ready(function () {
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableFontAwesome').popover({
+            title: 'When to covert from HBA-DEALS Output?', content: 'Use this page when you have output from the ' +
+            'HBA-DEALS R package analyzing RNA-Seq data'
+        });
+
+        // Display uploaded file to page
+        var fileInput = document.getElementById('file');
+        var fileDisplayArea = $('#fileDisplayArea');
+
+
+		fileInput.addEventListener('change', function(e) {
+			var file = fileInput.files[0];
+
+            // After reading the file, the filename and size are displayed
+            // to the user. The contents goes under a hidden input for
+            // submission later.
+
+            //check for valid file extension
+            //extra work as the file upload dialog prevents all but these extensions
+            var valid_types = [".csv"];
+            var fname = file.name;
+            var valid = 0;
+
+            for (var i=0; i < valid_types.length; i++) {
+			   var ext = valid_types[i];
+			   var fext = fname.substr(fname.length - ext.length, ext.length);
+			   if(fext == ext) { valid = 1; }
+            }
+
+			if (valid == 1) {
+				var reader = new FileReader();
+
+				reader.onload = function(e) {
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' kB';
+
+                    fileDisplayArea.text(file.name + ' (' + size + ')');
+				};
+
+				reader.readAsText(file);
+
+			} else {
+				// Not a valid file extension
+				fileDisplayArea.innerText = "File not supported!";
+			}
+		});
+
+    });
+
+</script>
 
 {% include 'modal/confirmUpload.html' %}
 
