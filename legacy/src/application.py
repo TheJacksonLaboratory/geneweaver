@@ -175,7 +175,7 @@ SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rer
 @app.route('/csv_geneset_batch_converter', methods = ['GET','POST'])
 def csv_geneset_batch_converter():
     header = {}
-    LENGTH_OF_HEADER = 11
+    LENGTH_OF_HEADER = 9
     if request.method == 'POST':
         f = request.files['filename']
         content = str(f.read())

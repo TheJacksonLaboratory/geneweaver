@@ -78,25 +78,24 @@
     <input class="submitButton" type="submit">
 </form>
 
-<h2>Formatting for the CSV file input</h2>
+<h2>Formatting of the HBA-DEALS output</h2>
+<p>Below shows the correct formatting for the file to be submitted above. GeneWeaver batch uploading requires a GW id, GeneSet Name, Geneset Figure Label, Score Type, GeneSet Description, Species, Gene ID type, and GeneSet Abbreviation. The ouput of HBA-DEALs uses 1.5 < Effect < 2.0 as the score type, so this is not necessary in the input. Under the header, after "id,LogFC(2)" seen in the example below, list each gene and its score.</p>
+<p>After submitting the file, a txt page will appear which can be copied and pasted into a txt file and then uploaded on the <a href="/batchupload">batch upload page.</a></p>
 </form>
         <div style="">
             <br>
             {# Keep this indentation since <pre> preserves whitespace. #}
             <pre style="border-radius: 10px; border: 1px solid #337700; border-left: 11px solid #337700;">
-    GW id,id <span class="required">(required)</span>
-    GeneSet Name,name <span class="required">(required)</span>
-    Geneset Figure Label,label <span class="required">(required)</span>
+    GW id,&lt;id&gt; <span class="required">(required)</span>
+    GeneSet Name,&lt;name&gt; <span class="required">(required)</span>
+    Geneset Figure Label,&lt;label&gt; <span class="required">(required)</span>
     Score Type,1.5 < Effect < 2.0
-    GeneSet Description,description <span class="required">(required)</span>
-    Species,species <span class="required">(required)</span>
-    Gene ID Type,type <span class="required">(required)</span>
-    GeneSet Abbreviation,abbreviation <span class="required">(required)</span>
-    ,
-    ,
+    GeneSet Description,&lt;description&gt; <span class="required">(required)</span>
+    Species,&lt;species&gt; <span class="required">(required)</span>
+    Gene ID Type,&lt;type&gt; <span class="required">(required)</span>
+    GeneSet Abbreviation,&lt;abbreviation&gt; <span class="required">(required)</span>
     id,LogFC(2)
-    ENSMUSG00000000782,-1.560668638
-    ENSMUSG00000003279,-1.904293377
+    &lt;id&gt;,&lt;score&gt;
         </pre>
             {#  </code> #}
 
@@ -110,8 +109,8 @@
         });
 
         $('#clickableFontAwesome').popover({
-            title: 'When to covert from HBA-DEALS Output?', content: 'Use this page when you have output from the ' +
-            'HBA-DEALS R package analyzing RNA-Seq data'
+            title: 'When to covert from HBA-DEALS Output?', content: 'Use this page to convert output from the ' +
+            'HBA-DEALS R package analyzing RNA-Seq data into a correctly formatted txt file for batch upload of genesets'
         });
 
         // Display uploaded file to page
