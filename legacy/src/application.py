@@ -172,53 +172,6 @@ SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rer
                  'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
                  'Canis familiaris']
 
-@app.route('/csv_geneset_batch_converter', methods = ['GET','POST'])
-def csv_geneset_batch_converter():
-    header = {}
-    LENGTH_OF_HEADER = 9
-    if request.method == 'POST':
-        f = request.files['filename']
-        content = str(f.read())
-        content = content[2:(len(content)-1)]
-        if (content.find('\\r\\n') != -1):
-            content = content.split('\\r\\n')
-        else:
-            content = content.split('\\r')
-
-        for i in range(LENGTH_OF_HEADER):
-            raw = content[i].split(',')
-            header[raw[0]] = raw[1]
-
-        output = '! ' + "1.5 < Effect < 2.0" + '\n'
-        output = output + '@ ' + header['Species'] + '\n'
-        output = output + '% ' + header['Gene ID Type'] + '\n\n'
-        output = output + ': ' + header['GeneSet Abbreviation'] + '\n'
-
-        num_of_lines = len(header['GeneSet Name']) // 130
-        end = 0
-        for i in range(0, num_of_lines):
-            start = i * 130
-            end = i * 130 + 130
-            output = output + '= ' + (header['GeneSet Name'])[start:end] + '\n'
-        if (end != len(header['GeneSet Name'])):
-            output = output + '= ' + (header['GeneSet Name'])[end:] + '\n'
-
-        num_of_lines = len(header['GeneSet Description']) // 130
-        end = 0
-        for i in range(0,num_of_lines):
-            start = i*130
-            end = i*130 + 130
-            output = output + '+ ' + (header['GeneSet Description'])[start:end] + '\n'
-        if(end != len(header['GeneSet Description'])):
-            output = output + '+ ' + (header['GeneSet Description'])[end:] + '\n\n'
-        else:
-            output = output + '\n'
-
-        for i in range((LENGTH_OF_HEADER+1),len(content)):
-            gene_info = content[i].split(',')
-            output = output + gene_info[0] + ' ' + gene_info[1] + '\n'
-        return Response(output, mimetype='text/plain')
-    return render_template('csv_geneset_batch_converter.html')
 
 @app.route('/register_or_login')
 def register_or_login():
@@ -3411,7 +3364,6 @@ def render_export_genes(gs_id):
     response.headers["Content-type"] = "text/plain"
     return response
 
-
 @app.route('/exportOmicsSoft/<string:gs_ids>')
 def render_export_omicssoft(gs_ids):
     if 'user_id' in session:
@@ -3457,6 +3409,76 @@ def render_export_jac_genelist(gs_id):
             k.jac_value) + '\n'
     response = make_response(string)
     response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+    return response
+
+
+@app.route('/HBA_batch_converter', methods=['GET', 'POST'])
+def HBA_batch_converter():
+    '''
+    converts HBA-deals output csv file into a txt file that can be used on the
+    batch upload page
+    '''
+    header = {}
+    # length of header is the number of rows included in the header of the HBA deals
+    #     input CSV file
+    LENGTH_OF_HEADER = 9
+    if request.method == 'POST':
+        f = request.files['filename']
+        content = str(f.read())
+        content = content[2:(len(content)-1)]
+        if (content.find('\\r\\n') != -1):
+            content = content.split('\\r\\n')
+        else:
+            content = content.split('\\r')
+
+        for i in range(LENGTH_OF_HEADER):
+            raw = content[i].split(',')
+            header[raw[0]] = raw[1]
+
+        output = '! ' + "1.5 < Effect < 2.0" + '\n'
+        output = output + '@ ' + header['Species'] + '\n'
+        output = output + '% ' + header['Gene ID Type'] + '\n\n'
+        output = output + ': ' + header['GeneSet Abbreviation'] + '\n'
+
+        num_of_lines = len(header['GeneSet Name']) // 130
+        end = 0
+        for i in range(0, num_of_lines):
+            start = i * 130
+            end = i * 130 + 130
+            output = output + '= ' + (header['GeneSet Name'])[start:end] + '\n'
+        if (end != len(header['GeneSet Name'])):
+            output = output + '= ' + (header['GeneSet Name'])[end:] + '\n'
+
+        num_of_lines = len(header['GeneSet Description']) // 130
+        end = 0
+        for i in range(0,num_of_lines):
+            start = i*130
+            end = i*130 + 130
+            output = output + '+ ' + (header['GeneSet Description'])[start:end] + '\n'
+        if(end != len(header['GeneSet Description'])):
+            output = output + '+ ' + (header['GeneSet Description'])[end:] + '\n\n'
+        else:
+            output = output + '\n'
+
+        for i in range((LENGTH_OF_HEADER+1),len(content)):
+            gene_info = content[i].split(',')
+            output = output + gene_info[0] + ' ' + gene_info[1] + '\n'
+
+        return render_export_hba(output, (header['GeneSet Abbreviation']).replace(' ',''))
+    return render_template('HBA_batch_converter.html')
+
+
+@app.route('/exportHBA/<string:txt>/<string:abbreviation>')
+def render_export_hba(txt, abbreviation):
+    '''
+    exports the txt file for the HBA-deals converter
+    '''
+    title = 'HBA_batch_upload_' + abbreviation + '_' + str(datetime.date.today()) + '.txt'
+    response = make_response(txt)
+    response.headers["Content-Disposition"] = "attachment; filename=" + title
+    response.headers["Cache-Control"] = "must-revalidate"
+    response.headers["Pragma"] = "must-revalidate"
+    response.headers["Content-type"] = "text/plain"
     return response
 
 
