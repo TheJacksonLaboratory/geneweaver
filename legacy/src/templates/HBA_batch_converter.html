@@ -1,0 +1,161 @@
+{% set title="HBA-DEALS Format Converter" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+
+    .inputfile {
+	    width: 0.1px;
+	    height: 0.1px;
+	    opacity: 0;
+	    overflow: hidden;
+	    position: absolute;
+	    z-index: -1;
+    }
+
+    .submitButton {
+        background-color: #DCDCDC;
+        border: none;
+        color: #696969;
+        padding: 7px 24px;
+        text-align: center;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        cursor: inherit;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    .btn-file {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-file input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        background: white;
+        cursor: inherit;
+        display: block;
+    }
+
+    .required {
+        color: #ee0000;
+        font-weight: bold;
+    }
+
+    .optional {
+        color: #5Cb85C;
+        font-weight: bold;
+    }
+
+</style>
+
+<div class="panel panel-default panel-heading bg-gray-light">
+        <h3 class="panel-title"><strong>Covert from HBA-DEALS Format</strong>
+            <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span>
+        </h3>
+</div>
+
+<form id="csv-coverter-form" name="converterUploadForm" enctype="multipart/form-data" method="POST">
+    <input class="inputfile" type="file" id="file" name="filename" accept=".csv">
+    <label for="file" class="btn btn-warning btn-file ">Choose a file</label>
+    <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">No file selected</span>
+    <div class='help-block'></div>
+    <input class="submitButton" type="submit">
+</form>
+
+<h2>Formatting of the HBA-DEALS output</h2>
+<p>Below shows the correct formatting for a file submitted above. GeneWeaver batch uploading requires a GW id, GeneSet Name, Geneset Figure Label, Score Type, GeneSet Description, Species, Gene ID type, and GeneSet Abbreviation. Please include this information in the header of your .csv file as seen below. The ouput of HBA-DEALs uses 1.5 < Effect < 2.0 as the score type, so this is automatically added to the final txt file. Under the header, below "id,LogFC(2)" seen in the example below, list each gene and its score.</p>
+<p>The exported txt file can then uploaded on the <a href="/batchupload">batch upload page.</a></p>
+</form>
+        <div style="">
+            <br>
+            {# Keep this indentation since <pre> preserves whitespace. #}
+            <pre style="border-radius: 10px; border: 1px solid #337700; border-left: 11px solid #337700;">
+    GW id,&lt;id&gt; <span class="required">(required)</span>
+    GeneSet Name,&lt;name&gt; <span class="required">(required)</span>
+    Geneset Figure Label,&lt;label&gt; <span class="required">(required)</span>
+    Score Type,1.5 < Effect < 2.0
+    GeneSet Description,&lt;description&gt; <span class="required">(required)</span>
+    Species,&lt;species&gt; <span class="required">(required)</span>
+    Gene ID Type,&lt;type&gt; <span class="required">(required)</span>
+    GeneSet Abbreviation,&lt;abbreviation&gt; <span class="required">(required)</span>
+    id,LogFC(2)
+    &lt;id&gt;,&lt;score&gt;
+        </pre>
+            {#  </code> #}
+
+    </div>
+
+<script>
+    $(document).ready(function () {
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableFontAwesome').popover({
+            title: 'When to covert from HBA-DEALS Output?', content: 'Use this page to convert output from the ' +
+            'HBA-DEALS R package analyzing RNA-Seq data into a correctly formatted txt file for batch uploading genesets'
+        });
+
+        // Display uploaded file to page
+        var fileInput = document.getElementById('file');
+        var fileDisplayArea = $('#fileDisplayArea');
+
+
+		fileInput.addEventListener('change', function(e) {
+			var file = fileInput.files[0];
+
+            // After reading the file, the filename and size are displayed
+            // to the user. The contents goes under a hidden input for
+            // submission later.
+
+            //check for valid file extension
+            //extra work as the file upload dialog prevents all but these extensions
+            var valid_types = [".csv"];
+            var fname = file.name;
+            var valid = 0;
+
+            for (var i=0; i < valid_types.length; i++) {
+			   var ext = valid_types[i];
+			   var fext = fname.substr(fname.length - ext.length, ext.length);
+			   if(fext == ext) { valid = 1; }
+            }
+
+			if (valid == 1) {
+				var reader = new FileReader();
+
+				reader.onload = function(e) {
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' kB';
+
+                    fileDisplayArea.text(file.name + ' (' + size + ')');
+				};
+
+				reader.readAsText(file);
+
+			} else {
+				// Not a valid file extension
+				fileDisplayArea.innerText = "File not supported!";
+			}
+		});
+
+    });
+
+</script>
+
+{% include 'modal/confirmUpload.html' %}
+{% include 'footer.html' %}
