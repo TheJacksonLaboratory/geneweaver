@@ -517,6 +517,19 @@ class get_species_by_id(Resource):
     def get(self, sp_id):
         return db.query(Species).filter(Species.sp_id == sp_id).all()
 
+@NS.route('/get_sp_id_by_hom_id/<hom_id>')
+class get_sp_id_by_hom_id(Resource):
+    '''
+    :param: hom_id
+    :return: species id
+    '''
+    @NS.doc('return species specified by hom id')
+    def get(self, hom_id):
+        sp_ids = []
+        result = db.query(Homology).filter(Homology.hom_id == hom_id).all()
+        for r in result:
+            sp_ids.append(r.sp_id)
+        return sp_ids
 
 # ora_ortholog_algorithms Table Endpoints
 @NS.route('/get_orthologs_by_num_algoritms/<num>')
@@ -763,6 +776,26 @@ class get_ortholog_by_to_and_from_species(Resource):
             abort(404, message="Could not find any matching orthologs")
         return orthos
 
+@NS.route('/get_orthologous_species/<ode_gene_id>/<ode_ref_id>')
+class get_orthologous_species(Resource):
+    '''
+    :params: ode_gene_id - ode_gene_id to find orthologous species for
+             ode_ref_id - ode_ref_id to find orthologous species for
+    :return: list of ode species ids that given gene has orthologus genes to.
+    '''
+    def get(self, ode_gene_id, ode_ref_id):
+        agr_ref = convert_ode_ref_to_agr(ode_ref_id)
+        agr_gene_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id==agr_ref).first()
+        orthologous_from_genes = db.query(Ortholog.from_gene).filter(Ortholog.to_gene==agr_gene_id).all()
+        orthologous_to_genes = db.query(Ortholog.to_gene).filter(Ortholog.from_gene==agr_gene_id).all()
+        all_orthologs = orthologous_to_genes + orthologous_from_genes
+        all_orthologs = list(list(zip(*all_orthologs))[0])
+        species = []
+        for o in all_orthologs:
+            species.append(convert_species_agr_to_ode(db.query(Gene.sp_id).filter(Gene.gn_id==o).first()[0]))
+        species = list(set(species))
+
+        return species
 
 @NS.route('/get_ortholog_by_to_from_species_and_algorithm/<to_sp_name>/<from_sp_name>/<alg_name>')
 class get_ortholog_by_to_from_species_and_algorithm(Resource):
@@ -969,8 +1002,12 @@ def convert_ode_ref_to_agr(ode_ref):
 
 
 def convert_species_ode_to_agr(ode_sp_id):
-    sp_dict = {1: 1, 2: 7, 3: 9, 4: 6, 5: 12, 8: 4, 9: 3, 6: 10, 11: 9, 10: 8}
+    sp_dict = {1: 1, 2: 7, 3: 2, 4: 6, 5: 5, 8: 4, 9: 3, 6: 10, 11: 9, 10: 8}
     return sp_dict[ode_sp_id]
+
+def convert_species_agr_to_ode(agr_sp_id):
+    sp_dict = {1: 1, 2:3, 3:9, 4:8, 5:5, 6:4, 7:2, 8:10, 9:11, 10:6}
+    return sp_dict[agr_sp_id]
 
 
 def convert_agr_ref_to_ode(gn_ref_id):
@@ -1002,6 +1039,62 @@ class get_ort_id_if_gene_is_ortholog(Resource):
                 (Ortholog.from_gene == gn_id) | (Ortholog.to_gene == gn_id))).all()
         return ort_id
 
+########################################################################################
+########################################################################################
+
+@NS.route('/get_homology_by_ode_gene_id/<ode_gene_id>')
+class get_homology_by_ode_gene_id(Resource):
+    def get(self, ode_gene_id):
+        # find the gn_ids for any gene with the given ode_gene_id
+        ode_refs = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id,).all()
+        ode_refs = list(map(convert_ode_ref_to_agr, ode_refs))
+        gn_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(ode_refs)).all()
+
+        hom_ids = []
+        if(len(gn_ids) != 0):
+            hom_ids = db.query(Homology.hom_id).filter(Homology.gn_id.in_(gn_ids)).all()
+
+        if(len(hom_ids) != 0):
+            hom_ids = [l[0] for l in set(hom_ids)]
+
+        # changes the output from the query to a list without repeats, rather than a list
+        #     of lists
+        return hom_ids
+
+@NS.route('/get_ode_genes_from_hom_id/<hom_id>/<target_gdb_id>')
+class get_ode_genes_from_hom_id(Resource):
+    def get(self, hom_id, target_gdb_id):
+        # these gdb_ids have 0 for their sp_id, so we cannot find homologs for a specific species
+        if target_gdb_id in [1, 2, 3, 4, 5, 6, 7, 8, 17, 21]:
+            return []
+
+        # find the sp_id from the given gdb_id
+        target_sp_id = db.query(Geneweaver_GeneDB.sp_id).filter(Geneweaver_GeneDB.gdb_id == target_gdb_id).first()
+        target_sp_id = convert_species_ode_to_agr(target_sp_id[0])
+
+        homologous_gn_ids = db.query(Homology.gn_id).filter(Homology.hom_id == hom_id,
+                                                            Homology.sp_id == target_sp_id).all()
+
+        if not homologous_gn_ids:
+            return []
+        # create unique list of gn_ids
+        homologous_gn_ids = list(set(list(zip(*homologous_gn_ids))[0]))
+
+        refs = []
+        for id in homologous_gn_ids:
+            ref = convert_agr_ref_to_ode((db.query(Gene.gn_ref_id).filter(Gene.gn_id==id).first())[0])
+            if not ref:
+                break
+            refs.append(ref)
+            # ode_id = db.query(Geneweaver_Gene.ode_gene_id).filter(Geneweaver_Gene.ode_ref_id==ref).first()
+            # if not ode_id:
+            #     break
+            # ode2ref.append([ode_id[0], ref])
+
+        return(refs)
+
+########################################################################################
+########################################################################################
 
 @NS.route('/get_ortholog_by_from_gene_and_gdb/<from_ode_gene_id>/<gdb_id>')
 class get_ortholog_by_from_gene_and_gdb(Resource):
@@ -1053,111 +1146,201 @@ class get_ortholog_by_from_gene_and_gdb(Resource):
         return to_gene_ode_refs
 
 
-@NS.route('/if_ode_gene_has_ortholog/<ode_gene_id>')
-class if_ode_gene_has_ortholog(Resource):
-    '''
-    :param ode_gene_id
-    :return: boolean, if gene is an ortholog
-    '''
+# @NS.route('/if_ode_gene_has_ortholog/<ode_gene_id>')
+# class if_ode_gene_has_ortholog(Resource):
+#     '''
+#     :param ode_gene_id
+#     :return: boolean, if gene is an ortholog
+#     '''
+#
+#     @NS.doc('check if ode gene is an ortholog')
+#     def get(self, ode_gene_id):
+#         is_ortholog = 1
+#         # any gene with a gdb_id that is not in the agr_compatible_gdb_ids will not be found in the agr
+#         #    database, so it is filtered out in the search.
+#         agr_compatible_gdb_ids = [10, 11, 12, 13, 14, 15, 16]
+#         ode_refs = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id,
+#                                                                Geneweaver_Gene.gdb_id.in_(agr_compatible_gdb_ids)).all()
+#
+#         # ode_ref_ids are translated into the agr format found in the ref_id column of the
+#         #   agr gene table
+#         gn_ref_ids = []
+#         for g in ode_refs:
+#             ref = str(g[0])
+#             gn_ref_ids.append(convert_ode_ref_to_agr(ref))
+#
+#         # find ortholog ids that are from the gene with given ode_gene_id
+#         gn_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(gn_ref_ids)).all()
+#         from_gene = db.query(Ortholog.ort_id).filter(Ortholog.from_gene.in_(gn_ids)).all()
+#
+#         # if the gn_ids are not in any of the ortholog's from_gene or to_gene columns,
+#         #   the gene is not an ortholog
+#         if (len(from_gene) == 0):
+#             to_gene = db.query(Ortholog.ort_id).filter(Ortholog.to_gene.in_(gn_ids)).all()
+#             if (len(to_gene) == 0):
+#                 is_ortholog = 0
+#
+#         return is_ortholog
 
-    @NS.doc('check if ode gene is an ortholog')
-    def get(self, ode_gene_id):
-        is_ortholog = 1
-        # any gene with a gdb_id that is not in the agr_compatible_gdb_ids will not be found in the agr
-        #    database, so it is filtered out in the search.
-        agr_compatible_gdb_ids = [10, 11, 12, 13, 14, 15, 16]
-        ode_refs = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                                                               Geneweaver_Gene.gdb_id.in_(agr_compatible_gdb_ids)).all()
+# @NS.route('/if_gene_has_homolog/<ode_gene_id>')
+# class if_gene_has_homolog(Resource):
+#     def get(self, ode_gene_id):
+#         ref = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id).all()
+#         #gn_ids = []
+#         result = 0
+#
+#         for r in ref:
+#             agr_ref = convert_ode_ref_to_agr(r[0])
+#             gn_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id==agr_ref).first()
+#             if gn_id != None:
+#                 #gn_ids.append(gn_id[0])
+#                 homs = db.query(Homology).filter(Homology.gn_id==gn_id[0]).first()
+#                 if homs != None:
+#                     result = 1
+#                     break
+#
+#         return result
 
-        # ode_ref_ids are translated into the agr format found in the ref_id column of the
-        #   agr gene table
-        gn_ref_ids = []
-        for g in ode_refs:
-            ref = str(g[0])
-            gn_ref_ids.append(convert_ode_ref_to_agr(ref))
-
-        # find ortholog ids that are from the gene with given ode_gene_id
-        gn_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(gn_ref_ids)).all()
-        from_gene = db.query(Ortholog.ort_id).filter(Ortholog.from_gene.in_(gn_ids)).all()
-
-        # if the gn_ids are not in any of the ortholog's from_gene or to_gene columns,
-        #   the gene is not an ortholog
-        if (len(from_gene) == 0):
-            to_gene = db.query(Ortholog.ort_id).filter(Ortholog.to_gene.in_(gn_ids)).all()
-            if (len(to_gene) == 0):
-                is_ortholog = 0
-
-        return is_ortholog
-
-
-@NS.route('/get_intersect_by_orthology', methods=['GET', 'POST'])
-class get_intersect_by_orthology(Resource):
+@NS.route('/get_intersect_by_homology', methods=['GET', 'POST'])
+class get_intersect_by_homology(Resource):
     @NS.expect(parser)
     def get(self):
-        '''
-        :param: gs1 - taken from parser, list of gene info in geneset 1
-                gs2 - taken from parser, list of gene info in geneset 2
-        :return: gene info (gi_symbol, ode_gene_id, and ort_id) of
-                 genes that intersect both genesets
-        '''
 
-        # gets list of genes for each geneset
-        parser.add_argument('gs1', type=str, action="append")
-        parser.add_argument('gs2', type=str, action="append")
-        data = parser.parse_args()
-        gs1 = data['gs1']
-        gs2 = data['gs2']
+        @NS.route('/get_intersect_by_orthology', methods=['GET', 'POST'])
+        class get_intersect_by_orthology(Resource):
+            @NS.expect(parser)
+            def get(self):
+                '''
+                :param: gs1 - taken from parser, list of gene info in geneset 1
+                        gs2 - taken from parser, list of gene info in geneset 2
+                :return: gene info (gi_symbol, ode_gene_id, and ort_id) of
+                         genes that intersect both genesets
+                '''
 
-        # each geneset is iterpreted as a list of strings, so every 5 strings is one
-        #   gene's info. The following code determines the number of genes in each geneset
-        gs1_len = int((len(gs1)) / 4)
-        gs2_len = int((len(gs2)) / 4)
-        genes = []
+                # gets list of genes for each geneset
+                parser.add_argument('gs1', type=str, action="append")
+                parser.add_argument('gs2', type=str, action="append")
+                data = parser.parse_args()
+                gs1 = data['gs1']
+                gs2 = data['gs2']
 
-        for i in range(1, gs1_len):
-            # find current index in list of strings to parse out gene1's info
-            ndx = i * 4
-            # format = [ ode_gene_id, ode_ref_id, gi_symbol, hom_id ]
-            gene1_info = [gs1[ndx - 4], gs1[ndx - 3], gs1[ndx - 2], gs1[ndx - 1]]
+                # each geneset is iterpreted as a list of strings, so every 3 strings is one
+                #   gene's info. The following code determines the number of genes in each geneset
+                gs1_len = int((len(gs1)) / 4)
+                gs2_len = int((len(gs2)) / 4)
+                genes = []
 
-            # get agr id of gene 1
-            ref1 = str(gene1_info[1])
-            gene_1_ref = convert_ode_ref_to_agr(ref1)
-            gene1_id = (db.query(Gene).filter(Gene.gn_ref_id == gene_1_ref).first()).gn_id
+                for i in range(1, gs1_len):
+                    # find current index in list of strings to parse out gene1's info
+                    ndx = i * 4
+                    # format = [ ode_gene_id, ode_ref_id, gi_symbol, hom_id ]
+                    gene1_info = [gs1[ndx - 4], gs1[ndx - 3], gs1[ndx - 2], gs1[ndx - 1]]
 
-            for j in range(1, gs2_len):
-                ndx2 = j * 4
-                gene2_info = [gs2[ndx2 - 4], gs2[ndx2 - 3], gs2[ndx2 - 2], gs2[ndx2 - 1]]
-                gene_1_ortho = False
+                    # get agr id of gene 1
+                    ref1 = str(gene1_info[1])
+                    gene_1_ref = convert_ode_ref_to_agr(ref1)
+                    gene1_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_1_ref).first()
 
-                # get agr id of gene 2
-                ref2 = str(gene2_info[1])
-                gene_2_ref = convert_ode_ref_to_agr(ref2)
-                gene2_id = (db.query(Gene).filter(Gene.gn_ref_id == gene_2_ref).first()).gn_id
+                    for j in range(1, gs2_len):
+                        ndx2 = j * 4
+                        gene2_info = [gs2[ndx2 - 4], gs2[ndx2 - 3], gs2[ndx2 - 2], gs2[ndx2 - 1]]
+                        gene_1_ortho = False
 
-                # check orthologs with gene1 as from_gene and gene2 as to_gene
-                ortho_1_2 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene1_id,
-                                                             Ortholog.to_gene == gene2_id).all()
+                        # get agr id of gene 2
+                        ref2 = str(gene2_info[1])
+                        gene_2_ref = convert_ode_ref_to_agr(ref2)
+                        gene2_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_2_ref).first()
 
-                if len(ortho_1_2) != 0:
-                    gene_1_ortho = True
-                    genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
-                else:
-                    # check orthologs with gene2 as from_gene and gene1 as to_gene
-                    ortho_2_1 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene2_id,
-                                                                 Ortholog.to_gene == gene1_id).all()
-                    if len(ortho_2_1) != 0:
-                        gene_1_ortho = True
-                        genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
+                        # check orthologs with gene1 as from_gene and gene2 as to_gene
+                        ortho_1_2 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene1_id,
+                                                                     Ortholog.to_gene == gene2_id).all()
 
-            # if any orthologs are found, add gene1
-            if gene_1_ortho:
-                genes.append([gene1_info[0], gene1_info[2], gene1_info[3]])
-        return genes
+                        if len(ortho_1_2) != 0:
+                            gene_1_ortho = True
+                            genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
+                        else:
+                            # check orthologs with gene2 as from_gene and gene1 as to_gene
+                            ortho_2_1 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene2_id,
+                                                                         Ortholog.to_gene == gene1_id).all()
+                            if len(ortho_2_1) != 0:
+                                gene_1_ortho = True
+                                genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
+
+                    # if any orthologs are found, add gene1
+                    if gene_1_ortho:
+                        genes.append([gene1_info[0], gene1_info[2], gene1_info[3]])
+                return genes
+
+
+#
+# @NS.route('/get_intersect_by_orthology', methods=['GET', 'POST'])
+# class get_intersect_by_orthology(Resource):
+#     @NS.expect(parser)
+#     def get(self):
+#         '''
+#         :param: gs1 - taken from parser, list of gene info in geneset 1
+#                 gs2 - taken from parser, list of gene info in geneset 2
+#         :return: gene info (gi_symbol, ode_gene_id, and ort_id) of
+#                  genes that intersect both genesets
+#         '''
+#
+#         # gets list of genes for each geneset
+#         parser.add_argument('gs1', type=str, action="append")
+#         parser.add_argument('gs2', type=str, action="append")
+#         data = parser.parse_args()
+#         gs1 = data['gs1']
+#         gs2 = data['gs2']
+#
+#         # each geneset is iterpreted as a list of strings, so every 5 strings is one
+#         #   gene's info. The following code determines the number of genes in each geneset
+#         gs1_len = int((len(gs1)) / 4)
+#         gs2_len = int((len(gs2)) / 4)
+#         genes = []
+#
+#         for i in range(1, gs1_len):
+#             # find current index in list of strings to parse out gene1's info
+#             ndx = i * 4
+#             # format = [ ode_gene_id, ode_ref_id, gi_symbol, hom_id ]
+#             gene1_info = [gs1[ndx - 4], gs1[ndx - 3], gs1[ndx - 2], gs1[ndx - 1]]
+#
+#             # get agr id of gene 1
+#             ref1 = str(gene1_info[1])
+#             gene_1_ref = convert_ode_ref_to_agr(ref1)
+#             gene1_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_1_ref).first()
+#
+#             for j in range(1, gs2_len):
+#                 ndx2 = j * 4
+#                 gene2_info = [gs2[ndx2 - 4], gs2[ndx2 - 3], gs2[ndx2 - 2], gs2[ndx2 - 1]]
+#                 gene_1_ortho = False
+#
+#                 # get agr id of gene 2
+#                 ref2 = str(gene2_info[1])
+#                 gene_2_ref = convert_ode_ref_to_agr(ref2)
+#                 gene2_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == gene_2_ref).first()
+#
+#                 # check orthologs with gene1 as from_gene and gene2 as to_gene
+#                 ortho_1_2 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene1_id,
+#                                                              Ortholog.to_gene == gene2_id).all()
+#
+#                 if len(ortho_1_2) != 0:
+#                     gene_1_ortho = True
+#                     genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
+#                 else:
+#                     # check orthologs with gene2 as from_gene and gene1 as to_gene
+#                     ortho_2_1 = db.query(Ortholog.ort_id).filter(Ortholog.from_gene == gene2_id,
+#                                                                  Ortholog.to_gene == gene1_id).all()
+#                     if len(ortho_2_1) != 0:
+#                         gene_1_ortho = True
+#                         genes.append([gene2_info[0], gene2_info[2], gene2_info[3]])
+#
+#             # if any orthologs are found, add gene1
+#             if gene_1_ortho:
+#                 genes.append([gene1_info[0], gene1_info[2], gene1_info[3]])
+#         return genes
 
 
 @NS.route('/transpose_genes_by_species', methods=['GET', 'POST'])
-class transpose_genes_by_homology(Resource):
+class transpose_genes_by_species(Resource):
     '''
     :params: genes - taken through parser, list of ode_ref_ids to be tranposed
              species - newSpecies that genes will be transposed to through orthology
@@ -1198,6 +1381,7 @@ class transpose_genes_by_homology(Resource):
             ode_refs.append(convert_agr_ref_to_ode(r[0]))
 
         return ode_refs
+
 
 @NS.route('/get_orthologs_by_symbol/<sym>/<orig_species>/<homologous_species>')
 class get_orthologs_by_symbol(Resource):
