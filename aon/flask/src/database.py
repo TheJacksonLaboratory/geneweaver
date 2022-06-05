@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from config import Config
+from src.config import Config
 
 agr_engine = create_engine(Config.DATABASE_URL_AGR)
 gw_engine = create_engine(Config.DATABASE_URL_GW)
