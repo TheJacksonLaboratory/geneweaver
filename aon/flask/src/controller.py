@@ -531,6 +531,24 @@ class get_sp_id_by_hom_id(Resource):
             sp_ids.append(r.sp_id)
         return sp_ids
 
+@NS.route('/get_species_homologs_list', methods=['GET','POST'])
+class get_species_homologs_list(Resource):
+    '''
+    :param: hom_id - list of hom_ids
+    :return: species id
+    '''
+    @NS.expect(parser)
+    def get(self):
+        parser.add_argument('hom_ids', type=int, action="append")
+        data = parser.parse_args()
+        hom_ids = data['hom_ids']
+
+        result = db.query(Homology.sp_id).filter(Homology.hom_id.in_(hom_ids)).all()
+        homologous_species = list(set(list(zip(*result))[0]))
+
+        return homologous_species
+
+
 # ora_ortholog_algorithms Table Endpoints
 @NS.route('/get_orthologs_by_num_algoritms/<num>')
 class get_orthologs_by_num_algoritms(Resource):
@@ -862,11 +880,7 @@ class agr_to_geneweaver_species(Resource):
 
     @NS.doc('translate an AGR species id to the corresponding species id in the geneweaver database')
     def get(self, sp_id):
-        agr_sp_name = db.query(Species.sp_name).filter(Species.sp_id == sp_id).first()
-        geneweaver_id = (db.query(Geneweaver_Species).filter(Geneweaver_Species.sp_name == agr_sp_name).first()).sp_id
-        if not geneweaver_id:
-            abort(404, message="No matching sp_id in the Geneweaver Species Table")
-        return geneweaver_id
+        return convert_species_agr_to_ode(int(sp_id))
 
 
 # similar to the convertAGRtoODE function
@@ -1047,9 +1061,12 @@ class get_homology_by_ode_gene_id(Resource):
     '''
     def get(self, ode_gene_id):
         # find the gn_ids for any gene with the given ode_gene_id
-        ode_refs = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id,).all()
-        ode_refs = list(map(convert_ode_ref_to_agr, ode_refs))
+        result = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id).all()
+        ode_refs = []
+        for r in result:
+            ode_refs.append(convert_ode_ref_to_agr(r[0]))
         gn_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(ode_refs)).all()
+        gn_ids = (list(zip(*gn_ids))[0])
 
         hom_ids = []
         if(len(gn_ids) != 0):
@@ -1217,7 +1234,7 @@ class get_intersect_by_homology(Resource):
         return result
 
 
-@NS.route('/transpose_genes_by_species', methods=['GET', 'POST'])
+@NS.route('/transpose_genes_by_species', methods=['GET','POST'])
 class transpose_genes_by_species(Resource):
     '''
     :params: genes - taken through parser, list of ode_ref_ids to be tranposed
@@ -1278,6 +1295,24 @@ class transpose_genes_by_species(Resource):
         gene_symbols = list(set(list(zip(*gene_symbols))[0]))
         return gene_symbols
 
+@NS.route('/if_gene_has_homolog/<ode_gene_id>')
+class if_gene_has_homolog(Resource):
+    def get(self, ode_gene_id):
+        ref = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id).all()
+        #gn_ids = []
+        result = 0
+
+        for r in ref:
+            agr_ref = convert_ode_ref_to_agr(r[0])
+            gn_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id==agr_ref).first()
+            if gn_id != None:
+                #gn_ids.append(gn_id[0])
+                homs = db.query(Homology).filter(Homology.gn_id==gn_id[0]).first()
+                if homs != None:
+                    result = 1
+                    break
+
+        return result
 
 @NS.route('/get_orthologs_by_symbol/<sym>/<orig_species>/<homologous_species>')
 class get_orthologs_by_symbol(Resource):
@@ -1344,6 +1379,8 @@ class get_orthologs_by_symbol(Resource):
                 ortho_sym = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id == ortho_id,
                                                                         Geneweaver_Gene.gdb_id == 7,
                                                                         Geneweaver_Gene.ode_pref == True).first()
+                if ortho_sym == None:
+                    continue
                 ortho_syms.append(ortho_sym[0])
                 ortho_data.append([o, ortho_sym[0]])
             data[s] = ortho_data
