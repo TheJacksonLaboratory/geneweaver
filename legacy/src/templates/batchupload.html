@@ -127,6 +127,15 @@
                                value="Review GeneSet Upload &raquo;" disabled="true">
                     </div>
                 </div>
+
+                <div class="row">
+                    <div class="col-sm-12 btn-group">
+                        <div class='help-block'></div>
+                        <form action="{{url_for('HBA_batch_converter')}}">
+                            <input class="btn btn-warning btn-file" type="submit" value="Convert from HBA-DEALS Format"/>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
