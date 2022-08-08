@@ -1080,6 +1080,36 @@ class get_homology_by_ode_gene_id(Resource):
         return hom_ids
 
 
+@NS.route('/get_homologous_ode_gene_ids_for_gene/<ode_ref_id>/<gdb_name>')
+class get_homologous_ode_gene_ids_for_gene(Resource):
+    '''
+    :param ode_ref_id - ode_ref_id used to search for homologous genes to this gene
+           gdb_name - name of gdb of the given ode_ref_id
+    :return: list of ode_gene_ids that are homologous to the given ode_ref_id
+    '''
+    def get(self, ode_ref_id, gdb_name):
+        agr_ref_id = convert_ode_ref_to_agr(ode_ref_id)
+        gdb_id = db.query(Geneweaver_GeneDB.gdb_id).filter(Geneweaver_GeneDB.gdb_name==gdb_name).first()
+
+        gn_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == agr_ref_id).all()
+        gn_id = [l[0] for l in set(gn_id)]
+
+        hom_ids = db.query(Homology.hom_id).filter(Homology.gn_id.in_(gn_id)).all()
+        hom_ids = [l[0] for l in set(hom_ids)]
+        print(hom_ids)
+
+        homologous_gn_ids = db.query(Homology.gn_id).filter(Homology.hom_id.in_(hom_ids)).all()
+        homologous_gn_ids = [l[0] for l in set(homologous_gn_ids)]
+
+        homologous_agr_refs = db.query(Gene.gn_ref_id).filter(Gene.gn_id.in_(homologous_gn_ids)).all()
+        homologous_refs = [convert_agr_ref_to_ode(l[0]) for l in set(homologous_agr_refs)]
+
+        ode_gene_ids = db.query(Geneweaver_Gene.ode_gene_id).filter(Geneweaver_Gene.ode_ref_id.in_(homologous_refs)).all()
+        ode_gene_ids = [l[0] for l in set(ode_gene_ids)]
+
+        return ode_gene_ids
+
+
 
 @NS.route('/get_homology_by_ode_gene_ids', methods=['GET', 'POST'])
 class get_homology_by_ode_gene_ids(Resource):
