@@ -1001,16 +1001,16 @@ def convert_ode_ref_to_agr(ode_ref):
     if ode_ref[0] == 'W':
         prefix = "WB"
         ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'F':
+    elif ode_ref[0] == 'F':
         prefix = "FB"
         ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'S':
+    elif ode_ref[0] == 'S':
         prefix = "SGD"
         ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'Z':
+    elif ode_ref[0] == 'Z':
         prefix = "ZFIN"
         ref = prefix + ":" + ode_ref
-    if ode_ref[0] == 'R':
+    elif ode_ref[0] == 'R':
         ref = ode_ref[:3] + ":" + ode_ref[3:]
     return ref
 
@@ -1074,6 +1074,45 @@ class get_homology_by_ode_gene_id(Resource):
 
         # changes the output from the query to a list without repeats, rather than a list
         #     of lists
+        if(len(hom_ids) != 0):
+            hom_ids = [l[0] for l in set(hom_ids)]
+
+        return hom_ids
+
+
+
+@NS.route('/get_homology_by_ode_gene_ids', methods=['GET', 'POST'])
+class get_homology_by_ode_gene_ids(Resource):
+    '''
+    :param ode_gene_ids - list of ode_gene_id used to search for homology
+    :return: list of hom_ids that contain the gene given as input
+    '''
+    @NS.expect(parser)
+    def get(self):
+        # gets list of genes for each geneset
+        parser.add_argument('ode_gene_ids', type=str, action="append")
+        data = parser.parse_args()
+        ode_gene_ids = data['ode_gene_ids']
+
+        # find the gn_ids for any gene with the given ode_gene_id
+        result = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id.in_(ode_gene_ids)).all()
+        ode_refs = []
+        for r in result:
+            ode_refs.append(convert_ode_ref_to_agr(r[0]))
+
+        gn_ids = db.query(Gene.gn_id).filter(Gene.gn_ref_id.in_(ode_refs)).all()
+        if not gn_ids:
+            return []
+        gn_ids = list(set(list(zip(*gn_ids))[0]))
+
+        hom_ids = []
+        if(len(gn_ids) != 0):
+            hom_ids = db.query(Homology.hom_id).filter(Homology.gn_id.in_(gn_ids)).all()
+        else:
+            return []
+
+        # # changes the output from the query to a list without repeats, rather than a list
+        # #     of lists
         if(len(hom_ids) != 0):
             hom_ids = [l[0] for l in set(hom_ids)]
 

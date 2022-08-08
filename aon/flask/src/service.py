@@ -9,7 +9,7 @@ from models import Gene, Species, Ortholog, Algorithm, Homology
 db = SessionLocal()
 
 # TODO - update to point at AGR file
-ORTHO_FILE = '/agr-normalizer/ORTHOLOGY-ALLIANCE_COMBINED.tsv'
+ORTHO_FILE = '/agr-normalizer/ORTHOLOGY-ALLIANCE_COMBINED_51.tsv'
 
 def read_file_by_line(file):
     for line in file:
