@@ -84,6 +84,7 @@ def run_tool():
     # gather the params into a dictionary
     params = {}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        print(form[tool_param.name])
         params[tool_param.name] = form[tool_param.name]
 
     # get gene symbols for each gene in geneset
@@ -137,10 +138,6 @@ def run_tool_api(apikey, species, genesets, path):
         raise Exception('You need to select at least 1 geneset as input for this tool.')
 
     # gather the params into a dictionary
-    # params = {}
-    # for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-    #     params[tool_param.name] = form[tool_param.name]
-    # species_str = 'Species'
     params = {}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_Path'):
@@ -151,6 +148,15 @@ def run_tool_api(apikey, species, genesets, path):
             params[tool_param.name] = 'Human to Mouse'
             if species != 'Human to Mouse':
                 params[tool_param.name] = 'Mouse to Human'
+
+    # get gene symbols for each gene in geneset
+    gene_syms = []
+    for g in selected_geneset_ids:
+        gsv = gwdb.get_geneset_values(g)
+        for i in gsv:
+            gene_syms = gene_syms + i.source_list
+    gene_syms = list(set(gene_syms))
+    params['gene_syms'] = gene_syms
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)

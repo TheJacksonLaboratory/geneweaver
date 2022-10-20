@@ -107,18 +107,16 @@
         {{ runhash }} </h1>
 </div>
 
-{{ async_result }} <br />
-
 <div id="ui-container">
     <form id="todo-id" class="form-horizontal" role="form" method="post">
         <div>
-            <div id="show-tool-options" 
-                 style="color:#006400; cursor:pointer; font-weight:600; 
+            <div id="show-tool-options"
+                 style="color:#006400; cursor:pointer; font-weight:600;
                         text-decoration:underline;">
                 Tool Options
                 <i id="tool-options-caret" class="fa fa-caret-left"></i>
             </div>
-            <div id="tool-options" 
+            <div id="tool-options"
                  style="display:none; text-align:left; background-color:#efe;
                         border-radius:5px; padding:15px; width:100%">
                 <div class="row">
@@ -158,30 +156,13 @@
             Download Data
             <i id="viz-options-caret" class="fa fa-caret-left"></i>
         </div>
-        <div id="viz-options" style="display:none; text-align:left; 
+        <div id="viz-options" style="display:none; text-align:left;
              background-color:#efe; border-radius:5px; padding:15px;
              width:100%">
             <div class="row">
 				<div class="col-md-2">
                     <div class="btn-group">
-                        <button type="button" 
-                                class="btn btn-primary dropdown-toggle" 
-                                data-toggle="dropdown" aria-haspopup="true" 
-                                aria-expanded="false">
-                            Download as...
-                            <span id="download-icon" class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a class="download-image" id="dl-pdf">PDF</a>
-                            </li>
-                            <li>
-                                <a class="download-image" id="dl-png">PNG</a>
-                            </li>
-                            <li>
-                                <a class="download-image" id="dl-svg">SVG</a>
-                            </li>
-                        </ul>
+                        <button class="btn btn-primary"  onclick="downloadCSV({{async_result['variants'] }})">Download</button>
                     </div>
 				</div>
             </div>
@@ -190,26 +171,26 @@
 
     <br />
 
-    <div>
-        <div id="show-help" style="color:#006400; cursor:pointer; 
-             font-weight:600; text-decoration:underline;">
-            Help
-            <i id="help-caret" class="fa fa-caret-left"></i>
-        </div>
-        <div id="help" style="display:none; text-align:left; 
-             background-color:#efe; border-radius:5px; padding:15px;
-             width:100%">
-            <div style="color:#006400; font-family:'Open Sans',sans-serif;
-                 font-size:13px;">
-                <span style="text-decoration:underline; font-weight:600;">
-                    Venn Diagram Visualization
-                </span>
-                <p style="padding-left:8px">
-                    <b>Hover</b> over a venn diagram to view information about
-                    about the two GeneSets in that comparison.
-                    <br />
-                </p>
-            </div>
+{#    <div>#}
+{#        <div id="show-help" style="color:#006400; cursor:pointer; #}
+{#             font-weight:600; text-decoration:underline;">#}
+{#            Help#}
+{#            <i id="help-caret" class="fa fa-caret-left"></i>#}
+{#        </div>#}
+{#        <div id="help" style="display:none; text-align:left; #}
+{#             background-color:#efe; border-radius:5px; padding:15px;#}
+{#             width:100%">#}
+{#            <div style="color:#006400; font-family:'Open Sans',sans-serif;#}
+{#                 font-size:13px;">#}
+{#                <span style="text-decoration:underline; font-weight:600;">#}
+{#                    Venn Diagram Visualization#}
+{#                </span>#}
+{#                <p style="padding-left:8px">#}
+{#                    <b>Hover</b> over a venn diagram to view information about#}
+{#                    about the two GeneSets in that comparison.#}
+{#                    <br />#}
+{#                </p>#}
+{#            </div>#}
 {#            <span style="color:#006400">#}
 {#                Visit our #}
 {#                <a href="http://geneweaver.org/help/#jaccard-similarity"#}
@@ -217,8 +198,8 @@
 {#                   target="_blank">wiki</a>#}
 {#                for more information.#}
 {#            </span>#}
-        </div>
-    </div>
+{#        </div>#}
+{#    </div>#}
 
 </div>
 
@@ -227,16 +208,40 @@
 <div id="variants-legend">
 </div>
 
-<!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
-<div id="variants">
-</div>
-
 <br>
 <br>
 
 
 <!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
 <script>
+
+    function createCSV(array){
+      var keys = Object.keys(array[0]);
+
+      var result = '';
+      result += 'from_gene_symbol,from_gene_id,to_gene_symbol,to_gene_id,to_rs_id,to_tissue';
+      result += '\n';
+
+      array.forEach(function(item){ //Goes Through Each Array Object
+        keys.forEach(function(key){//Goes Through Each Object value
+          result += item[key] + ','; //Comma Seperates Each Key Value in a Row
+        })
+        result += '\n';//Creates New Row
+      })
+
+      return result;
+    }
+
+
+    function downloadCSV(array) {
+      csv = 'data:text/csv;charset=utf-8,' + createCSV(array);
+      excel = encodeURI(csv);
+
+      link = document.createElement('a');
+      link.setAttribute('href', excel); //Links to CSV File
+      link.setAttribute('download',`'FindVariants_${Date.now()}.csv`); //Filename that CSV is saved as
+      link.click();
+    }
 
     /**
       * Updates the "Download as..." drop down icon to inform the user that
@@ -252,58 +257,6 @@
         else
             $('#download-icon').attr('class', 'caret');
     };
-
-    $('.download-image').on('click', function(event) {
-
-        // Prevent the button from doing anything (i.e. reloading the page)
-        event.preventDefault();
-
-        changeDownloadIcon();
-
-        var dlurl = '/downloadResult';
-        // Removes 'dl-' from the id string
-        var filetype = event.target.id.slice(3);
-
-        // Gives our SVG a white background color prior to conversion.
-        // This actually changes the image the user is seeing, but they
-        // shouldn't be able to notice.
-        d3.select('#jaccard > svg')
-                .insert('rect', 'g')
-                .attr('width', '100%')
-                .attr('height', '100%')
-                .attr('fill', 'white');
-
-        var html = d3.select("#jaccard > svg")
-                .attr("version", 1.1)
-                .attr("xmlns", "http://www.w3.org/2000/svg")
-                .node().innerHTML;
-
-        // The jaccard tool appends extra divs inside the SVG container
-        // for tooltips. When we try to convert the image to a PNG, the SVG
-        // parser chokes, because these are picked up along with the SVG. So
-        // we recreate the SVG element.
-        var margin = {top: -5, right: -5, bottom: -5, left: -5},
-                width = 1100 - margin.left - margin.right,
-                height = 900 - margin.top - margin.bottom;
-
-        html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
-               html + '</svg>'
-
-        {% if runhash %}
-            var runhash = '{{runhash | safe}}';
-        {% else %}
-            var runhash = '{{async_result.parameters.output_prefix}}';
-        {% endif %}
-
-        $.post(dlurl, {svg: html, filetype: filetype, runhash: runhash}).done(function (data) {
-
-            changeDownloadIcon();
-
-            let win = window.open(location.origin + '/' + data, '_blank');
-            win.focus();
-        });
-    });
-
 </script>
 
 <script>
