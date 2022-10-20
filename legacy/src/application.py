@@ -43,6 +43,7 @@ from tools import msetblueprint
 from tools import phenomemapblueprint
 from tools import similargenesetsblueprint
 from tools import tricliqueblueprint
+from tools import findvariantsblueprint
 import adminviews
 import annotator
 import config
@@ -71,6 +72,7 @@ app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 app.register_blueprint(msetblueprint.mset_blueprint)
 app.register_blueprint(similargenesetsblueprint.similar_genesets_blueprint)
+app.register_blueprint(findvariantsblueprint.findvariants_blueprint)
 
 # *************************************
 
@@ -4920,6 +4922,10 @@ class KeywordSearchGuest(restful.Resource):
     def get(self, apikey, search_term):
         return search.api_search(search_term)
 
+class ToolFindVariants(restful.Resource):
+    def get(self, apikey, species, genesets, path):
+        return findvariantsblueprint.run_tool_api(apikey, species, genesets, path)
+
 
 api.add_resource(KeywordSearchGuest, '/api/get/search/bykeyword/<apikey>/<search_term>/')
 
@@ -4994,6 +5000,9 @@ api.add_resource(ToolUpSet,
                  '/api/tool/upset/<apikey>/<homology>/<zeros>/<genesets>/')
 api.add_resource(ToolUpSetProjects,
                  '/api/tool/upset/byprojects/<apikey>/<homology>/<zeros>/<projects>/')
+
+api.add_resource(ToolFindVariants,
+                 '/api/tool/findvariants/<apikey>/<species>/<genesets>/<path>/')
 
 # ********************************************
 # END API BLOCK

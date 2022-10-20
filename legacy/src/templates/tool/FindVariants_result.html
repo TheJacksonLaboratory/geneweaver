@@ -1,0 +1,456 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<style>
+
+.key > * {
+    margin: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#panel, #flip {
+    padding: 5px;
+    text-align: left;
+}
+
+#panel {
+    display: none;
+    background-color: #FFFFFF;
+}
+
+#flip {
+ height: 50px;
+}
+
+#rerunPanel, #rerunFlip {
+    padding: 5px;
+    text-align: left;
+}
+
+#rerunPanel {
+    height: 350px;
+    text-align: left;
+    display: none;
+}
+
+#rerunFlip {
+   height: 50px;
+   text-shadow: none;
+}
+#rerun{
+ float:right;
+    display:block;
+    margin-right: 585px;
+    clear:left;
+ }
+
+.left-cell {
+  vertical-align: middle;
+  width: 200px;
+}
+
+.right-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  right: 0;
+}
+
+.middle-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: left;
+  padding-left: 320px;
+}
+
+.box-header {
+  padding-bottom: 5px;
+  display: table;
+  width: 90%;
+}
+
+#addToProject, #exportData {
+    float: left;
+}
+
+ .divider{
+    margin: 5px;
+}
+
+#checkall{
+    float: left;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+}
+
+ div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 300px;
+  height: 60px;
+  padding: 2px;
+  font: 10px sans-serif;
+  background: ghostwhite;
+  pointer-events: none;}
+
+
+</style>
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
+</div>
+
+{{ async_result }} <br />
+
+<div id="ui-container">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div>
+            <div id="show-tool-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Tool Options
+                <i id="tool-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="tool-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:100%">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['FindVariants_Species']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_checkbox_mset(tool.params['FindVariants_Path']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                    <div class="col-md-8">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('FindVariants.run_tool') }}";'>
+                            Re-Run Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <br />
+
+    <div>
+        <div id="show-viz-options" style="color:#006400; cursor:pointer;
+             font-weight:600; text-decoration:underline;">
+            Download Data
+            <i id="viz-options-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="viz-options" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div class="row">
+				<div class="col-md-2">
+                    <div class="btn-group">
+                        <button type="button" 
+                                class="btn btn-primary dropdown-toggle" 
+                                data-toggle="dropdown" aria-haspopup="true" 
+                                aria-expanded="false">
+                            Download as...
+                            <span id="download-icon" class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="download-image" id="dl-pdf">PDF</a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-png">PNG</a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-svg">SVG</a>
+                            </li>
+                        </ul>
+                    </div>
+				</div>
+            </div>
+		</div>
+	</div>
+
+    <br />
+
+    <div>
+        <div id="show-help" style="color:#006400; cursor:pointer; 
+             font-weight:600; text-decoration:underline;">
+            Help
+            <i id="help-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="help" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div style="color:#006400; font-family:'Open Sans',sans-serif;
+                 font-size:13px;">
+                <span style="text-decoration:underline; font-weight:600;">
+                    Venn Diagram Visualization
+                </span>
+                <p style="padding-left:8px">
+                    <b>Hover</b> over a venn diagram to view information about
+                    about the two GeneSets in that comparison.
+                    <br />
+                </p>
+            </div>
+{#            <span style="color:#006400">#}
+{#                Visit our #}
+{#                <a href="http://geneweaver.org/help/#jaccard-similarity"#}
+{#                   style="color:#006400; font-weight:600;" #}
+{#                   target="_blank">wiki</a>#}
+{#                for more information.#}
+{#            </span>#}
+        </div>
+    </div>
+
+</div>
+
+<br>
+
+<div id="variants-legend">
+</div>
+
+<!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
+<div id="variants">
+</div>
+
+<br>
+<br>
+
+
+<!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
+<script>
+
+    /**
+      * Updates the "Download as..." drop down icon to inform the user that
+      * their click and image download is being processed.
+      * Changes the caret to a spinning wheel when they select a download
+      * option. Changes back to the caret after the image is finished
+      * processing and ready for download.
+      */
+    var changeDownloadIcon = function() {
+
+        if ($('#download-icon').hasClass('caret'))
+            $('#download-icon').attr('class', 'fa fa-cog fa-spin');
+        else
+            $('#download-icon').attr('class', 'caret');
+    };
+
+    $('.download-image').on('click', function(event) {
+
+        // Prevent the button from doing anything (i.e. reloading the page)
+        event.preventDefault();
+
+        changeDownloadIcon();
+
+        var dlurl = '/downloadResult';
+        // Removes 'dl-' from the id string
+        var filetype = event.target.id.slice(3);
+
+        // Gives our SVG a white background color prior to conversion.
+        // This actually changes the image the user is seeing, but they
+        // shouldn't be able to notice.
+        d3.select('#jaccard > svg')
+                .insert('rect', 'g')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', 'white');
+
+        var html = d3.select("#jaccard > svg")
+                .attr("version", 1.1)
+                .attr("xmlns", "http://www.w3.org/2000/svg")
+                .node().innerHTML;
+
+        // The jaccard tool appends extra divs inside the SVG container
+        // for tooltips. When we try to convert the image to a PNG, the SVG
+        // parser chokes, because these are picked up along with the SVG. So
+        // we recreate the SVG element.
+        var margin = {top: -5, right: -5, bottom: -5, left: -5},
+                width = 1100 - margin.left - margin.right,
+                height = 900 - margin.top - margin.bottom;
+
+        html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
+               html + '</svg>'
+
+        {% if runhash %}
+            var runhash = '{{runhash | safe}}';
+        {% else %}
+            var runhash = '{{async_result.parameters.output_prefix}}';
+        {% endif %}
+
+        $.post(dlurl, {svg: html, filetype: filetype, runhash: runhash}).done(function (data) {
+
+            changeDownloadIcon();
+
+            let win = window.open(location.origin + '/' + data, '_blank');
+            win.focus();
+        });
+    });
+
+</script>
+
+<script>
+
+// Includes all images in the what popover button
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+var imgAltKey = '<img src="{{url_for('static', filename='images/altkey.png')}}">';
+var imgShiftKey = '<img src="{{url_for('static', filename='images/shiftkey.png')}}">';
+var wikiIcon = '<img src="{{url_for('static', filename='images/wikiIcon.png')}}">';
+var wikiImg = '<a href="http://geneweaver.org/help/#jaccard-similarity">' + wikiIcon +'</i></a>';
+
+// Cooresponds to the information or what button (gives users instructions how to work tool)
+$('#what').popover({
+            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
+           'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details. <br>' +
+            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
+            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
+        });
+        });
+
+$(function() {
+
+    $('#show-tool-options').on('click', function() {
+
+        $('#tool-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-viz-options').on('click', function() {
+
+        $('#viz-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-help').on('click', function() {
+
+        $('#help').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+});
+
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things.
+                if (elemType == 'INPUT') {
+
+                    // Maybe it's a radio button or checkbox, both of which
+                    // use the same type of default selection attribute
+                    if ($(this).attr('type') === 'radio' || 
+                        $(this).attr('type') === 'checkbox') {
+
+                        if ($(this).attr('value') === parameters[param]) {
+
+                            $(this).attr('checked', 'checked');
+                            // The styling for this stupid element is in a
+                            // neighboring node
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-off');
+                                $(this).siblings().addClass('ui-radio-on');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-off');
+                                $(this).siblings().addClass('ui-checkbox-on');
+                            }
+
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-on');
+                                $(this).siblings().addClass('ui-radio-off');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-on');
+                                $(this).siblings().addClass('ui-checkbox-off');
+                            }
+                        }
+                    }
+                }
+
+            });
+        }
+    });
+</script>
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects_multiselect.html' %}
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
+
+<!-- Includes the footer for the page -->
+{% include 'footer.html' %}
