@@ -8,6 +8,9 @@ at bitbucket.org/geneweaver/curation
 import json
 import urllib
 from urllib.parse import urlencode
+# Upload Fix: Use requests package instead of urrlib
+import requests
+# END Upload Fix
 
 import geneweaverdb
 
@@ -59,27 +62,58 @@ def fetch_ncbo_annotations(text, ncboids):
 
     ncboids = list(set(ncboids))
     ncboids = map(str, ncboids)
+    # Upload Fix Everest
+    # Convert back into a list instead of a map function for enumerate compatibility
+    ncboids = list(ncboids)
+    # END upload fix
 
     ## Currently the DO prefix we use is DO instead of DOID
-    for i in range(len(ncboids)):
-        if ncboids[i] == 'DO':
-            ncboids[i] = 'DOID'
+    # Upload Fix Everest
+
+    # This is legacy python2 script that will break this function and cause issues
+    # Commented out due to this
+    # for i in range(len(ncboids)):
+    #     if ncboids[i] == 'DO':
+    #         ncboids[i] = 'DOID'
+
+    # Fixed the above commented-out script so that it is compatible with python3 now
+    # The JAX and HPO ontologies do not exist in NCBO and will get a RESPONSE: 404
+    # Removed JAX and HPO IDs
+    for index, item in enumerate(ncboids):
+        if item == 'DO':
+            ncboids[index] = 'DOID'
+        if item == 'JAX':
+            ncboids.pop(index)
+        if item == 'HPO':
+            ncboids.pop(index)
+
+    # END UPLOAD FIX
 
     ncboids = ','.join(ncboids)
-
     params = {'apikey': API_KEY,
               'format': 'json',
               'ontologies': ncboids,
               'text': text}
-    params = urlencode(params)
+
+    # Added .encode('utf-8')
+    # Import re above don't forget to delete if not used
+    # params = urlencode(params).encode('utf-8')
+    # The ontologies (ncboids) aren't being properly handled when encoded and decoded. Maybe need to use requests package instead of urllib.
+    # print(params)
+    # End Upload fix
 
     ## Attempt connecting to NCBO and pulling annotation data. Quits if an
     ## exception is handled three times.
     for _ in range(3):
         try:
-            req = urllib.request.Request(NCBO_ANNOTATOR, params)
-            res = urllib.request.urlopen(req)
-            res = res.read()
+            # req = urllib.request.Request(NCBO_ANNOTATOR, params)
+            # res = urllib.request.urlopen(req)
+            # res = res.read()
+            # UPLOAD FIX EVEREST
+            # Uses requests because of encoding issues
+            req = requests.get(NCBO_ANNOTATOR, data = params)
+            res = req.text
+            # UPLOAD FIX EVEREST
 
         except urllib.error.HTTPError as e:
             print('Failed to retrieve annotation data from NCBO:')
@@ -172,7 +206,7 @@ def parse_ncbo_annotations(annots):
 
         ## We have to add the 'EDAM_' prefix to all EDAM terms
         if ontid.find('data:') >= 0 or ontid.find('format:') >= 0 or\
-           ontid.find('operation:') >= 0 or ontid.find('topic:') >= 0: 
+           ontid.find('operation:') >= 0 or ontid.find('topic:') >= 0:
             ontid = 'EDAM_' + ontid
 
         ontids.append(ontid)
@@ -353,6 +387,10 @@ def insert_annotations(dbcur, gsid, desc, abstract, ncbo=False, monarch=True):
             mi_data = (gsid, refsrc, '{'+','.join(mi_annos)+'}', '{'+','.join(blacklisted)+'}')
             dbcur.execute(mi_sql, mi_data)
         if ncbo:
+            # UPLOAD FIX: The ncbo annotations need to be decoded otherwise they are kept as bytes
+            # Not doing so will cause the rest of the script to fail (bytes feed into a .join() method
+            ncbo_annos = [ncbo.decode('utf-8') for ncbo in ncbo_annos]
+            # UPLOAD FIX END
             ncbo_data = (gsid, refsrc, '{'+','.join(ncbo_annos)+'}', '{'+','.join(blacklisted)+'}')
             dbcur.execute(ncbo_sql, ncbo_data)
         dbcur.connection.commit()
