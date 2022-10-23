@@ -16,12 +16,14 @@ import os
 import os.path as path
 import re
 import urllib
+import requests
 
 from flask import Flask, Response
 from flask import (abort, jsonify, make_response, redirect, render_template,
                    request, send_from_directory, session, url_for)
 from flask_admin import Admin, BaseView, expose
 from flask_admin.base import MenuLink
+from intermine.webservice import Service
 from psycopg2 import Error
 from psycopg2 import IntegrityError
 from wand.image import Image
@@ -43,6 +45,7 @@ from tools import msetblueprint
 from tools import phenomemapblueprint
 from tools import similargenesetsblueprint
 from tools import tricliqueblueprint
+from geneweaverdb import PooledCursor
 import adminviews
 import annotator
 import config
@@ -54,7 +57,7 @@ import notifications
 import pub_assignments
 import publication_generator
 import report_bug
-import search
+#import search
 import uploadfiles
 
 
@@ -4401,7 +4404,107 @@ def render_datasources():
         attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
 
     return render_template('datasources.html', attributions=attlist, attcounts=attcounts)
+import time
 
+@app.route('/landing_page')
+def landing_page():
+    apikey_geneweaver = config.get('landing_page','apikey_geneweaver')
+    agr_url = config.get('landing_page','agr_url')
+    api_key_disgenet = config.get('landing_page','api_key_disgenet')
+    api_host_disgenet = config.get('landing_page','api_host_disgenet')
+
+    # get the geneset ids for Macaca mulatta
+    with PooledCursor() as cursor:
+        cursor.execute("SELECT gs_id FROM production.geneset WHERE sp_id = 6;")
+        ids = cursor.fetchall()
+    gs_dates = []
+    gs_counts = []
+    # get the number of genes in each geneset
+    for i in ids:
+        id = i[0]
+        gene = GetGenesetById.get(apikey_geneweaver, id)
+        gs_counts.append(gene[0][0]['gs_count'])
+        gs_dates.append(gene[0][0]['gs_created'])
+
+    # get the number of genes for each species
+    with PooledCursor() as cursor:
+        cursor.execute('''select sp_id, count(sp_id) from gene group by sp_id;''')
+        sp_counts = dict(cursor.fetchall())
+
+    # get gene length for fly, mouse, and human from intermine
+    fly_service = Service("https://www.flymine.org/flymine/service")
+    query = fly_service.new_query("Gene.length")
+    fly_gene_lengths = []
+    for row in query.rows(size=100):
+        fly_gene_lengths.append(row['length'])
+
+    mouse_service = Service("https://www.mousemine.org/mousemine/service")
+    query = mouse_service.new_query("Gene.length")
+    mouse_gene_lengths = []
+    for row in query.rows(size=100):
+        mouse_gene_lengths.append(row['length'])
+
+    human_service = Service("https://www.humanmine.org/humanmine/service")
+    query = human_service.new_query("Gene.length")
+    human_gene_lengths = []
+    for row in query.rows(size=100):
+        human_gene_lengths.append(row['length'])
+
+    # get amounts of homologous genes for each species by species name, store in dict
+    agr_species = ["Mus musculus", "Rattus norvegicus", "Saccharomyces cerevisiae",
+                   "Caenorhabditis elegans","Drosophila melanogaster", "Danio rerio",
+                   "Homo sapiens"]
+    # sp_homology_count = {}
+    species_names = []
+    for a in agr_species:
+        # species = a.replace(' ', '%20')
+        # response = requests.get(f"{agr_url}homologs/{species}")
+        # result = response.json()
+        # sp_homology_count[a] = result['total']
+        species_names.append('<i>'+a+'</i>')
+    sp_homology_count = {"Mus musculus":100054, "Rattus norvegicus":85593, "Saccharomyces cerevisiae":31856,
+                   "Caenorhabditis elegans":71921,"Drosophila melanogaster":74710, "Danio rerio":92720,
+                   "Homo sapiens":101300}
+
+    # get table information about the 10 most used genes
+    # s = requests.Session()
+    # s.headers.update({"Authorization": "Bearer %s" % api_key_disgenet})
+    # with PooledCursor() as cursor:
+    #     cursor.execute('''SELECT ode_gene_id, COUNT(*)
+    #                       FROM extsrc.geneset_value
+    #                       INNER JOIN production.geneset USING(gs_id)
+    #                       WHERE gs_status = 'normal' AND cur_id IN (1,2,3)
+    #                       GROUP BY ode_gene_id
+    #                       ORDER BY count(*) DESC
+    #                       LIMIT 10;''')
+    #     ode_to_gs_count = dict(cursor.fetchall())
+    #     cursor.execute('''SELECT ode_gene_id, gi_symbol
+    #                       FROM extsrc.gene_info
+    #                       WHERE ode_gene_id IN {};
+    #                       '''.format(tuple(ode_to_gs_count.keys())))
+    #     ode_to_symbol = dict(cursor.fetchall())
+    # data = []
+    # for ode_gene_id in ode_to_gs_count.keys():
+    #     sym = ode_to_symbol[ode_gene_id]
+    #     gda_response = (s.get(api_host_disgenet + '/gda/gene/' + sym, params={'type': 'disease'})).json()
+    #     disease = gda_response[0]['disease_name']
+    #     data.append([sym, ode_gene_id, ode_to_gs_count[ode_gene_id], disease])
+
+    # parse data to be used in html template
+    # syms = list(list(zip(*data))[0])
+    # gene_ids = list(list(zip(*data))[1])
+    # counts = list(list(zip(*data))[2])
+    # diseases = list(list(zip(*data))[3])
+    syms = ['TNF', 'TP53', 'IL6', 'MAPK1', 'AKT1', 'TGFB1', 'MAPK3', 'VEGFA', 'CASP3', 'IL1B']
+    gene_ids = [63668, 78446, 58335, 58738, 71569, 56847, 79775, 71123, 61506, 67622]
+    counts = [6718, 5262, 5250, 5085, 4939, 4919, 4660, 4627, 4622, 4598]
+    diseases = ['Rheumatoid Arthritis', 'Malignant neoplasm of breast', 'Asthma', 'Squamous cell carcinoma', 'Schizophrenia', 'Camurati-Engelmann Syndrome', 'Malignant neoplasm of stomach', 'Malignant tumor of colon', "Alzheimer's Disease", "Alzheimer's Disease"]
+
+    return render_template('landing_page.html', gs_counts=gs_counts, sp_counts=sp_counts,
+                           fly_gene_lengths=fly_gene_lengths, mouse_gene_lengths=mouse_gene_lengths,
+                           human_gene_lengths = human_gene_lengths, syms=syms, gene_ids=gene_ids,
+                           counts=counts, diseases=diseases, homolog_vals=list(sp_homology_count.values()),
+                           species_names=species_names)
 
 @app.route('/privacy')
 def render_privacy():
