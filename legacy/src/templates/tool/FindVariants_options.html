@@ -28,13 +28,21 @@
     <div id="fvCollapse" class="panel-collapse collapse">
         <div class="panel-body">
             <div class="form-group">{{ macros.tool_param_radio(tool.params['FindVariants_Species']) }}</div>
-            <div class="form-group">{{ macros.tool_param_checkbox_mset(tool.params['FindVariants_Path']) }}</div>
+            <div class="form-group">
+                {{ macros.tool_param_checkbox_mset(tool.params['FindVariants_Path']) }}
+                <p class="text-right">Transcript Warning  <span id="clickableTranscript">
+                    <i class="fa fa-exclamation-circle"></i></span>
+            </div>
             <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
         </div>
     </div>
 </div>
-{#<script>#}
-{#    $('#jaccard-wiki').click(function() {#}
-{#        window.open('http://geneweaver.org/help/#jaccard-similarity');#}
-{#    });#}
-{#</script>#}
+
+<script>
+    {#$('#jaccard-wiki').click(function() {#}
+    {#    window.open('http://geneweaver.org/help/#jaccard-similarity');#}
+    {#);#}
+    $('#clickableTranscript').popover({
+       title: 'Transcript Warning', content: 'The "using Transcript" option may find millions of variants and take several hours.'
+    });
+</script>

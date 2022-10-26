@@ -2,6 +2,9 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 <style>
+td {
+		text-align: center;
+	}
 
 .key > * {
     margin: 5px;
@@ -107,48 +110,48 @@
         {{ runhash }} </h1>
 </div>
 
-<div id="ui-container">
-    <form id="todo-id" class="form-horizontal" role="form" method="post">
-        <div>
-            <div id="show-tool-options"
-                 style="color:#006400; cursor:pointer; font-weight:600;
-                        text-decoration:underline;">
-                Tool Options
-                <i id="tool-options-caret" class="fa fa-caret-left"></i>
-            </div>
-            <div id="tool-options"
-                 style="display:none; text-align:left; background-color:#efe;
-                        border-radius:5px; padding:15px; width:100%">
-                <div class="row">
-                    <div class="col-md-4">
-                        {{ macros.tool_param_radio(tool.params['FindVariants_Species']) }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ macros.tool_param_checkbox_mset(tool.params['FindVariants_Path']) }}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
-                    </div>
-                    <div class="col-md-8">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <button class="btn btn-primary"
-                                type='submit'
-                                value='run'
-                                onclick='this.form.action="{{ url_for('FindVariants.run_tool') }}";'>
-                            Re-Run Tool
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </form>
 
-    <br />
+<div id="ui-container">
+{#    <form id="todo-id" class="form-horizontal" role="form" method="post">#}
+{#        <div>#}
+{#            <div id="show-tool-options"#}
+{#                 style="color:#006400; cursor:pointer; font-weight:600;#}
+{#                        text-decoration:underline;">#}
+{#                Tool Options#}
+{#                <i id="tool-options-caret" class="fa fa-caret-left"></i>#}
+{#            </div>#}
+{#            <div id="tool-options"#}
+{#                 style="display:none; text-align:left; background-color:#efe;#}
+{#                        border-radius:5px; padding:15px; width:100%">#}
+{#                <div class="row">#}
+{#                    <div class="col-md-4">#}
+{#                        {{ macros.tool_param_radio(tool.params['FindVariants_Species']) }}#}
+{#                    </div>#}
+{#                    <div class="col-md-4">#}
+{#                        {{ macros.tool_param_checkbox_mset(tool.params['FindVariants_Path']) }}#}
+{#                    </div>#}
+{#                </div>#}
+{#                <div class="row">#}
+{#                    <div class="col-md-4">#}
+{#                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>#}
+{#                    </div>#}
+{#                    <div class="col-md-8">#}
+{#                    </div>#}
+{#                </div>#}
+{#                <div class="row">#}
+{#                    <div class="col-md-4">#}
+{#                        <button class="btn btn-primary"#}
+{#                                type='submit'#}
+{#                                value='run'#}
+{#                                onclick='this.form.action="{{ url_for('FindVariants.run_tool') }}";'>#}
+{#                            Re-Run Tool#}
+{#                        </button>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
+{#        </div>#}
+{#    </form>#}
+
 
     <div>
         <div id="show-viz-options" style="color:#006400; cursor:pointer;
@@ -212,14 +215,14 @@
 <br>
 
 
-<!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
+<!-- Script to download results as a CSV file -->
 <script>
 
     function createCSV(array){
       var keys = Object.keys(array[0]);
 
       var result = '';
-      result += 'from_gene_symbol,from_gene_id,to_gene_symbol,to_gene_id,to_rs_id,to_tissue';
+      result += 'from_gene_symbol,from_gene_id,to_gene_symbol,to_gene_id,to_rs_id,to_tissue, transcript_id';
       result += '\n';
 
       array.forEach(function(item){ //Goes Through Each Array Object
@@ -232,33 +235,19 @@
       return result;
     }
 
-
     function downloadCSV(array) {
       csv = 'data:text/csv;charset=utf-8,' + createCSV(array);
       excel = encodeURI(csv);
 
       link = document.createElement('a');
       link.setAttribute('href', excel); //Links to CSV File
-      link.setAttribute('download',`'FindVariants_${Date.now()}.csv`); //Filename that CSV is saved as
+      link.setAttribute('download',`FindVariants_${Date.now()}.csv`); //Filename that CSV is saved as
       link.click();
     }
 
-    /**
-      * Updates the "Download as..." drop down icon to inform the user that
-      * their click and image download is being processed.
-      * Changes the caret to a spinning wheel when they select a download
-      * option. Changes back to the caret after the image is finished
-      * processing and ready for download.
-      */
-    var changeDownloadIcon = function() {
-
-        if ($('#download-icon').hasClass('caret'))
-            $('#download-icon').attr('class', 'fa fa-cog fa-spin');
-        else
-            $('#download-icon').attr('class', 'caret');
-    };
 </script>
 
+<!-- Script for formatting of sections -->
 <script>
 
 // Includes all images in the what popover button
@@ -399,11 +388,291 @@ $(function() {
     });
 </script>
 
-{% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects_multiselect.html' %}
-{% endif %}
+{##}
+{#<!-- Script for table -->#}
+{#<script type="text/javascript">#}
+{##}
+{#	$(function () {#}
+{#		$("[data-toggle='tooltip']").tooltip();#}
+{#	});#}
+{##}
+{#	// This hides the 'cached result error' alert when its close button#}
+{#	// is clicked.#}
+{#	$(function () {#}
+{#		$('[data-hide]').on('click', function() {#}
+{#			$('.' + $(this).attr('data-hide')).hide();#}
+{#		});#}
+{#	});#}
+{#    // Can now call redirectPost via $#}
+{#    $.extend({#}
+{#        // Forces a page redirect (using a hidden form) while passing data#}
+{#        // through a POST request. This is used to redirect the user to#}
+{#        // their old results.#}
+{#        redirectPost: function(location, args) {#}
+{#            var form = '';#}
+{##}
+{#            $.each(args, function(key, value) {#}
+{#                form += '<input type="hidden" name="' + key +#}
+{#                        '" value="' + value + '">';#}
+{#            });#}
+{##}
+{#            form = '<form action="' + location + '" method="POST">' +#}
+{#                   form + '</form>';#}
+{##}
+{#            $(form).appendTo('body').submit();#}
+{#        }#}
+{#    });#}
+{##}
+{#	var r = false;#}
+{#	var editor;#}
+{##}
+{#	$(document).ready(function () {#}
+{##}
+{#		var table = '{{table}}';#}
+{#		var user_id = '{{user_id}}';#}
+{#		var columns = {{columns | safe}};#}
+{#		var numCols = columns.length;#}
+{#		var headerCols = {{headerCols | safe}};#}
+{#		var table = $('#resultsViewer').dataTable({#}
+{#			"dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',#}
+{#			"iDisplayLength": 15,#}
+{#			"tableTools": {"sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf"},#}
+{#			"processing": true,#}
+{#			"serverSide": true,#}
+{#			"ajax": {#}
+{#				'url': "/../getServersideResultsdb",#}
+{#				'type': 'GET',#}
+{#				"data": {"table": table, "user_id": user_id}#}
+{#			},#}
+{#			"columns": columns,#}
+{#			"aoColumnDefs": [{ 		// Column/cell options for the data table#}
+{#				"aTargets": [0],	// Only affect the first column#}
+{#				"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {#}
+{#					var cellData = oData[5];#}
+{#					/* Delete Button */#}
+{#					var b = $('<span data-placement="top" data-toggle="tooltip" \#}
+{#					data-rel="tooltip" data-original-title="Delete Result" type="button" title="Delete this Result"\#}
+{#					style="margin: 2px; padding: 0px 2px;">\#}
+{#					<i class="fa fa-trash-o"></i></span>');#}
+{#					/* Re-Run Button */#}
+{#					var d = $('<span data-placement="top" data-toggle="tooltip" \#}
+{#					data-rel="tooltip" data-original-title="Re-run Result" type="button" title="Re-Run this Result"\#}
+{#					style="margin: 2px; padding: 0px 2px;">\#}
+{#					<i class="fa fa-refresh"></i></span>');#}
+{#					/* View Data if not expired */#}
+{#					if (sData >= 60) {#}
+{#						var e = $('<span data-placement="top" data-toggle="tooltip" \#}
+{#						data-rel="tooltip" data-original-title="Results Expired" type="button" \#}
+{#						title="Stored Results Expired" style="margin: 2px; padding: 0px 2px;">\#}
+{#					<i class="fa fa-warning"></i></span>');#}
+{#					}#}
+{#					else {#}
+{#						var e = $('<span data-placement="top" data-toggle="tooltip" \#}
+{#						data-rel="tooltip" data-original-title="View Stored Results" type="button" \#}
+{#						title="View Stored Results" style="margin: 2px; padding: 0px 2px;">\#}
+{#					<i class="fa fa-eye"></i></span>');#}
+{#					}#}
+{##}
+{#					//// DELETE RESULT ////#}
+{#					//#}
+{#					b.tooltip();#}
+{#					b.click(function () {#}
+{#						var cellData = oData[5];#}
+{##}
+{#						$('#delModal').modal({#}
+{#							keyboard: true#}
+{#						});#}
+{##}
+{#						$('#confirmDelete').on('click', function (e) {#}
+{#							$.ajax({#}
+{#								type: "GET",#}
+{#								url: "../deleteResults",#}
+{#								data: {"runHash": cellData, "user_id": user_id},#}
+{#								success: function (data) {#}
+{#									table.fnClearTable(0);#}
+{#									table.fnDraw();#}
+{#								}#}
+{#							});#}
+{#						});#}
+{#					});#}
+{##}
+{#					//// RE-RUN RESULTS ////#}
+{#					//#}
+{#					d.tooltip();#}
+{#					d.click(function () {#}
+{#						var runhash = oData[5];#}
+{#						var url = '/reruntool.json';#}
+{#						var data = {#}
+{#							'runHash': runhash,#}
+{#							'user_id': user_id#}
+{#						};#}
+{##}
+{#						$.get(url, data).done(function(data) {#}
+{##}
+{#							data = JSON.parse(data);#}
+{#							// Alter the data a bit so it can be handled by#}
+{#							// the tool routes without additional#}
+{#							// modifications to the server code#}
+{#							var form = data['parameters'];#}
+{#							var genesets = data['gs_ids'].join(' ');#}
+{#							form['genesets'] = genesets;#}
+{##}
+{#							// This is ugly but easy...#}
+{#							if (data['tool'] === 'ABBA Gene-Centered Search')#}
+{#								$.redirectPost('/run-abba.html', form);#}
+{#							if (data['tool'] === 'Combine')#}
+{#								$.redirectPost('/run-combine.html', form);#}
+{#							if (data['tool'] === 'Clustering')#}
+{#								$.redirectPost('/JaccardClustering.html', form);#}
+{#							if (data['tool'] === 'GeneSet Graph')#}
+{#								$.redirectPost('/run-geneset-viewer.html', form);#}
+{#							if (data['tool'] === 'HiSim Graph')#}
+{#								$.redirectPost('/run-phenome-map.html', form);#}
+{#							if (data['tool'] === 'Jaccard Similarity')#}
+{#								$.redirectPost('/run-jaccard-similarity.html', form);#}
+{#                            if (data['tool'] === 'DBSCAN')#}
+{#								$.redirectPost('/run-dbscan.html', form);#}
+{#                            if (data['tool'] === 'MSET')#}
+{#                                $.redirectPost('/MSET.html', form)#}
+{#						});#}
+{#					});#}
+{##}
+{#					//// VIEW STORED RESULTS ////#}
+{#					//#}
+{#					e.tooltip();#}
+{#					e.click(function () {#}
+{#						var runhash = oData[5];#}
+{#						var checkUrl = '/checkResults.json';#}
+{#						var viewUrl = '/viewStoredResults';#}
+{#						var data = {#}
+{#							'runHash': oData[5]#}
+{#						};#}
+{##}
+{#						// Check to see if the results exist in the results#}
+{#						// directory--we don't want to view null results#}
+{#						$.get(checkUrl, data).done(function(data) {#}
+{##}
+{#							data = JSON.parse(data);#}
+{##}
+{#							if (data.exists) {#}
+{##}
+{#								// Flask will return a URL to the stored result#}
+{#								// which must then be used to redirect via js.#}
+{#								// Since we're using AJAX to retrieve stored#}
+{#								// results, the browser won't honor redirects#}
+{#								// from flask.#}
+{#								$.get(viewUrl, {#}
+{##}
+{#									'runHash': runhash,#}
+{#									'user_id': user_id#}
+{##}
+{#								}).done(function(reUrl) {#}
+{##}
+{#									if (reUrl) {#}
+{#										//window.location.replace(reUrl);#}
+{#										window.location.href = reUrl;#}
+{##}
+{#									} else {#}
+{#										$('#lolno-result').show();#}
+{#										$('#lolno-button').show();#}
+{#									}#}
+{#								});#}
+{##}
+{#							} else {#}
+{##}
+{#								$('#lolno-result').show();#}
+{#								$('#lolno-button').show();#}
+{#							}#}
+{#						});#}
+{##}
+{#						return true;#}
+{#					});#}
+{##}
+{#					$(nTd).empty();#}
+{#					$(nTd).append(b).append(d).append(e);#}
+{#				}#}
+{#			},#}
+{#				{#}
+{#					"aTargets": [5],#}
+{#					"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {#}
+{#						if (sData == '') {#}
+{#							$(nTd).empty();#}
+{#							$(nTd).append('<span class="badge badge-danger">No Results</span>');#}
+{#						}#}
+{#					}#}
+{#				},#}
+{#				{#}
+{#					"aTargets": [1],#}
+{#					"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {#}
+{#						if (sData != null) {#}
+{#							c = $('<span data-placement="top" \#}
+{#							data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \#}
+{#							title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \#}
+{#							<i class="fa fa-edit"></i></span>');#}
+{#							c.tooltip();#}
+{#							c.click(function () {#}
+{#								var cellData = oData[5];#}
+{##}
+{#								$('#editModal').modal({#}
+{#									keyboard: true#}
+{#								});#}
+{#								$('#editSubmit').on('click', function (e) {#}
+{##}
+{#									var editName = $('#resultName').val();#}
+{#									$.ajax({#}
+{#										type: "GET",#}
+{#										url: "../editResults",#}
+{#										data: {#}
+{#											"runHash": cellData,#}
+{#											"user_id": user_id,#}
+{#											"editName": editName#}
+{#										},#}
+{#										success: function (data) {#}
+{#											cellData = undefined;#}
+{#											table.fnClearTable(0);#}
+{#											table.fnDraw();#}
+{#										}#}
+{#									});#}
+{##}
+{#								});#}
+{#							});#}
+{#							$(nTd).empty();#}
+{#							$(nTd).append(c);#}
+{#							if (sData.length > 15) {#}
+{#								var modName = sData.substring(0, 15);#}
+{#								d = $('<span data-placement="top" \#}
+{#							data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \#}
+{#							title="' + sData + '" style="margin: 2px; padding: 0px 2px;"> \#}
+{#							' + modName + '</span>');#}
+{#								d.tooltip();#}
+{#								$(nTd).append(d);#}
+{#								$(nTd).append('...');#}
+{#								//$(nTd).popover({#}
+{#								//    container: 'body',#}
+{#								//    placement: 'right', // top, bottom, left or right#}
+{#								//    title : 'Result Name',#}
+{#								//    html: 'true',#}
+{#								//    content : '<div id="popOverBox">' + sData + '</div>'#}
+{#								//    });#}
+{##}
+{#							}#}
+{#							else if (sData.length == 0) {#}
+{#								$(nTd).append('<span class="badge badge-info">No Name</span>');#}
+{#							}#}
+{#							else {#}
+{#								$(nTd).append(sData);#}
+{#							}#}
+{##}
+{#						}#}
+{#					}#}
+{#				}]#}
+{#		});#}
+{##}
+{#	});#}
+{##}
+{#</script>#}
 
-{% include 'modal/addGenesetsToProjectsAlert.html' %}
+
 
 <!-- Includes the footer for the page -->
 {% include 'footer.html' %}

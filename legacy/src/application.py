@@ -2259,6 +2259,12 @@ def viewStoredResults_by_runhash():
             task_id=runhash
         )
 
+    elif results['res_tool'] == 'Find Variants':
+        return url_for(
+            findvariantsblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
     else:
         ## Something bad has happened
         return ''

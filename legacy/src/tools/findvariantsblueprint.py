@@ -84,8 +84,12 @@ def run_tool():
     # gather the params into a dictionary
     params = {}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        print(form[tool_param.name])
-        params[tool_param.name] = form[tool_param.name]
+        # print(form[tool_param.name])
+        if(tool_param.name == "FindVariants_Path"):
+            all = form.getlist
+            params[tool_param.name] = all("FindVariants_Path")
+        else:
+            params[tool_param.name] = form[tool_param.name]
 
     # get gene symbols for each gene in geneset
     gene_syms = []
@@ -95,6 +99,7 @@ def run_tool():
             gene_syms = gene_syms + i.source_list
     gene_syms = list(set(gene_syms))
     params['gene_syms'] = gene_syms
+    print(params)
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -220,6 +225,12 @@ def view_result(task_id):
         if 'error' in results and results['error']:
             flask.flash(results['error'])
 
+            return flask.redirect('/analyze')
+
+        if len(results['variants']) == 0:
+            flask.flash(
+                'No results were found.'
+            )
             return flask.redirect('/analyze')
 
         # results are ready. render the page for the user
