@@ -7,6 +7,8 @@ from decimal import Decimal
 from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 import celery.states as states
 import flask
+from flask import jsonify
+import json
 
 import geneweaverdb
 import geneweaverdb as gwdb
@@ -181,7 +183,7 @@ def run_tool_api(apikey, species, genesets, path):
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params,
+            'params': params
         },
         task_id=task_id)
 
@@ -233,12 +235,17 @@ def view_result(task_id):
             )
             return flask.redirect('/analyze')
 
+
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/FindVariants_result.html',
             data=async_result.result,
             async_result=results,
-            tool=tool, list=gwdb.get_all_projects(user_id))
+            tool=tool,
+            list=gwdb.get_all_projects(user_id),
+            headerCols=["From Gene Symbol", "From Gene ID", "To Gene Symbol", "To Gene ID",
+                        "rsID", "Tissue", "Transcript ID"]
+        )
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
