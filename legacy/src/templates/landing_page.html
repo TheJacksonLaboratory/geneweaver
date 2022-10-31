@@ -1,0 +1,459 @@
+{% include 'header.html' %}
+
+<meta charset="utf-8">
+<style>
+    svg {
+        width: 100%;
+        height: 100%;
+        position: center;
+    }
+    .axisHorizontal path{
+        fill: none;
+    }
+    .axisHorizontal .tick line {
+        stroke-width: 1;
+        stroke: rgba(0, 0, 0, 0.2);
+    }
+    text.title{
+        font-size: 14px;
+        font-weight: bold;
+    }
+    text.value {
+        font-size: 90%;
+        fill: black;
+        font-weight: bold;
+    }
+    text.label {
+        fill: black;
+        font-size: 13px;
+        font-style: italic;
+    }
+</style>
+
+
+<br>
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h3 class="panel-title"><strong>Landing Page</strong></h3>
+</div>
+
+<div style="width: 100%; display: table;">
+
+    <div style="display: table-row">
+        <div style="width: 600px; display: table-cell;">
+            <div id="macaca_geneset_count"></div>
+        </div>
+        <div id="genes_per_species"; style="display: table-cell;"></div>
+    </div>
+    <div style="display: table-row">
+        <div style="width: 600px; display: table-cell;">
+            <p>Data from the GeneWeaver API</p>
+        </div>
+        <div style="width: 600px; display: table-cell;">
+            <p>Data from the GeneWeaver API and database</p>
+        </div>
+    </div>
+    <br>
+    <div style="display: table-row">
+        <div style="width: 600px; display: table-cell;">
+            <div id="gene_length_density"></div>
+        </div>
+        <div style="width: 600px; display: table-cell;">
+            <div id="homolog_freq"></div>
+        </div>
+    </div>
+    <div style="display: table-row">
+        <div style="width: 600px; display: table-cell;">
+            <p>Data from the <a href="https://www.flymine.org/flymine">FlyMine</a>,
+                <a href="https://www.mousemine.org/mousemine/begin.do">MouseMine</a>,
+                and <a href="https://www.humanmine.org/humanmine">HumanMine</a> APIs
+                through <a href="http://intermine.org/">InterMine</a></p>
+        </div>
+        <div style="width: 600px; display: table-cell;">
+            <p>Data from the <a href="https://www.alliancegenome.org/api/swagger-ui/#/" >AGR API</a></p>
+        </div>
+    </div>
+
+</div>
+
+<div id="top_genes_table"></div>
+<p>Data from the GeneWeaver API and database and the <a href="https://www.disgenet.org/api/">DisGeNET API</a></p>
+
+
+<!--HOMOLOG FREQ-->
+<script src="plotly-2.8.3.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.8.3.min.js"></script>
+<script>
+    TESTER = document.getElementById('homolog_freq');
+    var xValue = {{species_names|tojson}}
+    var yValue = {{homolog_vals|tojson}};
+
+    var trace1 = {
+      x: xValue,
+      y: yValue,
+      type: 'bar',
+      text: yValue.map(String),
+      textposition: 'auto',
+      hoverinfo: 'none',
+      marker: {
+        color: 'rgb(158,202,225)',
+        opacity: 0.6,
+        line: {
+          color: 'rgb(8,48,107)',
+          width: 1.5
+        }
+      }
+    };
+
+    var data = [trace1];
+
+    var layout = {
+      title: 'Number of Homologs per Species',
+      barmode: 'stack'
+    };
+
+    Plotly.newPlot(TESTER, data, layout);
+</script>
+
+<!--TOP GENES TABLE-->
+<script src="plotly-2.8.3.min.js"></script>
+<script>
+    TESTER = document.getElementById('top_genes_table');
+
+    var values = [{{syms|tojson}},{{gene_ids|tojson}}, {{counts|tojson}}, {{diseases|tojson}}]
+
+    var data = [{
+      type: 'table',
+      header: {
+        values: [["<b>Gene Symbols</b>"], ["<b>ODE Gene IDs</b>"],
+                     ["<b>Number of Genesets</b>"], ["<b>Disease Associated</b>"]],
+        align: "center",
+        line: {width: 1, color: 'black'},
+        fill: {color: "#253d7d",opacity:0.8},
+        font: {family: "Arial", size: 12, color: "white"}
+      },
+      cells: {
+        values: values,
+        align: "center",
+        line: {color: "black", width: 1},
+        font: {family: "Arial", size: 11, color: ["black"]}
+      }
+    }]
+
+    var layout = {
+      title: '10 Most Used Genes in GeneWeaver',
+    };
+
+    Plotly.newPlot(TESTER, data, layout);
+</script>
+
+<!-- MACACA GENESET COUNT-->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script>
+
+  var margin = { top: 30, right: 30, bottom: 30, left: 50 },
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+  // append the svg object to the body of the page
+  var svg = d3.select("#macaca_geneset_count")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+      "translate(" + margin.left + "," + margin.top + ")");
+
+  const list = {{gs_counts}}
+
+  // add the x Axis
+  var x = d3.scaleLinear()
+    .domain([0, 375])
+    .range([0, width]);
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+  // add the y Axis
+  var y = d3.scaleLinear()
+    .range([height, 0])
+    .domain([0, 0.03]);
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+  // Compute kernel density estimation
+  var kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(40))
+  var density = kde(list)
+
+  // Plot the area
+  svg.append("path")
+    .attr("class", "mypath")
+    .datum(density)
+    .attr("fill", "#253d7d")
+    .attr("opacity", ".8")
+    .attr("stroke", "#000")
+    .attr("stroke-width", 1)
+    .attr("stroke-linejoin", "round")
+    .attr("d", d3.area()
+        .curve(d3.curveBasis)
+        .x(function (d) { return x(d[0]);})
+        .y1(function (d) { return y(d[1]);})
+        .y0(y(0))
+    );
+
+  svg.append("text")
+        .attr("x", (width / 2))
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .attr('font-style','italic')
+        .text("Macaca mulatta")
+        .append("tspan")
+        .attr('font-style','normal')
+        .text(" Geneset Count Density");
+
+  // Function to compute density
+  function kernelDensityEstimator(kernel, X) {
+    return function (V) {
+      return X.map(function (x) {
+        return [x, d3.mean(V, function (v) { return kernel(x - v); })];
+      });
+    };
+  }
+  function kernelEpanechnikov(k) {
+    return function (v) {
+      return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+    };
+  }
+
+</script>
+
+<!--GENE LENGTH DENSITY-->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script>
+
+    // set the dimensions and margins of the graph
+    var margin = {top: 30, right: 30, bottom: 30, left: 50},
+        width = 460 - margin.left - margin.right,
+        height = 400 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    var svg = d3.select("#gene_length_density")
+      .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform",
+              "translate(" + margin.left + "," + margin.top + ")");
+
+    const fly_gene_lengths = {{fly_gene_lengths}}
+    const mouse_gene_lengths = {{mouse_gene_lengths}}
+    const human_gene_lengths = {{human_gene_lengths}}
+
+    // add the x Axis
+    var x = d3.scaleLinear()
+        .domain([-10,75])
+        .range([0, width]);
+    svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+
+    // add the y Axis
+    var y = d3.scaleLinear()
+        .range([height, 0])
+        .domain([0, 0.1]);
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Compute kernel density estimation
+    var kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(60))
+    var density_fly =  kde(fly_gene_lengths)
+    var density_mouse =  kde(mouse_gene_lengths)
+    var density_human = kde(human_gene_lengths)
+
+    // Plot the area - Mouse
+    svg.append("path")
+        .attr("class", "mypath")
+        .datum(density_mouse)
+        .attr("fill", "#253d7d")
+        .attr("opacity", ".8")
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1)
+        .attr("stroke-linejoin", "round")
+        .attr("d",   d3.area()
+            .curve(d3.curveBasis)
+            .x(function (d) { return x(d[0]);})
+            .y1(function (d) { return y(d[1]);})
+            .y0(y(0))
+        );
+
+    // Plot the area - Human
+    svg.append("path")
+        .attr("class", "mypath")
+        .datum(density_human)
+        .attr("fill", "rgb(158,202,225)")
+        .attr("opacity", ".7")
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1)
+        .attr("stroke-linejoin", "round")
+        .attr("d",   d3.area()
+            .curve(d3.curveBasis)
+            .x(function (d) { return x(d[0]);})
+            .y1(function (d) { return y(d[1]);})
+            .y0(y(0))
+        );
+
+    // Plot the area - Fly
+    svg.append("path")
+        .attr("class", "mypath")
+        .datum(density_fly)
+        .attr("fill", "#94BD6A")
+        .attr("opacity", ".7")
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1)
+        .attr("stroke-linejoin", "round")
+        .attr("d",  d3.area()
+            .curve(d3.curveBasis)
+            .x(function (d) { return x(d[0]);})
+            .y1(function (d) { return y(d[1]);})
+            .y0(y(0))
+        );
+
+    // Handmade legend
+    svg.append("circle").attr("cx",300).attr("cy",30).attr("r", 6).style("fill", "#253d7d").attr("opacity", ".8")
+    svg.append("circle").attr("cx",300).attr("cy",60).attr("r", 6).style("fill", "rgb(158,202,225)").attr("opacity", ".8")
+    svg.append("circle").attr("cx",300).attr("cy",90).attr("r", 6).style("fill", "#94BD6A").attr("opacity", ".7")
+    svg.append("text").attr("x", 320).attr("y", 30).text("Mus musculus").style("font-size", "15px").attr("alignment-baseline","middle").attr('font-style','italic')
+    svg.append("text").attr("x", 320).attr("y", 60).text("Homo sapiens").style("font-size", "15px").attr("alignment-baseline","middle").attr('font-style','italic')
+    svg.append("text").attr("x", 320).attr("y", 90).text("Drosophila melanogaster").style("font-size", "15px").attr("alignment-baseline","middle").attr('font-style','italic')
+
+    svg.append("text")
+        .attr("x", (width / 2))
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .text("Distribution of Gene Lengths");
+
+    // Function to compute density
+    function kernelDensityEstimator(kernel, X) {
+      return function(V) {
+        return X.map(function(x) {
+          return [x, d3.mean(V, function(v) { return kernel(x - v); })];
+        });
+      };
+    }
+    function kernelEpanechnikov(k) {
+      return function(v) {
+        return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+      };
+    }
+</script>
+
+<!-- GENES PER SPECIES -->
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
+
+    data = [
+        {label:"Mus musculus", value:{{sp_counts[1]}}},
+        {label:"Homo sapiens", value:{{sp_counts[2]}}},
+        {label:"Rattus norvegicus", value:{{sp_counts[3]}}},
+        {label:"Danio rerio", value:{{sp_counts[4]}}},
+        {label:"Drosophila melanogaster", value:{{sp_counts[5]}}},
+        {label:"Macaca mulatta", value:{{sp_counts[6]}}},
+        {label:"Caenorhabditis elegans", value:{{sp_counts[8]}}},
+        {label:"Saccharomyces cerevisiae", value:{{sp_counts[9]}}},
+        {label:"Gallus gallus", value:{{sp_counts[10]}}},
+        {label:"Canis familiaris", value:{{sp_counts[11]}}}
+    ];
+
+    var div = d3.select("#genes_per_species").append("div").attr("class");
+
+    var axisMargin = 20,
+            margin = 40,
+            valueMargin = 4,
+            width = parseInt(d3.select('#genes_per_species').style('width'), 10),
+            height = parseInt(d3.select('#genes_per_species').style('height'), 10),
+            barHeight = (height-axisMargin-margin*2)* 0.4/data.length,
+            barPadding = (height-axisMargin-margin*2)*0.6/data.length,
+            data, bar, svg, scale, xAxis, labelWidth = 0;
+
+    max = d3.max(data, function(d) { return d.value; });
+
+    svg = d3.select('#genes_per_species')
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+    bar = svg.selectAll("g")
+            .data(data)
+            .enter()
+            .append("g");
+
+    //fill bars
+    bar.attr("class", "bar")
+            .attr("cx",0)
+            .attr("fill", "rgb(158,202,225)")
+            .attr("opacity",".8")
+            .attr("transform", function(d, i) {
+                return "translate(" + margin + "," + (i * (barHeight + barPadding) + barPadding) + ")";
+            });
+
+    // category labels
+    bar.append("text")
+            .attr("class", "label")
+            .attr("y", barHeight / 2)
+            .attr("dy", ".35em") //vertical align middle
+            .text(function(d){
+                return d.label;
+            }).each(function() {
+        labelWidth = Math.ceil(Math.max(labelWidth, this.getBBox().width));
+    });
+
+    scale = d3.scale.linear()
+            .domain([0, max])
+            .range([0, width - margin*2 - labelWidth]);
+
+    xAxis = d3.svg.axis()
+            .scale(scale)
+            .tickSize(-height + 2*margin + axisMargin)
+            .tickFormat("")
+            .orient("bottom");
+
+    // drawing bars
+    bar.append("rect")
+            .attr("transform", "translate("+labelWidth+", 0)")
+            .attr("height", barHeight)
+            .attr("width", function(d){
+                return scale(d.value);
+            });
+
+    bar.append("text")
+            .attr("class", "value")
+            .attr("y", barHeight / 2)
+            .attr("dx", -valueMargin + labelWidth) //margin right
+            .attr("dy", ".35em") //vertical align middle
+            .attr("text-anchor", "end")
+            .text(function(d){
+                return (d.value);
+            })
+            .attr("x", function(d){
+                var width = this.getBBox().width;
+                return Math.max(width + valueMargin, scale(d.value));
+            });
+
+    // x axis
+    svg.insert("g",":first-child")
+            .attr("class", "axisHorizontal")
+            .attr("transform", "translate(" + (margin + labelWidth) + ","+ (height - axisMargin - margin)+")")
+            .call(xAxis);
+
+    // title
+    svg.append("text")
+        .attr("class", "title")
+        .attr("x", (width / 2))
+        .attr("y", height*.02)
+        .attr("text-anchor", "middle")
+        .text("Number of Genes per Species");
+
+</script>
+
+{% include 'footer.html' %}
