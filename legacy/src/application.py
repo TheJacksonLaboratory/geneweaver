@@ -45,11 +45,8 @@ from tools import msetblueprint
 from tools import phenomemapblueprint
 from tools import similargenesetsblueprint
 from tools import tricliqueblueprint
-<<<<<<< HEAD
 from tools import findvariantsblueprint
-=======
 from geneweaverdb import PooledCursor
->>>>>>> master
 import adminviews
 import annotator
 import config
