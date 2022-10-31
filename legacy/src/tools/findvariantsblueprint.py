@@ -1,58 +1,12 @@
-import json
 import uuid
-from neo4j import GraphDatabase
-import psycopg2
-from decimal import Decimal
-
-from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 import celery.states as states
 import flask
-from flask import jsonify
 import json
-
-import geneweaverdb
 import geneweaverdb as gwdb
 import tools.toolcommon as tc
 
-class Neo4jConnection:
-
-    def __init__(self, uri, user, pwd):
-        self.__uri = uri
-        self.__user = user
-        self.__pwd = pwd
-        self.__driver = None
-        try:
-            self.__driver = GraphDatabase.driver(self.__uri, auth=(self.__user, self.__pwd))
-        except Exception as e:
-            print("Failed to create the driver:", e)
-
-    def close(self):
-        if self.__driver is not None:
-            self.__driver.close()
-
-    def query(self, query, db=None):
-        assert self.__driver is not None, "Driver not initialized!"
-        session = None
-        response = None
-        try:
-            session = self.__driver.session(database=db) if db is not None else self.__driver.session()
-            response = list(session.run(query))
-        except Exception as e:
-            print("Query failed:", e)
-        finally:
-            if session is not None:
-                session.close()
-        return response
-
-conn = Neo4jConnection(uri="bolt+s://graph.geneweaver.org:7687", user="sophie",
-                       pwd="laptop-private-evident-barbara-aztec-8272")
-
 TOOL_CLASSNAME = 'FindVariants'
 findvariants_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
-
-# class result():
-#    async_result=''
-# r = result()
 
 @findvariants_blueprint.route('/run-find-variants.html', methods=['POST'])
 def run_tool():
@@ -86,7 +40,6 @@ def run_tool():
     # gather the params into a dictionary
     params = {}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        # print(form[tool_param.name])
         if(tool_param.name == "FindVariants_Path"):
             all = form.getlist
             params[tool_param.name] = all("FindVariants_Path")
@@ -94,14 +47,11 @@ def run_tool():
             params[tool_param.name] = form[tool_param.name]
 
     # get gene symbols for each gene in geneset
-    gene_syms = []
+    g_ids = []
     for g in selected_geneset_ids:
-        gsv = gwdb.get_geneset_values(g)
-        for i in gsv:
-            gene_syms = gene_syms + i.source_list
-    gene_syms = list(set(gene_syms))
-    params['gene_syms'] = gene_syms
-    print(params)
+        g_ids = g_ids + gwdb.get_genesymbols_by_gs_id(g)
+    gene_syms = [item[0] for item in g_ids]
+    params['gene_syms'] = list(set(gene_syms))
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)

@@ -112,7 +112,6 @@ td {
 
 
 <div id="ui-container">
-
     <div id="viz-options" style="text-align:left;
          border-radius:5px; padding:15px;
          width:100%">
@@ -129,35 +128,37 @@ td {
 
     <br />
 
-{#    <div>#}
-{#        <div id="show-help" style="color:#006400; cursor:pointer; #}
-{#             font-weight:600; text-decoration:underline;">#}
-{#            Help#}
-{#            <i id="help-caret" class="fa fa-caret-left"></i>#}
-{#        </div>#}
-{#        <div id="help" style="display:none; text-align:left; #}
-{#             background-color:#efe; border-radius:5px; padding:15px;#}
-{#             width:100%">#}
-{#            <div style="color:#006400; font-family:'Open Sans',sans-serif;#}
-{#                 font-size:13px;">#}
-{#                <span style="text-decoration:underline; font-weight:600;">#}
-{#                    Venn Diagram Visualization#}
-{#                </span>#}
-{#                <p style="padding-left:8px">#}
-{#                    <b>Hover</b> over a venn diagram to view information about#}
-{#                    about the two GeneSets in that comparison.#}
-{#                    <br />#}
-{#                </p>#}
-{#            </div>#}
-{#            <span style="color:#006400">#}
-{#                Visit our #}
-{#                <a href="http://geneweaver.org/help/#jaccard-similarity"#}
-{#                   style="color:#006400; font-weight:600;" #}
-{#                   target="_blank">wiki</a>#}
-{#                for more information.#}
-{#            </span>#}
-{#        </div>#}
-{#    </div>#}
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-help"
+                 style="color:#006400; cursor:pointer; font-weight:600;
+                        text-decoration:underline;">
+                Help
+                <i id="help-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="help"
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Download
+                    </span>
+                    <p style="padding-left:8px">
+                        Click the download button to save the results as
+                        a CSV file.
+                    </p>
+                </div>
+                <span style="color:#006400">
+                    Visit our
+                    <a href="http://geneweaver.org/help/#clustering"
+                       style="color:#006400; font-weight:600;"
+                       target="_blank">wiki</a>
+                    for more information.
+                </span>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -232,20 +233,6 @@ $('#example').DataTable({
 
 $(function() {
 
-    $('#show-tool-options').on('click', function() {
-
-        $('#tool-options').slideToggle();
-
-        var caret = $(this).find('.fa-caret-left');
-
-        // Rotate the caret depending on whether the options bar is toggled
-        if (caret.hasClass('fa-rotate-270'))
-            caret.attr('class', 'fa fa-caret-left');
-        else
-            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
-
-    });
-
     $('#show-viz-options').on('click', function() {
 
         $('#viz-options').slideToggle();
@@ -276,80 +263,7 @@ $(function() {
 
 });
 
-    /**
-      * This function selects default tool options using the user's original
-      * run parameters. It iterates over the parameter object returned from the
-      * tool's output and selects the settings used to run the tool.
-      */
-	$(function() {
-        var parameters = {{ async_result.parameters | tojson }};
-
-        for (param in parameters) {
-
-            // Grabs each HTML input element for this tool
-            $("[name='" + param + "']").each(function() {
-
-                // Save the type of element e.g. input
-                var elemType = this.nodeName;
-
-                // Update settings for each tool option based on form
-                // element type. Most are drop down selections.
-                if (elemType === 'SELECT') {
-
-                    $(this).children('option').attr('selected', function() {
-
-                            if ($(this).attr('label') === parameters[param])
-                                return 'selected';
-                            else
-                                return null;
-                    });
-                }
-
-                // Input types could be one of many things.
-                if (elemType == 'INPUT') {
-
-                    // Maybe it's a radio button or checkbox, both of which
-                    // use the same type of default selection attribute
-                    if ($(this).attr('type') === 'radio' ||
-                        $(this).attr('type') === 'checkbox') {
-
-                        if ($(this).attr('value') === parameters[param]) {
-
-                            $(this).attr('checked', 'checked');
-                            // The styling for this stupid element is in a
-                            // neighboring node
-                            if ($(this).attr('type') === 'radio') {
-
-                                $(this).siblings().removeClass('ui-radio-off');
-                                $(this).siblings().addClass('ui-radio-on');
-                            } else {
-
-                                $(this).siblings().removeClass('ui-checkbox-off');
-                                $(this).siblings().addClass('ui-checkbox-on');
-                            }
-
-                        } else {
-
-                            $(this).removeAttr('checked');
-
-                            if ($(this).attr('type') === 'radio') {
-
-                                $(this).siblings().removeClass('ui-radio-on');
-                                $(this).siblings().addClass('ui-radio-off');
-                            } else {
-
-                                $(this).siblings().removeClass('ui-checkbox-on');
-                                $(this).siblings().addClass('ui-checkbox-off');
-                            }
-                        }
-                    }
-                }
-
-            });
-        }
-    });
 </script>
-
 
 <!-- Includes the footer for the page -->
 {% include 'footer.html' %}
