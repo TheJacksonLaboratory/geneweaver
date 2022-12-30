@@ -1,0 +1,269 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<style>
+td {
+		text-align: center;
+	}
+
+.key > * {
+    margin: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#panel, #flip {
+    padding: 5px;
+    text-align: left;
+}
+
+#panel {
+    display: none;
+    background-color: #FFFFFF;
+}
+
+#flip {
+ height: 50px;
+}
+
+#rerunPanel, #rerunFlip {
+    padding: 5px;
+    text-align: left;
+}
+
+#rerunPanel {
+    height: 350px;
+    text-align: left;
+    display: none;
+}
+
+#rerunFlip {
+   height: 50px;
+   text-shadow: none;
+}
+#rerun{
+ float:right;
+    display:block;
+    margin-right: 585px;
+    clear:left;
+ }
+
+.left-cell {
+  vertical-align: middle;
+  width: 200px;
+}
+
+.right-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  right: 0;
+}
+
+.middle-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: left;
+  padding-left: 320px;
+}
+
+.box-header {
+  padding-bottom: 5px;
+  display: table;
+  width: 90%;
+}
+
+#addToProject, #exportData {
+    float: left;
+}
+
+ .divider{
+    margin: 5px;
+}
+
+#checkall{
+    float: left;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+}
+
+ div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 300px;
+  height: 60px;
+  padding: 2px;
+  font: 10px sans-serif;
+  background: ghostwhite;
+  pointer-events: none;}
+
+
+</style>
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
+</div>
+
+
+<div id="ui-container">
+    <div id="viz-options" style="text-align:left;
+         border-radius:5px; padding:15px;
+         width:100%">
+        <table id="example" class="table table-striped table-hover table-dynamic dataTable no-footer table-tools" width="100%"></table>
+        <br>
+        <div class="row">
+            <div class="col-md-2">
+                <div class="btn-group">
+                    <button class="btn btn-primary"  onclick="downloadCSV({{async_result['variants'] }})">Download</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br />
+
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-help"
+                 style="color:#006400; cursor:pointer; font-weight:600;
+                        text-decoration:underline;">
+                Help
+                <i id="help-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="help"
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Download
+                    </span>
+                    <p style="padding-left:8px">
+                        Click the download button to save the results as
+                        a CSV file.
+                    </p>
+                </div>
+                <span style="color:#006400">
+                    Visit our
+                    <a href="http://geneweaver.org/help/#clustering"
+                       style="color:#006400; font-weight:600;"
+                       target="_blank">wiki</a>
+                    for more information.
+                </span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+<!-- Script to download results as a CSV file -->
+<script>
+
+    function createCSV(array){
+      var keys = Object.keys(array[0]);
+
+      var result = '';
+      result += 'from_gene_symbol,from_gene_id,to_gene_symbol,to_gene_id,to_rs_id,to_tissue, transcript_id';
+      result += '\n';
+
+      array.forEach(function(item){ //Goes Through Each Array Object
+        keys.forEach(function(key){//Goes Through Each Object value
+          result += item[key] + ','; //Comma Seperates Each Key Value in a Row
+        })
+        result += '\n';//Creates New Row
+      })
+
+      return result;
+    }
+
+    function downloadCSV(array) {
+      csv = 'data:text/csv;charset=utf-8,' + createCSV(array);
+      excel = encodeURI(csv);
+
+      link = document.createElement('a');
+      link.setAttribute('href', excel); //Links to CSV File
+      link.setAttribute('download',`FindVariants_${Date.now()}.csv`); //Filename that CSV is saved as
+      link.click();
+    }
+
+</script>
+
+<!-- Script for formatting of sections -->
+<script>
+
+// Includes all images in what popover button
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+var imgAltKey = '<img src="{{url_for('static', filename='images/altkey.png')}}">';
+var imgShiftKey = '<img src="{{url_for('static', filename='images/shiftkey.png')}}">';
+var wikiIcon = '<img src="{{url_for('static', filename='images/wikiIcon.png')}}">';
+var wikiImg = '<a href="http://geneweaver.org/help/#jaccard-similarity">' + wikiIcon +'</i></a>';
+
+// Cooresponds to the information or what button (gives users instructions how to work tool)
+$('#what').popover({
+            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
+           'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details. <br>' +
+            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
+            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
+        });
+var dataSet = {{ async_result['variants']|tojson }};
+
+$('#example').DataTable({
+        data: dataSet,
+        columns: [
+            { title: 'From Gene Symbol' },
+            { title: 'From Gene ID' },
+            { title: 'To Gene Symbol' },
+            { title: 'To Gene ID' },
+            { title: 'rsID' },
+            { title: 'To Gene Tissue' },
+            { title: 'Transcript ID' }
+        ]
+    });
+        });
+
+$(function() {
+
+    $('#show-viz-options').on('click', function() {
+
+        $('#viz-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-help').on('click', function() {
+
+        $('#help').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+});
+
+</script>
+
+<!-- Includes the footer for the page -->
+{% include 'footer.html' %}
