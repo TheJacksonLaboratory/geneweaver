@@ -2,14 +2,71 @@
 This code takes the information from the Orthology file, parses it, and adds it to the database
 """
 from itertools import islice, chain
-
+import sys, requests, os, gzip, shutil
 from database import SessionLocal
 from models import Gene, Species, Ortholog, Algorithm, Homology
 
+# get the most recent release from AGR's API
+release = (requests.get("https://www.alliancegenome.org/api/releaseInfo")).json()
+version = release["releaseVersion"]
+
+
+argument_length = len(sys.argv)
+if argument_length > 1:
+    if sys.argv[1] == "-f":
+        file_name = sys.argv[2]
+        data_url = f"https://download.alliancegenome.org/{version}/ORTHOLOGY-ALLIANCE/COMBINED/{file_name}"
+        request = requests.get(data_url, allow_redirects=True)
+
+        if request.status_code == 200:
+            print(f"{file_name} downloaded successfully.")
+
+            # download file
+            open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'wb').write(request.content)
+
+            # unzip file
+            with gzip.open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'rb') as f_in:
+                with open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv', 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+        else:
+            print(f"An error occurred when downloading {file_name}. Please check the file name.")
+            exit()
+else:
+    # arbitrary limit to prevent infinite loop if the path is incorrect
+    version_limit = 50
+
+    # starting with version 1, the program will try each version of the file until finding the version not yet available
+    #     and will use that one as the most recent data
+    version_number = 1
+    data_url = f"https://download.alliancegenome.org/{version}/ORTHOLOGY-ALLIANCE/COMBINED/ORTHOLOGY-ALLIANCE_COMBINED_{version_number}.tsv.gz"
+    request = requests.get(data_url, allow_redirects=True)
+
+    # loop through all the valid versions
+    while (request.status_code == 200 and version_number < version_limit):
+        version_number += 1
+        data_url = f"https://download.alliancegenome.org/{version}/ORTHOLOGY-ALLIANCE/COMBINED/ORTHOLOGY-ALLIANCE_COMBINED_{version_number}.tsv.gz"
+        request = requests.get(data_url, allow_redirects=True)
+
+    if version_number == version_limit-1:
+        print("The maximum number of versions was tried. Please check the file path for downloading the orthology file at https://www.alliancegenome.org/downloads.")
+        exit()
+
+    data_url = f"https://download.alliancegenome.org/{version}/ORTHOLOGY-ALLIANCE/COMBINED/ORTHOLOGY-ALLIANCE_COMBINED_{version_number-1}.tsv.gz"
+    request = requests.get(data_url, allow_redirects=True)
+
+    # download file
+    open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'wb').write(request.content)
+
+    # unzip file
+    with gzip.open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'rb') as f_in:
+        with open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv', 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+ORTHO_FILE = f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv"
+
 db = SessionLocal()
 
-# TODO - update to point at AGR file
-ORTHO_FILE = '/agr-normalizer/ORTHOLOGY-ALLIANCE_COMBINED_51.tsv'
 
 def read_file_by_line(file):
     for line in file:
@@ -45,11 +102,13 @@ def init_species():
             taxon_id = ((data[2]).split(":"))[1]
             species.add((taxon_id, name))
 
-        db.bulk_save_objects([
-            Species(sp_name=s[1], sp_taxon_id=s[0])
-            for s in species
-        ])
-        db.commit()
+        print(species)
+        #
+        # db.bulk_save_objects([
+        #     Species(sp_name=s[1], sp_taxon_id=s[0])
+        #     for s in species
+        # ])
+        # db.commit()
 
 
 def add_genes():
@@ -213,7 +272,7 @@ def add_homology():
 
 if __name__ == "__main__":
     init_species()
-    add_algorithms()
-    add_genes()
-    add_orthologs(1000)
-    add_homology()
+    #add_algorithms()
+    #add_genes()
+    #add_orthologs(1000)
+    #add_homology()
