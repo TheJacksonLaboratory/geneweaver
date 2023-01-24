@@ -15,7 +15,7 @@ class Config:
     VERSION = '0.0.1'
     DESCRIPTION = 'An application to aid in normalizing homology data.'
 
-    SECRET_KEY = env.str('SECRET_KEY')
+    # SECRET_KEY = env.str('SECRET_KEY')
 
     DEBUG = env.bool('DEBUG', default=False)
     TESTING = env.bool('TESTING', default=False)

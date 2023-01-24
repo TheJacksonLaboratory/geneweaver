@@ -15,47 +15,45 @@ def read_file_by_line(file):
     for line in file:
         yield line
 
+
 def read_n_lines(file, n):
     iterator = iter(read_file_by_line(file))
     for first in iterator:
         yield chain([first], islice(iterator, n - 1))
 
+
 def species_id_from_taxon_id(taxon_id):
-    return db.query(Species).filter(Species.sp_taxon_id == taxon_id).first().sp_id
+    id_num = ((taxon_id).split(":"))[1]
+    return db.query(Species).filter(Species.sp_taxon_id == id_num).first().sp_id
+
 
 def get_algorithm_by_name(name):
     return db.query(Algorithm).filter(Algorithm.alg_name == name).first()
 
+
 def init_species():
-    species = [
-        (10090, 'Mus musculus'),
-        (10116, 'Rattus norvegicus'),
-        (559292, 'Saccharomyces cerevisiae'),
-        (6239, 'Caenorhabditis elegans'),
-        (7227, 'Drosophila melanogaster'),
-        (7955, 'Danio rerio'),
-        (9606, 'Homo sapiens')
-    ]
-    db.bulk_save_objects([
-        Species(sp_name=s[1], sp_taxon_id=s[0])
-        for s in species
-    ])
-    db.commit()
+    heading_size = 15
+    with open(ORTHO_FILE, 'r') as f:
+        for i in range(heading_size):
+            discard = f.readline()
+        header = f.readline()
+
+        species = set()
+        for line in read_file_by_line(f):
+            data = line.split('\t')
+            name = data[3]
+            taxon_id = ((data[2]).split(":"))[1]
+            species.add((taxon_id, name))
+
+        db.bulk_save_objects([
+            Species(sp_name=s[1], sp_taxon_id=s[0])
+            for s in species
+        ])
+        db.commit()
 
 
 def add_genes():
     heading_size = 15
-
-    sp_species = {
-        'NCBITaxon:10090': species_id_from_taxon_id(10090),
-        'NCBITaxon:10116': species_id_from_taxon_id(10116),
-        'NCBITaxon:559292': species_id_from_taxon_id(559292),
-        'NCBITaxon:6239': species_id_from_taxon_id(6239),
-        'NCBITaxon:7227': species_id_from_taxon_id(7227),
-        'NCBITaxon:7955': species_id_from_taxon_id(7955),
-        'NCBITaxon:9606': species_id_from_taxon_id(9606)
-    }
-
     with open(ORTHO_FILE, 'r') as f:
         for i in range(heading_size):
             discard = f.readline()
@@ -68,9 +66,9 @@ def add_genes():
             sp = line.split('\t')
             # The first gene
             # key: reference_id, value: (reference_prefix, species_id)
-            genes[sp[0]] = (sp[0].split(':')[0], sp_species[sp[2]])
+            genes[sp[0]] = (sp[0].split(':')[0], species_id_from_taxon_id(sp[2]))
             # The second gene
-            genes[sp[4]] = (sp[4].split(':')[0], sp_species[sp[6]])
+            genes[sp[4]] = (sp[4].split(':')[0], species_id_from_taxon_id(sp[6]))
 
         db.bulk_save_objects([
             Gene(gn_ref_id=key, gn_prefix=value[0], sp_id=value[1])
@@ -79,6 +77,7 @@ def add_genes():
         db.commit()
 
     db.close()
+
 
 def add_algorithms():
     heading_size = 15
@@ -101,23 +100,8 @@ def add_algorithms():
         ])
         db.commit()
 
-def add_ortholog_batch(batch):
-    # key to get algorithm object from algorithm name
-    algorithms_dict = {
-        'PANTHER': get_algorithm_by_name('PANTHER'),
-        'ZFIN': get_algorithm_by_name('ZFIN'),
-        'PhylomeDB': get_algorithm_by_name('PhylomeDB'),
-        'Ensembl Compara': get_algorithm_by_name('Ensembl Compara'),
-        'OrthoFinder': get_algorithm_by_name('OrthoFinder'),
-        'InParanoid': get_algorithm_by_name('InParanoid'),
-        'Roundup': get_algorithm_by_name('Roundup'),
-        'OrthoInspector': get_algorithm_by_name('OrthoInspector'),
-        'OMA': get_algorithm_by_name('OMA'),
-        'Hieranoid': get_algorithm_by_name('Hieranoid'),
-        'HGNC': get_algorithm_by_name('HGNC'),
-        'TreeFam': get_algorithm_by_name('TreeFam')
-    }
 
+def add_ortholog_batch(batch):
     is_best_map = {
         'Yes': True,
         'No': False,
@@ -146,11 +130,13 @@ def add_ortholog_batch(batch):
                             ort_source_name="AGR")
 
         # add to ora_ortholog_algorithms
-        algorithms = [algorithms_dict[algo] for algo in spl[8].split('|')]
+        # algorithms = [algorithms_dict[algo] for algo in spl[8].split('|')]
+        algorithms = [get_algorithm_by_name(algo) for algo in spl[8].split('|')]
         for algorithm in algorithms:
             ortholog.algorithms.append(algorithm)
         db.add(ortholog)
     db.commit()
+
 
 def add_orthologs(batch_size, batches_to_process=-1):
     heading_size = 15
@@ -171,6 +157,7 @@ def add_orthologs(batch_size, batches_to_process=-1):
                 break
 
     db.close()
+
 
 def add_homology():
     orthos = db.query(Ortholog)
@@ -222,6 +209,7 @@ def add_homology():
             homolog_objects.append(hom)
         db.bulk_save_objects(homolog_objects)
         db.commit()
+
 
 if __name__ == "__main__":
     init_species()
