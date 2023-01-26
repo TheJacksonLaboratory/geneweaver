@@ -118,7 +118,9 @@ def convertAGRtoODE(gn_id):
     return ode_gene_id
 
 
+########
 # alg_algorithm Table Endpoints
+########
 @NS.route('/get_algorithm_by_name/<alg_name>')
 class get_algorithm_by_name(Resource):
     '''
@@ -145,7 +147,9 @@ class all_algorithms(Resource):
         return db.query(Algorithm).all()
 
 
+########
 # ort_ortholog Table Endpoints
+########
 @NS.route('/all_orthologs')
 class all_orthologs(Resource):
     '''
@@ -209,7 +213,7 @@ class get_ortholog_by_id(Resource):
     '''
     :param ort_id - ort_id from ort_ortholog table
     :return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
-             and ort_num_possible_match_algorithms) for any ortholog with specified ort_i
+             and ort_num_possible_match_algorithms) for any ortholog with specified ort_id
     '''
 
     @NS.doc('returns orthologs with specified id')
@@ -402,7 +406,9 @@ class get_to_gene_of_ortholog_by_id(Resource):
         return result
 
 
+########
 # gn_gene Table Endpoints
+########
 @NS.route('/all_genes')
 class all_genes(Resource):
     '''
@@ -492,7 +498,9 @@ class get_gene_species_name(Resource):
         return result
 
 
+########
 # sp_species Table Endpoints
+########
 @NS.route('/all_species')
 class all_species(Resource):
     '''
@@ -549,11 +557,13 @@ class get_species_homologs_list(Resource):
         return homologous_species
 
 
+########
 # ora_ortholog_algorithms Table Endpoints
-@NS.route('/get_orthologs_by_num_algoritms/<num>')
-class get_orthologs_by_num_algoritms(Resource):
+########
+@NS.route('/get_orthologs_by_num_algorithms/<num>')
+class get_orthologs_by_num_algorithms(Resource):
     '''
-    :param: num - number of algoirthms
+    :param: num - number of algorithms
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for all orthologs with num_algorithms
     '''
@@ -585,7 +595,9 @@ class get_ortholog_by_algorithm(Resource):
         return orthologs
 
 
+########
 # hom_homology table endpoints
+########
 @NS.route('/all_homology')
 class all_homology(Resource):
     '''
@@ -713,7 +725,9 @@ class get_homology_by_gene_and_source(Resource):
         else:
             return homologs
 
+########
 # ort_ortholog and sp_species table endpoints
+########
 @NS.route('/get_ortholog_by_from_species/<sp_name>')
 class get_ortholog_by_from_species(Resource):
     '''
@@ -868,7 +882,8 @@ class get_ortholog_by_to_from_species_and_algorithm(Resource):
 #################################################
 # AGR and Geneweaver Database Endpoints
 # The following endpoints allow for connections to be made between the agr
-#    database and the geneweweaver database by linking the species table and gene ids
+#    database and the geneweweaver database by converting between indentifiers
+#    for species and source databases
 #################################################
 
 @NS.route('/agr_to_geneweaver_species/<sp_id>')
@@ -997,42 +1012,75 @@ class get_ode_gene_by_species(Resource):
 #    are used here instead of convertODEtoAGR and convertAGRtoGW because they require
 #    gdb_id and are used more broadly.
 def convert_ode_ref_to_agr(ode_ref):
+    # AGR only contains data from some gene data sources geneewaver has and the format is
+    #     slightly different for the reference ids, so this fuction adds prefixes to the ids
+    #     where necessary for the AGR format.
     ref = ode_ref
-    if ode_ref[0] == 'W':
-        prefix = "WB"
-        ref = prefix + ":" + ode_ref
-    elif ode_ref[0] == 'F':
-        prefix = "FB"
-        ref = prefix + ":" + ode_ref
-    elif ode_ref[0] == 'S':
-        prefix = "SGD"
-        ref = prefix + ":" + ode_ref
-    elif ode_ref[0] == 'Z':
-        prefix = "ZFIN"
-        ref = prefix + ":" + ode_ref
-    elif ode_ref[0] == 'R':
+    gdb_id = db.query(Geneweaver_Gene.gdb_id).filter(Geneweaver_Gene.ode_ref_id == ode_ref).first()
+    if gdb_id:
+        gdb_id = gdb_id[0]
+
+    if gdb_id == 15:
+        ref = "WB:" + ode_ref
+    elif gdb_id == 16:
+        ref = "SGD:" + ode_ref
+    elif gdb_id == 14:
+        ref = "FB:" + ode_ref
+    elif gdb_id == 13:
+        ref = "ZFIN:" + ode_ref
+    elif gdb_id == 12:
         ref = ode_ref[:3] + ":" + ode_ref[3:]
+
+    return ref
+
+
+def convert_agr_ref_to_ode(gn_ref_id):
+    # All gene ref ids in AGR contain the gene source database prefix followed by a colon,
+    #     but geneweaver only has some genes in this format. This function adjusts
+    #     the ref ids to match the geneweaver format
+    ref = gn_ref_id
+    prefix = ref[0:ref.find(":")]
+
+    # genes with this prefix will have the prefix removed
+    gdb_to_remove_prefix = ['WB', 'FB', 'SGD', 'ZFIN']
+
+    # RGD only requires removing the colon
+    if prefix == "RGD":
+        ref = ref.replace(":", "")
+    elif prefix in gdb_to_remove_prefix:
+        ind = ref.find(":") + 1
+        ref = ref[ind:]
+
+    # all other gene ref ids will be returned the same if not altered in the above steps
     return ref
 
 
 def convert_species_ode_to_agr(ode_sp_id):
-    sp_dict = {1: 1, 2: 7, 3: 2, 4: 6, 5: 5, 8: 4, 9: 3, 6: 10, 11: 9, 10: 8}
-    return sp_dict[ode_sp_id]
+    # find the species name, return None if not found in the geneweaver db
+    species_name = db.query(Geneweaver_Species.sp_name).filter(Geneweaver_Species.sp_id == ode_sp_id).first()
+    if species_name:
+        species_name = species_name[0]
+    else:
+        return None
+    # get the AGR-normalizer species id from the species name
+    agr_sp_id = db.query(Species.sp_id).filter(Species.sp_name == species_name).first()
+    if agr_sp_id:
+        agr_sp_id = agr_sp_id[0]
+    return agr_sp_id
+
 
 def convert_species_agr_to_ode(agr_sp_id):
-    sp_dict = {1: 1, 2:3, 3:9, 4:8, 5:5, 6:4, 7:2, 8:10, 9:11, 10:6}
-    return sp_dict[agr_sp_id]
-
-
-def convert_agr_ref_to_ode(gn_ref_id):
-    ref = gn_ref_id
-    remove_first_letters = ['W', 'F', 'S', 'Z']
-    if gn_ref_id[0] == "R":
-        ref = ref.replace(":", "")
-    elif gn_ref_id[0] in remove_first_letters:
-        ind = ref.find(":") + 1
-        ref = ref[ind:]
-    return ref
+    # find the species name, return None if not found in the AGR-normalizer db
+    species_name = db.query(Species.sp_name).filter(Species.sp_id == agr_sp_id).first()
+    if species_name:
+        species_name = species_name[0]
+    else:
+        return None
+    # get the geneweaver species id
+    ode_sp_id = db.query(Geneweaver_Species.sp_id).filter(Geneweaver_Species.sp_name == species_name).first()
+    if ode_sp_id:
+        ode_sp_id = ode_sp_id[0]
+    return ode_sp_id
 
 
 @NS.route('/get_ort_id_if_gene_is_ortholog/<ode_gene_id>/<ode_ref_id>')
@@ -1141,8 +1189,8 @@ class get_homology_by_ode_gene_ids(Resource):
         else:
             return []
 
-        # # changes the output from the query to a list without repeats, rather than a list
-        # #     of lists
+        # changes the output from the query to a list without repeats, rather than a list
+        #     of lists
         if(len(hom_ids) != 0):
             hom_ids = [l[0] for l in set(hom_ids)]
 
@@ -1178,10 +1226,6 @@ class get_ode_genes_from_hom_id(Resource):
             if not ref:
                 break
             refs.append(ref)
-            # ode_id = db.query(Geneweaver_Gene.ode_gene_id).filter(Geneweaver_Gene.ode_ref_id==ref).first()
-            # if not ode_id:
-            #     break
-            # ode2ref.append([ode_id[0], ref])
 
         return(refs)
 
@@ -1366,6 +1410,12 @@ class transpose_genes_by_species(Resource):
 
 @NS.route('/if_gene_has_homolog/<ode_gene_id>')
 class if_gene_has_homolog(Resource):
+    '''
+    :params: ode_gene_id
+    :return: 1 if the gene has any homologous relationships, 0 if not
+    '''
+
+
     def get(self, ode_gene_id):
         ref = db.query(Geneweaver_Gene.ode_ref_id).filter(Geneweaver_Gene.ode_gene_id==ode_gene_id).all()
         #gn_ids = []
