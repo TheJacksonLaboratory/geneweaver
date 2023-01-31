@@ -71,7 +71,6 @@ Then run the following script:
 python flask/src/add_missing_info.py
 ```
 
-
 -----
 <sub>Created from the [micro-flask cookiecutter template](https://bitbucket.jax.org/projects/PT/repos/micro-flask/browse) 
 version 0.0.4 on Wed, Dec 16 2020 at 16:16 PM</sub>

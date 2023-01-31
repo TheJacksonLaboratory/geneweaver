@@ -8,7 +8,7 @@ from flask_cors import CORS
 from flask_restx import Api
 from sqlalchemy.orm import scoped_session
 
-from src.cli import run_tests
+# from cli import run_tests
 from src.auth import AUTHORIZATIONS
 from src.config import Config
 from src.database import SessionLocal
@@ -36,7 +36,7 @@ def create_app(app=None):
         title=app.config['TITLE'],
         version=app.config['VERSION'],
         description=app.config['DESCRIPTION'],
-        authorizations=AUTHORIZATIONS,
+        authorizations=AUTHORIZATIONS
     )
 
     # Add our service and healthcheck endpoints
@@ -61,6 +61,6 @@ def create_app(app=None):
         return {'message': ex.error['description']}, ex.status_code
 
     # Add CLI
-    app.cli.add_command(run_tests)
+    # app.cli.add_command(run_tests)
 
     return app
