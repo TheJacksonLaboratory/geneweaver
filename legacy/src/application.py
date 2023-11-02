@@ -2499,10 +2499,12 @@ def get_geneset_genes():
         #'add genes to geneset' checkbox - handled in DOM on page
         gene.append('Null')
         ## Add the symbol to the list for the linkouts
-        if i < len(symbols):
-            gene.append(symbols[i])
-        else:
-            gene.append(str(gsvs[i].ode_ref))
+        # Everest fix: commented out if loop--list method does not work for anything past 25 genes.
+        gene.append(str(gsvs[i].ode_ref))
+        # if i < len(symbols):
+        #     gene.append(symbols[i])
+        # else:
+        #     gene.append(str(gsvs[i].ode_ref))
 
         gene_list['aaData'].append(gene)
 
