@@ -1595,7 +1595,7 @@ def get_ontologies_by_refs(ont_ref_ids):
     :return:            list of ont_ids
     """
 
-    ont_ref_ids = tuple(ont_ref_ids)
+    ont_ref_ids = tuple(s.decode() if isinstance(s, bytes) else s for s in ont_ref_ids)
 
     with PooledCursor() as cursor:
         cursor.execute('''
