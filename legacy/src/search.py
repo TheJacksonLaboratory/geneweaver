@@ -133,7 +133,7 @@ def getUserFiltersFromApplicationRequest(form):
         search_fields.append('genes')
         field_list['searchGenes'] = True
     if (form.get('searchAbstracts')):
-        search_fields.append('pub_authors,pub_title,pub_abstract,pub_journal')
+        search_fields.append('pubmed_id,pub_authors,pub_title,pub_abstract,pub_journal')
         field_list['searchAbstracts'] = True
     if (form.get('searchOntologies')):
         search_fields.append('ontologies')
@@ -523,7 +523,7 @@ search.html and associated files in templates/search/
 
 
 def keyword_paginated_search(terms, pagination_page,
-                             search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
+                             search_fields='name,description,label,genes,pub_authors,pubmed_id,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
                              userFilters={}, sortby=None, sortAscending=True):
     '''
     Set up initial search connection and build queries
@@ -669,7 +669,7 @@ in the future.
 
 
 def api_search(search_term,
-               search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
+               search_fields='name,description,label,genes,pubmed_id,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
     '''
     The purpose of api search is to do a simple keyword search based on a simple keyword. The results returned are what only guests would see, so there are no tier 5 results returned.
     '''

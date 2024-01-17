@@ -3608,7 +3608,7 @@ def render_searchFromHome():
         search_fields.append('genes')
         field_list['searchGenes'] = True
     if request.args.get('searchAbstracts'):
-        search_fields.append('pub_authors,pub_title,pub_abstract,pub_journal')
+        search_fields.append('pubmed_id,pub_authors,pub_title,pub_abstract,pub_journal')
         field_list['searchAbstracts'] = True
     if request.args.get('searchOntologies'):
         search_fields.append('ontologies')
