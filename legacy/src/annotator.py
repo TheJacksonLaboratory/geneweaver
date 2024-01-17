@@ -186,7 +186,12 @@ def parse_ncbo_annotations(annots):
     ontids = []
 
     for anno in annots:
-        link = anno['annotatedClass']['links']['self']
+        try:
+            link = anno['annotatedClass']['links']['self']
+        except TypeError:
+            print('NCBO returned an invalid annotation object')
+            continue
+
         details = get_ncbo_link(link)
 
         if not details:
