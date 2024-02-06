@@ -1,10 +1,10 @@
-from models import Gene, Ortholog, Geneweaver_Gene, Species
+from geneweaver.aon.models import Gene, Ortholog, Geneweaver_Gene, Species
 from psycopg2.pool import ThreadedConnectionPool
 from controller import convert_ode_ref_to_agr
 from sqlalchemy.ext.declarative import declarative_base
 import itertools
-from controller import convert_species_ode_to_agr
-from database import SessionLocal
+from geneweaver.aon.controller import convert_species_ode_to_agr
+from geneweaver.aon.database import SessionLocal
 import time
 start_time = time.time()
 

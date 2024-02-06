@@ -16,9 +16,9 @@ import xmlrunner
 
 import sys, os
 
-sys.path.append(os.path.abspath(os.path.join('..', 'src')))
+sys.path.append(os.path.abspath(os.path.join('../agr-normalizer', 'src')))
 
-from wsgi import application
+from geneweaver.aon.wsgi import application
 
 class testEndpoints(unittest.TestCase):
 

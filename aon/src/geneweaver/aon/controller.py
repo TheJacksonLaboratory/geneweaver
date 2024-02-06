@@ -3,8 +3,8 @@ Definition of our API interface - Endpoints query the AGR database
 """
 
 from flask_restx import Namespace, Resource, fields, abort, reqparse
-from src.database import SessionLocal
-from src.models import Algorithm, Ortholog, Gene, Species, OrthologAlgorithms, \
+from geneweaver.aon.database import SessionLocal
+from geneweaver.aon.models import Algorithm, Ortholog, Gene, Species, OrthologAlgorithms, \
     Geneweaver_Species, Geneweaver_Gene, Geneweaver_GeneDB, Homology
 
 NS = Namespace('agr-service', description='Endpoints to query database')

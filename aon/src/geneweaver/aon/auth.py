@@ -5,7 +5,7 @@ from jose import jwt
 from functools import wraps
 from flask import request, current_app, _request_ctx_stack
 
-from src.exceptions import AuthError, JWTDecodeError
+from geneweaver.aon.exceptions import AuthError, JWTDecodeError
 
 LOGGER = logging.getLogger(__name__)
 
