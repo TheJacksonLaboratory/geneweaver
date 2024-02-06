@@ -3,8 +3,8 @@ This code takes the information from the Orthology file, parses it, and adds it 
 """
 from itertools import islice, chain
 import sys, requests, os, gzip, shutil
-from database import SessionLocal
-from models import Gene, Species, Ortholog, Algorithm, Homology
+from geneweaver.aon.database import SessionLocal
+from geneweaver.aon.models import Gene, Species, Ortholog, Algorithm, Homology
 
 # get the most recent release from AGR's API
 release = (requests.get("https://www.alliancegenome.org/api/releaseInfo")).json()

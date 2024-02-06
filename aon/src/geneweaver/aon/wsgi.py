@@ -8,7 +8,7 @@
 from werkzeug.serving import run_simple
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
-from src.factory import create_app
+from geneweaver.aon.factory import create_app
 
 app = create_app()
 application = DispatcherMiddleware(app)

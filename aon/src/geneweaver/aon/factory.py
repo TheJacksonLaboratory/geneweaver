@@ -9,12 +9,12 @@ from flask_restx import Api
 from sqlalchemy.orm import scoped_session
 
 # from cli import run_tests
-from src.auth import AUTHORIZATIONS
-from src.config import Config
-from src.database import SessionLocal
-from src.controller import NS as AGR
-from src.healthcheck import NS as HEALTH_CHECK
-from src.exceptions import AuthError
+from geneweaver.aon.auth import AUTHORIZATIONS
+from geneweaver.aon.config import Config
+from geneweaver.aon.database import SessionLocal
+from geneweaver.aon.controller import NS as AGR
+from geneweaver.aon.healthcheck import NS as HEALTH_CHECK
+from geneweaver.aon.exceptions import AuthError
 
 
 def create_app(app=None):

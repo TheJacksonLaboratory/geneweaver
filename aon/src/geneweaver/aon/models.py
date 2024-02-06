@@ -5,7 +5,7 @@ Database models for our service
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, VARCHAR, Date, Text, BIGINT, \
     PrimaryKeyConstraint
 from sqlalchemy.orm import relationship
-from src.database import BaseAGR, BaseGW, SessionLocal, agr_engine
+from geneweaver.aon.database import BaseAGR, BaseGW, SessionLocal, agr_engine
 
 class Gene(BaseAGR):
     __tablename__ = "gn_gene"
