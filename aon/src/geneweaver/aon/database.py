@@ -12,4 +12,3 @@ BaseGW = declarative_base()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False)
 SessionLocal.configure(binds={BaseAGR: agr_engine, BaseGW: gw_engine})
-

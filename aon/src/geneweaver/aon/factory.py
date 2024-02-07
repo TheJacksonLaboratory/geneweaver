@@ -24,19 +24,19 @@ def create_app(app=None):
     :return:
     """
 
-    app = app or Flask(__name__, static_url_path='/static', static_folder='static')
+    app = app or Flask(__name__, static_url_path="/static", static_folder="static")
 
     app.config.from_object(Config)
 
     app.app_context().push()
 
-    logging.basicConfig(level=app.config['LOG_LEVEL'])
+    logging.basicConfig(level=app.config["LOG_LEVEL"])
 
     api = Api(
-        title=app.config['TITLE'],
-        version=app.config['VERSION'],
-        description=app.config['DESCRIPTION'],
-        authorizations=AUTHORIZATIONS
+        title=app.config["TITLE"],
+        version=app.config["VERSION"],
+        description=app.config["DESCRIPTION"],
+        authorizations=AUTHORIZATIONS,
     )
 
     # Add our service and healthcheck endpoints
@@ -53,12 +53,12 @@ def create_app(app=None):
     @app.teardown_request(Exception)
     def close_session():
         app.session.close()
-        return {'message':'END'}
+        return {"message": "END"}
 
     # Handle Auth Errors
     @api.errorhandler(AuthError)
     def handle_auth_error(ex):
-        return {'message': ex.error['description']}, ex.status_code
+        return {"message": ex.error["description"]}, ex.status_code
 
     # Add CLI
     # app.cli.add_command(run_tests)
