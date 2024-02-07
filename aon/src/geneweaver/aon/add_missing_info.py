@@ -4,17 +4,18 @@ from geneweaver.aon.database import SessionLocal
 
 db = SessionLocal()
 
-gene_file_path = 'missing_info/missing_genes.csv'
-ortholog_file_path = 'missing_info/missing_orthologs.csv'
+gene_file_path = "missing_info/missing_genes.csv"
+ortholog_file_path = "missing_info/missing_orthologs.csv"
+
 
 def add_missing_species():
-    '''
-        :description: adds three missing species to sp_species table
-    '''
+    """
+    :description: adds three missing species to sp_species table
+    """
     species_dict = {
-        'Gallus gallus': 9031,
-        'Canis familiaris': 9615,
-        'Macaca mulatta': 9544
+        "Gallus gallus": 9031,
+        "Canis familiaris": 9615,
+        "Macaca mulatta": 9544,
     }
     i = 8
     for s in species_dict.keys():
@@ -23,13 +24,14 @@ def add_missing_species():
         i += 1
     db.commit()
 
+
 def add_missing_genes(file_path):
-    '''
-        :param: file_path - file path to file missing_genes.csv that contains all missing genes
-                to be added to the database
-        :description: adds genes of the three missing species to the gn_gene table
-    '''
-    with open(file_path, 'r') as f:
+    """
+    :param: file_path - file path to file missing_genes.csv that contains all missing genes
+            to be added to the database
+    :description: adds genes of the three missing species to the gn_gene table
+    """
+    with open(file_path, "r") as f:
         csv_reader = reader(f)
         next(csv_reader)
         gene_file_list = list(csv_reader)
@@ -43,12 +45,12 @@ def add_missing_genes(file_path):
 
 
 def add_missing_orthologs(file_path):
-    '''
-        :param: file_path - file path to file missing_orthologs.csv that contains all missing
-                orthologs to be added to the database
-        :description: adds orthologs of the three missing species to the gn_gene table
-    '''
-    with open(file_path, 'r') as f:
+    """
+    :param: file_path - file path to file missing_orthologs.csv that contains all missing
+            orthologs to be added to the database
+    :description: adds orthologs of the three missing species to the gn_gene table
+    """
+    with open(file_path, "r") as f:
         csv_reader = reader(f)
         next(csv_reader)
         ortholog_file_list = list(csv_reader)
@@ -56,16 +58,23 @@ def add_missing_orthologs(file_path):
     ortholog_objects = []
 
     for o in ortholog_file_list:
-        ortholog = Ortholog(ort_id=int(o[0]), from_gene=int(o[1]), to_gene=int(o[2]),
-                            ort_is_best=bool(o[3]), ort_is_best_revised=bool(o[4]),
-                            ort_is_best_is_adjusted=bool(o[5]), ort_num_possible_match_algorithms=int(o[6]),
-                            ort_source_name=o[7])
+        ortholog = Ortholog(
+            ort_id=int(o[0]),
+            from_gene=int(o[1]),
+            to_gene=int(o[2]),
+            ort_is_best=bool(o[3]),
+            ort_is_best_revised=bool(o[4]),
+            ort_is_best_is_adjusted=bool(o[5]),
+            ort_num_possible_match_algorithms=int(o[6]),
+            ort_source_name=o[7],
+        )
         ortholog_objects.append(ortholog)
 
     db.bulk_save_objects(ortholog_objects)
     db.commit()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     add_missing_species()
     add_missing_genes(gene_file_path)
     add_missing_orthologs(ortholog_file_path)

@@ -22,15 +22,26 @@ if argument_length > 1:
             print(f"{file_name} downloaded successfully.")
 
             # download file
-            open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'wb').write(request.content)
+            open(
+                f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz",
+                "wb",
+            ).write(request.content)
 
             # unzip file
-            with gzip.open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'rb') as f_in:
-                with open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv', 'wb') as f_out:
+            with gzip.open(
+                f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz",
+                "rb",
+            ) as f_in:
+                with open(
+                    f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv",
+                    "wb",
+                ) as f_out:
                     shutil.copyfileobj(f_in, f_out)
 
         else:
-            print(f"An error occurred when downloading {file_name}. Please check the file name.")
+            print(
+                f"An error occurred when downloading {file_name}. Please check the file name."
+            )
             exit()
 else:
     # arbitrary limit to prevent infinite loop if the path is incorrect
@@ -43,24 +54,32 @@ else:
     request = requests.get(data_url, allow_redirects=True)
 
     # loop through all the valid versions
-    while (request.status_code == 200 and version_number < version_limit):
+    while request.status_code == 200 and version_number < version_limit:
         version_number += 1
         data_url = f"https://download.alliancegenome.org/{version}/ORTHOLOGY-ALLIANCE/COMBINED/ORTHOLOGY-ALLIANCE_COMBINED_{version_number}.tsv.gz"
         request = requests.get(data_url, allow_redirects=True)
 
-    if version_number == version_limit-1:
-        print("The maximum number of versions was tried. Please check the file path for downloading the orthology file at https://www.alliancegenome.org/downloads.")
+    if version_number == version_limit - 1:
+        print(
+            "The maximum number of versions was tried. Please check the file path for downloading the orthology file at https://www.alliancegenome.org/downloads."
+        )
         exit()
 
     data_url = f"https://download.alliancegenome.org/{version}/ORTHOLOGY-ALLIANCE/COMBINED/ORTHOLOGY-ALLIANCE_COMBINED_{version_number-1}.tsv.gz"
     request = requests.get(data_url, allow_redirects=True)
 
     # download file
-    open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'wb').write(request.content)
+    open(
+        f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz", "wb"
+    ).write(request.content)
 
     # unzip file
-    with gzip.open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz', 'rb') as f_in:
-        with open(f'{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv', 'wb') as f_out:
+    with gzip.open(
+        f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv.gz", "rb"
+    ) as f_in:
+        with open(
+            f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv", "wb"
+        ) as f_out:
             shutil.copyfileobj(f_in, f_out)
 
 ORTHO_FILE = f"{os.path.dirname(os.path.abspath(__file__))}/AGR_Orthology_Data.tsv"
@@ -90,14 +109,14 @@ def get_algorithm_by_name(name):
 
 def init_species():
     heading_size = 15
-    with open(ORTHO_FILE, 'r') as f:
+    with open(ORTHO_FILE, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
         header = f.readline()
 
         species = set()
         for line in read_file_by_line(f):
-            data = line.split('\t')
+            data = line.split("\t")
             name = data[3]
             taxon_id = ((data[2]).split(":"))[1]
             species.add((taxon_id, name))
@@ -113,7 +132,7 @@ def init_species():
 
 def add_genes():
     heading_size = 15
-    with open(ORTHO_FILE, 'r') as f:
+    with open(ORTHO_FILE, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
             print(f"DISCARDING --[{discard}]" + discard)
@@ -122,17 +141,19 @@ def add_genes():
 
         genes = {}
         for line in read_file_by_line(f):
-            sp = line.split('\t')
+            sp = line.split("\t")
             # The first gene
             # key: reference_id, value: (reference_prefix, species_id)
-            genes[sp[0]] = (sp[0].split(':')[0], species_id_from_taxon_id(sp[2]))
+            genes[sp[0]] = (sp[0].split(":")[0], species_id_from_taxon_id(sp[2]))
             # The second gene
-            genes[sp[4]] = (sp[4].split(':')[0], species_id_from_taxon_id(sp[6]))
+            genes[sp[4]] = (sp[4].split(":")[0], species_id_from_taxon_id(sp[6]))
 
-        db.bulk_save_objects([
-            Gene(gn_ref_id=key, gn_prefix=value[0], sp_id=value[1])
-            for key, value in genes.items()
-        ])
+        db.bulk_save_objects(
+            [
+                Gene(gn_ref_id=key, gn_prefix=value[0], sp_id=value[1])
+                for key, value in genes.items()
+            ]
+        )
         db.commit()
 
     db.close()
@@ -140,7 +161,7 @@ def add_genes():
 
 def add_algorithms():
     heading_size = 15
-    with open(ORTHO_FILE, 'r') as f:
+    with open(ORTHO_FILE, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
             print(f"DISCARDING --[{discard}]" + discard)
@@ -149,26 +170,19 @@ def add_algorithms():
 
         algos = set()
         for line in read_file_by_line(f):
-            sp = line.split('\t')
-            for algo in sp[8].split('|'):
+            sp = line.split("\t")
+            for algo in sp[8].split("|"):
                 algos.add(algo)
 
-        db.bulk_save_objects([
-            Algorithm(alg_name=algo)
-            for algo in algos
-        ])
+        db.bulk_save_objects([Algorithm(alg_name=algo) for algo in algos])
         db.commit()
 
 
 def add_ortholog_batch(batch):
-    is_best_map = {
-        'Yes': True,
-        'No': False,
-        'Yes_Adjusted': True
-    }
+    is_best_map = {"Yes": True, "No": False, "Yes_Adjusted": True}
 
     for line in batch:
-        spl = line.split('\t')
+        spl = line.split("\t")
         # get gene object of from gene and to gene
         gene1 = db.query(Gene).filter(Gene.gn_ref_id == spl[0]).first()
         gene2 = db.query(Gene).filter(Gene.gn_ref_id == spl[4]).first()
@@ -176,21 +190,25 @@ def add_ortholog_batch(batch):
         # determine qualifiers
         is_best = spl[11].strip()
         is_best_is_adjusted = False
-        if is_best == 'Yes_Adjusted':
+        if is_best == "Yes_Adjusted":
             is_best_is_adjusted = True
         is_best = is_best_map[is_best]
         is_best_revised = is_best_map[spl[12].strip()]
         num_algo = int(spl[10].strip())
 
-        ortholog = Ortholog(from_gene=gene1.gn_id, to_gene=gene2.gn_id,
-                            ort_is_best=is_best, ort_is_best_revised=is_best_revised,
-                            ort_is_best_is_adjusted=is_best_is_adjusted,
-                            ort_num_possible_match_algorithms=num_algo,
-                            ort_source_name="AGR")
+        ortholog = Ortholog(
+            from_gene=gene1.gn_id,
+            to_gene=gene2.gn_id,
+            ort_is_best=is_best,
+            ort_is_best_revised=is_best_revised,
+            ort_is_best_is_adjusted=is_best_is_adjusted,
+            ort_num_possible_match_algorithms=num_algo,
+            ort_source_name="AGR",
+        )
 
         # add to ora_ortholog_algorithms
         # algorithms = [algorithms_dict[algo] for algo in spl[8].split('|')]
-        algorithms = [get_algorithm_by_name(algo) for algo in spl[8].split('|')]
+        algorithms = [get_algorithm_by_name(algo) for algo in spl[8].split("|")]
         for algorithm in algorithms:
             ortholog.algorithms.append(algorithm)
         db.add(ortholog)
@@ -200,7 +218,7 @@ def add_ortholog_batch(batch):
 def add_orthologs(batch_size, batches_to_process=-1):
     heading_size = 15
 
-    with open(ORTHO_FILE, 'r') as f:
+    with open(ORTHO_FILE, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
             print(f"DISCARDING --[{discard}]" + discard)
@@ -247,7 +265,10 @@ def add_homology():
 
         # check if neither gene belonds to a cluster and if true, create a new cluster
         #    with a new hom_id and add both genes to that cluster
-        if o.to_gene not in existing_cluster_key.keys() and o.from_gene not in existing_cluster_key.keys():
+        if (
+            o.to_gene not in existing_cluster_key.keys()
+            and o.from_gene not in existing_cluster_key.keys()
+        ):
             curr_hom_id += 1
             homologs[curr_hom_id] = [o.from_gene, o.to_gene]
             existing_cluster_key[o.to_gene] = curr_hom_id
@@ -263,8 +284,9 @@ def add_homology():
         genes = list(set(genes))
         for g in genes:
             sp_id = (db.query(Gene).filter(Gene.gn_id == g).first()).sp_id
-            hom = Homology(hom_id=hom_id, hom_source_name=source_key[g],
-                            gn_id=g, sp_id=sp_id)
+            hom = Homology(
+                hom_id=hom_id, hom_source_name=source_key[g], gn_id=g, sp_id=sp_id
+            )
             homolog_objects.append(hom)
         db.bulk_save_objects(homolog_objects)
         db.commit()
@@ -272,7 +294,7 @@ def add_homology():
 
 if __name__ == "__main__":
     init_species()
-    #add_algorithms()
-    #add_genes()
-    #add_orthologs(1000)
-    #add_homology()
+    # add_algorithms()
+    # add_genes()
+    # add_orthologs(1000)
+    # add_homology()

@@ -17,11 +17,12 @@ try:
     import uwsgi
 
     def postfork():
-        app.config['db_engine'].dispose()
+        app.config["db_engine"].dispose()
+
     uwsgi.post_fork_hook = postfork
 
 except ImportError:
     pass
 
 if __name__ == "__main__":
-    run_simple('localhost', 8000, application, use_reloader=True, use_debugger=True)
+    run_simple("localhost", 8000, application, use_reloader=True, use_debugger=True)

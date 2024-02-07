@@ -2,17 +2,28 @@
 Database models for our service
 """
 
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, VARCHAR, Date, Text, BIGINT, \
-    PrimaryKeyConstraint
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Boolean,
+    ForeignKey,
+    VARCHAR,
+    Date,
+    Text,
+    BIGINT,
+    PrimaryKeyConstraint,
+)
 from sqlalchemy.orm import relationship
 from geneweaver.aon.database import BaseAGR, BaseGW, SessionLocal, agr_engine
+
 
 class Gene(BaseAGR):
     __tablename__ = "gn_gene"
 
     gn_id = Column(Integer, primary_key=True)  # id
-    gn_ref_id = Column('gn_ref_id', String, unique=True)
-    gn_prefix = Column('gn_prefix', String)
+    gn_ref_id = Column("gn_ref_id", String, unique=True)
+    gn_prefix = Column("gn_prefix", String)
     sp_id = Column(ForeignKey("sp_species.sp_id"))  # species
 
 
@@ -22,11 +33,13 @@ class Species(BaseAGR):
     sp_name = Column(String, nullable=False)  # name
     sp_taxon_id = Column(Integer, nullable=False)
 
+
 class OrthologAlgorithms(BaseAGR):
     __tablename__ = "ora_ortholog_algorithms"
     ora_id = Column(Integer, primary_key=True)
     alg_id = Column(ForeignKey("alg_algorithm.alg_id"))
     ort_id = Column(ForeignKey("ort_ortholog.ort_id"))
+
 
 class Ortholog(BaseAGR):
     __tablename__ = "ort_ortholog"
@@ -38,9 +51,10 @@ class Ortholog(BaseAGR):
     ort_is_best_is_adjusted = Column(Boolean)
     ort_num_possible_match_algorithms = Column(Integer)
     ort_source_name = Column(VARCHAR)
-    algorithms = relationship("Algorithm",
-                              secondary="ora_ortholog_algorithms",
-                              backref="orthologs")
+    algorithms = relationship(
+        "Algorithm", secondary="ora_ortholog_algorithms", backref="orthologs"
+    )
+
 
 class Algorithm(BaseAGR):
     __tablename__ = "alg_algorithm"
@@ -54,7 +68,8 @@ class Homology(BaseAGR):
     gn_id = Column(ForeignKey("gn_gene.gn_id"))
     sp_id = Column(ForeignKey("sp_species.sp_id"))
     hom_source_name = Column(VARCHAR)
-    __table_args__ = (PrimaryKeyConstraint('hom_id', 'gn_id'),)
+    __table_args__ = (PrimaryKeyConstraint("hom_id", "gn_id"),)
+
 
 # The following models correspond to tables in the geneweaver database, so they are created using BaseGW
 class Geneweaver_Species(BaseGW):
@@ -78,7 +93,10 @@ class Geneweaver_Gene(BaseGW):
     ode_pref = Column(Boolean)
     ode_date = Column(Date)
     old_ode_gene_ids = Column(BIGINT)
-    __table_args__ = (PrimaryKeyConstraint('ode_gene_id', 'ode_ref_id'), {"schema": "extsrc"})
+    __table_args__ = (
+        PrimaryKeyConstraint("ode_gene_id", "ode_ref_id"),
+        {"schema": "extsrc"},
+    )
 
 
 class Geneweaver_GeneDB(BaseGW):
