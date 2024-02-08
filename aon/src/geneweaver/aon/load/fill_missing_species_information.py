@@ -1,5 +1,5 @@
 from geneweaver.aon.models import Gene, Ortholog, Geneweaver_Gene, Species
-from psycopg2.pool import ThreadedConnectionPool
+from psycopg_pool import ConnectionPool
 from sqlalchemy.ext.declarative import declarative_base
 import itertools
 from geneweaver.aon.controller.controller import (
@@ -19,15 +19,15 @@ db = SessionLocal()
 # connection to both databases using connection pool
 
 
-class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
-    """Extend ThreadedConnectionPool to initialize the search_path"""
+class GeneWeaverConnectionPool(ConnectionPool):
+    """Extend ConnectionPool to initialize the search_path"""
 
     def __init__(self, minconn, maxconn, *args, **kwargs):
-        ThreadedConnectionPool.__init__(self, minconn, maxconn, *args, **kwargs)
+        ConnectionPool.__init__(self, minconn, maxconn, *args, **kwargs)
 
     def _connect(self, key=None):
         """Create a new connection and set its search_path"""
-        conn = super(GeneWeaverThreadedConnectionPool, self)._connect(key)
+        conn = super(GeneWeaverConnectionPool, self)._connect(key)
         conn.set_client_encoding("UTF-8")
         cursor = conn.cursor()
         cursor.execute("SET search_path TO production, extsrc, odestatic;")
@@ -40,7 +40,7 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 # connections in this application
 
 # TODO - update database information to relevant databases
-pool = GeneWeaverThreadedConnectionPool(
+pool = GeneWeaverConnectionPool(
     5,
     20,
     database="geneweaver",
@@ -49,7 +49,7 @@ pool = GeneWeaverThreadedConnectionPool(
     host="localhost",
     port="2222",
 )
-pool_agr = GeneWeaverThreadedConnectionPool(
+pool_agr = GeneWeaverConnectionPool(
     5, 20, database="agr", user="user", password="pass", host="localhost", port="5432"
 )
 

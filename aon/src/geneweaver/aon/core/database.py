@@ -2,10 +2,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from geneweaver.aon.core.config import Config
+from geneweaver.aon.core.config import config
 
-agr_engine = create_engine(Config.DATABASE_URL_AGR)
-gw_engine = create_engine(Config.DATABASE_URL_GW)
+agr_engine = create_engine(config.DB.URI)
+gw_engine = create_engine(config.GW_DB.URI)
 
 BaseAGR = declarative_base()
 BaseGW = declarative_base()
