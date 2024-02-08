@@ -804,6 +804,21 @@ pandas = ">=1.5,<2.1"
 pydantic = {version = ">=1.10.7,<2.0.0", extras = ["dotenv"]}
 
 [[package]]
+name = "geneweaver-db"
+version = "0.3.0a4"
+description = "Database Interaction Services for GeneWeaver"
+optional = false
+python-versions = ">=3.9,<4.0"
+files = [
+    {file = "geneweaver_db-0.3.0a4-py3-none-any.whl", hash = "sha256:d0be6fb739813c937bbbd94cfef7d43489281276fc5b78fb8a92c5b6fb4ce0b5"},
+    {file = "geneweaver_db-0.3.0a4.tar.gz", hash = "sha256:fa7e2ac69c2dafa420a26dd3476e7fededb901d740649d1e1a5b7f837c1a27d3"},
+]
+
+[package.dependencies]
+geneweaver-core = ">=0.9.0a0,<0.10.0"
+psycopg = {version = ">=3.1.13,<4.0.0", extras = ["binary"]}
+
+[[package]]
 name = "geneweaver-testing"
 version = "0.0.3"
 description = "A library to standardize testing of GeneWeaver pacakges."
@@ -2025,6 +2040,7 @@ files = [
 
 [package.dependencies]
 psycopg-binary = {version = "3.1.18", optional = true, markers = "implementation_name != \"pypy\" and extra == \"binary\""}
+psycopg-pool = {version = "*", optional = true, markers = "extra == \"pool\""}
 typing-extensions = ">=4.1"
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
@@ -2109,6 +2125,20 @@ files = [
     {file = "psycopg_binary-3.1.18-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:74e498586b72fb819ca8ea82107747d0cb6e00ae685ea6d1ab3f929318a8ce2d"},
     {file = "psycopg_binary-3.1.18-cp39-cp39-win_amd64.whl", hash = "sha256:d4422af5232699f14b7266a754da49dc9bcd45eba244cf3812307934cd5d6679"},
 ]
+
+[[package]]
+name = "psycopg-pool"
+version = "3.2.1"
+description = "Connection Pool for Psycopg"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "psycopg-pool-3.2.1.tar.gz", hash = "sha256:6509a75c073590952915eddbba7ce8b8332a440a31e77bba69561483492829ad"},
+    {file = "psycopg_pool-3.2.1-py3-none-any.whl", hash = "sha256:060b551d1b97a8d358c668be58b637780b884de14d861f4f5ecc48b7563aafb7"},
+]
+
+[package.dependencies]
+typing-extensions = ">=4.4"
 
 [[package]]
 name = "ptyprocess"
@@ -3138,4 +3168,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "7b8e6b322c03aa30b08ad189dad20c6c1389705f815bbd43e99e0b39bf30abc7"
+content-hash = "48802127feeb81616834c413b284ef75c499a8621af57bc0a8023be127af7d44"
