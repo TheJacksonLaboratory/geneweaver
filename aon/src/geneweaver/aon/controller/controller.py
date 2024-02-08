@@ -3,7 +3,7 @@ Definition of our API interface - Endpoints query the AGR database
 """
 
 from flask_restx import Namespace, Resource, fields, abort, reqparse
-from geneweaver.aon.database import SessionLocal
+from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.models import (
     Algorithm,
     Ortholog,

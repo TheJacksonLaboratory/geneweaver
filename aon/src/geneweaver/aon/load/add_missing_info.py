@@ -1,6 +1,6 @@
 from geneweaver.aon.models import Gene, Ortholog, Species
 from csv import reader
-from geneweaver.aon.database import SessionLocal
+from geneweaver.aon.core.database import SessionLocal
 
 db = SessionLocal()
 

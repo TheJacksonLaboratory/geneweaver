@@ -2,8 +2,9 @@
 This code takes the information from the Orthology file, parses it, and adds it to the database
 """
 from itertools import islice, chain
+import requests, os
 import sys, requests, os, gzip, shutil
-from geneweaver.aon.database import SessionLocal
+from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.models import Gene, Species, Ortholog, Algorithm, Homology
 
 # get the most recent release from AGR's API
@@ -122,12 +123,9 @@ def init_species():
             species.add((taxon_id, name))
 
         print(species)
-        #
-        # db.bulk_save_objects([
-        #     Species(sp_name=s[1], sp_taxon_id=s[0])
-        #     for s in species
-        # ])
-        # db.commit()
+
+        db.bulk_save_objects([Species(sp_name=s[1], sp_taxon_id=s[0]) for s in species])
+        db.commit()
 
 
 def add_genes():

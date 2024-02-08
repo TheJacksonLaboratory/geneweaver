@@ -15,7 +15,7 @@ from sqlalchemy import (
     PrimaryKeyConstraint,
 )
 from sqlalchemy.orm import relationship
-from geneweaver.aon.database import BaseAGR, BaseGW, SessionLocal, agr_engine
+from geneweaver.aon.core.database import BaseAGR, BaseGW
 
 
 class Gene(BaseAGR):

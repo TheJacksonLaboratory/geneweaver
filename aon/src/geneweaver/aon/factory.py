@@ -9,12 +9,11 @@ from flask_restx import Api
 from sqlalchemy.orm import scoped_session
 
 # from cli import run_tests
-from geneweaver.aon.auth import AUTHORIZATIONS
-from geneweaver.aon.config import Config
-from geneweaver.aon.database import SessionLocal
-from geneweaver.aon.controller import NS as AGR
-from geneweaver.aon.healthcheck import NS as HEALTH_CHECK
-from geneweaver.aon.exceptions import AuthError
+from geneweaver.aon import __version__
+from geneweaver.aon.core.config import Config
+from geneweaver.aon.core.database import SessionLocal
+from geneweaver.aon.controller.controller import NS as AGR
+from geneweaver.aon.controller.healthcheck import NS as HEALTH_CHECK
 
 
 def create_app(app=None):
@@ -34,9 +33,8 @@ def create_app(app=None):
 
     api = Api(
         title=app.config["TITLE"],
-        version=app.config["VERSION"],
+        version=__version__,
         description=app.config["DESCRIPTION"],
-        authorizations=AUTHORIZATIONS,
     )
 
     # Add our service and healthcheck endpoints
@@ -54,13 +52,5 @@ def create_app(app=None):
     def close_session():
         app.session.close()
         return {"message": "END"}
-
-    # Handle Auth Errors
-    @api.errorhandler(AuthError)
-    def handle_auth_error(ex):
-        return {"message": ex.error["description"]}, ex.status_code
-
-    # Add CLI
-    # app.cli.add_command(run_tests)
 
     return app
