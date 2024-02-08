@@ -13,7 +13,6 @@ env.read_env()
 
 class Config:
     TITLE = "Geneweaver Ortholog Normalizer"
-    VERSION = "0.0.1"
     DESCRIPTION = "An application to aid in normalizing homology data."
 
     DEBUG = env.bool("DEBUG", default=False)

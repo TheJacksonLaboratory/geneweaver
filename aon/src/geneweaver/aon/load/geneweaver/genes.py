@@ -1,5 +1,28 @@
-from geneweaver.aon.models import Gene, Ortholog, Geneweaver_Gene, Species
+"""Code to add genes from geneweaver gene table to agr gn_gene table"""
+from geneweaver.aon.models import Gene
+from geneweaver.core.enum import GeneIdentifier
 from sqlalchemy.orm import Session
+from psycopg import Cursor
+from geneweaver.aon.controller.controller import convert_species_ode_to_agr
+
+PREFIX_MAPPING = {
+    GeneIdentifier.ENTREZ: "entrez",
+    GeneIdentifier.ENSEMBLE_GENE: "ensembl",
+    GeneIdentifier.ENSEMBLE_PROTEIN: "ensembl_protein",
+    GeneIdentifier.ENSEMBLE_TRANSCRIPT: "ensembl_transcript",
+    GeneIdentifier.UNIGENE: "unigene",
+    GeneIdentifier.GENE_SYMBOL: "symbol",
+    GeneIdentifier.UNANNOTATED: "unannotated",
+    GeneIdentifier.MGI: "MGI",
+    GeneIdentifier.HGNC: "HGNC",
+    GeneIdentifier.RGD: "RGD",
+    GeneIdentifier.ZFIN: "ZFIN",
+    GeneIdentifier.FLYBASE: "FB",
+    GeneIdentifier.WORMBASE: "WB",
+    GeneIdentifier.SGD: "SGD",
+    GeneIdentifier.MIRBASE: "miRBase",
+    GeneIdentifier.CGNC: "CGNC",
+}
 
 
 def convert_gdb_to_prefix(gdb_id):
@@ -11,29 +34,15 @@ def convert_gdb_to_prefix(gdb_id):
     :description: converts gdb_id to gn_prefix to communicate between agr and geneweaver
             databases
     """
-    gdb_dict = {
-        1: "entrez",
-        2: "ensembl",
-        3: "ensembl_protein",
-        4: "ensembl_transcript",
-        5: "unigene",
-        7: "symbol",
-        8: "unannotated",
-        10: "MGI",
-        11: "HGNC",
-        12: "RGD",
-        13: "ZFIN",
-        14: "FB",
-        15: "WB",
-        16: "SGD",
-        17: "miRBase",
-        20: "CGNC",
-        21: "Variant",
-    }
-    return gdb_dict[int(gdb_id)]
+    try:
+        gw_identifier = GeneIdentifier(gdb_id)
+    except ValueError:
+        return "Variant"
+
+    return PREFIX_MAPPING[gw_identifier]
 
 
-def add_missing_genes(db: Session):
+def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
     """
     :description: adds genes from geneweaver gene table for the three missing species.
             parses information from this table to create Gene objects to go into gn_gene
@@ -42,14 +51,13 @@ def add_missing_genes(db: Session):
 
     # query for a list of geneweaver genes from Gallus gallus (sp_id=10, gdb_id=20),
     #    Canis familiaris(sp_id=11, gdb_id=2), and Macaca mulatta (sp_id=6, gdb_id=1)
-    with PooledCursor() as cursor:
-        cursor.execute(
-            """
-        SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene WHERE sp_id IN (6,10,11)
-        AND gdb_id in (1,2,20);
+    geneweaver_cursor.execute(
         """
-        )
-        gw_genes = cursor.fetchall()
+    SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene WHERE sp_id IN (6,10,11)
+    AND gdb_id in (1,2,20);
+    """
+    )
+    gw_genes = geneweaver_cursor.fetchall()
 
     i = 0
     genes = []
@@ -69,4 +77,3 @@ def add_missing_genes(db: Session):
             i = 0
         else:
             i += 1
-

@@ -1,78 +1,45 @@
+"""Code for adding homolog/ortholog information from the geneweaver database."""
+import itertools
 from sqlalchemy.orm import Session
-from geneweaver.aon.models import Gene, Ortholog, Geneweaver_Gene, Species
+from geneweaver.aon.models import Gene, Ortholog, Geneweaver_Gene
+from geneweaver.aon.controller.controller import convert_ode_ref_to_agr
+from psycopg import Cursor
 
 
-def get_homolog_information(db: Session, gw_db: Session) -> list:
-    with PooledCursorAGR() as cursorAGR:
-        # get all ode_gene_ids of the genes in the gn_gene table for the 3 missing species
-        cursorAGR.execute(
+def get_homolog_information(aon_cursor: Cursor, geneweaver_cursor: Cursor):
+    # get all ode_gene_ids of the genes in the gn_gene table for the 3 missing species
+    aon_cursor.execute(
+        """
+            select ode_gene_id from geneweaver.gene where ode_ref_id in (
+             select gn_ref_id from public.gn_gene where sp_id in (8,9,10))
+             ;
             """
-                select ode_gene_id from geneweaver.gene where ode_ref_id in (
-        		select gn_ref_id from public.gn_gene where sp_id in (8,9,10))
-        		;
-                """
+    )
+    output = aon_cursor.fetchall()
+
+    # put output into list format
+    gw_genes = []
+    for g in output:
+        gw_genes.append(str(g[0]))
+
+    # get hom_id, ode_gene_id, and sp_id from the geneweaver homology table for any homolog
+    #   that is a member of a cluster that contains a gene in agr and of the 3 missing species,
+    #   also orders by hom_id to make it easier to parse
+    geneweaver_cursor.execute(
+        """
+                 select hom_id, ode_gene_id, sp_id from extsrc.homology h1 where h1.hom_id in (
+                                 select hom_id from extsrc.homology h2 where ode_gene_id in ({}))
+                             order by hom_id;
+                 """.format(
+            ",".join([str(i) for i in gw_genes])
         )
-        output = cursorAGR.fetchall()
+    )
+    homologs = geneweaver_cursor.fetchall()
 
-        # put output into list format
-        gw_genes = []
-        for g in output:
-            gw_genes.append(str(g[0]))
-
-        with PooledCursor() as cursor:
-            # get hom_id, ode_gene_id, and sp_id from the geneweaver homology table for any homolog
-            #   that is a member of a cluster that contains a gene in agr and of the 3 missing species,
-            #   also orders by hom_id to make it easier to parse
-            cursor.execute(
-                """
-                         select hom_id, ode_gene_id, sp_id from extsrc.homology h1 where h1.hom_id in (
-                                         select hom_id from extsrc.homology h2 where ode_gene_id in ({}))
-                                     order by hom_id;
-                         """.format(
-                    ",".join([str(i) for i in gw_genes])
-                )
-            )
-            homologs = cursor.fetchall()
-
-            return homologs
+    return homologs
 
 
-def get_homolog_information():
-    with PooledCursorAGR() as cursorAGR:
-        # get all ode_gene_ids of the genes in the gn_gene table for the 3 missing species
-        cursorAGR.execute(
-            """
-                select ode_gene_id from geneweaver.gene where ode_ref_id in (
-        		select gn_ref_id from public.gn_gene where sp_id in (8,9,10))
-        		;
-                """
-        )
-        output = cursorAGR.fetchall()
-
-        # put output into list format
-        gw_genes = []
-        for g in output:
-            gw_genes.append(str(g[0]))
-
-        with PooledCursor() as cursor:
-            # get hom_id, ode_gene_id, and sp_id from the geneweaver homology table for any homolog
-            #   that is a member of a cluster that contains a gene in agr and of the 3 missing species,
-            #   also orders by hom_id to make it easier to parse
-            cursor.execute(
-                """
-                         select hom_id, ode_gene_id, sp_id from extsrc.homology h1 where h1.hom_id in (
-                                         select hom_id from extsrc.homology h2 where ode_gene_id in ({}))
-                                     order by hom_id;
-                         """.format(
-                    ",".join([str(i) for i in gw_genes])
-                )
-            )
-            homologs = cursor.fetchall()
-
-            return homologs
-
-
-def add_missing_orthologs(homologs):
+def add_missing_orthologs(homologs, db: Session):
     # starting hom_id is the first hom_id of the first homolog, keeps track of current cluster
     curr_hom_id = homologs[0][0]
     # will hold all homolog genes that are not from the new species
@@ -191,4 +158,3 @@ def add_missing_orthologs(homologs):
 
         # reset curr_hom_id
         curr_hom_id = h[0]
-
