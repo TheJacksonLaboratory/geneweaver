@@ -10,7 +10,7 @@ from sqlalchemy.orm import scoped_session
 
 # from cli import run_tests
 from geneweaver.aon import __version__
-from geneweaver.aon.core.config import Config
+from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.controller.controller import NS as AGR
 from geneweaver.aon.controller.healthcheck import NS as HEALTH_CHECK
@@ -25,11 +25,11 @@ def create_app(app=None):
 
     app = app or Flask(__name__, static_url_path="/static", static_folder="static")
 
-    app.config.from_object(Config)
+    app.config.from_object(config)
 
     app.app_context().push()
 
-    logging.basicConfig(level=app.config["LOG_LEVEL"])
+    logging.basicConfig(level=app.config['LOG_LEVEL'])
 
     api = Api(
         title=app.config["TITLE"],
