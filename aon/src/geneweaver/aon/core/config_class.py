@@ -58,3 +58,9 @@ class Config(BaseSettings):
             PASSWORD=values.get("GW_DB_PASSWORD"),
             PORT=values.get("GW_DB_PORT"),
         )
+
+    class Config:
+        """Configuration for the BaseSettings class."""
+
+        env_file = ".env"
+        case_sensitive = True
