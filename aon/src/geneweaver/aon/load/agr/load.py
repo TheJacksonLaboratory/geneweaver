@@ -33,8 +33,18 @@ def species_id_from_taxon_id(db: Session, taxon_id):
     :param taxon_id: taxon id
     :return: species id
     """
-    id_num = ((taxon_id).split(":"))[1]
+    id_num = int(((taxon_id).split(":"))[1])
     return db.query(Species).filter(Species.sp_taxon_id == id_num).first().sp_id
+
+
+def get_species_to_taxon_id_map(db: Session) -> dict:
+    """Get the species to taxon id map.
+
+    :param db: database session
+    :return: species to taxon id map
+    """
+    species = db.query(Species).all()
+    return {s.sp_taxon_id: s.sp_id for s in species}
 
 
 def get_algorithm_by_name(db: Session, name: str):
@@ -44,6 +54,36 @@ def get_algorithm_by_name(db: Session, name: str):
     :param name: name of the algorithm
     """
     return db.query(Algorithm).filter(Algorithm.alg_name == name).first()
+
+
+def get_algorithm_name_map(db: Session) -> dict:
+    """Get the algorithm name map.
+
+    :param db: database session
+    :return: algorithm name map
+    """
+    algorithms = db.query(Algorithm).all()
+    return {a.alg_name: a for a in algorithms}
+
+
+def get_gene_gn_ref_id_map(db: Session) -> dict:
+    """Get the gene gn ref id map.
+
+    :param db: database session
+    :return: gene gn ref id map
+    """
+    genes = db.query(Gene).all()
+    return {g.gn_ref_id: g for g in genes}
+
+
+def get_gene_gn_id_sp_id_map(db: Session) -> dict:
+    """Get the gene gn id map.
+
+    :param db: database session
+    :return: gene gn id map
+    """
+    genes = db.query(Gene).all()
+    return {g.gn_id: g.sp_id for g in genes}
 
 
 def init_species(db: Session, ortho_file: str) -> None:
@@ -79,18 +119,18 @@ def add_genes(db: Session, ortho_file: str) -> None:
     with open(ortho_file, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
-            print(f"DISCARDING --[{discard}]" + discard)
         header = f.readline()
-        print(f"HEADER: {header}")
 
         genes = {}
+        species_taxon_map = get_species_to_taxon_id_map(db)
         for line in read_file_by_line(f):
             sp = line.split("\t")
             # The first gene
             # key: reference_id, value: (reference_prefix, species_id)
-            genes[sp[0]] = (sp[0].split(":")[0], species_id_from_taxon_id(sp[2]))
+            genes[sp[0]] = (sp[0].split(":")[0], species_taxon_map[int(sp[2].split(":")[1])])
+
             # The second gene
-            genes[sp[4]] = (sp[4].split(":")[0], species_id_from_taxon_id(sp[6]))
+            genes[sp[4]] = (sp[4].split(":")[0], species_taxon_map[int(sp[6].split(":")[1])])
 
         db.bulk_save_objects(
             [
@@ -113,9 +153,7 @@ def add_algorithms(db: Session, ortho_file: str):
     with open(ortho_file, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
-            print(f"DISCARDING --[{discard}]" + discard)
         header = f.readline()
-        print(f"HEADER: {header}")
 
         algos = set()
         for line in read_file_by_line(f):
@@ -135,11 +173,19 @@ def add_ortholog_batch(db: Session, batch):
     """
     is_best_map = {"Yes": True, "No": False, "Yes_Adjusted": True}
 
+    i = 0
+    orthologs = []
+    algorithm_name_map = get_algorithm_name_map(db)
+    gn_ref_id_map = get_gene_gn_ref_id_map(db)
+
     for line in batch:
         spl = line.split("\t")
         # get gene object of from gene and to gene
-        gene1 = db.query(Gene).filter(Gene.gn_ref_id == spl[0]).first()
-        gene2 = db.query(Gene).filter(Gene.gn_ref_id == spl[4]).first()
+        # gene1 = db.query(Gene).filter(Gene.gn_ref_id == spl[0]).first()
+        # gene2 = db.query(Gene).filter(Gene.gn_ref_id == spl[4]).first()
+
+        gene1 = gn_ref_id_map[spl[0]]
+        gene2 = gn_ref_id_map[spl[4]]
 
         # determine qualifiers
         is_best = spl[11].strip()
@@ -161,11 +207,13 @@ def add_ortholog_batch(db: Session, batch):
         )
 
         # add to ora_ortholog_algorithms
-        # algorithms = [algorithms_dict[algo] for algo in spl[8].split('|')]
-        algorithms = [get_algorithm_by_name(db, algo) for algo in spl[8].split("|")]
+        algorithms = [algorithm_name_map[algo] for algo in spl[8].split('|')]
+        # algorithms = [get_algorithm_by_name(db, algo) for algo in spl[8].split("|")]
         for algorithm in algorithms:
             ortholog.algorithms.append(algorithm)
-        db.add(ortholog)
+
+        orthologs.append(ortholog)
+    db.add_all(orthologs)
     db.commit()
 
 
@@ -182,9 +230,7 @@ def add_orthologs(db: Session, ortho_file, batch_size, batches_to_process=-1) ->
     with open(ortho_file, "r") as f:
         for i in range(heading_size):
             discard = f.readline()
-            print(f"DISCARDING --[{discard}]" + discard)
         header = f.readline()
-        print(f"HEADER: {header}")
 
         i = 1
         for batch in read_n_lines(f, batch_size):
@@ -194,7 +240,29 @@ def add_orthologs(db: Session, ortho_file, batch_size, batches_to_process=-1) ->
             if batches_to_process != -1 and i > batches_to_process:
                 break
 
-    db.close()
+
+def get_ortholog_batches(ortho_file, batch_size, batches_to_process=-1):
+    """Add orthologs to the database.
+
+    :param db: database session
+    :param ortho_file: file to read
+    :param batch_size: size of the batch
+    :param batches_to_process: number of batches to process
+    """
+    heading_size = 15
+
+    with open(ortho_file, "r") as f:
+        for i in range(heading_size):
+            discard = f.readline()
+        header = f.readline()
+
+        i = 1
+        for batch in read_n_lines(f, batch_size):
+            # add 1000 orthologs at a time unil end of file
+            yield batch
+            i += 1
+            if batches_to_process != -1 and i > batches_to_process:
+                break
 
 
 def add_homology(db: Session) -> None:
@@ -203,6 +271,7 @@ def add_homology(db: Session) -> None:
     :param db: database session
     """
     orthos = db.query(Ortholog)
+    gene_gn_id_sp_id_map = get_gene_gn_id_sp_id_map(db)
     curr_hom_id = 0
 
     # format of existing_cluster_key items - gn_id:hom_id
@@ -248,7 +317,8 @@ def add_homology(db: Session) -> None:
         # remove duplicate genes
         genes = list(set(genes))
         for g in genes:
-            sp_id = (db.query(Gene).filter(Gene.gn_id == g).first()).sp_id
+            # sp_id = (db.query(Gene).filter(Gene.gn_id == g).first()).sp_id
+            sp_id = gene_gn_id_sp_id_map[g]
             hom = Homology(
                 hom_id=hom_id, hom_source_name=source_key[g], gn_id=g, sp_id=sp_id
             )
