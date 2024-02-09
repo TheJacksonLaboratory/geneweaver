@@ -12,6 +12,7 @@ class Config(BaseSettings):
     DEBUG: bool = False
     TESTING: bool = False
     LOG_LEVEL: str = "WARNING"
+    API_PREFIX: str = "/aon/api"
 
     DB_HOST: str
     DB_USERNAME: str = ""
