@@ -39,7 +39,7 @@ def get_homolog_information(aon_cursor: Cursor, geneweaver_cursor: Cursor):
     return homologs
 
 
-def add_missing_orthologs(homologs, db: Session):
+def add_missing_orthologs(db: Session, homologs):
     # starting hom_id is the first hom_id of the first homolog, keeps track of current cluster
     curr_hom_id = homologs[0][0]
     # will hold all homolog genes that are not from the new species

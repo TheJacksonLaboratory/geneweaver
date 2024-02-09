@@ -11,6 +11,9 @@ packages = [
     { from = "src", include = "geneweaver/aon" }
 ]
 
+[tool.poetry.scripts]
+gwaon = "geneweaver.aon.cli.main:cli"
+
 [tool.poetry.dependencies]
 python = "^3.9"
 flask = "2.2.2"
@@ -26,6 +29,8 @@ werkzeug = "2.2.2"
 psycopg = {extras = ["pool"], version = "^3.1.18"}
 geneweaver-core = "^0.9.0a1"
 geneweaver-db = "0.3.0a4"
+fastapi = {version = "^0.99.1", extras = ["all"]}
+typer = {extras = ["all"], version = "^0.9.0"}
 
 [tool.poetry.group.dev.dependencies]
 geneweaver-testing = "^0.0.3"
