@@ -52,7 +52,10 @@ class Ortholog(BaseAGR):
     ort_num_possible_match_algorithms = Column(Integer)
     ort_source_name = Column(VARCHAR)
     algorithms = relationship(
-        "Algorithm", secondary="ora_ortholog_algorithms", backref="orthologs", cascade="save-update"
+        "Algorithm",
+        secondary="ora_ortholog_algorithms",
+        backref="orthologs",
+        cascade="save-update",
     )
 
 

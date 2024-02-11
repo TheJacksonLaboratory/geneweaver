@@ -1,4 +1,3 @@
-
 import typer
 from geneweaver.aon import __version__
 from geneweaver.aon.cli import load
@@ -6,6 +5,7 @@ from geneweaver.aon.cli import load
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode=True)
 
 cli.add_typer(load.cli, name="load")
+
 
 def version_callback(version: bool) -> None:
     """Print the version of the GeneWeaver CLI client."""

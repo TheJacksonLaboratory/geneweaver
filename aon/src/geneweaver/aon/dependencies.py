@@ -23,10 +23,7 @@ async def lifespan(app: FastAPI) -> None:
     app.gw_engine = create_engine(config.GW_DB.URI)
 
     app.session = sessionmaker(autocommit=False, autoflush=False)
-    app.session.configure(binds={
-        BaseAGR: app.aon_engine,
-        BaseGW: app.gw_engine
-    })
+    app.session.configure(binds={BaseAGR: app.aon_engine, BaseGW: app.gw_engine})
 
     yield
 

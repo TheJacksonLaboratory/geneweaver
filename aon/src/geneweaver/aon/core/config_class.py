@@ -6,6 +6,7 @@ from geneweaver.db.core.settings_class import Settings as DBSettings
 
 class Config(BaseSettings):
     """Root Config and Settings Configuration."""
+
     TITLE: str = "Geneweaver Ortholog Normalizer"
     DESCRIPTION: str = "An application to aid in normalizing homology data."
 

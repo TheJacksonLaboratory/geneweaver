@@ -29,7 +29,7 @@ def create_app(app=None):
 
     app.app_context().push()
 
-    logging.basicConfig(level=app.config['LOG_LEVEL'])
+    logging.basicConfig(level=app.config["LOG_LEVEL"])
 
     api = Api(
         title=app.config["TITLE"],

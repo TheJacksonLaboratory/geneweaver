@@ -73,4 +73,3 @@ def unzip_file(file_path: str, output_location: Optional[str] = None) -> str:
             output_file.write(file.read())
 
     return str(output_file_path)
-
