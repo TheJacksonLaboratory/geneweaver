@@ -3,8 +3,7 @@ from geneweaver.aon.models import Species, Geneweaver_Species, Gene, Homology
 from sqlalchemy.orm import Session
 
 
-def get_species(db: Session,
-                name: Optional[str] = None):
+def get_species(db: Session, name: Optional[str] = None):
     base_query = db.query(Species)
     if name is not None:
         base_query = base_query.filter(Species.sp_name == name)

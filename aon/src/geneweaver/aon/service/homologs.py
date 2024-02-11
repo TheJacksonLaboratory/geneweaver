@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 
 
 def get_homologs(
-        db: Session,
-        homolog_id: Optional[int] = None,
-        source_name: Optional[str] = None,
-        species_id: Optional[int] = None,
-        gene_id: Optional[int] = None,
+    db: Session,
+    homolog_id: Optional[int] = None,
+    source_name: Optional[str] = None,
+    species_id: Optional[int] = None,
+    gene_id: Optional[int] = None,
 ):
     base_query = db.query(Homology)
     if homolog_id is not None:

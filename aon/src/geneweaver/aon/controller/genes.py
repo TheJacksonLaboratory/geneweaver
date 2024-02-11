@@ -7,9 +7,11 @@ router = APIRouter(prefix="/genes", tags=["genes"])
 
 
 @router.get("")
-def get_genes(species_id: Optional[int] = None,
-              prefix: Optional[str] = None,
-              db: deps.Session = Depends(deps.session)):
+def get_genes(
+    species_id: Optional[int] = None,
+    prefix: Optional[str] = None,
+    db: deps.Session = Depends(deps.session),
+):
     """Get all genes."""
     return genes_service.get_genes(db, species_id=species_id, prefix=prefix)
 

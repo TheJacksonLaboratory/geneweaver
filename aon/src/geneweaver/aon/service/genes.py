@@ -3,9 +3,9 @@ from geneweaver.aon.models import Gene
 from sqlalchemy.orm import Session
 
 
-def get_genes(db: Session,
-              species_id: Optional[int] = None,
-              prefix: Optional[str] = None):
+def get_genes(
+    db: Session, species_id: Optional[int] = None, prefix: Optional[str] = None
+):
     base_query = db.query(Gene)
     if species_id is not None:
         base_query = base_query.filter(Gene.sp_id == species_id)

@@ -8,16 +8,14 @@ router = APIRouter(prefix="/homologs", tags=["homologs"])
 
 @router.get("/")
 def get_homologs(
-        source_name: Optional[str] = None,
-        species_id: Optional[int] = None,
-        gene_id: Optional[int] = None,
-        db: deps.Session = Depends(deps.session)):
+    source_name: Optional[str] = None,
+    species_id: Optional[int] = None,
+    gene_id: Optional[int] = None,
+    db: deps.Session = Depends(deps.session),
+):
     """Get homolog by id."""
     homologs = homologs_service.get_homologs(
-        db,
-        source_name=source_name,
-        species_id=species_id,
-        gene_id=gene_id
+        db, source_name=source_name, species_id=species_id, gene_id=gene_id
     )
 
     if not homologs:
@@ -34,11 +32,12 @@ def get_homolog_sources(db: deps.Session = Depends(deps.session)):
 
 @router.get("/{homolog_id}")
 def get_homologs_with_holog_id(
-        homolog_id: int,
-        source_name: Optional[str] = None,
-        species_id: Optional[int] = None,
-        gene_id: Optional[int] = None,
-        db: deps.Session = Depends(deps.session)):
+    homolog_id: int,
+    source_name: Optional[str] = None,
+    species_id: Optional[int] = None,
+    gene_id: Optional[int] = None,
+    db: deps.Session = Depends(deps.session),
+):
     """Get homolog by id."""
 
     homologs = homologs_service.get_homologs(
@@ -46,7 +45,7 @@ def get_homologs_with_holog_id(
         homolog_id=homolog_id,
         source_name=source_name,
         species_id=species_id,
-        gene_id=gene_id
+        gene_id=gene_id,
     )
 
     if not homologs:
