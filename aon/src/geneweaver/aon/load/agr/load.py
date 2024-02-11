@@ -127,10 +127,16 @@ def add_genes(db: Session, ortho_file: str) -> None:
             sp = line.split("\t")
             # The first gene
             # key: reference_id, value: (reference_prefix, species_id)
-            genes[sp[0]] = (sp[0].split(":")[0], species_taxon_map[int(sp[2].split(":")[1])])
+            genes[sp[0]] = (
+                sp[0].split(":")[0],
+                species_taxon_map[int(sp[2].split(":")[1])],
+            )
 
             # The second gene
-            genes[sp[4]] = (sp[4].split(":")[0], species_taxon_map[int(sp[6].split(":")[1])])
+            genes[sp[4]] = (
+                sp[4].split(":")[0],
+                species_taxon_map[int(sp[6].split(":")[1])],
+            )
 
         db.bulk_save_objects(
             [
@@ -207,7 +213,7 @@ def add_ortholog_batch(db: Session, batch):
         )
 
         # add to ora_ortholog_algorithms
-        algorithms = [algorithm_name_map[algo] for algo in spl[8].split('|')]
+        algorithms = [algorithm_name_map[algo] for algo in spl[8].split("|")]
         # algorithms = [get_algorithm_by_name(db, algo) for algo in spl[8].split("|")]
         for algorithm in algorithms:
             ortholog.algorithms.append(algorithm)
