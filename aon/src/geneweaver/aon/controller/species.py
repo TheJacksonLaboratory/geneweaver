@@ -1,9 +1,10 @@
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from geneweaver.aon import dependencies as deps
-from geneweaver.aon.service import species as species_service
 from geneweaver.aon.service import genes as genes_service
 from geneweaver.aon.service import homologs as homologs_service
+from geneweaver.aon.service import species as species_service
 
 router = APIRouter(prefix="/species", tags=["species"])
 
@@ -33,18 +34,26 @@ def get_geneweaver_id(species_id: int, db: deps.Session = Depends(deps.session))
 
 
 @router.get("/{species_id}/genes")
-def get_species_genes(species_id: int, db: deps.Session = Depends(deps.session)):
+def get_species_genes(
+    species_id: int,
+    paging: dict = Depends(deps.paging_parameters),
+    db: deps.Session = Depends(deps.session),
+):
     """Get genes for a species."""
-    genes = genes_service.get_genes(db, species_id=species_id)
+    genes = genes_service.get_genes(db, species_id=species_id, **paging)
     if not genes:
         raise HTTPException(404, detail="Could not find any genes with that species")
     return genes
 
 
 @router.get("/{species_id}/homologs")
-def get_species_homology(species_id: int, db: deps.Session = Depends(deps.session)):
+def get_species_homology(
+    species_id: int,
+    paging: dict = Depends(deps.paging_parameters),
+    db: deps.Session = Depends(deps.session),
+):
     """Get homology for a species."""
-    homologs = homologs_service.get_homologs(db, species_id=species_id)
+    homologs = homologs_service.get_homologs(db, species_id=species_id, **paging)
     if not homologs:
         raise HTTPException(404, detail="Could not find any homologs with that species")
     else:

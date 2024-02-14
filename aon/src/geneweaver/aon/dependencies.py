@@ -1,13 +1,12 @@
 """Dependency injection for the AON FastAPI application."""
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.ext.declarative import declarative_base
 
+from fastapi import FastAPI, Request
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import BaseAGR, BaseGW
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -37,3 +36,22 @@ async def lifespan(app: FastAPI) -> None:
 def session(request: Request) -> sessionmaker:
     """Get a session from the connection pool."""
     return request.app.session()
+
+
+from typing import Annotated, Optional, Union
+
+
+async def paging_parameters(
+    start: Annotated[Optional[int], "The item to start at (the offset)."] = None,
+    limit: Annotated[int, "The number of records per page."] = 100,
+) -> dict[str, Union[int, str]]:
+    """Get the paging parameters.
+
+    :param start: The item to start at (the offset).
+    :param limit: The number of records per page.
+    :return: The paging parameters.
+    """
+    return {
+        "start": start,
+        "limit": limit,
+    }

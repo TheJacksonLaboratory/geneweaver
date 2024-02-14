@@ -1,5 +1,7 @@
 from typing import Optional
+
 from geneweaver.aon.models import Homology
+from geneweaver.aon.service.utils import apply_paging
 from sqlalchemy.orm import Session
 
 
@@ -9,6 +11,8 @@ def get_homologs(
     source_name: Optional[str] = None,
     species_id: Optional[int] = None,
     gene_id: Optional[int] = None,
+    start: Optional[int] = None,
+    limit: Optional[int] = 1000,
 ):
     base_query = db.query(Homology)
     if homolog_id is not None:
@@ -19,6 +23,7 @@ def get_homologs(
         base_query = base_query.filter(Homology.sp_id == species_id)
     if gene_id is not None:
         base_query = base_query.filter(Homology.gn_id == gene_id)
+    base_query = apply_paging(base_query, start, limit)
 
     return base_query.all()
 
