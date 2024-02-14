@@ -1,8 +1,9 @@
 """Download and prepare external source data for Geneweaver AON."""
-import requests
 import gzip
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+import requests
 
 
 def latest_agr_release() -> str:

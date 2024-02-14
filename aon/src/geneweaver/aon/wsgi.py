@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-    wsgi
-    ~~~~
+"""wsgi
+~~~~.
 
-    pfs_api wsgi module
+pfs_api wsgi module
 """
-from werkzeug.serving import run_simple
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
-
 from geneweaver.aon.factory import create_app
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from werkzeug.serving import run_simple
 
 app = create_app()
 application = DispatcherMiddleware(app)

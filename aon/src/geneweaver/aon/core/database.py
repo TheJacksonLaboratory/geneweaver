@@ -1,8 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
 from geneweaver.aon.core.config import config
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 agr_engine = create_engine(config.DB.URI)
 gw_engine = create_engine(config.GW_DB.URI)

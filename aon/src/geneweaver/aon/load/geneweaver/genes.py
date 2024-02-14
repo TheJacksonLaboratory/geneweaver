@@ -1,9 +1,9 @@
-"""Code to add genes from geneweaver gene table to agr gn_gene table"""
+"""Code to add genes from geneweaver gene table to agr gn_gene table."""
+from geneweaver.aon.controller.flask.controller import convert_species_ode_to_agr
 from geneweaver.aon.models import Gene
 from geneweaver.core.enum import GeneIdentifier
-from sqlalchemy.orm import Session
 from psycopg import Cursor
-from geneweaver.aon.controller.controller import convert_species_ode_to_agr
+from sqlalchemy.orm import Session
 
 PREFIX_MAPPING = {
     GeneIdentifier.ENTREZ: "entrez",
@@ -26,8 +26,7 @@ PREFIX_MAPPING = {
 
 
 def convert_gdb_to_prefix(gdb_id):
-    """
-    :param: gdb_id - gdb_id from genedb table in geneweaver database, used as key for
+    """:param: gdb_id - gdb_id from genedb table in geneweaver database, used as key for
             gn_prefix in agr gn_gene table because in agr, each prefix corresponds to
             one genedb
     :return: gn_prefix from gdb_dict corresponding to param gdb_id
@@ -43,12 +42,10 @@ def convert_gdb_to_prefix(gdb_id):
 
 
 def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
+    """:description: adds genes from geneweaver gene table for the three missing species.
+    parses information from this table to create Gene objects to go into gn_gene
+    table in agr.
     """
-    :description: adds genes from geneweaver gene table for the three missing species.
-            parses information from this table to create Gene objects to go into gn_gene
-            table in agr.
-    """
-
     # query for a list of geneweaver genes from Gallus gallus (sp_id=10, gdb_id=20),
     #    Canis familiaris(sp_id=11, gdb_id=2), and Macaca mulatta (sp_id=6, gdb_id=1)
     geneweaver_cursor.execute(

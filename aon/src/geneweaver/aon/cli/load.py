@@ -1,13 +1,13 @@
 """CLI to load the database."""
-import psycopg
-import typer
-from rich.progress import Progress
 from pathlib import Path
 from typing import Optional
-from geneweaver.aon.load import agr
-from geneweaver.aon.load import geneweaver
+
+import psycopg
+import typer
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import SessionLocal
+from geneweaver.aon.load import agr, geneweaver
+from rich.progress import Progress
 
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode="rich")
 
@@ -31,7 +31,6 @@ def get_data() -> Path:
         orthology_file = agr.sources.unzip_file(zipped_file)
         progress.update(download, completed=True, description=download_msg + "Complete")
 
-        # progress.console.print("Data Downloaded.")
 
     orthology_file = Path(orthology_file).resolve()
 

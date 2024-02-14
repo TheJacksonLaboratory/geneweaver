@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
 from typing import Optional
+
+from fastapi import APIRouter, Depends
 from geneweaver.aon import dependencies as deps
 from geneweaver.aon.service import algorithms as algorithms_service
 

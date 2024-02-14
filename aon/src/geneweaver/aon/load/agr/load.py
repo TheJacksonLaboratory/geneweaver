@@ -1,7 +1,8 @@
 """Functions used to load the database."""
-from itertools import islice, chain
+from itertools import chain, islice
+
+from geneweaver.aon.models import Algorithm, Gene, Homology, Ortholog, Species
 from sqlalchemy.orm import Session
-from geneweaver.aon.models import Gene, Species, Ortholog, Algorithm, Homology
 
 
 def read_file_by_line(file) -> str:
@@ -94,9 +95,9 @@ def init_species(db: Session, ortho_file: str) -> None:
     """
     heading_size = 15
     with open(ortho_file, "r") as f:
-        for i in range(heading_size):
-            discard = f.readline()
-        header = f.readline()
+        for _i in range(heading_size):
+            f.readline()
+        f.readline()
 
         species = set()
         for line in read_file_by_line(f):
@@ -117,9 +118,9 @@ def add_genes(db: Session, ortho_file: str) -> None:
     """
     heading_size = 15
     with open(ortho_file, "r") as f:
-        for i in range(heading_size):
-            discard = f.readline()
-        header = f.readline()
+        for _i in range(heading_size):
+            f.readline()
+        f.readline()
 
         genes = {}
         species_taxon_map = get_species_to_taxon_id_map(db)
@@ -157,9 +158,9 @@ def add_algorithms(db: Session, ortho_file: str):
     """
     heading_size = 15
     with open(ortho_file, "r") as f:
-        for i in range(heading_size):
-            discard = f.readline()
-        header = f.readline()
+        for _i in range(heading_size):
+            f.readline()
+        f.readline()
 
         algos = set()
         for line in read_file_by_line(f):
@@ -179,7 +180,6 @@ def add_ortholog_batch(db: Session, batch):
     """
     is_best_map = {"Yes": True, "No": False, "Yes_Adjusted": True}
 
-    i = 0
     orthologs = []
     algorithm_name_map = get_algorithm_name_map(db)
     gn_ref_id_map = get_gene_gn_ref_id_map(db)
@@ -187,8 +187,6 @@ def add_ortholog_batch(db: Session, batch):
     for line in batch:
         spl = line.split("\t")
         # get gene object of from gene and to gene
-        # gene1 = db.query(Gene).filter(Gene.gn_ref_id == spl[0]).first()
-        # gene2 = db.query(Gene).filter(Gene.gn_ref_id == spl[4]).first()
 
         gene1 = gn_ref_id_map[spl[0]]
         gene2 = gn_ref_id_map[spl[4]]
@@ -214,7 +212,6 @@ def add_ortholog_batch(db: Session, batch):
 
         # add to ora_ortholog_algorithms
         algorithms = [algorithm_name_map[algo] for algo in spl[8].split("|")]
-        # algorithms = [get_algorithm_by_name(db, algo) for algo in spl[8].split("|")]
         for algorithm in algorithms:
             ortholog.algorithms.append(algorithm)
 
@@ -235,8 +232,8 @@ def add_orthologs(db: Session, ortho_file, batch_size, batches_to_process=-1) ->
 
     with open(ortho_file, "r") as f:
         for i in range(heading_size):
-            discard = f.readline()
-        header = f.readline()
+            f.readline()
+        f.readline()
 
         i = 1
         for batch in read_n_lines(f, batch_size):
@@ -259,8 +256,8 @@ def get_ortholog_batches(ortho_file, batch_size, batches_to_process=-1):
 
     with open(ortho_file, "r") as f:
         for i in range(heading_size):
-            discard = f.readline()
-        header = f.readline()
+            f.readline()
+        f.readline()
 
         i = 1
         for batch in read_n_lines(f, batch_size):
@@ -323,7 +320,6 @@ def add_homology(db: Session) -> None:
         # remove duplicate genes
         genes = list(set(genes))
         for g in genes:
-            # sp_id = (db.query(Gene).filter(Gene.gn_id == g).first()).sp_id
             sp_id = gene_gn_id_sp_id_map[g]
             hom = Homology(
                 hom_id=hom_id, hom_source_name=source_key[g], gn_id=g, sp_id=sp_id

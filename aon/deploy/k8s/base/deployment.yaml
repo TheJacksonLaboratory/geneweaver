@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-aon-api
+  labels:
+    app: geneweaver-aon-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-aon-api
+  template:
+    metadata:
+      labels:
+        app: geneweaver-aon-api
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      containers:
+        - name: geneweaver-aon-api
+          image: geneweaver-aon-api
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: geneweaver-aon-config
+            - secretRef:
+                name: geneweaver-aon-db
+          env:
+            - name: GW_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_HOST
+            - name: GW_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_USERNAME
+            - name: GW_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_PASSWORD
+            - name: GW_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_NAME
+          ports:
+            - containerPort: 8000
