@@ -1,21 +1,19 @@
-"""
-Database models for our service
-"""
+"""Database models for our service."""
 
+from geneweaver.aon.core.database import BaseAGR, BaseGW
 from sqlalchemy import (
-    Column,
-    String,
-    Integer,
-    Boolean,
-    ForeignKey,
-    VARCHAR,
-    Date,
-    Text,
     BIGINT,
+    VARCHAR,
+    Boolean,
+    Column,
+    Date,
+    ForeignKey,
+    Integer,
     PrimaryKeyConstraint,
+    String,
+    Text,
 )
 from sqlalchemy.orm import relationship
-from geneweaver.aon.core.database import BaseAGR, BaseGW
 
 
 class Gene(BaseAGR):

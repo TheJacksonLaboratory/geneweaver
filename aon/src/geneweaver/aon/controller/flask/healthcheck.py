@@ -1,7 +1,6 @@
-"""
-Endpoints to check on the services health
-"""
+"""Endpoints to check on the services health."""
 from datetime import datetime
+
 from flask_restx import Namespace, Resource
 
 NS = Namespace(
@@ -11,9 +10,7 @@ NS = Namespace(
 
 @NS.route("")
 class Healthcheck(Resource):
-    """
-    Checks whether the server is alive.
-    """
+    """Checks whether the server is alive."""
 
     @NS.doc(security=None)
     def get(self):

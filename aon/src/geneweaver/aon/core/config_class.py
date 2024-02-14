@@ -1,7 +1,8 @@
 """Config class definition."""
 from typing import Any, Dict, Optional
-from pydantic import BaseSettings, validator
+
 from geneweaver.db.core.settings_class import Settings as DBSettings
+from pydantic import BaseSettings, validator
 
 
 class Config(BaseSettings):

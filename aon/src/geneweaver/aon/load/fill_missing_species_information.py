@@ -1,13 +1,14 @@
-from geneweaver.aon.models import Gene, Ortholog, Geneweaver_Gene, Species
-from psycopg_pool import ConnectionPool
-from sqlalchemy.ext.declarative import declarative_base
 import itertools
-from geneweaver.aon.controller.controller import (
-    convert_species_ode_to_agr,
+import time
+
+from geneweaver.aon.controller.flask.controller import (
     convert_ode_ref_to_agr,
+    convert_species_ode_to_agr,
 )
 from geneweaver.aon.core.database import SessionLocal
-import time
+from geneweaver.aon.models import Gene, Geneweaver_Gene, Ortholog, Species
+from psycopg_pool import ConnectionPool
+from sqlalchemy.ext.declarative import declarative_base
 
 start_time = time.time()
 
@@ -20,13 +21,13 @@ db = SessionLocal()
 
 
 class GeneWeaverConnectionPool(ConnectionPool):
-    """Extend ConnectionPool to initialize the search_path"""
+    """Extend ConnectionPool to initialize the search_path."""
 
-    def __init__(self, minconn, maxconn, *args, **kwargs):
+    def __init__(self, minconn, maxconn, *args, **kwargs) -> None:
         ConnectionPool.__init__(self, minconn, maxconn, *args, **kwargs)
 
     def _connect(self, key=None):
-        """Create a new connection and set its search_path"""
+        """Create a new connection and set its search_path."""
         conn = super(GeneWeaverConnectionPool, self)._connect(key)
         conn.set_client_encoding("UTF-8")
         cursor = conn.cursor()
@@ -56,13 +57,12 @@ pool_agr = GeneWeaverConnectionPool(
 
 # creates cursor for both geneweaver and agr databases
 class PooledCursor(object):
-    """
-    This is the cursor for the Geneweaver database
+    """This is the cursor for the Geneweaver database
     A cursor obtained from a connection pool. This is suitable for using in a with ... as ...: construct (the
-    underlying connection will be automatically returned to the connection pool
+    underlying connection will be automatically returned to the connection pool.
     """
 
-    def __init__(self, conn_pool=pool, rollback_on_exception=False):
+    def __init__(self, conn_pool=pool, rollback_on_exception=False) -> None:
         self.conn_pool = conn_pool
         self.rollback_on_exception = rollback_on_exception
         self.connection = None
@@ -80,11 +80,9 @@ class PooledCursor(object):
 
 
 class PooledCursorAGR(object):
-    """
-    This is the cursor for the AGR database
-    """
+    """This is the cursor for the AGR database."""
 
-    def __init__(self, conn_pool=pool_agr, rollback_on_exception=False):
+    def __init__(self, conn_pool=pool_agr, rollback_on_exception=False) -> None:
         self.conn_pool = conn_pool
         self.rollback_on_exception = rollback_on_exception
         self.connection = None
@@ -105,9 +103,7 @@ class PooledCursorAGR(object):
 
 
 def add_missing_species():
-    """
-    :description: adds three missing species to sp_species table
-    """
+    """:description: adds three missing species to sp_species table."""
     species_dict = {
         "Gallus gallus": 9031,
         "Canis familiaris": 9615,
@@ -125,8 +121,7 @@ def add_missing_species():
 
 
 def convert_gdb_to_prefix(gdb_id):
-    """
-    :param: gdb_id - gdb_id from genedb table in geneweaver database, used as key for
+    """:param: gdb_id - gdb_id from genedb table in geneweaver database, used as key for
             gn_prefix in agr gn_gene table because in agr, each prefix corresponds to
             one genedb
     :return: gn_prefix from gdb_dict corresponding to param gdb_id
@@ -156,12 +151,10 @@ def convert_gdb_to_prefix(gdb_id):
 
 
 def add_missing_genes():
+    """:description: adds genes from geneweaver gene table for the three missing species.
+    parses information from this table to create Gene objects to go into gn_gene
+    table in agr.
     """
-    :description: adds genes from geneweaver gene table for the three missing species.
-            parses information from this table to create Gene objects to go into gn_gene
-            table in agr.
-    """
-
     # query for a list of geneweaver genes from Gallus gallus (sp_id=10, gdb_id=20),
     #    Canis familiaris(sp_id=11, gdb_id=2), and Macaca mulatta (sp_id=6, gdb_id=1)
     with PooledCursor() as cursor:

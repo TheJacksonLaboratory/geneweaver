@@ -1,15 +1,13 @@
-"""
-Creates AGR tables algorithm, species, gene, ortholog, and ortholog_algorithms.
-These tables will be filled from the AGR file by running service.py
+"""Creates AGR tables algorithm, species, gene, ortholog, and ortholog_algorithms.
+These tables will be filled from the AGR file by running service.py.
 
 Revision ID: 4297df5638d7
-Revises: 
+Revises:
 Create Date: 2020-12-16 19:27:45.142317
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "4297df5638d7"

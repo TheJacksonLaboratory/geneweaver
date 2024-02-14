@@ -3,8 +3,8 @@
 from fastapi import APIRouter, FastAPI
 from geneweaver.aon import __version__
 from geneweaver.aon import dependencies as deps
+from geneweaver.aon.controller import algorithms, genes, homologs, orthologs, species
 from geneweaver.aon.core.config import config
-from geneweaver.aon.controller import algorithms, species, genes, orthologs, homologs
 
 app = FastAPI(
     title="GeneWeaver AON API",

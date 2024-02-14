@@ -1,19 +1,17 @@
-"""
-Definition of our API interface - Endpoints query the AGR database
-"""
+"""Definition of our API interface - Endpoints query the AGR database."""
 
-from flask_restx import Namespace, Resource, fields, abort, reqparse
+from flask_restx import Namespace, Resource, abort, fields, reqparse
 from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.models import (
     Algorithm,
-    Ortholog,
     Gene,
-    Species,
-    OrthologAlgorithms,
-    Geneweaver_Species,
     Geneweaver_Gene,
     Geneweaver_GeneDB,
+    Geneweaver_Species,
     Homology,
+    Ortholog,
+    OrthologAlgorithms,
+    Species,
 )
 
 NS = Namespace("agr-service", description="Endpoints to query database")
@@ -95,12 +93,11 @@ homology_model = NS.model(
 def convertODEtoAGR(ode_ref, gdb_id):
     # convert the ref_ids into how the agr ref ids are stored, same values but formatted
     #    slightly different in each database
-    """
-    :description: converts into agr gene_id using the ode_ref_id and ode_gene_id
+    """:description: converts into agr gene_id using the ode_ref_id and ode_gene_id
         (both used as primary key in geneweaver.gene table)
     :param ode_ref - ode_ref_id of gene
            ode_gene_id - ode_gene_id of gene
-    :return: agr ref id (gn_ref_id from gn_gene table)
+    :return: agr ref id (gn_ref_id from gn_gene table).
     """
     ref = ode_ref
     gdb_id = int(gdb_id)
@@ -125,10 +122,9 @@ def convertODEtoAGR(ode_ref, gdb_id):
 
 
 def convertAGRtoODE(gn_id):
-    """
-    :description: converts an agr gene_id into the ode gene object
+    """:description: converts an agr gene_id into the ode gene object
     :param gn_id - integer gene id from gn_gene table in agr database
-    :return: ode_gene_id - integer gene id from gene table in geneweaver database
+    :return: ode_gene_id - integer gene id from gene table in geneweaver database.
     """
     agr_gene = db.query(Gene).filter(Gene.gn_id == gn_id).first()
     ref = agr_gene.gn_ref_id
@@ -151,8 +147,7 @@ def convertAGRtoODE(gn_id):
 ########
 @NS.route("/get_algorithm_by_name/<alg_name>")
 class get_algorithm_by_name(Resource):
-    """
-    :param alg_name: string of full species name, case sensitive
+    """:param alg_name: string of full species name, case sensitive
     :return: alg_id and alg_name for selected algorithm
     """
 
@@ -165,9 +160,7 @@ class get_algorithm_by_name(Resource):
 
 @NS.route("/all_algorithms")
 class all_algorithms(Resource):
-    """
-    :return: alg_id and alg_name for each algorithm
-    """
+    """:return: alg_id and alg_name for each algorithm"""
 
     @NS.doc("returns all algorithms")
     @NS.marshal_with(algorithm_model)
@@ -180,9 +173,8 @@ class all_algorithms(Resource):
 ########
 @NS.route("/all_orthologs")
 class all_orthologs(Resource):
-    """
-    :return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised,
-             ort_is_best_adjusted, and ort_num_possible_match_algorithms)
+    """:return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised,
+    ort_is_best_adjusted, and ort_num_possible_match_algorithms)
     """
 
     @NS.doc("returns all orthologs")
@@ -193,8 +185,7 @@ class all_orthologs(Resource):
 
 @NS.route("/get_orthologs_by_from_gene/<ode_ref_id>/<ode_gene_id>")
 class get_orthologs_by_from_gene(Resource):
-    """
-    :param ode_ref_id - ode_ref_id of from gene
+    """:param ode_ref_id - ode_ref_id of from gene
            ode_gene_id - ode_gene_id of from gene
     :return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for any ortholog with specified from_gene
@@ -222,8 +213,7 @@ class get_orthologs_by_from_gene(Resource):
 
 @NS.route("/get_orthologs_by_to_gene/<ode_ref_id>/<ode_gene_id>")
 class get_orthologs_by_to_gene(Resource):
-    """
-    :param ode_ref_id - ode_ref_id of to gene
+    """:param ode_ref_id - ode_ref_id of to gene
            ode_gene_id - ode_gene_id of to gene
     :return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for any ortholog with specified to_gene
@@ -250,8 +240,7 @@ class get_orthologs_by_to_gene(Resource):
 
 @NS.route("/get_ortholog_by_id/<ort_id>")
 class get_ortholog_by_id(Resource):
-    """
-    :param ort_id - ort_id from ort_ortholog table
+    """:param ort_id - ort_id from ort_ortholog table
     :return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for any ortholog with specified ort_id
     """
@@ -269,8 +258,7 @@ class get_ortholog_by_id(Resource):
     "/get_orthologs_by_to_and_from_gene/<from_ode_ref_id>/<from_ode_gene_id>/<to_ode_ref_id>/<to_ode_gene_id>"
 )
 class get_orthologs_by_to_and_from_gene(Resource):
-    """
-    :param from_ode_ref_id - ode_ref_id of from gene
+    """:param from_ode_ref_id - ode_ref_id of from gene
            from_ode_gene_id - ode_gene_id of from gene
            to_ode_ref_id - ode_ref_id of to gene
            to_ode_gene_id - ode_gene_id of to gene
@@ -327,8 +315,7 @@ class get_orthologs_by_to_and_from_gene(Resource):
     "/get_orthologs_by_from_gene_and_best/<from_ode_ref_id>/<from_ode_gene_id>/<best>"
 )
 class get_orthologs_by_from_gene_and_best(Resource):
-    """
-    :param from_ode_ref_id - ode_ref_id of from gene
+    """:param from_ode_ref_id - ode_ref_id of from gene
            from_ode_gene_id - ode_gene_id of from gene
            best - boolean to query the ort_is_best column in ortholog table
     :return: all ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
@@ -374,8 +361,7 @@ class get_orthologs_by_from_gene_and_best(Resource):
     "/get_orthologs_by_from_to_gene_and_best/<from_ode_ref_id>/<from_ode_gene_id>/<to_ode_ref_id>/<to_ode_gene_id>/<best>"
 )
 class get_orthologs_by_from_to_gene_and_best(Resource):
-    """
-    :param from_ode_ref_id - ode_ref_id of from gene
+    """:param from_ode_ref_id - ode_ref_id of from gene
            from_ode_gene_id - ode_gene_id of from gene
            to_ode_ref_id - ode_ref_id of to gene
            to_ode_gene_id - ode_gene_id of to gene
@@ -445,8 +431,7 @@ class get_orthologs_by_from_to_gene_and_best(Resource):
     "/get_orthologs_by_from_to_gene_and_revised/<from_ode_ref_id>/<from_ode_gene_id>/<to_ode_ref_id>/<to_ode_gene_id>/<ort_best_revised>"
 )
 class get_orthologs_by_from_to_gene_and_revised(Resource):
-    """
-    :param from_ode_ref_id - ode_ref_id of from gene
+    """:param from_ode_ref_id - ode_ref_id of from gene
            from_ode_gene_id - ode_gene_id of from gene
            to_ode_ref_id - ode_ref_id of to gene
            to_ode_gene_id - ode_gene_id of to gene
@@ -521,8 +506,7 @@ class get_orthologs_by_from_to_gene_and_revised(Resource):
 
 @NS.route("/get_from_gene_of_ortholog_by_id/<ort_id>")
 class get_from_gene_of_ortholog_by_id(Resource):
-    """
-    :param ort_id: id from ortholog table
+    """:param ort_id: id from ortholog table
     :return: gene info (gn_id, gn_ref_id, gn_prefix, sp_id) of the from gene for that ortholog
     """
 
@@ -538,8 +522,7 @@ class get_from_gene_of_ortholog_by_id(Resource):
 
 @NS.route("/get_to_gene_of_ortholog_by_id/<ort_id>")
 class get_to_gene_of_ortholog_by_id(Resource):
-    """
-    :param ort_id: id from ortholog table
+    """:param ort_id: id from ortholog table
     :return: gene info (gn_id, gn_ref_id, gn_prefix, sp_id) of the to gene for that ortholog
     """
 
@@ -558,9 +541,7 @@ class get_to_gene_of_ortholog_by_id(Resource):
 ########
 @NS.route("/all_genes")
 class all_genes(Resource):
-    """
-    :return: all gene info (id, ref_id, gn_prefix, species)
-    """
+    """:return: all gene info (id, ref_id, gn_prefix, species)"""
 
     @NS.doc("return all genes")
     @NS.marshal_with(gene_model)
@@ -570,8 +551,7 @@ class all_genes(Resource):
 
 @NS.route("/get_genes_by_prefix/<gn_prefix>")
 class get_genes_by_prefix(Resource):
-    """
-    :param: gn_prefix
+    """:param: gn_prefix
     :return: gene info (id, ref_id, gn_prefix, species) for genes with given prefix
     """
 
@@ -587,8 +567,7 @@ class get_genes_by_prefix(Resource):
 
 @NS.route("/get_genes_by_ode_gene_id/<ode_ref_id>/<ode_gene_id>")
 class get_genes_by_ode_gene_id(Resource):
-    """
-    :param ode_ref_id - ode_ref_id of gene
+    """:param ode_ref_id - ode_ref_id of gene
            ode_gene_id - ode_gene_id of gene
     :return: gene info (gn_id, gn_ref_id, gn_prefix, sp_id) for agr gene, endpoint version of
             convertODEtoAGR()
@@ -616,8 +595,7 @@ class get_genes_by_ode_gene_id(Resource):
 
 @NS.route("/get_genes_by_species/<sp_name>")
 class get_genes_by_species(Resource):
-    """
-    :param: sp_name - string for species name, case sensitive
+    """:param: sp_name - string for species name, case sensitive
     :return: info (gn_id, gn_ref_id, gn_prefix, sp_id) for genes of given species
     """
 
@@ -633,8 +611,7 @@ class get_genes_by_species(Resource):
 
 @NS.route("/get_gene_species_name/<ode_ref_id>/<ode_gene_id>")
 class get_gene_species_name(Resource):
-    """
-    :param ode_ref_id - ode_ref_id of gene
+    """:param ode_ref_id - ode_ref_id of gene
            ode_gene_id - ode_gene_id of gene
     :return: species name of gene
     """
@@ -662,9 +639,7 @@ class get_gene_species_name(Resource):
 ########
 @NS.route("/all_species")
 class all_species(Resource):
-    """
-    :return: species info (id, name, sp_taxon_id) for all species
-    """
+    """:return: species info (id, name, sp_taxon_id) for all species"""
 
     @NS.doc("return all species")
     @NS.marshal_with(species_model)
@@ -674,8 +649,7 @@ class all_species(Resource):
 
 @NS.route("/get_species_by_id/<sp_id>")
 class get_species_by_id(Resource):
-    """
-    :param: sp_id
+    """:param: sp_id
     :return: species info (sp_id, sp_name, sp_taxon_id) for species by id
     """
 
@@ -687,8 +661,7 @@ class get_species_by_id(Resource):
 
 @NS.route("/get_sp_id_by_hom_id/<hom_id>")
 class get_sp_id_by_hom_id(Resource):
-    """
-    :param: hom_id
+    """:param: hom_id
     :return: species id
     """
 
@@ -703,8 +676,7 @@ class get_sp_id_by_hom_id(Resource):
 
 @NS.route("/get_species_homologs_list", methods=["GET", "POST"])
 class get_species_homologs_list(Resource):
-    """
-    :param: hom_id - list of hom_ids
+    """:param: hom_id - list of hom_ids
     :return: species id
     """
 
@@ -725,8 +697,7 @@ class get_species_homologs_list(Resource):
 ########
 @NS.route("/get_orthologs_by_num_algorithms/<num>")
 class get_orthologs_by_num_algorithms(Resource):
-    """
-    :param: num - number of algorithms
+    """:param: num - number of algorithms
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for all orthologs with num_algorithms
     """
@@ -750,8 +721,7 @@ class get_orthologs_by_num_algorithms(Resource):
 
 @NS.route("/get_ortholog_by_algorithm/<alg_name>")
 class get_ortholog_by_algorithm(Resource):
-    """
-    :param: alg_name - str algorithm by name
+    """:param: alg_name - str algorithm by name
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for all orthologs with that algorithm
     """
@@ -776,8 +746,7 @@ class get_ortholog_by_algorithm(Resource):
 ########
 @NS.route("/all_homology")
 class all_homology(Resource):
-    """
-    :param: None
+    """:param: None
     :return: All rows in homology table
     """
 
@@ -789,8 +758,7 @@ class all_homology(Resource):
 
 @NS.route("/get_homology_by_id/<hom_id>")
 class get_homology_by_id(Resource):
-    """
-    :param: hom_id - hom_id of set of desired homologs
+    """:param: hom_id - hom_id of set of desired homologs
         Note: hom_id is not the primary key, any set of genes with the same
               hom_id are homologs.
     :return: All homology rows with given hom_id
@@ -808,8 +776,7 @@ class get_homology_by_id(Resource):
 
 @NS.route("/get_homology_by_gene/<gn_id>")
 class get_homology_by_gene(Resource):
-    """
-    :param: gn_id - gene id from gn_gene table in agr database
+    """:param: gn_id - gene id from gn_gene table in agr database
     :return: All rows in homology table that have a matching gn_id to
              the given gn_id
     """
@@ -826,8 +793,7 @@ class get_homology_by_gene(Resource):
 
 @NS.route("/get_homology_by_species/<sp_id>")
 class get_homology_by_species(Resource):
-    """
-    :param: sp_id - species id from sp_species table in agr database
+    """:param: sp_id - species id from sp_species table in agr database
     :return: All rows in homology table that have a matching gn_id to
              the given sp_id
     """
@@ -844,8 +810,7 @@ class get_homology_by_species(Resource):
 
 @NS.route("/get_homology_by_id_and_species/<hom_id>/<sp_id>")
 class get_homology_by_id_and_species(Resource):
-    """
-    :param: hom_id - hom_id of set of desired homologs
+    """:param: hom_id - hom_id of set of desired homologs
             sp_id - species id from sp_species table in agr database
     :return: All rows in homology table that have a matching gn_id to
              the given gn_id and a matching sp_id to the given sp_id
@@ -867,8 +832,7 @@ class get_homology_by_id_and_species(Resource):
 
 @NS.route("/get_homology_by_id_and_source/<hom_id>/<hom_source_name>")
 class get_homology_by_id_and_source(Resource):
-    """
-    :param: hom_id - hom_id of set of desired homologs
+    """:param: hom_id - hom_id of set of desired homologs
             hom_source_name - either 'AGR' or 'Homologene' to denote where the
                 homologous relationship came from
     :return: All homology rows with given hom_id and hom_source_name
@@ -895,8 +859,7 @@ class get_homology_by_id_and_source(Resource):
 
 @NS.route("/get_homology_by_gene_and_source/<gn_id>/<hom_source_name>")
 class get_homology_by_gene_and_source(Resource):
-    """
-    :param: gn_id - gene id from gn_gene table in agr database
+    """:param: gn_id - gene id from gn_gene table in agr database
             hom_source_name - either 'AGR' or 'Homologene' to denote where the
                 homologous relationship came from
     :return: All homology rows with given gn_id and hom_source_name
@@ -926,8 +889,7 @@ class get_homology_by_gene_and_source(Resource):
 ########
 @NS.route("/get_ortholog_by_from_species/<sp_name>")
 class get_ortholog_by_from_species(Resource):
-    """
-    :param: sp_name - str, case sensitive, from gene species
+    """:param: sp_name - str, case sensitive, from gene species
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for all orthologs from given species
     """
@@ -951,8 +913,7 @@ class get_ortholog_by_from_species(Resource):
 
 @NS.route("/get_ortholog_by_to_species/<sp_name>")
 class get_ortholog_by_to_species(Resource):
-    """
-    :param: sp_name - str, case sensitive, to gene species
+    """:param: sp_name - str, case sensitive, to gene species
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for all orthologs to given species
     """
@@ -974,8 +935,7 @@ class get_ortholog_by_to_species(Resource):
 
 @NS.route("/get_ortholog_by_to_and_from_species/<to_sp_name>/<from_sp_name>")
 class get_ortholog_by_to_and_from_species(Resource):
-    """
-    :param: to_sp_name - str, case sensitive, to gene species name
+    """:param: to_sp_name - str, case sensitive, to gene species name
             from_sp_name - str, case sensitive, from gene species name
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
              and ort_num_possible_match_algorithms) for all orthologs to and from the given species
@@ -1014,8 +974,7 @@ class get_ortholog_by_to_and_from_species(Resource):
 
 @NS.route("/get_orthologous_species/<ode_gene_id>/<ode_ref_id>")
 class get_orthologous_species(Resource):
-    """
-    :params: ode_gene_id - ode_gene_id to find orthologous species for
+    """:params: ode_gene_id - ode_gene_id to find orthologous species for
              ode_ref_id - ode_ref_id to find orthologous species for
     :return: list of ode species ids that given gene has orthologus genes to.
     """
@@ -1047,8 +1006,7 @@ class get_orthologous_species(Resource):
     "/get_ortholog_by_to_from_species_and_algorithm/<to_sp_name>/<from_sp_name>/<alg_name>"
 )
 class get_ortholog_by_to_from_species_and_algorithm(Resource):
-    """
-    :param: to_sp_name - str, case sensitive, to gene species name
+    """:param: to_sp_name - str, case sensitive, to gene species name
             from_sp_name - str, case sensitive, from gene species name
             alg_name - str, algoirthm name
     :return: ortholog info ortholog info (ort_id, from_gene, to_gene, ort_is_best, ort_is_best_revised, ort_is_best_adjusted,
@@ -1118,8 +1076,7 @@ class get_ortholog_by_to_from_species_and_algorithm(Resource):
 
 @NS.route("/agr_to_geneweaver_species/<sp_id>")
 class agr_to_geneweaver_species(Resource):
-    """
-    :param: sp_id - agr species id
+    """:param: sp_id - agr species id
     :return: geneweaver species id
     """
 
@@ -1133,8 +1090,7 @@ class agr_to_geneweaver_species(Resource):
 # similar to the convertAGRtoODE function
 @NS.route("/id_convert_agr_to_ode/<gn_id>")
 class id_convert_agr_to_ode(Resource):
-    """
-    :param: gn_id - gene id from gn_gene table in agr database
+    """:param: gn_id - gene id from gn_gene table in agr database
     :return: ode_gene_id of corresponding gene in geneweaver database
     """
 
@@ -1161,8 +1117,7 @@ class id_convert_agr_to_ode(Resource):
 
 @NS.route("/id_convert_ode_to_agr/<ode_gene_id>/<ode_ref_id>")
 class id_convert_ode_to_agr(Resource):
-    """
-    :param: ode_ref_id - ode_ref_id of gene
+    """:param: ode_ref_id - ode_ref_id of gene
             ode_gene_id - ode_gene_id of gene
     :return: agr gene id of corresponding gene
     """
@@ -1186,8 +1141,7 @@ class id_convert_ode_to_agr(Resource):
 
 @NS.route("/get_ode_gene_by_gdb_id/<gdb_id>")
 class get_ode_gene_by_gdb_id(Resource):
-    """
-    :param: gdb_id
+    """:param: gdb_id
     :return: gene info (ode_gene_id, ode_ref_id, gdb_id, sp_id,
              ode_pref, ode_date, old_ode_gene_ids) of genes with
              gdb_id
@@ -1204,8 +1158,7 @@ class get_ode_gene_by_gdb_id(Resource):
 
 @NS.route("/get_ode_gene_by_gene_id/<ode_gene_id>")
 class get_ode_gene_by_gene_id(Resource):
-    """
-    :param: ode_gene_id
+    """:param: ode_gene_id
     :return: gene info (ode_gene_id, ode_ref_id, gdb_id, sp_id,
              ode_pref, ode_date, old_ode_gene_ids) of genes with
              same ode_gene_id as given
@@ -1226,8 +1179,7 @@ class get_ode_gene_by_gene_id(Resource):
 
 @NS.route("/get_ode_gene_by_species/<ode_gene_id>/<sp_name>")
 class get_ode_gene_by_species(Resource):
-    """
-    :param: ode_gene_id
+    """:param: ode_gene_id
             sp_name - case sensitive
     :return: gene info (ode_gene_id, ode_ref_id, gdb_id, sp_id,
              ode_pref, ode_date, old_ode_gene_ids) of genes with
@@ -1351,8 +1303,7 @@ def convert_species_agr_to_ode(agr_sp_id):
 
 @NS.route("/get_ort_id_if_gene_is_ortholog/<ode_gene_id>/<ode_ref_id>")
 class get_ort_id_if_gene_is_ortholog(Resource):
-    """
-    :param ode_ref_id - ode_ref_id of to gene
+    """:param ode_ref_id - ode_ref_id of to gene
            ode_gene_id - ode_gene_id of to gene
     :return: list of ortholog ids that have specified gene as the from_gene
     """
@@ -1374,8 +1325,7 @@ class get_ort_id_if_gene_is_ortholog(Resource):
 
 @NS.route("/get_homology_by_ode_gene_id/<ode_gene_id>")
 class get_homology_by_ode_gene_id(Resource):
-    """
-    :param ode_gene_id - ode_gene_id used to search for homology
+    """:param ode_gene_id - ode_gene_id used to search for homology
     :return: list of hom_ids that contain the gene given as input
     """
 
@@ -1406,15 +1356,14 @@ class get_homology_by_ode_gene_id(Resource):
 
 @NS.route("/get_homologous_ode_gene_ids_for_gene/<ode_ref_id>/<gdb_name>")
 class get_homologous_ode_gene_ids_for_gene(Resource):
-    """
-    :param ode_ref_id - ode_ref_id used to search for homologous genes to this gene
+    """:param ode_ref_id - ode_ref_id used to search for homologous genes to this gene
            gdb_name - name of gdb of the given ode_ref_id
     :return: list of ode_gene_ids that are homologous to the given ode_ref_id
     """
 
     def get(self, ode_ref_id, gdb_name):
         agr_ref_id = convert_ode_ref_to_agr(ode_ref_id)
-        gdb_id = (
+        (
             db.query(Geneweaver_GeneDB.gdb_id)
             .filter(Geneweaver_GeneDB.gdb_name == gdb_name)
             .first()
@@ -1451,8 +1400,7 @@ class get_homologous_ode_gene_ids_for_gene(Resource):
 
 @NS.route("/get_homology_by_ode_gene_ids", methods=["GET", "POST"])
 class get_homology_by_ode_gene_ids(Resource):
-    """
-    :param ode_gene_ids - list of ode_gene_id used to search for homology
+    """:param ode_gene_ids - list of ode_gene_id used to search for homology
     :return: list of hom_ids that contain the gene given as input
     """
 
@@ -1494,8 +1442,7 @@ class get_homology_by_ode_gene_ids(Resource):
 
 @NS.route("/get_ode_genes_from_hom_id/<hom_id>/<target_gdb_id>")
 class get_ode_genes_from_hom_id(Resource):
-    """
-    :param hom_id - hom_id that is searched for genes with the gdb_id
+    """:param hom_id - hom_id that is searched for genes with the gdb_id
            target_gdb_id - gdb_id that is used to filter genes in the hom_id
     :return: list of ode_ref_ids of the genes in the hom_id group that are have the given gdb_id
     """
@@ -1538,8 +1485,7 @@ class get_ode_genes_from_hom_id(Resource):
 
 @NS.route("/get_ortholog_by_from_gene_and_gdb/<from_ode_gene_id>/<gdb_id>")
 class get_ortholog_by_from_gene_and_gdb(Resource):
-    """
-    :param ode_gene_id - ode_gene_id of from gene
+    """:param ode_gene_id - ode_gene_id of from gene
            gdb_id - gdb_id of specified gene, this is the gdb_id we are filtering by
     :return: to gene info (ode_ref_id) for any ortholog that has the given from
              gene. the goal is to find info about the orthologous gene from the given gene.
@@ -1606,8 +1552,7 @@ class get_ortholog_by_from_gene_and_gdb(Resource):
 
 @NS.route("/get_intersect_by_homology", methods=["GET", "POST"])
 class get_intersect_by_homology(Resource):
-    """
-    :param: gs1 - taken from parser, list of gene info in geneset 1
+    """:param: gs1 - taken from parser, list of gene info in geneset 1
             gs2 - taken from parser, list of gene info in geneset 2
     :return: gene info (gi_symbol, ode_gene_id, and ort_id) of
              genes that intersect both genesets using the hom_homology table
@@ -1629,13 +1574,13 @@ class get_intersect_by_homology(Resource):
             ref1 = convert_ode_ref_to_agr(gs1[i])
             gn_id1 = db.query(Gene.gn_id).filter(Gene.gn_ref_id == ref1).first()
             # map the gn_id to the ode_ref_id that has not been converted to agr form
-            if gn_id1 != None:
+            if gn_id1 is not None:
                 gs1_gn_ids[gn_id1[0]] = gs1[i]
 
         for i in range(0, len(gs2)):
             ref2 = convert_ode_ref_to_agr(gs2[i])
             gn_id2 = db.query(Gene.gn_id).filter(Gene.gn_ref_id == ref2).first()
-            if gn_id2 != None:
+            if gn_id2 is not None:
                 gs2_gn_ids[gn_id2[0]] = gs2[i]
 
         # get the list of gn_ids for each geneset
@@ -1665,7 +1610,6 @@ class get_intersect_by_homology(Resource):
 
         result = []
         for h in common_hom_ids:
-            symbol = "symbol"
             hom_id = h
             gn_id = hom_and_gn_id1[h]
             ode_ref_id = gs1_gn_ids[gn_id]
@@ -1691,8 +1635,7 @@ class get_intersect_by_homology(Resource):
 
 @NS.route("/transpose_genes_by_species", methods=["GET", "POST"])
 class transpose_genes_by_species(Resource):
-    """
-    :params: genes - taken through parser, list of ode_ref_ids to be tranposed
+    """:params: genes - taken through parser, list of ode_ref_ids to be tranposed
              species - newSpecies that genes will be transposed to through orthology
     :return: list of ode_ref_ids of transposed genes, genes that are orthologs to the
              original genes but are of the specified newSpecies
@@ -1752,7 +1695,6 @@ class transpose_genes_by_species(Resource):
         for r in homologous_new_species_agr_refs:
             homologous_new_species_gw_refs.append(convert_agr_ref_to_ode(r))
 
-        # return(homologous_new_species_gw_refs)
 
         ode_gene_ids = (
             db.query(Geneweaver_Gene.ode_gene_id)
@@ -1764,7 +1706,7 @@ class transpose_genes_by_species(Resource):
             .filter(
                 Geneweaver_Gene.ode_gene_id.in_(ode_gene_ids),
                 Geneweaver_Gene.gdb_id == 7,
-                Geneweaver_Gene.ode_pref == True,
+                Geneweaver_Gene.ode_pref is True,
             )
             .all()
         )
@@ -1774,8 +1716,7 @@ class transpose_genes_by_species(Resource):
 
 @NS.route("/if_gene_has_homolog/<ode_gene_id>")
 class if_gene_has_homolog(Resource):
-    """
-    :params: ode_gene_id
+    """:params: ode_gene_id
     :return: 1 if the gene has any homologous relationships, 0 if not
     """
 
@@ -1785,16 +1726,14 @@ class if_gene_has_homolog(Resource):
             .filter(Geneweaver_Gene.ode_gene_id == ode_gene_id)
             .all()
         )
-        # gn_ids = []
         result = 0
 
         for r in ref:
             agr_ref = convert_ode_ref_to_agr(r[0])
             gn_id = db.query(Gene.gn_id).filter(Gene.gn_ref_id == agr_ref).first()
-            if gn_id != None:
-                # gn_ids.append(gn_id[0])
+            if gn_id is not None:
                 homs = db.query(Homology).filter(Homology.gn_id == gn_id[0]).first()
-                if homs != None:
+                if homs is not None:
                     result = 1
                     break
 
@@ -1803,8 +1742,7 @@ class if_gene_has_homolog(Resource):
 
 @NS.route("/get_orthologs_by_symbol/<sym>/<orig_species>/<homologous_species>")
 class get_orthologs_by_symbol(Resource):
-    """
-    :params: sym - list of gene symbols, in csv format (ex: Nptx2,Tnfrsf12a,Elk1)
+    """:params: sym - list of gene symbols, in csv format (ex: Nptx2,Tnfrsf12a,Elk1)
              orig_species - species that all the gene symbols come from
              homologous species - species the user wants to map to
     :return: data - dictionary with keys being the original symbols provide in the
@@ -1904,11 +1842,11 @@ class get_orthologs_by_symbol(Resource):
                     .filter(
                         Geneweaver_Gene.ode_gene_id == ortho_id,
                         Geneweaver_Gene.gdb_id == 7,
-                        Geneweaver_Gene.ode_pref == True,
+                        Geneweaver_Gene.ode_pref is True,
                     )
                     .first()
                 )
-                if ortho_sym == None:
+                if ortho_sym is None:
                     continue
                 ortho_syms.append(ortho_sym[0])
                 ortho_data.append([o, ortho_sym[0]])

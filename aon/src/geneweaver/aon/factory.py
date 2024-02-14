@@ -1,28 +1,23 @@
-"""
-Factory for the flask app
-"""
+"""Factory for the flask app."""
 
 import logging
+
 from flask import Flask
 from flask_cors import CORS
 from flask_restx import Api
-from sqlalchemy.orm import scoped_session
-
-# from cli import run_tests
 from geneweaver.aon import __version__
+from geneweaver.aon.controller.flask.controller import NS as AGR
+from geneweaver.aon.controller.flask.healthcheck import NS as HEALTH_CHECK
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import SessionLocal
-from geneweaver.aon.controller.controller import NS as AGR
-from geneweaver.aon.controller.healthcheck import NS as HEALTH_CHECK
+from sqlalchemy.orm import scoped_session
 
 
 def create_app(app=None):
-    """
-    Create an instance of a flask app
+    """Create an instance of a flask app
     :param app: existing app if initialized
     :return:
     """
-
     app = app or Flask(__name__, static_url_path="/static", static_folder="static")
 
     app.config.from_object(config)

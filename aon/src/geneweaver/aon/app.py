@@ -1,6 +1,4 @@
-"""
-An entrypoint to application startup
-"""
+"""An entrypoint to application startup."""
 
 from geneweaver.aon.factory import create_app
 

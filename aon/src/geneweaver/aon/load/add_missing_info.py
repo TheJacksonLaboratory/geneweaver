@@ -1,6 +1,7 @@
-from geneweaver.aon.models import Gene, Ortholog, Species
 from csv import reader
+
 from geneweaver.aon.core.database import SessionLocal
+from geneweaver.aon.models import Gene, Ortholog, Species
 
 db = SessionLocal()
 
@@ -9,9 +10,7 @@ ortholog_file_path = "missing_info/missing_orthologs.csv"
 
 
 def add_missing_species():
-    """
-    :description: adds three missing species to sp_species table
-    """
+    """:description: adds three missing species to sp_species table."""
     species_dict = {
         "Gallus gallus": 9031,
         "Canis familiaris": 9615,
@@ -26,8 +25,7 @@ def add_missing_species():
 
 
 def add_missing_genes(file_path):
-    """
-    :param: file_path - file path to file missing_genes.csv that contains all missing genes
+    """:param: file_path - file path to file missing_genes.csv that contains all missing genes
             to be added to the database
     :description: adds genes of the three missing species to the gn_gene table
     """
@@ -45,8 +43,7 @@ def add_missing_genes(file_path):
 
 
 def add_missing_orthologs(file_path):
-    """
-    :param: file_path - file path to file missing_orthologs.csv that contains all missing
+    """:param: file_path - file path to file missing_orthologs.csv that contains all missing
             orthologs to be added to the database
     :description: adds orthologs of the three missing species to the gn_gene table
     """
