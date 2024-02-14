@@ -1,7 +1,7 @@
 FROM python:3.9
 
 ENV PYTHONUNBUFFERED 1
-ENV POETRY_HOME=/opt/poetry, POETRY_VIRTUALENVS_CREATE=false, POETRY_VERSION=1.3.0
+ENV POETRY_HOME=/opt/poetry POETRY_VIRTUALENVS_CREATE=false POETRY_VERSION=1.5.1
 
 # Install poetry
 RUN python3 -m pip install --upgrade pip && \
@@ -11,7 +11,7 @@ ENV PATH="${POETRY_HOME}/bin:${PATH}"
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock /app/
+COPY pyproject.toml poetry.lock README.md /app/
 
 RUN poetry install --without dev --sync --no-root
 
@@ -19,4 +19,4 @@ COPY /src /app/src
 
 RUN poetry install --only-root
 
-CMD ["poetry", "run", "uvicorn", "geneweaver.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["poetry", "run", "uvicorn", "geneweaver.aon.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
