@@ -1,4 +1,5 @@
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from geneweaver.aon import dependencies as deps
 from geneweaver.aon.service import homologs as homologs_service
@@ -11,11 +12,12 @@ def get_homologs(
     source_name: Optional[str] = None,
     species_id: Optional[int] = None,
     gene_id: Optional[int] = None,
+    paging: dict = Depends(deps.paging_parameters),
     db: deps.Session = Depends(deps.session),
 ):
     """Get homolog by id."""
     homologs = homologs_service.get_homologs(
-        db, source_name=source_name, species_id=species_id, gene_id=gene_id
+        db, source_name=source_name, species_id=species_id, gene_id=gene_id, **paging
     )
 
     if not homologs:
@@ -39,7 +41,6 @@ def get_homologs_with_holog_id(
     db: deps.Session = Depends(deps.session),
 ):
     """Get homolog by id."""
-
     homologs = homologs_service.get_homologs(
         db,
         homolog_id=homolog_id,

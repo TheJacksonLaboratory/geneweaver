@@ -1,10 +1,10 @@
-from sqlalchemy.orm import Session
-
 from geneweaver.aon.models import (
-    Species,
-    Geneweaver_Species,
     Geneweaver_Gene,
+    Geneweaver_Species,
+    Species,
 )
+from geneweaver.core.enum import GeneIdentifier
+from sqlalchemy.orm import Session
 
 
 # converter functions using first char - these functions improve efficiency and
@@ -15,6 +15,7 @@ def ode_ref_to_agr(db: Session, ode_ref):
     #     slightly different for the reference ids, so this fuction adds prefixes to the ids
     #     where necessary for the AGR format.
     ref = ode_ref
+
     gdb_id = (
         db.query(Geneweaver_Gene.gdb_id)
         .filter(Geneweaver_Gene.ode_ref_id == ode_ref)
@@ -23,15 +24,17 @@ def ode_ref_to_agr(db: Session, ode_ref):
     if gdb_id:
         gdb_id = gdb_id[0]
 
-    if gdb_id == 15:
+    gene_id_type = GeneIdentifier(gdb_id)
+
+    if gene_id_type == GeneIdentifier.WORMBASE:
         ref = "WB:" + ode_ref
-    elif gdb_id == 16:
+    elif gene_id_type == GeneIdentifier.SGD:
         ref = "SGD:" + ode_ref
-    elif gdb_id == 14:
+    elif gene_id_type == GeneIdentifier.FLYBASE:
         ref = "FB:" + ode_ref
-    elif gdb_id == 13:
+    elif gene_id_type == GeneIdentifier.ZFIN:
         ref = "ZFIN:" + ode_ref
-    elif gdb_id == 12:
+    elif gene_id_type == GeneIdentifier.RGD:
         ref = ode_ref[:3] + ":" + ode_ref[3:]
 
     return ref

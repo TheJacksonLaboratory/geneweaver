@@ -1,6 +1,8 @@
 from typing import Optional, Type
+
+from geneweaver.aon.models import Algorithm, Gene, Ortholog, OrthologAlgorithms
+from geneweaver.aon.service.utils import apply_paging
 from sqlalchemy.orm import Session, aliased
-from geneweaver.aon.models import Ortholog, Gene, OrthologAlgorithms, Algorithm
 
 
 def get_ortholog_from_gene(db: Session, ortholog_id: int) -> Optional[Type[Gene]]:
@@ -29,50 +31,50 @@ def get_orthologs(
     possible_match_algorithms: Optional[int] = None,
     best: Optional[bool] = None,
     revised: Optional[bool] = None,
+    start: Optional[int] = None,
     limit: Optional[int] = 1000,
 ):
-    base_query = db.query(Ortholog)
+    query = db.query(Ortholog)
 
     if algorithm_id is not None:
-        base_query = (
-            base_query.join(OrthologAlgorithms)
+        query = (
+            query.join(OrthologAlgorithms)
             .join(Algorithm)
             .filter(Algorithm.alg_id == algorithm_id)
         )
 
     if from_species is not None:
         FromGene = aliased(Gene)
-        base_query = base_query.join(
-            FromGene, Ortholog.from_gene == FromGene.gn_id
-        ).filter(FromGene.sp_id == from_species)
+        query = query.join(FromGene, Ortholog.from_gene == FromGene.gn_id).filter(
+            FromGene.sp_id == from_species
+        )
 
     if to_species is not None:
         ToGene = aliased(Gene)
-        base_query = base_query.join(ToGene, Ortholog.to_gene == ToGene.gn_id).filter(
+        query = query.join(ToGene, Ortholog.to_gene == ToGene.gn_id).filter(
             ToGene.sp_id == to_species
         )
 
     if from_gene_id:
-        base_query = base_query.filter(Ortholog.from_gene == from_gene_id)
+        query = query.filter(Ortholog.from_gene == from_gene_id)
 
     if to_gene_id:
-        base_query = base_query.filter(Ortholog.to_gene == to_gene_id)
+        query = query.filter(Ortholog.to_gene == to_gene_id)
 
     if best is not None:
-        base_query = base_query.filter(Ortholog.ort_is_best == best)
+        query = query.filter(Ortholog.ort_is_best == best)
 
     if revised is not None:
-        base_query = base_query.filter(Ortholog.ort_is_best_revised == revised)
+        query = query.filter(Ortholog.ort_is_best_revised == revised)
 
     if possible_match_algorithms is not None:
-        base_query = base_query.filter(
+        query = query.filter(
             Ortholog.ort_num_possible_match_algorithms == possible_match_algorithms
         )
 
-    if limit is not None:
-        base_query = base_query.limit(limit)
+    query = apply_paging(query, start, limit)
 
-    return base_query.all()
+    return query.all()
 
 
 def get_ortholog(db: Session, ortholog_id: int):

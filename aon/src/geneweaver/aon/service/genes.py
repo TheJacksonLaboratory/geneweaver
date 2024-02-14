@@ -1,17 +1,24 @@
 from typing import Optional
+
 from geneweaver.aon.models import Gene
+from geneweaver.aon.service.utils import apply_paging
 from sqlalchemy.orm import Session
 
 
 def get_genes(
-    db: Session, species_id: Optional[int] = None, prefix: Optional[str] = None
+    db: Session,
+    species_id: Optional[int] = None,
+    prefix: Optional[str] = None,
+    start: Optional[int] = None,
+    limit: Optional[int] = 1000,
 ):
-    base_query = db.query(Gene)
+    query = db.query(Gene)
     if species_id is not None:
-        base_query = base_query.filter(Gene.sp_id == species_id)
+        query = query.filter(Gene.sp_id == species_id)
     if prefix is not None:
-        base_query = base_query.filter(Gene.gn_prefix == prefix)
-    return base_query.all()
+        query = query.filter(Gene.gn_prefix == prefix)
+    query = apply_paging(query, start, limit)
+    return query.all()
 
 
 def gene_by_id(gene_id: int, db: Session):

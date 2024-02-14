@@ -1,5 +1,6 @@
 from typing import Optional
-from geneweaver.aon.models import Species, Geneweaver_Species, Gene, Homology
+
+from geneweaver.aon.models import Geneweaver_Species, Species
 from sqlalchemy.orm import Session
 
 
