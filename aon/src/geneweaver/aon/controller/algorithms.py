@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from geneweaver.aon import dependencies as deps
 from geneweaver.aon.service import algorithms as algorithms_service
 
-router = APIRouter(prefix="/algorithms", tags=["algorithms"])
+router = APIRouter(prefix="/algorithms")
 
 
 @router.get("")

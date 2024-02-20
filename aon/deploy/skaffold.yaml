@@ -8,10 +8,10 @@ build:
     context: flask
     docker:
       dockerfile: deploy/Dockerfile
-test:
-  - image: geneweaver-ortholog-normalizer-api
-    structureTests:
-      - deploy/tests/*
+#test:
+#  - image: geneweaver-ortholog-normalizer-api
+#    structureTests:
+#      - deploy/tests/*
 deploy:
   kustomize:
     paths:

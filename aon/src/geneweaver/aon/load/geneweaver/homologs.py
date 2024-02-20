@@ -1,27 +1,36 @@
 """Code for adding homolog/ortholog information from the geneweaver database."""
 import itertools
-
+from typing import Optional
 from geneweaver.aon.controller.flask.controller import convert_ode_ref_to_agr
 from geneweaver.aon.models import Gene, Geneweaver_Gene, Ortholog
-from psycopg import Cursor
+from psycopg import Cursor, sql
 from sqlalchemy.orm import Session
 
 
-def get_homolog_information(aon_cursor: Cursor, geneweaver_cursor: Cursor):
+def get_homolog_information(
+    aon_cursor: Cursor, geneweaver_cursor: Cursor, aon_schema_name: Optional[str] = None
+):
     # get all ode_gene_ids of the genes in the gn_gene table for the 3 missing species
+    aon_schema_name = "public" if aon_schema_name is None else aon_schema_name
     aon_cursor.execute(
-        """
-            select ode_gene_id from geneweaver.gene where ode_ref_id in (
-             select gn_ref_id from public.gn_gene where sp_id in (8,9,10))
-             ;
+        sql.SQL(
             """
+        SELECT gn_ref_id FROM {schema}.gn_gene WHERE sp_id in (8,9,10);
+        """
+        ).format(schema=sql.Identifier(aon_schema_name))
     )
-    output = aon_cursor.fetchall()
+    aon_ref_ids = aon_cursor.fetchall()
 
-    # put output into list format
-    gw_genes = []
-    for g in output:
-        gw_genes.append(str(g[0]))
+    geneweaver_cursor.execute(
+        """
+        SELECT ode_gene_id FROM extsrc.gene WHERE ode_ref_id = ANY(%(ode_ids)s);
+        """,
+        {"ode_ids": [str(i[0]) for i in aon_ref_ids]},
+    )
+
+    ode_gene_ids = geneweaver_cursor.fetchall()
+
+    gw_genes = [str(i[0]) for i in ode_gene_ids]
 
     # get hom_id, ode_gene_id, and sp_id from the geneweaver homology table for any homolog
     #   that is a member of a cluster that contains a gene in agr and of the 3 missing species,
@@ -29,15 +38,47 @@ def get_homolog_information(aon_cursor: Cursor, geneweaver_cursor: Cursor):
     geneweaver_cursor.execute(
         """
                  select hom_id, ode_gene_id, sp_id from extsrc.homology h1 where h1.hom_id in (
-                                 select hom_id from extsrc.homology h2 where ode_gene_id in ({}))
+                                 select hom_id from extsrc.homology h2 where ode_gene_id = ANY(%(ode_ids)s))
                              order by hom_id;
-                 """.format(
-            ",".join([str(i) for i in gw_genes])
-        )
+                 """,
+        {"ode_ids": gw_genes},
     )
     homologs = geneweaver_cursor.fetchall()
 
     return homologs
+
+
+def add_missing_orthologs_2(db: Session, homologs):
+    """A refactor of the add_missing_orthologs function.
+
+    This refactor stores more information in memory so that it doesn't need to make as
+    many database calls, which can be slow when using the cloud-sql-proxy.
+
+    Homologs should be a list of tuples, where each tuple contains the hom_id, ode_gene_id,
+    and sp_id of a gene in the geneweaver database.
+    """
+    geneweaver_genes = {}
+    agr_genes = {}
+
+    gw_gene_query = (
+        db.query(Geneweaver_Gene)
+        .filter(
+            Geneweaver_Gene.ode_gene_id.in_([h[1] for h in homologs]),
+            Geneweaver_Gene.sp_id.in_([6, 10, 11]),
+        )
+        .all()
+    )
+    gw_genes = {g.ode_gene_id: g.sp_id for g in gw_gene_query}
+
+    agr_gene_query = (
+        db.query(Gene)
+        .filter(
+            Gene.gn_ref_id.in_(
+                [convert_ode_ref_to_agr(g.ode_ref_id) for g in gw_gene_query]
+            )
+        )
+        .all()
+    )
 
 
 def add_missing_orthologs(db: Session, homologs):

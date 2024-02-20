@@ -16,6 +16,17 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 
+class Version(BaseAGR):
+    __tablename__ = "schema_version"
+    __table_args__ = {"schema": "versions"}
+
+    id = Column(Integer, primary_key=True)
+    schema_name = Column(String, nullable=False)
+    agr_version = Column(String, nullable=False)
+    date = Column(Date, nullable=False, server_default="now()")
+    load_complete = Column(Boolean, nullable=False, server_default="false")
+
+
 class Gene(BaseAGR):
     __tablename__ = "gn_gene"
 

@@ -1,5 +1,4 @@
-"""Creates AGR tables algorithm, species, gene, ortholog, and ortholog_algorithms.
-These tables will be filled from the AGR file by running service.py.
+"""Creates the shared version.schema_version table.
 
 Revision ID: 4297df5638d7
 Revises:
@@ -16,90 +15,35 @@ branch_labels = None
 depends_on = None
 
 
+def _has_table(table_name):
+    config = op.get_context().config
+    engine = sa.engine_from_config(
+        config.get_section(config.config_ini_section), prefix="sqlalchemy."
+    )
+    inspector = sa.engine.reflection.Inspector.from_engine(engine)
+    tables = inspector.get_table_names(schema="versions")
+    return table_name in tables
+
+
 def upgrade():
-    op.create_table(
-        "alg_algorithm",
-        sa.Column("alg_id", sa.Integer(), nullable=False),
-        sa.Column("alg_name", sa.String()),
-        sa.PrimaryKeyConstraint("alg_id"),
-        sa.UniqueConstraint("alg_name"),
-    )
-    op.create_table(
-        "sp_species",
-        sa.Column("sp_id", sa.Integer(), nullable=False),
-        sa.Column("sp_name", sa.String(), nullable=False),
-        sa.Column("sp_taxon_id", sa.Integer(), nullable=False),
-        sa.PrimaryKeyConstraint("sp_id"),
-    )
-    op.create_table(
-        "gn_gene",
-        sa.Column("gn_id", sa.Integer(), nullable=False),
-        sa.Column("gn_ref_id", sa.String()),
-        sa.Column("gn_prefix", sa.String()),
-        sa.Column("sp_id", sa.Integer()),
-        sa.ForeignKeyConstraint(
-            ["sp_id"],
-            ["sp_species.sp_id"],
-        ),
-        sa.PrimaryKeyConstraint("gn_id"),
-        sa.UniqueConstraint("gn_ref_id"),
-    )
-    op.create_table(
-        "ort_ortholog",
-        sa.Column("ort_id", sa.Integer(), nullable=False),
-        sa.Column("from_gene", sa.Integer()),
-        sa.Column("to_gene", sa.Integer()),
-        sa.Column("ort_is_best", sa.Boolean()),
-        sa.Column("ort_is_best_revised", sa.Boolean()),
-        sa.Column("ort_is_best_is_adjusted", sa.Boolean()),
-        sa.Column("ort_num_possible_match_algorithms", sa.Integer()),
-        sa.Column("ort_source_name", sa.VARCHAR()),
-        sa.ForeignKeyConstraint(
-            ["from_gene"],
-            ["gn_gene.gn_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["to_gene"],
-            ["gn_gene.gn_id"],
-        ),
-        sa.PrimaryKeyConstraint("ort_id"),
-    )
-    op.create_table(
-        "ora_ortholog_algorithms",
-        sa.Column("ora_id", sa.Integer(), primary_key=True),
-        sa.Column("alg_id", sa.Integer()),
-        sa.Column("ort_id", sa.Integer()),
-        sa.ForeignKeyConstraint(
-            ["alg_id"],
-            ["alg_algorithm.alg_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["ort_id"],
-            ["ort_ortholog.ort_id"],
-        ),
-    )
-    op.create_table(
-        "hom_homology",
-        sa.Column("hom_id", sa.Integer()),
-        sa.Column("gn_id", sa.Integer()),
-        sa.Column("sp_id", sa.Integer()),
-        sa.Column("hom_source_name", sa.VARCHAR()),
-        sa.ForeignKeyConstraint(
-            ["gn_id"],
-            ["gn_gene.gn_id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["sp_id"],
-            ["sp_species.sp_id"],
-        ),
-        sa.UniqueConstraint("hom_id", "gn_id", name="unique_homolog"),
-    )
+    if not _has_table("schema_version"):
+        op.create_table(
+            "schema_version",
+            sa.Column("id", sa.Integer, primary_key=True),
+            sa.Column("schema_name", sa.String, nullable=False),
+            sa.Column("agr_version", sa.String, nullable=False),
+            sa.Column(
+                "date", sa.DateTime, nullable=False, server_default=sa.func.now()
+            ),
+            sa.Column(
+                "load_complete",
+                sa.Boolean,
+                nullable=False,
+                server_default=sa.sql.false(),
+            ),
+            schema="versions",
+        )
 
 
 def downgrade():
-    op.drop_table("ora_ortholog_algorithms")
-    op.drop_table("ort_ortholog")
-    op.drop_table("gn_gene")
-    op.drop_table("sp_species")
-    op.drop_table("alg_algorithm")
-    op.drop_table("hom_homology")
+    op.drop_table("schema_version", schema="versions")

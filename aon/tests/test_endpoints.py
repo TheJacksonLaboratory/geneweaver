@@ -15,12 +15,20 @@ import unittest
 import xmlrunner
 
 import sys, os
-
-sys.path.append(os.path.abspath(os.path.join("../agr-normalizer", "src")))
+from unittest import mock
 
 from geneweaver.aon.wsgi import application
 
 
+@mock.patch.dict(
+    os.environ,
+    {
+        "DB_HOST": "localhost",
+        "DB_NAME": "agr",
+        "GW_DB_HOST": "localhost",
+        "GW_DB_NAME": "geneweaver",
+    },
+)
 class testEndpoints(unittest.TestCase):
     def setUp(self):
         # initialize logic for test method, is run before each test

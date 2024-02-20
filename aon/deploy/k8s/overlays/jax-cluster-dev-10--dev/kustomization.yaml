@@ -10,6 +10,6 @@ bases:
 resources:
   - ingress.yaml
 
-#patchesStrategicMerge:
-#  - configmap.yaml
+patchesStrategicMerge:
+  - configmap.yaml
 #  - ingress.yaml

@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - configmap.yaml
   - deployment.yaml
+  - temporal_worker.yaml
   - service.yaml
   # TODO: Uncomment the following line to enable ingress
   # - ingress.yaml

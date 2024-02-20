@@ -1,8 +1,23 @@
 """Functions used to load the database."""
 from itertools import chain, islice
 
+from geneweaver.core import enum
 from geneweaver.aon.models import Algorithm, Gene, Homology, Ortholog, Species
+from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
+
+TAXON_ID_MAP = {
+    enum.Species.RATTUS_NORVEGICUS: 10116,
+    enum.Species.DANIO_RERIO: 7955,
+    enum.Species.GALLUS_GALLUS: 9031,
+    enum.Species.MUS_MUSCULUS: 10090,
+    enum.Species.DROSOPHILA_MELANOGASTER: 7227,
+    enum.Species.CANIS_FAMILIARIS: 9615,
+    enum.Species.HOMO_SAPIENS: 9606,
+    enum.Species.CAENORHABDITIS_ELEGANS: 6239,
+    enum.Species.SACCHAROMYCES_CEREVISIAE: 559292,
+    enum.Species.MACACA_MULATTA: 9544,
+}
 
 
 def read_file_by_line(file) -> str:
@@ -87,26 +102,56 @@ def get_gene_gn_id_sp_id_map(db: Session) -> dict:
     return {g.gn_id: g.sp_id for g in genes}
 
 
-def init_species(db: Session, ortho_file: str) -> None:
+def init_species(db: Session, ortho_file: str, schema_name: str) -> None:
     """Initialize the species table.
 
     :param db: database session
     :param ortho_file: file to read
     """
+    # Add geneweaver species
+    for species in enum.Species:
+        if species != enum.Species.ALL:
+            sp = Species(
+                sp_id=int(species),
+                sp_name=str(species).title(),
+                sp_taxon_id=TAXON_ID_MAP[species],
+            )
+            db.add(sp)
+
+    max_id = max([int(species) for species in enum.Species])
+    db.execute(
+        text(
+            f"ALTER SEQUENCE {schema_name}.sp_species_sp_id_seq RESTART WITH {max_id + 1}"
+        )
+    )
+    db.commit()
+
     heading_size = 15
     with open(ortho_file, "r") as f:
         for _i in range(heading_size):
             f.readline()
         f.readline()
 
-        species = set()
+        non_gw_species = set()
         for line in read_file_by_line(f):
             data = line.split("\t")
-            name = data[3]
+            name = data[3].title()
             taxon_id = ((data[2]).split(":"))[1]
-            species.add((int(taxon_id), name))
 
-        db.bulk_save_objects([Species(sp_name=s[1], sp_taxon_id=s[0]) for s in species])
+            try:
+                _ = enum.Species(name)
+            except ValueError:
+                try:
+                    _ = enum.Species(name.capitalize())
+                except ValueError:
+                    non_gw_species.add((name, int(taxon_id)))
+
+        db.bulk_save_objects(
+            [
+                Species(sp_name=name, sp_taxon_id=taxon_id)
+                for name, taxon_id in non_gw_species
+            ]
+        )
         db.commit()
 
 
