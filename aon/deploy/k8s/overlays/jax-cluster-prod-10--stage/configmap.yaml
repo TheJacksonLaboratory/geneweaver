@@ -4,3 +4,4 @@ metadata:
   name: geneweaver-aon-config
 data:
   AUTH_CLIENT_ID: "oVm9omUtLBpVyL7YfJA8gp3hHaHwyVt8"
+  TEMPORAL_NAMESPACE: "dev"

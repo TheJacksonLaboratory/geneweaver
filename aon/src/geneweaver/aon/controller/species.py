@@ -21,7 +21,7 @@ def get_species(species_id: int, db: deps.Session = Depends(deps.session)):
     return species_service.species_by_id(db, species_id)
 
 
-@router.get("/taxon_id/{taxon_id}")
+@router.get("/by-taxon-id/{taxon_id}")
 def get_species_by_taxon_id(taxon_id: int, db: deps.Session = Depends(deps.session)):
     """Get species by taxon id."""
     return species_service.species_by_taxon_id(db, taxon_id)

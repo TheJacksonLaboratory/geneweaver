@@ -59,7 +59,7 @@ def get_orthologs(
         query = query.filter(Ortholog.from_gene == from_gene_id)
 
     if to_gene_id:
-        query = query.filter(Ortholog.to_gene == to_gene_id)
+        query = query.filter(Ortholog.to_gene.id == to_gene_id)
 
     if best is not None:
         query = query.filter(Ortholog.ort_is_best == best)

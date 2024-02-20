@@ -41,6 +41,16 @@ def convert_gdb_to_prefix(gdb_id):
     return PREFIX_MAPPING[gw_identifier]
 
 
+def get_species_to_taxon_id_map(db: Session) -> dict:
+    """Get the species to taxon id map.
+
+    :param db: database session
+    :return: species to taxon id map
+    """
+    species = db.query(Species).all()
+    return {s.name: s.sp_id for s in species}
+
+
 def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
     """:description: adds genes from geneweaver gene table for the three missing species.
     parses information from this table to create Gene objects to go into gn_gene
@@ -48,6 +58,7 @@ def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
     """
     # query for a list of geneweaver genes from Gallus gallus (sp_id=10, gdb_id=20),
     #    Canis familiaris(sp_id=11, gdb_id=2), and Macaca mulatta (sp_id=6, gdb_id=1)
+    print("querying")
     geneweaver_cursor.execute(
         """
     SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene WHERE sp_id IN (6,10,11)
@@ -55,22 +66,53 @@ def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
     """
     )
     gw_genes = geneweaver_cursor.fetchall()
-
-    i = 0
+    print("converting")
     genes = []
     for g in gw_genes:
         gn_ref_id = g[0]
         gn_prefix = convert_gdb_to_prefix(g[1])
-        sp_id = convert_species_ode_to_agr(int(g[2]))
+        # sp_id = convert_species_ode_to_agr(int(g[2]))
+        sp_id = int(g[2])
 
         gene = Gene(gn_ref_id=gn_ref_id, gn_prefix=gn_prefix, sp_id=sp_id)
         genes.append(gene)
 
-        # adds genes to database 1000 at a time
-        if i % 1000 == 0 and i != 0:
-            db.bulk_save_objects(genes)
-            db.commit()
-            genes = []
-            i = 0
-        else:
-            i += 1
+    print("adding")
+    db.add_all(genes)
+    print("committing")
+    db.commit()
+
+    # results_returned = True
+    # limit = 10000
+    # offset = 9600
+    # while results_returned:
+    #     print(f"Complete: {offset}")
+    #     geneweaver_cursor.execute(
+    #         """
+    #     SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene WHERE sp_id IN (6,10,11)
+    #     AND gdb_id in (1,2,20) LIMIT %(limit)s OFFSET %(offset)s;
+    #     """, {"limit": limit, "offset": offset}
+    #     )
+    #     gw_genes = geneweaver_cursor.fetchall()
+    #     offset = offset + limit
+    #     print(f"Found {offset}")
+    #
+    #     i = 0
+    #     genes = []
+    #     for g in gw_genes:
+    #         gn_ref_id = g[0]
+    #         gn_prefix = convert_gdb_to_prefix(g[1])
+    #         # sp_id = convert_species_ode_to_agr(int(g[2]))
+    #         sp_id = int(g[2])
+    #
+    #         gene = Gene(gn_ref_id=gn_ref_id, gn_prefix=gn_prefix, sp_id=sp_id)
+    #         genes.append(gene)
+    #
+    #     print("Adding genes")
+    #     db.add_all(genes)
+    #     db.commit()
+    #
+    #     if len(genes) < 1000:
+    #         results_returned = False
+    #         print("done")
+    #         break

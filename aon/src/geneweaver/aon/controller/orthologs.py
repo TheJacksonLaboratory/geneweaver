@@ -13,7 +13,7 @@ def get_orthologs(
     to_species: Optional[int] = None,
     from_gene_id: Optional[int] = None,
     to_gene_id: Optional[int] = None,
-    algorithm_id: Optional[int] = None,
+    algorithm_id: Optional[int] = deps.DEFAULT_ALGORITHM_ID,
     best: Optional[bool] = None,
     revised: Optional[bool] = None,
     paging_params: dict = Depends(deps.paging_parameters),

@@ -1,14 +1,25 @@
 """Dependency injection for the AON FastAPI application."""
 import logging
+from typing import Annotated, Optional, Union
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import BaseAGR, BaseGW
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker, Session
+from geneweaver.aon.models import Version
+from geneweaver.aon.core.schema_version import (
+    get_latest_schema_version,
+    get_schema_versions,
+    get_schema_version,
+    set_up_sessionmanager,
+    set_up_sessionmanager_by_schema,
+)
 
 logger = logging.getLogger("uvicorn.error")
+
+DEFAULT_ALGORITHM_ID = config.DEFAULT_ALGORITHM_ID
 
 
 @asynccontextmanager
@@ -17,28 +28,63 @@ async def lifespan(app: FastAPI) -> None:
 
     :param app: The FastAPI application (dependency injection).
     """
-    logger.info("Setting up DB connection pool.")
-    app.aon_engine = create_engine(config.DB.URI)
-    app.gw_engine = create_engine(config.GW_DB.URI)
+    logger.info("Setting up DB connection pools.")
+    schema_versions = get_schema_versions()
+    app.session_managers, app.engines = set_up_sessionmanager_by_schema(schema_versions)
 
-    app.session = sessionmaker(autocommit=False, autoflush=False)
-    app.session.configure(binds={BaseAGR: app.aon_engine, BaseGW: app.gw_engine})
+    if config.DEFAULT_SCHEMA is None:
+        default_schema_version = get_latest_schema_version()
+        default_version_id = (
+            None if default_schema_version is None else default_schema_version.id
+        )
+        logger.info(
+            f"Using latest schema version as default: {default_schema_version}."
+        )
+    else:
+        default_version_id = next(
+            (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA), None
+        )
+
+    app.default_schema_version_id = default_version_id
+    app.session = app.session_managers[default_version_id]
 
     yield
 
-    logger.info("Closing DB connection pool.")
+    logger.info("Closing DB connection pools.")
+    for session in app.session_managers.values():
+        session.close_all()
+    for engine, gw_engine in app.engines.values():
+        engine.dispose()
+        gw_engine.dispose()
 
-    app.session.close_all()
-    app.aon_engine.dispose()
-    app.gw_engine.dispose()
+
+def version_id(version_id: int, request: Request) -> None:
+    logger.info(f"Setting schema version to {version_id}.")
+    request.state.schema_version_id = version_id
 
 
 def session(request: Request) -> sessionmaker:
     """Get a session from the connection pool."""
-    return request.app.session()
+    try:
+        schema_version = request.state.schema_version_id
+        try:
+            session = request.app.session_managers[schema_version]()
+        except KeyError:
+            version = get_schema_version(schema_version)
+            if version is not None and version.id not in request.app.session_managers:
+                (
+                    request.app.session_managers[version.id],
+                    request.app.engines[version.id],
+                ) = set_up_sessionmanager(version)
+                session = request.app.session_managers[version.id]()
+            else:
+                raise HTTPException(status_code=404, detail="Schema version not found.")
+    except AttributeError:
+        session = request.app.session()
 
+    yield session
 
-from typing import Annotated, Optional, Union
+    session.close()
 
 
 async def paging_parameters(

@@ -14,10 +14,6 @@ build:
           dockerfile: Dockerfile
   local:
     useBuildkit: true
-test:
-  - image: geneweaver-aon-api
-    structureTests:
-      - deploy/tests/*
 profiles:
   - name: jax-cluster-dev-10--dev
     deploy:

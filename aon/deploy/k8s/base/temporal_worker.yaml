@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-aon-worker
+  labels:
+    app: geneweaver-aon-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-aon-worker
+  template:
+    metadata:
+      labels:
+        app: geneweaver-aon-worker
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      containers:
+        - name: geneweaver-aon-api
+          image: geneweaver-aon-api
+          imagePullPolicy: Always
+          command: ["/bin/bash", "-c", "--" ]
+          args: ["poetry run gwaon temporal start-worker"]
+          envFrom:
+            - configMapRef:
+                name: geneweaver-aon-config
+            - secretRef:
+                name: geneweaver-aon-db
+          env:
+            - name: GW_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_HOST
+            - name: GW_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_USERNAME
+            - name: GW_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_PASSWORD
+            - name: GW_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: geneweaver-db
+                  key: DB_NAME
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi

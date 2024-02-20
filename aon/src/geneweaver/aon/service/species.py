@@ -8,10 +8,12 @@ def get_species(db: Session, name: Optional[str] = None):
     base_query = db.query(Species)
     if name is not None:
         base_query = base_query.filter(Species.sp_name == name)
+    print(str(base_query))
     return base_query.all()
 
 
 def species_by_id(db: Session, species_id: int):
+    print(str(db.query(Species)))
     return db.query(Species).get(species_id)
 
 

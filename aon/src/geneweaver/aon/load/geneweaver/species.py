@@ -1,4 +1,5 @@
 """Code for adding missing species information."""
+from geneweaver.core import enum
 from geneweaver.aon.models import Species
 from sqlalchemy.orm import Session
 

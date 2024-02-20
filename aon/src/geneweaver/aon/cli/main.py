@@ -1,10 +1,12 @@
 import typer
 from geneweaver.aon import __version__
-from geneweaver.aon.cli import load
+from geneweaver.aon.cli import load, temporal, setup
 
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode=True)
 
 cli.add_typer(load.cli, name="load")
+cli.add_typer(temporal.cli, name="temporal")
+cli.add_typer(setup.cli, name="setup")
 
 
 def version_callback(version: bool) -> None:

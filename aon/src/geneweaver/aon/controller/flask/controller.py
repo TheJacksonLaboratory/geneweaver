@@ -1695,7 +1695,6 @@ class transpose_genes_by_species(Resource):
         for r in homologous_new_species_agr_refs:
             homologous_new_species_gw_refs.append(convert_agr_ref_to_ode(r))
 
-
         ode_gene_ids = (
             db.query(Geneweaver_Gene.ode_gene_id)
             .filter(Geneweaver_Gene.ode_ref_id.in_(homologous_new_species_gw_refs))
