@@ -15,17 +15,17 @@ spec:
         app: geneweaver-aon-api
     spec:
       serviceAccountName: workload-identity-geneweaver
-      initContainers:
-        - name: geneweaver-aon-api-init
-          image: geneweaver-aon-api
-          imagePullPolicy: Always
-          command: ["/bin/bash", "-c", "--" ]
-          args: ["poetry run gwaon setup version-table && poetry run gwaon temporal schedule-load --hour-frequency=1 && poetry run gwaon temporal start-load"]
-          envFrom:
-            - configMapRef:
-                name: geneweaver-aon-config
-            - secretRef:
-                name: geneweaver-aon-db
+#      initContainers:
+#        - name: geneweaver-aon-api-init
+#          image: geneweaver-aon-api
+#          imagePullPolicy: Always
+#          command: ["/bin/bash", "-c", "--" ]
+#          args: ["poetry run gwaon setup version-table && poetry run gwaon temporal start-load"]
+#          envFrom:
+#            - configMapRef:
+#                name: geneweaver-aon-config
+#            - secretRef:
+#                name: geneweaver-aon-db
       containers:
         - name: geneweaver-aon-api
           image: geneweaver-aon-api

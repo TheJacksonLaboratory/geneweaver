@@ -18,7 +18,8 @@ from geneweaver.aon.core.config import config
 
 
 async def main():
-    client = await Client.connect(config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE)
+    client = await Client.connect(config.TEMPORAL_URI,
+                                  namespace=config.TEMPORAL_NAMESPACE)
 
     worker = Worker(
         client,
@@ -26,12 +27,12 @@ async def main():
         workflows=[GeneWeaverAonDataLoad],
         activities=[
             get_data_activity,
+            release_exists_activity,
             create_schema_activity,
             load_agr_activity,
             load_gw_activity,
             load_homology_activity,
             mark_load_complete_activity,
-            release_exists_activity
         ],
     )
 

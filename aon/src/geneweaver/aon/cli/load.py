@@ -174,11 +174,8 @@ def complete(
 
 
 @cli.command()
-def gw(schema_id: Optional[int] = None) -> bool:
+def gw(schema_id: int) -> bool:
     """Load data from Geneweaver into the AON database."""
-    if not schema_id:
-        schema_name, schema_id = create_schema(release)
-
     version = get_schema_version(schema_id)
     schema_name = version.schema_name
     session, _ = set_up_sessionmanager(version)
