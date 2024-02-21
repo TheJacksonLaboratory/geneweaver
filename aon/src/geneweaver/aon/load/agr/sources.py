@@ -1,4 +1,5 @@
 """Download and prepare external source data for Geneweaver AON."""
+
 import gzip
 from pathlib import Path
 from typing import Optional

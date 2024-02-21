@@ -1,4 +1,5 @@
 """Endpoints to check on the services health."""
+
 from datetime import datetime
 
 from flask_restx import Namespace, Resource

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from geneweaver.aon import dependencies as deps
@@ -11,7 +10,7 @@ router = APIRouter(prefix="/versions", tags=["versions"])
 def get_versions(
     db: deps.Session = Depends(deps.session),
 ):
-    return db.query(Version).all()
+    return db.query(Version).filter(Version.load_complete == True).all()
 
 
 @router.get("/default")

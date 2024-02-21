@@ -1,6 +1,8 @@
 """Code for adding homolog/ortholog information from the geneweaver database."""
+
 import itertools
 from typing import Optional
+
 from geneweaver.aon.controller.flask.controller import convert_ode_ref_to_agr
 from geneweaver.aon.models import Gene, Geneweaver_Gene, Ortholog
 from psycopg import Cursor, sql

@@ -1,6 +1,8 @@
 """Config class definition."""
-from typing import Any, Dict, Optional
+
 import logging
+from typing import Any, Dict, Optional
+
 from geneweaver.db.core.settings_class import Settings as DBSettings
 from pydantic import BaseSettings, validator
 
@@ -65,7 +67,6 @@ class Config(BaseSettings):
         cls, v: Optional[DBSettings], values: Dict[str, Any]  # noqa: N805
     ) -> Optional[DBSettings]:
         """Build the database settings."""
-
         if isinstance(v, DBSettings):
             return v
         elif values.get("GW_DB_HOST") is None or values.get("GW_DB_NAME") is None:

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from geneweaver.aon import dependencies as deps
 from geneweaver.aon.enum import ReferenceGeneIDType
 from geneweaver.aon.service import convert as convert_service

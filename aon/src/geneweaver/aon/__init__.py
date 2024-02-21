@@ -1,4 +1,5 @@
 """The Geneweaver AON (Ortholog/Homolog Normalizer) Package."""
+
 try:
     from importlib import metadata
 except ImportError:

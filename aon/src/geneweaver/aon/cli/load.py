@@ -1,20 +1,21 @@
 """CLI to load the database."""
+
+from argparse import Namespace
+from datetime import datetime
+from gzip import BadGzipFile
 from pathlib import Path
 from typing import Optional, Tuple
-from argparse import Namespace
+
 import psycopg
 import typer
-from pathlib import Path
-from datetime import datetime
-from alembic.config import Config
 from alembic import command
-from gzip import BadGzipFile
+from alembic.config import Config
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.core.schema_version import (
     get_schema_version,
-    set_up_sessionmanager,
     mark_schema_version_load_complete,
+    set_up_sessionmanager,
 )
 from geneweaver.aon.load import agr, geneweaver
 from geneweaver.aon.models import Version
@@ -181,7 +182,7 @@ def gw(schema_id: int) -> bool:
     session, _ = set_up_sessionmanager(version)
 
     gw_load_msg = "Loading Geneweaver data: "
-    with Progress(transient=True) as progress:
+    with Progress() as progress:
         gw_load = progress.add_task(gw_load_msg + "Connecting", total=None)
 
         db = session()
@@ -223,11 +224,13 @@ def homology(schema_id: int) -> bool:
     version = get_schema_version(schema_id)
     session, _ = set_up_sessionmanager(version)
 
-    with Progress(transient=True) as progress:
+    with Progress() as progress:
         db_load_msg = "Loading data into the database: "
-        db_load = progress.add_task(db_load_msg + "Adding Homology", total=None)
+        db_load = progress.add_task(db_load_msg + "Connecting...", total=None)
 
         db = session()
+
+        progress.update(db_load, completed=True, description=db_load_msg + "Loading Homology")
 
         agr.load.add_homology(db)
 

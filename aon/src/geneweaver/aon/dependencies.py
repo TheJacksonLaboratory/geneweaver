@@ -1,21 +1,19 @@
 """Dependency injection for the AON FastAPI application."""
-import logging
-from typing import Annotated, Optional, Union
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, HTTPException
+import logging
+from contextlib import asynccontextmanager
+from typing import Annotated, Optional, Union
+
+from fastapi import FastAPI, HTTPException, Request
 from geneweaver.aon.core.config import config
-from geneweaver.aon.core.database import BaseAGR, BaseGW
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
-from geneweaver.aon.models import Version
 from geneweaver.aon.core.schema_version import (
     get_latest_schema_version,
-    get_schema_versions,
     get_schema_version,
+    get_schema_versions,
     set_up_sessionmanager,
     set_up_sessionmanager_by_schema,
 )
+from sqlalchemy.orm import sessionmaker, Session
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -42,7 +40,8 @@ async def lifespan(app: FastAPI) -> None:
         )
     else:
         default_version_id = next(
-            (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA), None
+            (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA),
+            None,
         )
 
     app.default_schema_version_id = default_version_id

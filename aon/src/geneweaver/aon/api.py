@@ -1,6 +1,6 @@
 """"""
 
-from fastapi import APIRouter, FastAPI, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from geneweaver.aon import __version__
 from geneweaver.aon import dependencies as deps
 from geneweaver.aon.controller import (

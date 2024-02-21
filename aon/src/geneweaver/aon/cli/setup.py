@@ -1,10 +1,11 @@
 """CLI to load the database."""
-import typer
-from pathlib import Path
-from alembic.config import Config
-from alembic import command
-from geneweaver.aon.core.config import config
 
+from pathlib import Path
+
+import typer
+from alembic import command
+from alembic.config import Config
+from geneweaver.aon.core.config import config
 from rich.progress import Progress
 
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode="rich")

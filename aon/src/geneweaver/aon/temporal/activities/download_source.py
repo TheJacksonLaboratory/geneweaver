@@ -1,14 +1,15 @@
-from temporalio import activity
 from typing import Optional, Tuple
+
 from geneweaver.aon.cli.load import (
-    get_data,
     agr_release_exists,
     create_schema,
-    load_agr,
+    get_data,
     gw,
     homology,
+    load_agr,
     mark_schema_version_load_complete,
 )
+from temporalio import activity
 
 
 @activity.defn

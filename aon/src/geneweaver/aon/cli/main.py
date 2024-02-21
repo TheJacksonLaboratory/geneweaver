@@ -1,6 +1,6 @@
 import typer
 from geneweaver.aon import __version__
-from geneweaver.aon.cli import load, temporal, setup
+from geneweaver.aon.cli import load, setup, temporal
 
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode=True)
 

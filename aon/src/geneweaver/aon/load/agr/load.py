@@ -1,10 +1,11 @@
 """Functions used to load the database."""
+
 from itertools import chain, islice
 
-from geneweaver.core import enum
 from geneweaver.aon.models import Algorithm, Gene, Homology, Ortholog, Species
-from sqlalchemy.sql import text
+from geneweaver.core import enum
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 
 TAXON_ID_MAP = {
     enum.Species.RATTUS_NORVEGICUS: 10116,

@@ -1,14 +1,13 @@
 """Utilities for getting and setting up schema version db connections."""
-import logging
-from typing import Annotated, Optional, Union
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, HTTPException
+import logging
+from typing import Optional, Tuple
+
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import BaseAGR, BaseGW
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
 from geneweaver.aon.models import Version
+from sqlalchemy import create_engine, Engine
+from sqlalchemy.orm import Session, sessionmaker
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -57,7 +56,7 @@ def mark_schema_version_load_complete(version_id: int):
     session.close()
 
 
-def set_up_sessionmanager(version: Optional[Version]) -> sessionmaker:
+def set_up_sessionmanager(version: Optional[Version]) -> Tuple[sessionmaker, Tuple[Engine, Engine]]:
     """Set up the session manager.
 
     :param version: The schema version to use.
