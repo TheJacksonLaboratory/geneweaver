@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "geneweaver-aon"
-version = "0.2.0"
+version = "0.2.1"
 description = "A service to do Homology and Orthology mapping."
 authors = ["Sophie Kearney <sophie_kearney1@baylor.edu>", "Alexander Berger <alexander.berger@jax.org>"]
 readme = "README.md"
