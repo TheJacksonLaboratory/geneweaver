@@ -1,4 +1,5 @@
 """Code for adding homolog/ortholog information from the geneweaver database."""
+
 # ruff: noqa: C901
 # TODO: The above noqa is for the complexity of the `add_missing_orthologs` function,
 #  which should be refactored to be more readable and maintainable.

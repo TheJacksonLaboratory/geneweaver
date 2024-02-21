@@ -1,4 +1,5 @@
 """Functions used to load the database."""
+
 # ruff: noqa: ANN001, ANN201
 
 from itertools import chain, islice
