@@ -1,23 +1,24 @@
 """Utilities for getting and setting up schema version db connections."""
 
 import logging
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import BaseAGR, BaseGW
 from geneweaver.aon.models import Version
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 logger = logging.getLogger("uvicorn.error")
 
 
-def get_latest_schema_version():
+def get_latest_schema_version() -> Optional[Version]:
+    """Get the latest schema version."""
     engine = create_engine(config.DB.URI)
     session = Session(bind=engine)
     version = (
         session.query(Version)
-        .filter(Version.load_complete == True)
+        .filter(Version.load_complete == True)  # noqa: E712
         .order_by(Version.id.desc())
         .first()
     )
@@ -25,12 +26,13 @@ def get_latest_schema_version():
     return version
 
 
-def get_schema_versions():
+def get_schema_versions() -> List[Version]:
+    """Get all schema versions."""
     engine = create_engine(config.DB.URI)
     session = Session(bind=engine)
     versions = (
         session.query(Version)
-        .filter(Version.load_complete == True)
+        .filter(Version.load_complete == True)  # noqa: E712
         .order_by(Version.id.desc())
         .all()
     )
@@ -38,7 +40,8 @@ def get_schema_versions():
     return versions
 
 
-def get_schema_version(version_id: int):
+def get_schema_version(version_id: int) -> Optional[Version]:
+    """Get a schema version by ID."""
     engine = create_engine(config.DB.URI)
     session = Session(bind=engine)
     version = session.query(Version).get(version_id)
@@ -46,7 +49,8 @@ def get_schema_version(version_id: int):
     return version
 
 
-def mark_schema_version_load_complete(version_id: int):
+def mark_schema_version_load_complete(version_id: int) -> None:
+    """Mark a schema version as loaded."""
     engine = create_engine(config.DB.URI)
     session = Session(bind=engine)
     version = session.query(Version).get(version_id)
