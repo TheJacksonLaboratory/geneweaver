@@ -230,7 +230,9 @@ def homology(schema_id: int) -> bool:
 
         db = session()
 
-        progress.update(db_load, completed=True, description=db_load_msg + "Loading Homology")
+        progress.update(
+            db_load, completed=True, description=db_load_msg + "Loading Homology"
+        )
 
         agr.load.add_homology(db)
 

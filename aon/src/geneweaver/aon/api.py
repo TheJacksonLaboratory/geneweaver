@@ -1,4 +1,4 @@
-""""""
+"""The root of the GeneWeaver AON API."""
 
 from fastapi import APIRouter, Depends, FastAPI
 from geneweaver.aon import __version__

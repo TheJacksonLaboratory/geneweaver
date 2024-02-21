@@ -1,6 +1,6 @@
 from geneweaver.aon.models import (
-    Geneweaver_Gene,
-    Geneweaver_Species,
+    GeneweaverGene,
+    GeneweaverSpecies,
     Species,
 )
 from geneweaver.core.enum import GeneIdentifier
@@ -17,8 +17,8 @@ def ode_ref_to_agr(db: Session, ode_ref):
     ref = ode_ref
 
     gdb_id = (
-        db.query(Geneweaver_Gene.gdb_id)
-        .filter(Geneweaver_Gene.ode_ref_id == ode_ref)
+        db.query(GeneweaverGene.gdb_id)
+        .filter(GeneweaverGene.ode_ref_id == ode_ref)
         .first()
     )
     if gdb_id:
@@ -64,8 +64,8 @@ def agr_ref_to_ode(gn_ref_id):
 def species_ode_to_agr(db: Session, ode_sp_id):
     # find the species name, return None if not found in the geneweaver db
     species_name = (
-        db.query(Geneweaver_Species.sp_name)
-        .filter(Geneweaver_Species.sp_id == ode_sp_id)
+        db.query(GeneweaverSpecies.sp_name)
+        .filter(GeneweaverSpecies.sp_id == ode_sp_id)
         .first()
     )
     if species_name:
@@ -88,8 +88,8 @@ def species_agr_to_ode(db: Session, agr_sp_id):
         return None
     # get the geneweaver species id
     ode_sp_id = (
-        db.query(Geneweaver_Species.sp_id)
-        .filter(Geneweaver_Species.sp_name == species_name)
+        db.query(GeneweaverSpecies.sp_id)
+        .filter(GeneweaverSpecies.sp_name == species_name)
         .first()
     )
     if ode_sp_id:

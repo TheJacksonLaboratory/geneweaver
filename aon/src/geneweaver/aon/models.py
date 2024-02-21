@@ -17,6 +17,8 @@ from sqlalchemy.orm import relationship
 
 
 class Version(BaseAGR):
+    """Schema version table."""
+
     __tablename__ = "schema_version"
     __table_args__ = {"schema": "versions"}
 
@@ -28,8 +30,9 @@ class Version(BaseAGR):
 
 
 class Gene(BaseAGR):
-    __tablename__ = "gn_gene"
+    """Gene table."""
 
+    __tablename__ = "gn_gene"
     gn_id = Column(Integer, primary_key=True)  # id
     gn_ref_id = Column("gn_ref_id", String, unique=True)
     gn_prefix = Column("gn_prefix", String)
@@ -37,6 +40,8 @@ class Gene(BaseAGR):
 
 
 class Species(BaseAGR):
+    """Species table."""
+
     __tablename__ = "sp_species"
     sp_id = Column(Integer, primary_key=True)  # id
     sp_name = Column(String, nullable=False)  # name
@@ -44,6 +49,8 @@ class Species(BaseAGR):
 
 
 class OrthologAlgorithms(BaseAGR):
+    """Ortholog algorithms table."""
+
     __tablename__ = "ora_ortholog_algorithms"
     ora_id = Column(Integer, primary_key=True)
     alg_id = Column(ForeignKey("alg_algorithm.alg_id"))
@@ -51,6 +58,8 @@ class OrthologAlgorithms(BaseAGR):
 
 
 class Ortholog(BaseAGR):
+    """Ortholog table."""
+
     __tablename__ = "ort_ortholog"
     ort_id = Column(Integer, primary_key=True)  # id
     from_gene = Column(ForeignKey("gn_gene.gn_id"))
@@ -69,12 +78,16 @@ class Ortholog(BaseAGR):
 
 
 class Algorithm(BaseAGR):
+    """Algorithm table."""
+
     __tablename__ = "alg_algorithm"
     alg_id = Column(Integer, primary_key=True)  # id
     alg_name = Column(String, unique=True)  # name
 
 
 class Homology(BaseAGR):
+    """Homology table."""
+
     __tablename__ = "hom_homology"
     hom_id = Column(Integer)
     gn_id = Column(ForeignKey("gn_gene.gn_id"))
@@ -83,8 +96,12 @@ class Homology(BaseAGR):
     __table_args__ = (PrimaryKeyConstraint("hom_id", "gn_id"),)
 
 
-# The following models correspond to tables in the geneweaver database, so they are created using BaseGW
-class Geneweaver_Species(BaseGW):
+# The following models correspond to tables in the geneweaver database,
+# so they are created using BaseGW
+
+class GeneweaverSpecies(BaseGW):
+    """Geneweaver species table."""
+
     __tablename__ = "species"
     __table_args__ = {"schema": "odestatic"}
     sp_id = Column(Integer, primary_key=True, unique=True)
@@ -96,7 +113,9 @@ class Geneweaver_Species(BaseGW):
     sp_source_data = Column(Text)
 
 
-class Geneweaver_Gene(BaseGW):
+class GeneweaverGene(BaseGW):
+    """Geneweaver gene table."""
+
     __tablename__ = "gene"
     ode_gene_id = Column(BIGINT)
     ode_ref_id = Column(VARCHAR)
@@ -111,7 +130,9 @@ class Geneweaver_Gene(BaseGW):
     )
 
 
-class Geneweaver_GeneDB(BaseGW):
+class GeneweaverGeneDB(BaseGW):
+    """Geneweaver gene database table."""
+
     __tablename__ = "genedb"
     __table_args__ = {"schema": "odestatic"}
     gdb_id = Column(Integer, primary_key=True, unique=True)

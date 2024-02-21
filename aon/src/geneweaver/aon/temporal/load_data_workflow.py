@@ -1,3 +1,5 @@
+"""GeneWeaver AON data load workflow definition."""
+
 from datetime import timedelta
 from typing import Optional
 
@@ -18,8 +20,11 @@ with workflow.unsafe.imports_passed_through():
 
 @workflow.defn
 class GeneWeaverAonDataLoad:
+    """GeneWeaver AON data load workflow."""
+
     @workflow.run
     async def run(self, release: Optional[str] = None) -> bool:
+        """Run the gene weaver data load workflow."""
         orthology_file, release = await workflow.execute_activity(
             get_data_activity,
             release,

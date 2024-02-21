@@ -56,7 +56,9 @@ def mark_schema_version_load_complete(version_id: int):
     session.close()
 
 
-def set_up_sessionmanager(version: Optional[Version]) -> Tuple[sessionmaker, Tuple[Engine, Engine]]:
+def set_up_sessionmanager(
+    version: Optional[Version],
+) -> Tuple[sessionmaker, Tuple[Engine, Engine]]:
     """Set up the session manager.
 
     :param version: The schema version to use.

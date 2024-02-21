@@ -5,9 +5,9 @@ from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.models import (
     Algorithm,
     Gene,
-    Geneweaver_Gene,
-    Geneweaver_GeneDB,
-    Geneweaver_Species,
+    GeneweaverGene,
+    GeneweaverGeneDB,
+    GeneweaverSpecies,
     Homology,
     Ortholog,
     OrthologAlgorithms,
@@ -137,7 +137,7 @@ def convertAGRtoODE(gn_id):
         ref = ref[ind:]
 
     ode_gene_id = (
-        db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_ref_id == ref).first()
+        db.query(GeneweaverGene).filter(GeneweaverGene.ode_ref_id == ref).first()
     ).ode_gene_id
     return ode_gene_id
 
@@ -196,10 +196,10 @@ class get_orthologs_by_from_gene(Resource):
     def get(self, ode_ref_id, ode_gene_id):
         # find gene and search orthologs based on gene_id
         gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == ode_ref_id,
+                GeneweaverGene.ode_gene_id == ode_gene_id,
+                GeneweaverGene.ode_ref_id == ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -223,10 +223,10 @@ class get_orthologs_by_to_gene(Resource):
     @NS.marshal_with(ortholog_model)
     def get(self, ode_ref_id, ode_gene_id):
         gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == ode_ref_id,
+                GeneweaverGene.ode_gene_id == ode_gene_id,
+                GeneweaverGene.ode_ref_id == ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -270,18 +270,18 @@ class get_orthologs_by_to_and_from_gene(Resource):
     @NS.marshal_with(ortholog_model)
     def get(self, from_ode_ref_id, from_ode_gene_id, to_ode_ref_id, to_ode_gene_id):
         to_gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == to_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == to_ode_ref_id,
+                GeneweaverGene.ode_gene_id == to_ode_gene_id,
+                GeneweaverGene.ode_ref_id == to_ode_ref_id,
             )
             .first()
         ).gdb_id
         from_gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == from_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == from_ode_ref_id,
+                GeneweaverGene.ode_gene_id == from_ode_gene_id,
+                GeneweaverGene.ode_ref_id == from_ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -333,10 +333,10 @@ class get_orthologs_by_from_gene_and_best(Resource):
         else:
             modified_best = True
         gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == from_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == from_ode_ref_id,
+                GeneweaverGene.ode_gene_id == from_ode_gene_id,
+                GeneweaverGene.ode_ref_id == from_ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -384,18 +384,18 @@ class get_orthologs_by_from_to_gene_and_best(Resource):
             modified_best = True
         # find from and to gene objects using given information
         to_gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == to_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == to_ode_ref_id,
+                GeneweaverGene.ode_gene_id == to_ode_gene_id,
+                GeneweaverGene.ode_ref_id == to_ode_ref_id,
             )
             .first()
         ).gdb_id
         from_gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == from_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == from_ode_ref_id,
+                GeneweaverGene.ode_gene_id == from_ode_gene_id,
+                GeneweaverGene.ode_ref_id == from_ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -461,18 +461,18 @@ class get_orthologs_by_from_to_gene_and_revised(Resource):
             inp = True
 
         to_gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == to_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == to_ode_ref_id,
+                GeneweaverGene.ode_gene_id == to_ode_gene_id,
+                GeneweaverGene.ode_ref_id == to_ode_ref_id,
             )
             .first()
         ).gdb_id
         from_gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == from_ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == from_ode_ref_id,
+                GeneweaverGene.ode_gene_id == from_ode_gene_id,
+                GeneweaverGene.ode_ref_id == from_ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -579,10 +579,10 @@ class get_genes_by_ode_gene_id(Resource):
         # find gene gdb_id to use the convertODEtoAGR function that converts the
         #     geneweaver ode_ref_id into the agr gn_ref_id
         gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == ode_ref_id,
+                GeneweaverGene.ode_gene_id == ode_gene_id,
+                GeneweaverGene.ode_ref_id == ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -619,10 +619,10 @@ class get_gene_species_name(Resource):
     @NS.doc("returns the species of a specified gene")
     def get(self, ode_ref_id, ode_gene_id):
         gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == ode_ref_id,
+                GeneweaverGene.ode_gene_id == ode_gene_id,
+                GeneweaverGene.ode_ref_id == ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -1108,7 +1108,7 @@ class id_convert_agr_to_ode(Resource):
             ref = ref[ind:]
         # find matching ode_gene_id
         ode_gene_id = (
-            db.query(Geneweaver_Gene).filter(Geneweaver_Gene.ode_ref_id == ref).first()
+            db.query(GeneweaverGene).filter(GeneweaverGene.ode_ref_id == ref).first()
         ).ode_gene_id
         if not ode_gene_id:
             abort(404, message="matching ode_gene_id not found")
@@ -1125,10 +1125,10 @@ class id_convert_ode_to_agr(Resource):
     @NS.doc("converts an ode gene id to the corresponding agr gene id")
     def get(self, ode_gene_id, ode_ref_id):
         gdb_id = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                Geneweaver_Gene.ode_ref_id == ode_ref_id,
+                GeneweaverGene.ode_gene_id == ode_gene_id,
+                GeneweaverGene.ode_ref_id == ode_ref_id,
             )
             .first()
         ).gdb_id
@@ -1150,7 +1150,7 @@ class get_ode_gene_by_gdb_id(Resource):
     @NS.doc("return all ode_genes with the specified gdb_id")
     @NS.marshal_with(gw_gene_model)
     def get(self, gdb_id):
-        genes = db.query(Geneweaver_Gene).filter(Geneweaver_Gene.gdb_id == gdb_id).all()
+        genes = db.query(GeneweaverGene).filter(GeneweaverGene.gdb_id == gdb_id).all()
         if not genes:
             abort(404, message="No genes were found with specified gdb_id")
         return genes
@@ -1168,8 +1168,8 @@ class get_ode_gene_by_gene_id(Resource):
     @NS.marshal_with(gw_gene_model)
     def get(self, ode_gene_id):
         genes = (
-            db.query(Geneweaver_Gene)
-            .filter(Geneweaver_Gene.ode_gene_id == ode_gene_id)
+            db.query(GeneweaverGene)
+            .filter(GeneweaverGene.ode_gene_id == ode_gene_id)
             .all()
         )
         if not genes:
@@ -1190,15 +1190,15 @@ class get_ode_gene_by_species(Resource):
     @NS.marshal_with(gw_gene_model)
     def get(self, ode_gene_id, sp_name):
         sp_id = (
-            db.query(Geneweaver_Species)
-            .filter(Geneweaver_Species.sp_name == sp_name)
+            db.query(GeneweaverSpecies)
+            .filter(GeneweaverSpecies.sp_name == sp_name)
             .first()
         ).sp_id
         genes = (
-            db.query(Geneweaver_Gene)
+            db.query(GeneweaverGene)
             .filter(
-                Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                Geneweaver_Gene.sp_id == sp_id,
+                GeneweaverGene.ode_gene_id == ode_gene_id,
+                GeneweaverGene.sp_id == sp_id,
             )
             .all()
         )
@@ -1223,8 +1223,8 @@ def convert_ode_ref_to_agr(ode_ref):
     #     where necessary for the AGR format.
     ref = ode_ref
     gdb_id = (
-        db.query(Geneweaver_Gene.gdb_id)
-        .filter(Geneweaver_Gene.ode_ref_id == ode_ref)
+        db.query(GeneweaverGene.gdb_id)
+        .filter(GeneweaverGene.ode_ref_id == ode_ref)
         .first()
     )
     if gdb_id:
@@ -1268,8 +1268,8 @@ def convert_agr_ref_to_ode(gn_ref_id):
 def convert_species_ode_to_agr(ode_sp_id):
     # find the species name, return None if not found in the geneweaver db
     species_name = (
-        db.query(Geneweaver_Species.sp_name)
-        .filter(Geneweaver_Species.sp_id == ode_sp_id)
+        db.query(GeneweaverSpecies.sp_name)
+        .filter(GeneweaverSpecies.sp_id == ode_sp_id)
         .first()
     )
     if species_name:
@@ -1292,8 +1292,8 @@ def convert_species_agr_to_ode(agr_sp_id):
         return None
     # get the geneweaver species id
     ode_sp_id = (
-        db.query(Geneweaver_Species.sp_id)
-        .filter(Geneweaver_Species.sp_name == species_name)
+        db.query(GeneweaverSpecies.sp_id)
+        .filter(GeneweaverSpecies.sp_name == species_name)
         .first()
     )
     if ode_sp_id:
@@ -1332,8 +1332,8 @@ class get_homology_by_ode_gene_id(Resource):
     def get(self, ode_gene_id):
         # find the gn_ids for any gene with the given ode_gene_id
         result = (
-            db.query(Geneweaver_Gene.ode_ref_id)
-            .filter(Geneweaver_Gene.ode_gene_id == ode_gene_id)
+            db.query(GeneweaverGene.ode_ref_id)
+            .filter(GeneweaverGene.ode_gene_id == ode_gene_id)
             .all()
         )
         ode_refs = []
@@ -1364,8 +1364,8 @@ class get_homologous_ode_gene_ids_for_gene(Resource):
     def get(self, ode_ref_id, gdb_name):
         agr_ref_id = convert_ode_ref_to_agr(ode_ref_id)
         (
-            db.query(Geneweaver_GeneDB.gdb_id)
-            .filter(Geneweaver_GeneDB.gdb_name == gdb_name)
+            db.query(GeneweaverGeneDB.gdb_id)
+            .filter(GeneweaverGeneDB.gdb_name == gdb_name)
             .first()
         )
 
@@ -1389,8 +1389,8 @@ class get_homologous_ode_gene_ids_for_gene(Resource):
         ]
 
         ode_gene_ids = (
-            db.query(Geneweaver_Gene.ode_gene_id)
-            .filter(Geneweaver_Gene.ode_ref_id.in_(homologous_refs))
+            db.query(GeneweaverGene.ode_gene_id)
+            .filter(GeneweaverGene.ode_ref_id.in_(homologous_refs))
             .all()
         )
         ode_gene_ids = [l[0] for l in set(ode_gene_ids)]
@@ -1413,8 +1413,8 @@ class get_homology_by_ode_gene_ids(Resource):
 
         # find the gn_ids for any gene with the given ode_gene_id
         result = (
-            db.query(Geneweaver_Gene.ode_ref_id)
-            .filter(Geneweaver_Gene.ode_gene_id.in_(ode_gene_ids))
+            db.query(GeneweaverGene.ode_ref_id)
+            .filter(GeneweaverGene.ode_gene_id.in_(ode_gene_ids))
             .all()
         )
         ode_refs = []
@@ -1454,8 +1454,8 @@ class get_ode_genes_from_hom_id(Resource):
 
         # find the sp_id from the given gdb_id
         target_sp_id = (
-            db.query(Geneweaver_GeneDB.sp_id)
-            .filter(Geneweaver_GeneDB.gdb_id == target_gdb_id)
+            db.query(GeneweaverGeneDB.sp_id)
+            .filter(GeneweaverGeneDB.gdb_id == target_gdb_id)
             .first()
         )
         target_sp_id = convert_species_ode_to_agr(target_sp_id[0])
@@ -1500,10 +1500,10 @@ class get_ortholog_by_from_gene_and_gdb(Resource):
         #    database, so it is filtered out in the search.
         agr_compatible_gdb_ids = [10, 11, 12, 13, 14, 15, 16]
         genes = (
-            db.query(Geneweaver_Gene.ode_ref_id)
+            db.query(GeneweaverGene.ode_ref_id)
             .filter(
-                Geneweaver_Gene.ode_gene_id == from_ode_gene_id,
-                Geneweaver_Gene.gdb_id.in_(agr_compatible_gdb_ids),
+                GeneweaverGene.ode_gene_id == from_ode_gene_id,
+                GeneweaverGene.gdb_id.in_(agr_compatible_gdb_ids),
             )
             .all()
         )
@@ -1615,15 +1615,15 @@ class get_intersect_by_homology(Resource):
             ode_ref_id = gs1_gn_ids[gn_id]
 
             ode_gene_id = (
-                db.query(Geneweaver_Gene.ode_gene_id)
-                .filter(Geneweaver_Gene.ode_ref_id == ode_ref_id)
+                db.query(GeneweaverGene.ode_gene_id)
+                .filter(GeneweaverGene.ode_ref_id == ode_ref_id)
                 .first()
             )[0]
             gene_symbol = (
-                db.query(Geneweaver_Gene.ode_ref_id)
+                db.query(GeneweaverGene.ode_ref_id)
                 .filter(
-                    Geneweaver_Gene.ode_gene_id == ode_gene_id,
-                    Geneweaver_Gene.gdb_id == 7,
+                    GeneweaverGene.ode_gene_id == ode_gene_id,
+                    GeneweaverGene.gdb_id == 7,
                 )
                 .first()
             )[0]
@@ -1696,16 +1696,16 @@ class transpose_genes_by_species(Resource):
             homologous_new_species_gw_refs.append(convert_agr_ref_to_ode(r))
 
         ode_gene_ids = (
-            db.query(Geneweaver_Gene.ode_gene_id)
-            .filter(Geneweaver_Gene.ode_ref_id.in_(homologous_new_species_gw_refs))
+            db.query(GeneweaverGene.ode_gene_id)
+            .filter(GeneweaverGene.ode_ref_id.in_(homologous_new_species_gw_refs))
             .all()
         )
         gene_symbols = (
-            db.query(Geneweaver_Gene.ode_ref_id)
+            db.query(GeneweaverGene.ode_ref_id)
             .filter(
-                Geneweaver_Gene.ode_gene_id.in_(ode_gene_ids),
-                Geneweaver_Gene.gdb_id == 7,
-                Geneweaver_Gene.ode_pref is True,
+                GeneweaverGene.ode_gene_id.in_(ode_gene_ids),
+                GeneweaverGene.gdb_id == 7,
+                GeneweaverGene.ode_pref is True,
             )
             .all()
         )
@@ -1721,8 +1721,8 @@ class if_gene_has_homolog(Resource):
 
     def get(self, ode_gene_id):
         ref = (
-            db.query(Geneweaver_Gene.ode_ref_id)
-            .filter(Geneweaver_Gene.ode_gene_id == ode_gene_id)
+            db.query(GeneweaverGene.ode_ref_id)
+            .filter(GeneweaverGene.ode_gene_id == ode_gene_id)
             .all()
         )
         result = 0
@@ -1755,14 +1755,14 @@ class get_orthologs_by_symbol(Resource):
 
         # get the sp_id from the species name
         orig_sp_id = (
-            db.query(Geneweaver_Species.sp_id)
-            .filter(Geneweaver_Species.sp_name == orig_species)
+            db.query(GeneweaverSpecies.sp_id)
+            .filter(GeneweaverSpecies.sp_name == orig_species)
             .first()
         )
         # get the target homologous species sp_id
         gdb_id = (
-            db.query(Geneweaver_GeneDB.gdb_id)
-            .filter(Geneweaver_GeneDB.sp_id == orig_sp_id)
+            db.query(GeneweaverGeneDB.gdb_id)
+            .filter(GeneweaverGeneDB.sp_id == orig_sp_id)
             .first()
         )
         homologous_sp_id = (
@@ -1774,10 +1774,10 @@ class get_orthologs_by_symbol(Resource):
         data = {}
         for s in symbols:
             gene_id = (
-                db.query(Geneweaver_Gene.ode_gene_id)
+                db.query(GeneweaverGene.ode_gene_id)
                 .filter(
-                    Geneweaver_Gene.ode_ref_id == s,
-                    Geneweaver_Gene.sp_id.in_(orig_sp_id),
+                    GeneweaverGene.ode_ref_id == s,
+                    GeneweaverGene.sp_id.in_(orig_sp_id),
                 )
                 .first()
             )
@@ -1787,10 +1787,10 @@ class get_orthologs_by_symbol(Resource):
                 continue
             else:
                 ref = (
-                    db.query(Geneweaver_Gene.ode_ref_id)
+                    db.query(GeneweaverGene.ode_ref_id)
                     .filter(
-                        Geneweaver_Gene.ode_gene_id == gene_id,
-                        Geneweaver_Gene.gdb_id.in_(gdb_id),
+                        GeneweaverGene.ode_gene_id == gene_id,
+                        GeneweaverGene.gdb_id.in_(gdb_id),
                     )
                     .first()
                 )
@@ -1831,17 +1831,17 @@ class get_orthologs_by_symbol(Resource):
             for o in ortho_refs:
                 # get the ode_gene_id from the ode_ref_id
                 ortho_id = (
-                    db.query(Geneweaver_Gene.ode_gene_id)
-                    .filter(Geneweaver_Gene.ode_ref_id == o)
+                    db.query(GeneweaverGene.ode_gene_id)
+                    .filter(GeneweaverGene.ode_ref_id == o)
                     .first()
                 )
                 # convert the ode_gene_id to the gene symbol
                 ortho_sym = (
-                    db.query(Geneweaver_Gene.ode_ref_id)
+                    db.query(GeneweaverGene.ode_ref_id)
                     .filter(
-                        Geneweaver_Gene.ode_gene_id == ortho_id,
-                        Geneweaver_Gene.gdb_id == 7,
-                        Geneweaver_Gene.ode_pref is True,
+                        GeneweaverGene.ode_gene_id == ortho_id,
+                        GeneweaverGene.gdb_id == 7,
+                        GeneweaverGene.ode_pref is True,
                     )
                     .first()
                 )

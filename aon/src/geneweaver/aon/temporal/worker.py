@@ -1,3 +1,5 @@
+"""Temporal worker for the GeneWeaver AON data load workflow."""
+
 import asyncio
 
 from geneweaver.aon.core.config import config
@@ -15,7 +17,8 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 
-async def main():
+async def main() -> None:
+    """Run the worker."""
     client = await Client.connect(
         config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
     )
