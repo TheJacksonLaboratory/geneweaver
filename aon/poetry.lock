@@ -887,13 +887,13 @@ psycopg = {version = ">=3.1.13,<4.0.0", extras = ["binary"]}
 
 [[package]]
 name = "geneweaver-testing"
-version = "0.1.0"
+version = "0.1.1"
 description = "A library to standardize testing of GeneWeaver pacakges."
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "geneweaver_testing-0.1.0-py3-none-any.whl", hash = "sha256:c2082d342b82a5d65c6ec11364f7da2e596995c0fe4e8e8d1a0bfdff83e78251"},
-    {file = "geneweaver_testing-0.1.0.tar.gz", hash = "sha256:1b62713b4c8c63e7a1a330f2719be803e8ed54cb113097cc90942bb66fd61b7c"},
+    {file = "geneweaver_testing-0.1.1-py3-none-any.whl", hash = "sha256:01036bc3ab69fc98eca7ab8b3766290fc923b9a57e311c73e02d18d20dac5741"},
+    {file = "geneweaver_testing-0.1.1.tar.gz", hash = "sha256:83d1e14cb53cf57c751c061887df8313129ca1d7400bf2075d94170a9098c230"},
 ]
 
 [package.dependencies]
@@ -990,13 +990,13 @@ files = [
 
 [[package]]
 name = "httpcore"
-version = "1.0.3"
+version = "1.0.4"
 description = "A minimal low-level HTTP client."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "httpcore-1.0.3-py3-none-any.whl", hash = "sha256:9a6a501c3099307d9fd76ac244e08503427679b1e81ceb1d922485e2f2462ad2"},
-    {file = "httpcore-1.0.3.tar.gz", hash = "sha256:5c0f9546ad17dac4d0772b0808856eb616eb8b48ce94f49ed819fd6982a8a544"},
+    {file = "httpcore-1.0.4-py3-none-any.whl", hash = "sha256:ac418c1db41bade2ad53ae2f3834a3a0f5ae76b56cf5aa497d2d033384fc7d73"},
+    {file = "httpcore-1.0.4.tar.gz", hash = "sha256:cb2839ccfcba0d2d3c1131d3c3e26dfc327326fbe7a5dc0dbfe9f6c9151bb022"},
 ]
 
 [package.dependencies]
@@ -1007,7 +1007,7 @@ h11 = ">=0.13,<0.15"
 asyncio = ["anyio (>=4.0,<5.0)"]
 http2 = ["h2 (>=3,<5)"]
 socks = ["socksio (==1.*)"]
-trio = ["trio (>=0.22.0,<0.24.0)"]
+trio = ["trio (>=0.22.0,<0.25.0)"]
 
 [[package]]
 name = "httptools"
@@ -1059,13 +1059,13 @@ test = ["Cython (>=0.29.24,<0.30.0)"]
 
 [[package]]
 name = "httpx"
-version = "0.26.0"
+version = "0.27.0"
 description = "The next generation HTTP client."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "httpx-0.26.0-py3-none-any.whl", hash = "sha256:8915f5a3627c4d47b73e8202457cb28f1266982d1159bd5779d86a80c0eab1cd"},
-    {file = "httpx-0.26.0.tar.gz", hash = "sha256:451b55c30d5185ea6b23c2c793abf9bb237d2a7dfb901ced6ff69ad37ec1dfaf"},
+    {file = "httpx-0.27.0-py3-none-any.whl", hash = "sha256:71d5465162c13681bff01ad59b2cc68dd838ea1f10e51574bac27103f00c91a5"},
+    {file = "httpx-0.27.0.tar.gz", hash = "sha256:a0cb88a46f32dc874e04ee956e4c2764aba2aa228f650b06788ba6bda2962ab5"},
 ]
 
 [package.dependencies]
@@ -3866,4 +3866,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "60a8c0f81852e9088280552dfee0a147b1528aa7b04fe1512f00c79784e6d5b9"
+content-hash = "763a993efdf2ffceae84c84fee39908634e72038e8cfda9c33908234b3eea54d"
