@@ -15,4 +15,5 @@ class Healthcheck(Resource):
 
     @NS.doc(security=None)
     def get(self):
+        """Get the current application health."""
         return {"status": "Available", "timestamp": datetime.now().isoformat()}

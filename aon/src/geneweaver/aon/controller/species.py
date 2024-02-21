@@ -1,3 +1,5 @@
+"""API Controller definition for species."""
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,7 +18,7 @@ def get_species(name: Optional[str] = None, db: deps.Session = Depends(deps.sess
 
 
 @router.get("/{species_id}")
-def get_species(species_id: int, db: deps.Session = Depends(deps.session)):
+def get_species_by_id(species_id: int, db: deps.Session = Depends(deps.session)):
     """Get species by id."""
     return species_service.species_by_id(db, species_id)
 
