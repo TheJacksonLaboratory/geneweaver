@@ -1,4 +1,5 @@
 """Module with functions for getting homologs from the database."""
+
 from typing import List, Optional, Type
 
 from geneweaver.aon.models import Homology

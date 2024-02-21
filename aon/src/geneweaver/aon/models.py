@@ -99,6 +99,7 @@ class Homology(BaseAGR):
 # The following models correspond to tables in the geneweaver database,
 # so they are created using BaseGW
 
+
 class GeneweaverSpecies(BaseGW):
     """Geneweaver species table."""
 

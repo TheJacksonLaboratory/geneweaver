@@ -5,6 +5,7 @@ from enum import Enum
 
 class ReferenceGeneIDType(Enum):
     """Enum for defining gene reference id types."""
+
     AON = "aon"
     GW = "gw"
 

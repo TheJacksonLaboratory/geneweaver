@@ -13,11 +13,13 @@ from geneweaver.aon.core.schema_version import (
     set_up_sessionmanager,
     set_up_sessionmanager_by_schema,
 )
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 logger = logging.getLogger("uvicorn.error")
 
 DEFAULT_ALGORITHM_ID = config.DEFAULT_ALGORITHM_ID
+
+Session = Session
 
 
 @asynccontextmanager
@@ -58,6 +60,7 @@ async def lifespan(app: FastAPI) -> None:
 
 
 def version_id(version_id: int, request: Request) -> None:
+    """Set the schema version ID for a request."""
     logger.info(f"Setting schema version to {version_id}.")
     request.state.schema_version_id = version_id
 
@@ -67,23 +70,25 @@ def session(request: Request) -> sessionmaker:
     try:
         schema_version = request.state.schema_version_id
         try:
-            session = request.app.session_managers[schema_version]()
-        except KeyError:
+            _session = request.app.session_managers[schema_version]()
+        except KeyError as e:
             version = get_schema_version(schema_version)
             if version is not None and version.id not in request.app.session_managers:
                 (
                     request.app.session_managers[version.id],
                     request.app.engines[version.id],
                 ) = set_up_sessionmanager(version)
-                session = request.app.session_managers[version.id]()
+                _session = request.app.session_managers[version.id]()
             else:
-                raise HTTPException(status_code=404, detail="Schema version not found.")
+                raise HTTPException(
+                    status_code=404, detail="Schema version not found."
+                ) from e
     except AttributeError:
-        session = request.app.session()
+        _session = request.app.session()
 
-    yield session
+    yield _session
 
-    session.close()
+    _session.close()
 
 
 async def paging_parameters(

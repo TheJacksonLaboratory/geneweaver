@@ -1,4 +1,5 @@
 """Module with functions for querying orthologs from the database."""
+
 from typing import List, Optional, Type
 
 from geneweaver.aon.models import Algorithm, Gene, Ortholog, OrthologAlgorithms

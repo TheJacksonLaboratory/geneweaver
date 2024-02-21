@@ -1,4 +1,5 @@
 """Module with database functions for genes."""
+
 from typing import List, Optional, Type
 
 from geneweaver.aon.models import Gene
