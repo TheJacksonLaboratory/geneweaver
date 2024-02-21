@@ -1,10 +1,13 @@
 """Functions used to load the database."""
+
+# ruff: noqa: ANN001, ANN201
+
 from itertools import chain, islice
 
-from geneweaver.core import enum
 from geneweaver.aon.models import Algorithm, Gene, Homology, Ortholog, Species
-from sqlalchemy.sql import text
+from geneweaver.core import enum
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 
 TAXON_ID_MAP = {
     enum.Species.RATTUS_NORVEGICUS: 10116,
@@ -121,7 +124,8 @@ def init_species(db: Session, ortho_file: str, schema_name: str) -> None:
     max_id = max([int(species) for species in enum.Species])
     db.execute(
         text(
-            f"ALTER SEQUENCE {schema_name}.sp_species_sp_id_seq RESTART WITH {max_id + 1}"
+            f"ALTER SEQUENCE {schema_name}.sp_species_sp_id_seq "
+            f"RESTART WITH {max_id + 1}"
         )
     )
     db.commit()
@@ -276,7 +280,7 @@ def add_orthologs(db: Session, ortho_file, batch_size, batches_to_process=-1) ->
     heading_size = 15
 
     with open(ortho_file, "r") as f:
-        for i in range(heading_size):
+        for _ in range(heading_size):
             f.readline()
         f.readline()
 
@@ -300,7 +304,7 @@ def get_ortholog_batches(ortho_file, batch_size, batches_to_process=-1):
     heading_size = 15
 
     with open(ortho_file, "r") as f:
-        for i in range(heading_size):
+        for _ in range(heading_size):
             f.readline()
         f.readline()
 

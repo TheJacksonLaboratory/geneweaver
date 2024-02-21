@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "geneweaver-aon"
-version = "0.1.0"
-description = ""
+version = "0.2.0"
+description = "A service to do Homology and Orthology mapping."
 authors = ["Sophie Kearney <sophie_kearney1@baylor.edu>", "Alexander Berger <alexander.berger@jax.org>"]
 readme = "README.md"
 license = "Apache-2.0"
@@ -34,7 +34,7 @@ typer = {extras = ["all"], version = "^0.9.0"}
 temporalio = "^1.5.0"
 
 [tool.poetry.group.dev.dependencies]
-geneweaver-testing = "^0.0.3"
+geneweaver-testing = "^0.1.1"
 xmlrunner = "1.7.7"
 notebook = "^7.0.7"
 pytest = "^7.4.0"
@@ -46,6 +46,7 @@ select = ['F', 'E', 'W', 'A', 'C90', 'N', 'B', 'ANN', 'D', 'I', 'ERA', 'PD', 'NP
 [tool.ruff.per-file-ignores]
 "tests/*" = ["ANN001", "ANN201"]
 "src/*" = ["ANN101"]
+"src/geneweaver/aon/controller/*" = ["B008", "ANN201"]
 
 [build-system]
 requires = ["poetry-core"]

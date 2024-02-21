@@ -1,20 +1,21 @@
 """CLI to load the database."""
+
+from argparse import Namespace
+from datetime import datetime
+from gzip import BadGzipFile
 from pathlib import Path
 from typing import Optional, Tuple
-from argparse import Namespace
+
 import psycopg
 import typer
-from pathlib import Path
-from datetime import datetime
-from alembic.config import Config
 from alembic import command
-from gzip import BadGzipFile
+from alembic.config import Config
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.core.schema_version import (
     get_schema_version,
-    set_up_sessionmanager,
     mark_schema_version_load_complete,
+    set_up_sessionmanager,
 )
 from geneweaver.aon.load import agr, geneweaver
 from geneweaver.aon.models import Version
@@ -77,7 +78,7 @@ def agr_release_exists(release: str) -> bool:
 
 
 @cli.command()
-def create_schema(release) -> Tuple[str, int]:
+def create_schema(release: str) -> Tuple[str, int]:
     """Create the database schema."""
     with Progress() as progress:
         db_creation_msg = "Creating database schema"
@@ -117,6 +118,11 @@ def create_schema(release) -> Tuple[str, int]:
 
 
 def load_agr(orthology_file: str, schema_id: int) -> bool:
+    """Load the Alliance of Genome Resources data.
+
+    :param orthology_file: The path to the orthology file.
+    :param schema_id: The schema id.
+    """
     version = get_schema_version(schema_id)
     schema_name = version.schema_name
     session, _ = set_up_sessionmanager(version)
@@ -156,7 +162,7 @@ def complete(
     release: Optional[str] = None,
     orthology_file: Optional[Path] = None,
     schema_id: Optional[int] = None,
-):
+) -> None:
     """Load the Alliance of Genome Resources data."""
     if orthology_file is None:
         orthology_file, release = get_data(release)
@@ -174,17 +180,14 @@ def complete(
 
 
 @cli.command()
-def gw(schema_id: Optional[int] = None) -> bool:
+def gw(schema_id: int) -> bool:
     """Load data from Geneweaver into the AON database."""
-    if not schema_id:
-        schema_name, schema_id = create_schema(release)
-
     version = get_schema_version(schema_id)
     schema_name = version.schema_name
     session, _ = set_up_sessionmanager(version)
 
     gw_load_msg = "Loading Geneweaver data: "
-    with Progress(transient=True) as progress:
+    with Progress() as progress:
         gw_load = progress.add_task(gw_load_msg + "Connecting", total=None)
 
         db = session()
@@ -204,10 +207,10 @@ def gw(schema_id: Optional[int] = None) -> bool:
         # Homologs
         with psycopg.connect(
             config.GW_DB.URI.replace("postgresql+psycopg", "postgresql")
-        ) as gw_connection, psycopg.connect(
+        ) as gw_conn, psycopg.connect(
             config.DB.URI.replace("postgresql+psycopg", "postgresql")
-        ) as aon_connection:
-            with gw_connection.cursor() as gw_cursor, aon_connection.cursor() as aon_cursor:
+        ) as aon_conn:
+            with gw_conn.cursor() as gw_cursor, aon_conn.cursor() as aon_cursor:
                 homologs = geneweaver.homologs.get_homolog_information(
                     aon_cursor, gw_cursor, aon_schema_name=schema_name
                 )
@@ -223,14 +226,23 @@ def gw(schema_id: Optional[int] = None) -> bool:
 
 @cli.command()
 def homology(schema_id: int) -> bool:
+    """Load homology data into the AON database.
+
+    :param schema_id: The schema id.
+    :return: True if successful.
+    """
     version = get_schema_version(schema_id)
     session, _ = set_up_sessionmanager(version)
 
-    with Progress(transient=True) as progress:
+    with Progress() as progress:
         db_load_msg = "Loading data into the database: "
-        db_load = progress.add_task(db_load_msg + "Adding Homology", total=None)
+        db_load = progress.add_task(db_load_msg + "Connecting...", total=None)
 
         db = session()
+
+        progress.update(
+            db_load, completed=True, description=db_load_msg + "Loading Homology"
+        )
 
         agr.load.add_homology(db)
 

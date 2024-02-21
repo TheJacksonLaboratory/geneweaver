@@ -1,4 +1,5 @@
 """Download and prepare external source data for Geneweaver AON."""
+
 import gzip
 from pathlib import Path
 from typing import Optional
@@ -47,7 +48,7 @@ def download_agr_orthology_data(
     """Download the latest AGR orthology data.
 
     :param download_url: The AGR orthology download URL.
-    :param download_location: The location to download the AGR orthology data (optional).
+    :param download_location: The location to download the AGR orthology data.
     :return: The path to the downloaded AGR orthology data.
     """
     filename = Path(download_url.split("/")[-1])

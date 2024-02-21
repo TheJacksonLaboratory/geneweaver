@@ -1,8 +1,9 @@
+"""Root database module, for uses other than the FastAPI application."""
+
 from geneweaver.aon.core.config import config
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
 
 BaseAGR = declarative_base()
 BaseGW = declarative_base()

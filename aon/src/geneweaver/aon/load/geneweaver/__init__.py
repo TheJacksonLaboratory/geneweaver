@@ -1,1 +1,3 @@
-from . import genes, homologs, species
+"""Module for the geneweaver based loading code."""
+
+from . import genes, homologs  # noqa: F401

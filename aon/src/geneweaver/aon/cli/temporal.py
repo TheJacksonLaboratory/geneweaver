@@ -1,46 +1,52 @@
 """Commands for working with temporal jobs."""
-import typer
-from datetime import timedelta
+
 from asyncio import run as aiorun
-from temporalio.service import RPCError
+from datetime import timedelta
+
+import typer
+from geneweaver.aon.core.config import config
+from geneweaver.aon.temporal import worker
+from geneweaver.aon.temporal.load_data_workflow import GeneWeaverAonDataLoad
 from temporalio.client import (
     Client,
     Schedule,
     ScheduleActionStartWorkflow,
     ScheduleIntervalSpec,
     ScheduleSpec,
-    ScheduleState,
 )
-from geneweaver.aon.core.config import config
-from geneweaver.aon.temporal.load_data_workflow import GeneWeaverAonDataLoad
-from geneweaver.aon.temporal import worker
+from temporalio.service import RPCError
+
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode="rich")
 
 
-async def _clear_schedules():
+async def _clear_schedules() -> None:
     """Clear all schedules."""
     try:
-        client = await Client.connect(config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE)
+        client = await Client.connect(
+            config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
+        )
         handle = client.get_schedule_handle(
             "geneweaver-aon-agr-load-schedule",
         )
 
         await handle.delete()
-    except RPCError as e:
-        typer.echo(f"No Schedule to delete.")
+    except RPCError:
+        typer.echo("No Schedule to delete.")
         typer.Exit(0)
 
 
 @cli.command()
-def clear_schedules():
+def clear_schedules() -> None:
     """Clear all schedules."""
     aiorun(_clear_schedules())
 
 
-async def _schedule_load(hour_frequency: int = 24):
+async def _schedule_load(hour_frequency: int = 24) -> None:
     """Schedule a load job."""
     await _clear_schedules()
-    client = await Client.connect(config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE)
+    client = await Client.connect(
+        config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
+    )
     await client.create_schedule(
         "geneweaver-aon-agr-load-schedule",
         Schedule(
@@ -57,14 +63,16 @@ async def _schedule_load(hour_frequency: int = 24):
 
 
 @cli.command()
-def schedule_load(hour_frequency: int = 24):
+def schedule_load(hour_frequency: int = 24) -> None:
     """Schedule a load job."""
     aiorun(_schedule_load(hour_frequency))
 
 
-async def _start_load():
+async def _start_load() -> None:
     """Start a load job."""
-    client = await Client.connect(config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE)
+    client = await Client.connect(
+        config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
+    )
     await client.start_workflow(
         GeneWeaverAonDataLoad.run,
         id="geneweaver-aon-agr-load-workflow",
@@ -73,11 +81,40 @@ async def _start_load():
 
 
 @cli.command()
-def start_load():
+def start_load() -> None:
     """Start a load job."""
     aiorun(_start_load())
 
 
+async def _cancel_load() -> None:
+    """Cancel a load job."""
+    client = await Client.connect(
+        config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
+    )
+    await client.get_workflow_handle("geneweaver-aon-agr-load-workflow").cancel()
+
+
 @cli.command()
-def start_worker():
+def cancel_load() -> None:
+    """Cancel a load job."""
+    aiorun(_cancel_load())
+
+
+async def _terminate_load() -> None:
+    """Cancel a load job."""
+    client = await Client.connect(
+        config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
+    )
+    await client.get_workflow_handle("geneweaver-aon-agr-load-workflow").terminate()
+
+
+@cli.command()
+def terminate_load() -> None:
+    """Cancel a load job."""
+    aiorun(_terminate_load())
+
+
+@cli.command()
+def start_worker() -> None:
+    """Start the worker."""
     aiorun(worker.main())

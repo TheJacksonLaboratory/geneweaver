@@ -1,3 +1,5 @@
+"""API endpoints for orthologs."""
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,7 +21,7 @@ def get_orthologs(
     paging_params: dict = Depends(deps.paging_parameters),
     db: deps.Session = Depends(deps.session),
 ):
-    """Get ortholog by id."""
+    """Get orthologs with optional filtering."""
     return orthologs_service.get_orthologs(
         db,
         from_species=from_species,
@@ -46,7 +48,7 @@ def get_orthologs_by_id(
 
 
 @router.get("/{ortholog_id}/from_gene")
-def get_ortholog_id_gene(ortholog_id: int, db: deps.Session = Depends(deps.session)):
+def get_ortholog_id_to_gene(ortholog_id: int, db: deps.Session = Depends(deps.session)):
     """Get ortholog by id."""
     orthologs = orthologs_service.get_ortholog_from_gene(db, ortholog_id)
     if not orthologs:
@@ -55,7 +57,9 @@ def get_ortholog_id_gene(ortholog_id: int, db: deps.Session = Depends(deps.sessi
 
 
 @router.get("/{ortholog_id}/to_gene")
-def get_ortholog_id_gene(ortholog_id: int, db: deps.Session = Depends(deps.session)):
+def get_ortholog_id_from_gene(
+    ortholog_id: int, db: deps.Session = Depends(deps.session)
+):
     """Get ortholog by id."""
     orthologs = orthologs_service.get_ortholog_to_gene(db, ortholog_id)
     if not orthologs:

@@ -1,25 +1,25 @@
 """Dependency injection for the AON FastAPI application."""
-import logging
-from typing import Annotated, Optional, Union
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, HTTPException
+import logging
+from contextlib import asynccontextmanager
+from typing import Annotated, Optional, Union
+
+from fastapi import FastAPI, HTTPException, Request
 from geneweaver.aon.core.config import config
-from geneweaver.aon.core.database import BaseAGR, BaseGW
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
-from geneweaver.aon.models import Version
 from geneweaver.aon.core.schema_version import (
     get_latest_schema_version,
-    get_schema_versions,
     get_schema_version,
+    get_schema_versions,
     set_up_sessionmanager,
     set_up_sessionmanager_by_schema,
 )
+from sqlalchemy.orm import Session, sessionmaker
 
 logger = logging.getLogger("uvicorn.error")
 
 DEFAULT_ALGORITHM_ID = config.DEFAULT_ALGORITHM_ID
+
+Session = Session
 
 
 @asynccontextmanager
@@ -42,7 +42,8 @@ async def lifespan(app: FastAPI) -> None:
         )
     else:
         default_version_id = next(
-            (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA), None
+            (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA),
+            None,
         )
 
     app.default_schema_version_id = default_version_id
@@ -59,6 +60,7 @@ async def lifespan(app: FastAPI) -> None:
 
 
 def version_id(version_id: int, request: Request) -> None:
+    """Set the schema version ID for a request."""
     logger.info(f"Setting schema version to {version_id}.")
     request.state.schema_version_id = version_id
 
@@ -68,23 +70,25 @@ def session(request: Request) -> sessionmaker:
     try:
         schema_version = request.state.schema_version_id
         try:
-            session = request.app.session_managers[schema_version]()
-        except KeyError:
+            _session = request.app.session_managers[schema_version]()
+        except KeyError as e:
             version = get_schema_version(schema_version)
             if version is not None and version.id not in request.app.session_managers:
                 (
                     request.app.session_managers[version.id],
                     request.app.engines[version.id],
                 ) = set_up_sessionmanager(version)
-                session = request.app.session_managers[version.id]()
+                _session = request.app.session_managers[version.id]()
             else:
-                raise HTTPException(status_code=404, detail="Schema version not found.")
+                raise HTTPException(
+                    status_code=404, detail="Schema version not found."
+                ) from e
     except AttributeError:
-        session = request.app.session()
+        _session = request.app.session()
 
-    yield session
+    yield _session
 
-    session.close()
+    _session.close()
 
 
 async def paging_parameters(

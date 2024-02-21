@@ -5,18 +5,23 @@ Revises: 4297df5638d7
 Create Date: 2024-02-19 15:12:11.936663
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '666568a64356'
-down_revision = '4297df5638d7'
+revision = "666568a64356"
+down_revision = "4297df5638d7"
 branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
+    """Create the AGR tables.
+
+    When using this function, you should specify a schema with:
+        `-x tenant=$SCHEMA_NAME`
+    """
     op.create_table(
         "alg_algorithm",
         sa.Column("alg_id", sa.Integer(), nullable=False),
@@ -96,7 +101,12 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
+    """Remove the AGR tables.
+
+    When using this function, you should specify a schema with:
+        `-x tenant=$SCHEMA_NAME`
+    """
     op.drop_table("ora_ortholog_algorithms")
     op.drop_table("ort_ortholog")
     op.drop_table("gn_gene")

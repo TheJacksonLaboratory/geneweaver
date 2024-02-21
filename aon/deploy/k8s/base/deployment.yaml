@@ -20,7 +20,7 @@ spec:
           image: geneweaver-aon-api
           imagePullPolicy: Always
           command: ["/bin/bash", "-c", "--" ]
-          args: ["poetry run gwaon setup version-table && poetry run gwaon temporal schedule-load --hour-frequency=1 && poetry run gwaon temporal start-load"]
+          args: ["poetry run gwaon setup version-table"]
           envFrom:
             - configMapRef:
                 name: geneweaver-aon-config

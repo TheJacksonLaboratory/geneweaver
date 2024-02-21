@@ -5,6 +5,7 @@ Revises:
 Create Date: 2020-12-16 19:27:45.142317
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -15,7 +16,12 @@ branch_labels = None
 depends_on = None
 
 
-def _has_table(table_name):
+def _has_table(table_name: str) -> bool:
+    """Check if table exists.
+
+    :param table_name: The table name.
+    :return: True if table exists, False otherwise.
+    """
     config = op.get_context().config
     engine = sa.engine_from_config(
         config.get_section(config.config_ini_section), prefix="sqlalchemy."
@@ -25,7 +31,8 @@ def _has_table(table_name):
     return table_name in tables
 
 
-def upgrade():
+def upgrade() -> None:
+    """Upgrade to v1, create the schema_version table."""
     if not _has_table("schema_version"):
         op.create_table(
             "schema_version",
@@ -45,5 +52,6 @@ def upgrade():
         )
 
 
-def downgrade():
+def downgrade() -> None:
+    """Downgrade, remove the schema_version table."""
     op.drop_table("schema_version", schema="versions")

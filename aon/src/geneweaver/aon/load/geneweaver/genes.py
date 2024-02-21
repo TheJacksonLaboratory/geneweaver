@@ -1,6 +1,6 @@
 """Code to add genes from geneweaver gene table to agr gn_gene table."""
-from geneweaver.aon.controller.flask.controller import convert_species_ode_to_agr
-from geneweaver.aon.models import Gene
+
+from geneweaver.aon.models import Gene, Species
 from geneweaver.core.enum import GeneIdentifier
 from psycopg import Cursor
 from sqlalchemy.orm import Session
@@ -25,8 +25,10 @@ PREFIX_MAPPING = {
 }
 
 
-def convert_gdb_to_prefix(gdb_id):
-    """:param: gdb_id - gdb_id from genedb table in geneweaver database, used as key for
+def convert_gdb_to_prefix(gdb_id: int) -> str:
+    """Convert gdb_id to gn_prefix.
+
+    :param: gdb_id - gdb_id from genedb table in geneweaver database, used as key for
             gn_prefix in agr gn_gene table because in agr, each prefix corresponds to
             one genedb
     :return: gn_prefix from gdb_dict corresponding to param gdb_id
@@ -51,10 +53,15 @@ def get_species_to_taxon_id_map(db: Session) -> dict:
     return {s.name: s.sp_id for s in species}
 
 
-def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
-    """:description: adds genes from geneweaver gene table for the three missing species.
+def add_missing_genes(db: Session, geneweaver_cursor: Cursor) -> None:
+    """Add genes from geneweaver that weren't loaded from AGR.
+
+    Adds genes from geneweaver gene table for the three missing species.
     parses information from this table to create Gene objects to go into gn_gene
     table in agr.
+
+    :param db: database session
+    :param geneweaver_cursor: cursor for geneweaver database
     """
     # query for a list of geneweaver genes from Gallus gallus (sp_id=10, gdb_id=20),
     #    Canis familiaris(sp_id=11, gdb_id=2), and Macaca mulatta (sp_id=6, gdb_id=1)
@@ -71,7 +78,6 @@ def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
     for g in gw_genes:
         gn_ref_id = g[0]
         gn_prefix = convert_gdb_to_prefix(g[1])
-        # sp_id = convert_species_ode_to_agr(int(g[2]))
         sp_id = int(g[2])
 
         gene = Gene(gn_ref_id=gn_ref_id, gn_prefix=gn_prefix, sp_id=sp_id)
@@ -81,38 +87,3 @@ def add_missing_genes(db: Session, geneweaver_cursor: Cursor):
     db.add_all(genes)
     print("committing")
     db.commit()
-
-    # results_returned = True
-    # limit = 10000
-    # offset = 9600
-    # while results_returned:
-    #     print(f"Complete: {offset}")
-    #     geneweaver_cursor.execute(
-    #         """
-    #     SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene WHERE sp_id IN (6,10,11)
-    #     AND gdb_id in (1,2,20) LIMIT %(limit)s OFFSET %(offset)s;
-    #     """, {"limit": limit, "offset": offset}
-    #     )
-    #     gw_genes = geneweaver_cursor.fetchall()
-    #     offset = offset + limit
-    #     print(f"Found {offset}")
-    #
-    #     i = 0
-    #     genes = []
-    #     for g in gw_genes:
-    #         gn_ref_id = g[0]
-    #         gn_prefix = convert_gdb_to_prefix(g[1])
-    #         # sp_id = convert_species_ode_to_agr(int(g[2]))
-    #         sp_id = int(g[2])
-    #
-    #         gene = Gene(gn_ref_id=gn_ref_id, gn_prefix=gn_prefix, sp_id=sp_id)
-    #         genes.append(gene)
-    #
-    #     print("Adding genes")
-    #     db.add_all(genes)
-    #     db.commit()
-    #
-    #     if len(genes) < 1000:
-    #         results_returned = False
-    #         print("done")
-    #         break

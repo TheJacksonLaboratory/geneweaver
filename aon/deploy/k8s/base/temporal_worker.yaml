@@ -49,8 +49,8 @@ spec:
                   key: DB_NAME
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 1
+              memory: 2Gi
             limits:
-              cpu: 1000m
-              memory: 512Mi
+              cpu: 2
+              memory: 4Gi

@@ -1,3 +1,5 @@
+"""Controller definitions for the Algorithms API."""
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends
@@ -13,7 +15,7 @@ def get_algorithms(
 ):
     """Get all algorithms."""
     if name is not None:
-        return algorithms_service.algorithm_by_name(name, db)
+        return algorithms_service.algorithm_by_name(db, name)
 
     return algorithms_service.all_algorithms(db)
 
@@ -21,4 +23,4 @@ def get_algorithms(
 @router.get("/{algorithm_id}")
 def get_algorithm(algorithm_id: int, db: deps.Session = Depends(deps.session)):
     """Get algorithm by id."""
-    return algorithms_service.algorithm_by_id(algorithm_id, db)
+    return algorithms_service.algorithm_by_id(db, algorithm_id)
