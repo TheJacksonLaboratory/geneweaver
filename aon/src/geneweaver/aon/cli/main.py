@@ -1,3 +1,4 @@
+"""GeneWeaver AON CLI client."""
 import typer
 from geneweaver.aon import __version__
 from geneweaver.aon.cli import load, setup, temporal
