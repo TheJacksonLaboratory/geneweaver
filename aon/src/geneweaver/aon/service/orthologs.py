@@ -1,4 +1,5 @@
-from typing import Optional, Type
+"""Module with functions for querying orthologs from the database."""
+from typing import List, Optional, Type
 
 from geneweaver.aon.models import Algorithm, Gene, Ortholog, OrthologAlgorithms
 from geneweaver.aon.service.utils import apply_paging
@@ -6,7 +7,11 @@ from sqlalchemy.orm import Session, aliased
 
 
 def get_ortholog_from_gene(db: Session, ortholog_id: int) -> Optional[Type[Gene]]:
-    """Get ortholog by id."""
+    """Get ortholog by id.
+
+    :param db: The database session.
+    :param ortholog_id: The ortholog id to query.
+    """
     ortholog = get_ortholog(db, ortholog_id)
     if ortholog is None:
         return None
@@ -14,7 +19,11 @@ def get_ortholog_from_gene(db: Session, ortholog_id: int) -> Optional[Type[Gene]
 
 
 def get_ortholog_to_gene(db: Session, ortholog_id: int) -> Optional[Type[Gene]]:
-    """Get ortholog by id."""
+    """Get ortholog by id.
+
+    :param db: The database session.
+    :param ortholog_id: The ortholog id to query.
+    """
     ortholog = get_ortholog(db, ortholog_id)
     if ortholog is None:
         return None
@@ -33,7 +42,22 @@ def get_orthologs(
     revised: Optional[bool] = None,
     start: Optional[int] = None,
     limit: Optional[int] = 1000,
-):
+) -> List[Type[Ortholog]]:
+    """Get orthologs with dynamic optional filters.
+
+    :param db: The database session.
+    :param from_species: The species to get orthologs from.
+    :param to_species: The species to get orthologs to.
+    :param from_gene_id: The gene id to get orthologs from.
+    :param to_gene_id: The gene id to get orthologs to.
+    :param algorithm_id: The algorithm id to get orthologs from.
+    :param possible_match_algorithms: The number of possible match algorithms.
+    :param best: The best orthologs.
+    :param revised: The revised orthologs.
+    :param start: The start index for paging.
+    :param limit: The limit for paging.
+    :return: The orthologs for the provided query.
+    """
     query = db.query(Ortholog)
 
     if algorithm_id is not None:
@@ -44,15 +68,15 @@ def get_orthologs(
         )
 
     if from_species is not None:
-        FromGene = aliased(Gene)
-        query = query.join(FromGene, Ortholog.from_gene == FromGene.gn_id).filter(
-            FromGene.sp_id == from_species
+        from_gene = aliased(Gene)
+        query = query.join(from_gene, Ortholog.from_gene == from_gene.gn_id).filter(
+            from_gene.sp_id == from_species
         )
 
     if to_species is not None:
-        ToGene = aliased(Gene)
-        query = query.join(ToGene, Ortholog.to_gene == ToGene.gn_id).filter(
-            ToGene.sp_id == to_species
+        to_gene = aliased(Gene)
+        query = query.join(to_gene, Ortholog.to_gene == to_gene.gn_id).filter(
+            to_gene.sp_id == to_species
         )
 
     if from_gene_id:
@@ -77,5 +101,11 @@ def get_orthologs(
     return query.all()
 
 
-def get_ortholog(db: Session, ortholog_id: int):
+def get_ortholog(db: Session, ortholog_id: int) -> Type[Ortholog]:
+    """Get ortholog by id.
+
+    :param db: The database session.
+    :param ortholog_id: The ortholog id to query.
+    :return: The ortholog for the provided id.
+    """
     return db.query(Ortholog).get(ortholog_id)

@@ -1,4 +1,5 @@
-from typing import Optional
+"""Module with functions for getting homologs from the database."""
+from typing import List, Optional, Type
 
 from geneweaver.aon.models import Homology
 from geneweaver.aon.service.utils import apply_paging
@@ -13,7 +14,18 @@ def get_homologs(
     gene_id: Optional[int] = None,
     start: Optional[int] = None,
     limit: Optional[int] = 1000,
-):
+) -> List[Type[Homology]]:
+    """Get homologs with optional filters.
+
+    :param db: The database session.
+    :param homolog_id: The homolog ID.
+    :param source_name: The source name.
+    :param species_id: The species ID.
+    :param gene_id: The gene ID.
+    :param start: The start index for paging.
+    :param limit: The number of results to return.
+    :return: The homologs with optional filters.
+    """
     base_query = db.query(Homology)
     if homolog_id is not None:
         base_query = base_query.filter(Homology.hom_id == homolog_id)
@@ -28,6 +40,11 @@ def get_homologs(
     return base_query.all()
 
 
-def homolog_sources(db: Session):
+def homolog_sources(db: Session) -> List[str]:
+    """Get all homolog sources.
+
+    :param db: The database session.
+    :return: All homolog sources.
+    """
     results = db.query(Homology.hom_source_name).distinct().all()
     return [r.hom_source_name for r in results]

@@ -1,11 +1,12 @@
 """Species database queries."""
-from typing import Optional
+
+from typing import List, Optional, Type
 
 from geneweaver.aon.models import GeneweaverSpecies, Species
 from sqlalchemy.orm import Session
 
 
-def get_species(db: Session, name: Optional[str] = None):
+def get_species(db: Session, name: Optional[str] = None) -> List[Type[Species]]:
     """Get species.
 
     :param db: The database session.
@@ -19,7 +20,7 @@ def get_species(db: Session, name: Optional[str] = None):
     return base_query.all()
 
 
-def species_by_id(db: Session, species_id: int):
+def species_by_id(db: Session, species_id: int) -> Type[Species]:
     """Get species by id.
 
     :param db: The database session.
@@ -29,7 +30,7 @@ def species_by_id(db: Session, species_id: int):
     return db.query(Species).get(species_id)
 
 
-def species_by_taxon_id(db: Session, taxon_id: int):
+def species_by_taxon_id(db: Session, taxon_id: int) -> List[Type[Species]]:
     """Get species by taxon id.
 
     :param db: The database session.
@@ -39,7 +40,7 @@ def species_by_taxon_id(db: Session, taxon_id: int):
     return db.query(Species).filter(Species.sp_taxon_id == taxon_id).all()
 
 
-def convert_species_agr_to_ode(db: Session, agr_sp_id: int):
+def convert_species_agr_to_ode(db: Session, agr_sp_id: int) -> Optional[int]:
     """Convert the species id from AGR to Geneweaver.
 
     :param db: The database session.
