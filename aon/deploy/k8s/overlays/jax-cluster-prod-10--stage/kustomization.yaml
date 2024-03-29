@@ -3,10 +3,8 @@ kind: Kustomization
 
 namespace: stage
 
-bases:
-- ../../base
-
 patchesStrategicMerge:
+  - ../../base
   - configmap.yaml
 
 resources:

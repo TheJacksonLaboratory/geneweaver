@@ -14,7 +14,7 @@ spec:
   tls:
     - hosts:
         - "geneweaver-stage.jax.org"
-      secretName: geneweaver-sqa-jax-org-tls
+      secretName: geneweaver-stage-jax-org-tls
   rules:
   - host: "geneweaver-stage.jax.org"
     http:

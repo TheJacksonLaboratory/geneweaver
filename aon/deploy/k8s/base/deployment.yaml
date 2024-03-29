@@ -4,6 +4,10 @@ metadata:
   name: geneweaver-aon-api
   labels:
     app: geneweaver-aon-api
+    jax.org/owner-team: geneweaver
+    jax.org/owner-team/id: 0d1a489d-e157-4c61-8d94-7e5c651eb9cc
+    jax.org/billing-group: geneweaver
+    jax.org/system-group: geneweaver
 spec:
   replicas: 1
   selector:
