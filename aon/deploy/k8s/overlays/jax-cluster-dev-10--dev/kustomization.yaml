@@ -3,13 +3,9 @@ kind: Kustomization
 
 namespace: dev
 
-bases:
-- ../../base
-
-# NOTE: When applying production ingress, replace this with a patch
 resources:
+  - ../../base
   - ingress.yaml
 
 patchesStrategicMerge:
   - configmap.yaml
-#  - ingress.yaml

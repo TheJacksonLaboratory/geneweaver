@@ -12,8 +12,19 @@ spec:
   tls:
     - hosts:
         - "geneweaver-prod.jax.org"
-      secretName: geneweaver-sqa-jax-org-tls
+        - "geneweaver.jax.org"
+      secretName: geneweaver-prod-jax-org-tls
   rules:
+  - host: "geneweaver.jax.org"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/aon/api"
+        backend:
+          service:
+            name: geneweaver-aon-api
+            port:
+              number: 8000
   - host: "geneweaver-prod.jax.org"
     http:
       paths:

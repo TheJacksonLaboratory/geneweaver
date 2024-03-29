@@ -1,5 +1,7 @@
 # Geneweaver Ortholog Normalizer
 
+![Website](https://img.shields.io/website?url=https%3A%2F%2Fgeneweaver.jax.org%2Faon%2Fapi%2Fdocs&up_message=available&down_message=down&style=for-the-badge&logo=swagger&label=Swagger%20Page&link=https%3A%2F%2Fgeneweaver.jax.org%2Fapi%2Fdocs)
+
 An application to aid in normalizing homology data.
 
 See [Aon: a service to augment Alliance Genome Resource data with additional species](https://bmcresnotes.biomedcentral.com/articles/10.1186/s13104-023-06577-8)

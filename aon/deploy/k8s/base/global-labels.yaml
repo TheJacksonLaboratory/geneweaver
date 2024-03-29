@@ -1,0 +1,14 @@
+apiVersion: builtin
+kind: LabelTransformer
+metadata:
+  name: global-labels
+labels:
+  jax.org/owner-team: geneweaver
+  jax.org/owner-team-id: 0d1a489d-e157-4c61-8d94-7e5c651eb9cc
+  jax.org/billing-group: geneweaver
+  jax.org/system-group: geneweaver
+  jax.org/component-id: 71eb9358-bf9c-4bb2-b30f-2918b099ed57
+  jax.org/component-tier: 3
+fieldSpecs:
+- path: metadata/labels
+  create: true
