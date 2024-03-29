@@ -1,6 +1,11 @@
 # Geneweaver Ortholog Normalizer
 
-![Website](https://img.shields.io/website?url=https%3A%2F%2Fgeneweaver.jax.org%2Faon%2Fapi%2Fdocs&up_message=available&down_message=down&style=for-the-badge&logo=swagger&label=Swagger%20Page&link=https%3A%2F%2Fgeneweaver.jax.org%2Fapi%2Fdocs)
+[![Tests](https://img.shields.io/github/actions/workflow/status/TheJacksonLaboratory/geneweaver-aon/tests.yml?branch=main&style=for-the-badge&logo=github&label=Tests)](https://github.com/TheJacksonLaboratory/geneweaver-core/actions/workflows/tests.yml?query=branch%3Amain++)
+[![Style](https://img.shields.io/github/actions/workflow/status/TheJacksonLaboratory/geneweaver-aon/style.yml?branch=main&style=for-the-badge&logo=github&label=Style)](https://github.com/TheJacksonLaboratory/geneweaver-core/actions/workflows/style.yml?query=branch%3Amain++)
+[![Coverage](https://img.shields.io/github/actions/workflow/status/TheJacksonLaboratory/geneweaver-aon/coverage.yml?branch=main&style=for-the-badge&logo=github&label=Coverage)](https://github.com/TheJacksonLaboratory/geneweaver-core/actions/workflows/coverage.yml?query=branch%3Amain++)
+
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Fgeneweaver.jax.org%2Faon%2Fapi%2Fdocs&up_message=available&down_message=down&style=for-the-badge&logo=swagger&label=Swagger%20Page&link=https%3A%2F%2Fgeneweaver.jax.org%2Fapi%2Fdocs)](https://geneweaver.jax.org/aon/api/docs)
+[![GitHub deployments](https://img.shields.io/github/deployments/thejacksonlaboratory/geneweaver-aon/jax-cluster-prod-10--prod?style=for-the-badge&label=Deployment%20Status)](https://geneweaver.jax.org/aon/api/docs)
 
 An application to aid in normalizing homology data.
 
