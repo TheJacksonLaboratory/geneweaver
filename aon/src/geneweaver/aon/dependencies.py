@@ -28,6 +28,8 @@ async def lifespan(app: FastAPI) -> None:
 
     :param app: The FastAPI application (dependency injection).
     """
+    logger.level = logging.getLevelName(config.LOG_LEVEL)
+
     logger.info("Setting up DB connection pools.")
     schema_versions = get_schema_versions()
     app.session_managers, app.engines = set_up_sessionmanager_by_schema(schema_versions)
@@ -38,7 +40,7 @@ async def lifespan(app: FastAPI) -> None:
             None if default_schema_version is None else default_schema_version.id
         )
         logger.info(
-            f"Using latest schema version as default: {default_schema_version}."
+            f"Using latest schema version as default: {default_schema_version.id}."
         )
     else:
         default_version_id = next(
@@ -69,6 +71,8 @@ def session(request: Request) -> sessionmaker:
     """Get a session from the connection pool."""
     try:
         schema_version = request.state.schema_version_id
+        logger.info(f"Using schema version {schema_version.id}.")
+
         try:
             _session = request.app.session_managers[schema_version]()
         except KeyError as e:
@@ -84,6 +88,7 @@ def session(request: Request) -> sessionmaker:
                     status_code=404, detail="Schema version not found."
                 ) from e
     except AttributeError:
+        logger.info("Using default schema version.")
         _session = request.app.session()
 
     yield _session

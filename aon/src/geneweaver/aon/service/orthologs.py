@@ -1,10 +1,13 @@
 """Module with functions for querying orthologs from the database."""
 
+import logging
 from typing import List, Optional, Type
 
 from geneweaver.aon.models import Algorithm, Gene, Ortholog, OrthologAlgorithms
 from geneweaver.aon.service.utils import apply_paging
 from sqlalchemy.orm import Session, aliased
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def get_ortholog_from_gene(db: Session, ortholog_id: int) -> Optional[Type[Gene]]:
@@ -59,9 +62,12 @@ def get_orthologs(
     :param limit: The limit for paging.
     :return: The orthologs for the provided query.
     """
+    logger.debug("Constructing get_orthologs query")
+
     query = db.query(Ortholog)
 
     if algorithm_id is not None:
+        logger.debug(f"Filtering get_orthologs by algorithm id: {algorithm_id}")
         query = (
             query.join(OrthologAlgorithms)
             .join(Algorithm)
@@ -69,35 +75,48 @@ def get_orthologs(
         )
 
     if from_species is not None:
+        logger.debug(f"Filtering get_orthologs by from species: {from_species}")
         from_gene = aliased(Gene)
         query = query.join(from_gene, Ortholog.from_gene == from_gene.gn_id).filter(
             from_gene.sp_id == from_species
         )
 
     if to_species is not None:
+        logger.debug(f"Filtering get_orthologs by to species: {to_species}")
         to_gene = aliased(Gene)
         query = query.join(to_gene, Ortholog.to_gene == to_gene.gn_id).filter(
             to_gene.sp_id == to_species
         )
 
     if from_gene_id:
+        logger.debug(f"Filtering get_orthologs by from gene id: {from_gene_id}")
         query = query.filter(Ortholog.from_gene == from_gene_id)
 
     if to_gene_id:
+        logger.debug(f"Filtering get_orthologs by to gene id: {to_gene_id}")
         query = query.filter(Ortholog.to_gene.id == to_gene_id)
 
     if best is not None:
+        logger.debug(f"Filtering get_orthologs by best: {best}")
         query = query.filter(Ortholog.ort_is_best == best)
 
     if revised is not None:
+        logger.debug(f"Filtering get_orthologs by revised: {revised}")
         query = query.filter(Ortholog.ort_is_best_revised == revised)
 
     if possible_match_algorithms is not None:
+        logger.debug(
+            "Filtering get_orthologs by possible match algorithms: "
+            f"{possible_match_algorithms}"
+        )
         query = query.filter(
             Ortholog.ort_num_possible_match_algorithms == possible_match_algorithms
         )
 
+    logger.debug(f"Using limit={limit} and start={start} for get_orthologs.")
     query = apply_paging(query, start, limit)
+
+    logger.debug(f"Running get_orthologs with query: `{str(query)}`")
 
     return query.all()
 
