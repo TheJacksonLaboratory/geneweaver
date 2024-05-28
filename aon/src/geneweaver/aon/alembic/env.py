@@ -1,10 +1,11 @@
+"""The script that Alembic uses to run migrations."""
+
+# ruff: noqa: ERA001, ANN201
+
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, text
-from sqlalchemy import pool
-
 from alembic import context
-
+from sqlalchemy import engine_from_config, pool, text
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -64,9 +65,9 @@ def run_migrations_online():
     x_arguments = context.get_x_argument(as_dictionary=True)
 
     current_tenant = x_arguments.get("tenant")
-    dburi = x_arguments.get('dburi')
+    dburi = x_arguments.get("dburi")
     if dburi:
-        _config_section['sqlalchemy.url'] = dburi
+        _config_section["sqlalchemy.url"] = dburi
 
     connectable = engine_from_config(
         _config_section,
@@ -75,7 +76,7 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        connection.execute(text('CREATE SCHEMA IF NOT EXISTS "%s"' % 'versions'))
+        connection.execute(text('CREATE SCHEMA IF NOT EXISTS "%s"' % "versions"))
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS "%s"' % current_tenant))
         connection.execute(text('set search_path to "%s"' % current_tenant))
         connection.commit()
