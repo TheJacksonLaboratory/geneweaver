@@ -1,9 +1,12 @@
 """Species database queries."""
 
+import logging
 from typing import List, Optional, Type
 
 from geneweaver.aon.models import GeneweaverSpecies, Species
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def get_species(db: Session, name: Optional[str] = None) -> List[Type[Species]]:
@@ -16,7 +19,7 @@ def get_species(db: Session, name: Optional[str] = None) -> List[Type[Species]]:
     base_query = db.query(Species)
     if name is not None:
         base_query = base_query.filter(Species.sp_name == name)
-    print(str(base_query))
+    logger.debug(f"Running get_species with query: `{str(base_query)}`")
     return base_query.all()
 
 

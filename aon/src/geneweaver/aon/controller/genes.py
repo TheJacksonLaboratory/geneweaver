@@ -30,6 +30,37 @@ def get_gene_prefixes(db: deps.Session = Depends(deps.session)):
     return genes_service.gene_prefixes(db)
 
 
+@router.post("/ortholog/mapping")
+def map_gene_orthologs(
+    db: deps.Session = Depends(deps.session),
+    gene_ref_ids: list[str] = None,
+    to_species: Optional[int] = None,
+    algorithm_id: Optional[int] = None,
+    paging_params: dict = Depends(deps.paging_parameters),
+) -> list:
+    """Map gene orthologs."""
+    return genes_service.map_gene_orthologs(
+        db,
+        gene_ref_ids,
+        to_species=to_species,
+        algorithm_id=algorithm_id,
+        **paging_params
+    )
+
+
+@router.post("/homolog/mapping")
+def map_gene_homologs(
+    db: deps.Session = Depends(deps.session),
+    gene_ref_ids: list[str] = None,
+    to_species: Optional[int] = None,
+    paging_params: dict = Depends(deps.paging_parameters),
+) -> list:
+    """Map gene orthologs."""
+    return genes_service.map_gene_homologs(
+        db, gene_ref_ids, to_species=to_species, **paging_params
+    )
+
+
 @router.get("/{gene_id}")
 def get_gene(gene_id: int, db: deps.Session = Depends(deps.session)):
     """Get gene by id."""
