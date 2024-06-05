@@ -1,0 +1,16 @@
+# TODO: Uncomment when we have tests and can calculate coverage
+#
+#name: Coverage
+#on:
+#  push:
+#    branches:
+#      - 'main'
+#jobs:
+#  check-coverage:
+#    uses: ./.github/workflows/_check-coverage-action.yml
+#    secrets: inherit
+#    permissions:
+#      pull-requests: write
+#    with:
+#      required-coverage: ${{ vars.REQUIRED_COVERAGE }}
+#      coverage-module: "geneweaver.api"
