@@ -38,7 +38,8 @@ jobs:
 #      required-coverage: ${{ vars.REQUIRED_COVERAGE }}
   build:
     name: "Build: Dev"
-    needs: [test, check-coverage]
+# TODO: Uncomment the following lines when we have the previous steps
+#    needs: [test, check-coverage]
     uses: ./.github/workflows/_skaffold-build-k8s.yml
     secrets: inherit
     with:
