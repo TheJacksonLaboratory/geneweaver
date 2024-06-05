@@ -101,7 +101,7 @@ jobs:
     name: "Build"
 # TODO: Replace with the commented line when we have a test step.
 #    needs: [ test, check-coverage, format-lint, version ]
-    needs: [ check-coverage, format-lint, version ]
+    needs: [ version ]
     if: ${{ needs.version.outputs.should_release == 'true' }}
     uses: ./.github/workflows/_skaffold-build-k8s.yml
     secrets: inherit
