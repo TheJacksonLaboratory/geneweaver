@@ -523,7 +523,7 @@ search.html and associated files in templates/search/
 
 
 def keyword_paginated_search(terms, pagination_page,
-                             search_fields='name,description,label,genes,pub_authors,pubmed_id,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
+                             search_fields='name,description,label,genes,pubmed_id,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
                              userFilters={}, sortby=None, sortAscending=True):
     '''
     Set up initial search connection and build queries

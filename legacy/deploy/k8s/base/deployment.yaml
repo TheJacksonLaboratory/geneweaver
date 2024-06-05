@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-legacy
+  labels:
+    app: geneweaver-legacy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-legacy
+  template:
+    metadata:
+      labels:
+        app: geneweaver-legacy
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      volumes:
+        - name: geneweaver-legacy
+          emptyDir: { }
+      containers:
+        - name: geneweaver-legacy
+          image: geneweaver-legacy
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: geneweaver-legacy
+              mountPath: /var/geneweaver/results
+          envFrom:
+            - configMapRef:
+                name: geneweaver-legacy-config
+            - secretRef:
+                name: geneweaver-db
+            - secretRef:
+                name: geneweaver-legacy-secrets
+          ports:
+            - containerPort: 8000

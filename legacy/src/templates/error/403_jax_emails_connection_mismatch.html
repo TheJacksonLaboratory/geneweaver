@@ -1,0 +1,32 @@
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div style="text-align:center; margin-top:130px;">
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-heading">
+                <div class="container">
+                    <h1>403 - Login Error</h1>
+                    <a type="button" href="/ssologin" class="btn btn-primary" id="signInAgain">
+                        Sign in Again
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="container">
+                    <div class="row">
+                        <h2>It looks like you're trying to log in with a 'jax.org' email
+                            address.</h2>
+                        <p>To log in with your 'jax.org' email address you must select the "Continue
+                            with Jax Credentials" button.</p>
+                        <p>This allows you to log in with your standard Jackson Laboratory account
+                            credentials.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}

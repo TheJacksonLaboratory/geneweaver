@@ -175,33 +175,6 @@ messages = array of messages
             // text and then show it.
             update_notification_badge();
 
-
-            $('#loginform').submit(function (event) {
-                // stop the form from submitting normally
-                event.preventDefault();
-                // get the email and password values from the form
-                var authData = {
-                    usr_email: userEmail.val(),
-                    usr_password: userPassword.val()
-                };
-                // send the data using a post
-                var posting = $.post("{{ url_for('json_login')|safe }}", authData);
-                posting.done(function (data) {
-                    if (data.success) {
-                        userName.text(data.usr_first_name);
-                        location.reload();
-                        // anonUserSpan.css('display', 'none');
-                        // validUserSpan.css('display', '');
-                    } else {
-                        alert("login attempt failed");
-                    }
-                });
-            });
-            $('#logout-button').click(function (event) {
-                $.get("{{ url_for('json_logout')|safe }}", function () {
-                    window.location = "/"
-                });
-            });
             $('#admin-button').click(function (event) {
                 window.location = "/admin";
             });
@@ -298,7 +271,7 @@ messages = array of messages
                             </a>
                         </li>
                         <li>
-                            <a id="logout-button"><i class="fa fa-power-off"></i> Logout</a>
+                            <a href='/logout' id="logout-button"><i class="fa fa-power-off"></i> Logout</a>
                         </li>
                     {% endif %}
                     <!-- Not logged in user -->
@@ -309,21 +282,19 @@ messages = array of messages
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url_for('render_reset') }}">
+                            <a href="/reset">
                                 <i class="fa fa-question"></i> Forgot Password
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url_for('render_register')|safe }}">Create Account</a>
+                            <a href="/register">Create Account</a>
                         </li>
 			            {% if g.user and g.user.is_guest %}
                         <li>
-                            <a id="logout-button"><i class="fa fa-power-off"></i> Logout</a>
+                            <a href='/logout' id="logout-button"><i class="fa fa-power-off"></i> Logout</a>
                         </li>
 			            {% endif %}
                     {% endif %}
-
-
                 </ul>
             </li>
 

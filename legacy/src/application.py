@@ -4,6 +4,7 @@ application
 
 Geneweaver web main module.
 """
+import logging
 from collections import OrderedDict, defaultdict
 from decimal import Decimal
 from io import StringIO
@@ -17,6 +18,7 @@ import os.path as path
 import re
 import urllib
 import requests
+from urllib.parse import urlencode
 
 from flask import Flask, Response
 from flask import (abort, jsonify, make_response, redirect, render_template,
@@ -26,12 +28,16 @@ from flask_admin.base import MenuLink
 from intermine.webservice import Service
 from psycopg2 import Error
 from psycopg2 import IntegrityError
-from wand.image import Image
+# from wand.image import Image
+Image = None
 from werkzeug.routing import BaseConverter
 import urllib3
 import bleach
 import flask
 import flask_restful as restful
+
+from authlib.integrations.flask_client import OAuth
+from authlib.integrations.base_client.errors import OAuthError
 
 from decorators import login_required, create_guest, restrict_to_current_user
 from tools import abbablueprint
@@ -58,11 +64,14 @@ import notifications
 import pub_assignments
 import publication_generator
 import report_bug
-#import search
+import search
 import uploadfiles
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1 ,x_proto=1)
+
 app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
 app.register_blueprint(dbscanblueprint.dbscan_blueprint)
@@ -126,6 +135,28 @@ admin.add_view(
     adminviews.Add(name='News Item', endpoint='newNewsItem', category='Add'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings'))
+
+oauth = OAuth(app)
+
+auth0 = oauth.register(
+    'geneweaver-auth0',
+    client_id=config.get('auth', 'client_id'),
+    client_secret=config.get('auth', 'client_secret'),
+    api_base_url=f'https://{config.get("auth", "domain")}/',
+    access_token_url=f'https://{config.get("auth", "domain")}/{config.get("auth", "token_endpoint")}',
+    authorize_url=f'https://{config.get("auth", "domain")}/{config.get("auth", "auth_endpoint")}',
+    client_kwargs={'scope': 'openid profile email'},
+    server_metadata_url=f'https://{config.get("auth", "domain")}/.well-known/openid-configuration',
+    jwks_uri=f'https://{config.get("auth", "domain")}/{config.get("auth", "jwks_endpoint")}'
+)
+
+
+logging.critical('Auth0 client_id: ' + config.get('auth', 'client_id'))
+logging.critical('Auth0 client_secret: ' + config.get('auth', 'client_secret'))
+logging.critical('Auth0 domain: ' + config.get('auth', 'domain'))
+logging.critical('Auth0 token_endpoint: ' + config.get('auth', 'token_endpoint'))
+logging.critical('Auth0 auth_endpoint: ' + config.get('auth', 'auth_endpoint'))
+
 
 
 class ListConverter(BaseConverter):
@@ -225,13 +256,7 @@ def lookup_user_from_session():
     flask.g.user = None
     user_id = session.get('user_id')
     if user_id:
-        if request.remote_addr == session.get('remote_addr'):
-            flask.g.user = geneweaverdb.get_user(user_id)
-        else:
-            # If IP addresses don't match we're going to reset the session for
-            # a bit of extra safety. Unfortunately this also means that we're
-            # forcing valid users to log in again when they change networks
-            _logout()
+        flask.g.user = geneweaverdb.get_user(user_id)
 
 
 @app.route('/logout')
@@ -249,6 +274,14 @@ def _logout():
         del flask.g.user
     except AttributeError:
         pass
+
+    # The code above is great, but let's make sure the session clears
+    session.clear()
+
+    # Redirect user to logout endpoint
+    params = {'returnTo': url_for('render_home', _external=True),
+              'client_id': config.get('auth', 'client_id')}
+    return redirect(auth0.api_base_url + 'v2/logout?' + urlencode(params))
 
 
 def _form_login():
@@ -274,7 +307,6 @@ def _form_login():
     return user
 
 
-
 def send_mail(to, subject, body):
     # print to, subject, body
     sendmail_location = "/usr/bin/mail"  # sendmail location
@@ -289,35 +321,7 @@ def send_mail(to, subject, body):
         print("Sendmail exit status", status)
 
 
-def _form_register():
-    user = flask.g.user
-    user_id = user.user_id if user else None
-    is_guest = user.is_guest if user else None
-    form = request.form
-    if 'usr_email' in form:
-        existing_user = geneweaverdb.get_user_byemail(form['usr_email'])
-        if existing_user and is_guest:
-            user = _form_login()
-        elif existing_user:
-            _logout()
-            user = None
-        elif user_id and is_guest:
-            user = geneweaverdb.register_user_from_guest(
-                form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'], user_id)
-        else:
-            _logout()
-            user = geneweaverdb.register_user(
-                form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'])
-
-        return user
-
-
-@app.route('/logout.json', methods=['GET', 'POST'])
-def json_logout():
-    _logout()
-    return jsonify({'success': True})
-
-
+# TODO: Fully replace this endpoint with ssologin endpoint
 @app.route('/login.json', methods=['POST'])
 def json_login():
     json_result = dict()
@@ -356,6 +360,79 @@ def login_as(as_user_id):
     flask.g.user = as_user
 
     return redirect('/')
+
+
+@app.route('/login', methods=['GET'])
+@app.route('/ssologin', methods=['GET'])
+def sso_login():
+    return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True))
+
+@app.route('/ssosignup', methods=['GET'])
+def sso_signup():
+    return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True),
+                                    screen_hint='signup')
+
+@app.route('/callback')
+def callback_handling():
+    # Handles response from token endpoint
+    try:
+        auth0.authorize_access_token()
+    except OAuthError as e:
+        if e.description == "Jax users must use Jax connection to log in.":
+            _logout()
+            params = {'returnTo': url_for('callback_error_jax_email', _external=True),
+                      'client_id': config.get('auth', 'client_id')}
+            return redirect(auth0.api_base_url + 'v2/logout?' + urlencode(params))
+        
+        logging.error(e)
+        abort(403)
+
+    resp = auth0.get('userinfo')
+    userinfo = resp.json()
+    user = None
+
+    # This is a bit tricky since we don't have a unique constraint on emails addrs in our database,
+    # but auth0 does have that unique constraint.
+    try:
+        user = geneweaverdb.get_user_byemail(userinfo['email'])
+    except AttributeError:
+        # Something went very wrong. An admin NEEDS to look into this
+        _logout()
+        params = {'returnTo': url_for('callback_error_duplicate_email', _external=True),
+                  'client_id': config.get('auth', 'client_id')}
+        return redirect(auth0.api_base_url + 'v2/logout?' + urlencode(params))
+
+    if not user:
+        user = geneweaverdb.register_sso_user(
+            userinfo['name'],
+            userinfo['email'],
+            userinfo['sub']
+        )
+
+    if user and not geneweaverdb.sso_id_exists(userinfo['sub']):
+        geneweaverdb.link_user_id_with_sso_id(user.user_id, userinfo['sub'])
+
+    if user:
+        # Store the user information in flask session.
+        # These two jwt_payload entries in the session are intended to eventually replace
+        # the other entries set here.
+        session['jwt_payload'] = userinfo
+        flask.session['user_id'] = user.user_id
+        flask.session['user_sso_id'] = userinfo['sub']
+        remote_addr = flask.request.remote_addr
+        if remote_addr:
+            flask.session['remote_addr'] = remote_addr
+        geneweaverdb.update_user_seen(user.user_id)
+
+    return redirect('/')
+
+@app.route('/callback/errors/email-mismatch')
+def callback_error_jax_email():
+    return render_template('error/403_jax_emails_connection_mismatch.html')
+
+@app.route('/callback/errors/duplicate-email')
+def callback_error_duplicate_email():
+    return render_template('error/403_duplicate_email.html')
 
 
 @app.route('/analyze')
@@ -2119,7 +2196,7 @@ def set_annotator():
 
     return response
 
-@app.route('/login')
+@app.route('/login/deprecated')
 def render_login():
     return render_template('login.html')
 
@@ -2159,7 +2236,7 @@ def download_result():
     form = request.form
     filetype = form['filetype'].lower().strip()
     runhash = form['runhash'].strip()
-    svg = StringIO(form['svg'].strip())
+    svg = form['svg'].strip()
     results = config.get('application', 'results')
     imgstream = StringIO()
     dpi = 400 if filetype != 'svg' else 25
@@ -2175,6 +2252,7 @@ def download_result():
     img_rel = os.path.join('results', img_file)
 
     if filetype == 'svg':
+        svg = StringIO(svg)
         with open(img_abs, 'w') as fl:
             print(svg.getvalue(), file=fl)
 
@@ -2189,7 +2267,8 @@ def download_result():
         img = Image(filename=classicpath, format='svg', resolution=150)
 
     else:
-        img = Image(file=svg, format='svg', resolution=dpi)
+        svg = svg.encode('utf-8')
+        img = Image(blob=svg, format='svg', resolution=dpi)
 
     img.format = filetype
     img.save(filename=img_abs)
@@ -3209,6 +3288,15 @@ def render_sim_genesets(gs_id, grp_by):
     d3Data = []
     d3BarChart = []
     max = 0
+
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+    species_map = {}
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+        species_map[sp_id] = sp_name
+
     # OK, OK, This is nasty. Loop through all curation tiers, then,
     # for each curation tier, Loop through all species. Then, Loop through
     # all cur - sp_id sets in the simgs set to find the average values and
@@ -3230,15 +3318,15 @@ def render_sim_genesets(gs_id, grp_by):
             if avg > max:
                 max = avg
             if i == 1:
-                tier1.append({'axis': geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+                tier1.append({'axis': species_map[l['sp_id']], 'value': float(avg)})
             elif i == 2:
-                tier2.append({'axis': geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+                tier2.append({'axis': species_map[l['sp_id']], 'value': float(avg)})
             elif i == 3:
-                tier3.append({'axis': geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+                tier3.append({'axis': species_map[l['sp_id']], 'value': float(avg)})
             elif i == 4:
-                tier4.append({'axis': geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+                tier4.append({'axis': species_map[l['sp_id']], 'value': float(avg)})
             elif i == 5:
-                tier5.append({'axis': geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+                tier5.append({'axis': species_map[l['sp_id']], 'value': float(avg)})
     # This is the bit for the bar chart
     i = 1
     for k in simgs:
@@ -3248,12 +3336,6 @@ def render_sim_genesets(gs_id, grp_by):
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
     json.dumps(d3BarChart, default=decimal_default)
-
-    ## sp_id -> sp_name map so species tags can be dynamically generated
-    species = []
-
-    for sp_id, sp_name in geneweaverdb.get_all_species().items():
-        species.append([sp_id, sp_name])
 
     # #################################################################################
     # This is deprecated. The dynamic jaccard does not make use of this information
@@ -4528,12 +4610,14 @@ def render_usage():
 
 @app.route('/register', methods=['GET', 'POST'])
 def render_register():
-    return render_template('register.html')
+    return sso_signup()
 
 
 @app.route('/reset', methods=['GET', 'POST'])
 def render_reset():
-    return render_template('reset.html')
+    # For now, we need to redirect to login page. Hopefully we can find a way to redirect directly
+    # to the password reset screen.
+    return sso_login()
 
 
 @app.route('/reset_submit.html', methods=['GET', 'POST'])
@@ -4575,65 +4659,6 @@ def render_home():
     news_array = geneweaverdb.get_news()
     stats = geneweaverdb.get_stats()
     return render_template('index.html', news_array=news_array, stats=stats)
-
-
-@app.route('/register_submit.html', methods=['GET', 'POST'])
-def json_register_successful():
-    # Secret key for reCAPTCHA form
-    RECAP_SECRET = '6LeO7g4TAAAAAObZpw2KFnFjz1trc_hlpnhkECyS'
-    RECAP_URL = 'https://www.google.com/recaptcha/api/siteverify'
-    form = request.form
-    http = urllib3.PoolManager()
-
-    if not form['usr_first_name']:
-        return render_template('register.html', error="Please enter your first name.")
-    elif not form['usr_last_name']:
-        return render_template('register.html', error="Please enter your last name.")
-    elif not form['usr_email']:
-        return render_template('register.html', error="Please enter your email.")
-    elif not form['usr_password']:
-        return render_template('register.html', error="Please enter your password.")
-
-    captcha = form['g-recaptcha-response']
-
-    ## No robots
-    if not captcha:
-        return render_template('register.html',
-                                     error="There was a problem with your captcha input. Please try again.")
-
-    else:
-        ## The only data required by reCAPTCHA is secret and response. An
-        ## optional parameter, remotep, containing the end user's IP can also
-        ## be appended.
-        pdata = {'secret': RECAP_SECRET, 'response': captcha}
-        resp = http.request('POST', RECAP_URL, fields=pdata)
-
-    ## 200 = OK
-    if resp.status != 200:
-        return render_template('register.html',
-                                     error=("There was a problem with the reCAPTCHA servers. "
-                                            "Please try again."))
-
-    rdata = json.loads(resp.data)
-
-    ## If success is false, the dict should contain an 'error-code.' This
-    ## isn't checked currently.
-    if not rdata['success']:
-        return render_template('register.html',
-                                     error="Incorrect captcha. Please try again.")
-    user = _form_register()
-
-    if user is None:
-        return render_template('register.html', register_not_successful=True)
-    else:
-        session['user_id'] = user.user_id
-        remote_addr = request.remote_addr
-        if remote_addr:
-            session['remote_addr'] = remote_addr
-
-    flask.g.user = user
-
-    return render_home()
 
 
 @create_guest

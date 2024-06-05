@@ -3298,6 +3298,61 @@ def get_user(user_id):
             return None
 
 
+def sso_id_exists(sso_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT count(*) FROM usr
+                WHERE usr_sso_id = %s
+            ''', (sso_id,)
+        )
+        existing = int(cursor.fetchone()[0])
+        print(existing)
+
+    return existing > 0
+
+
+def link_user_id_with_sso_id(user_id, sso_id):
+    if sso_id_exists(sso_id):
+        raise ValueError("SSO ID is already linked to a different account")
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''UPDATE usr
+           SET usr_sso_id = %s
+           WHERE usr_id = %s''', (sso_id, user_id)
+        )
+        cursor.connection.commit()
+
+
+def register_sso_user(name, user_email, user_sso_id):
+    """
+    Insert a user to the db
+    :param name: the user's name as provided by auth0.
+    :param user_email:		the user's email address, if not provided use "" as default
+    :param user_sso_id:	the user's id according to oauth, if not provided use "" as default
+    """
+    split_name = name.split(" ")
+    first_name = split_name[0]
+    last_name = " ".join(split_name[1:])
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''INSERT INTO usr
+               (usr_first_name, usr_last_name, usr_email, usr_admin, usr_sso_id, usr_last_seen, usr_created, is_guest)
+               VALUES
+               (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_sso_id)s, NOW(), NOW(), 'f')
+            ''',
+            {
+                'user_first_name': first_name,
+                'user_last_name': last_name,
+                'user_email': user_email.lower(),
+                'user_sso_id': user_sso_id
+            }
+        )
+        cursor.connection.commit()
+        return get_user_byemail(user_email)
+
+
 def get_user_byemail(user_email):
     """
     Looks up a User in the database
@@ -3305,8 +3360,10 @@ def get_user_byemail(user_email):
     :return: the User matching the given email or None if no such user is found
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
+        cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email.lower(),))
         users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
+        if len(users) > 1:
+            raise AttributeError("Multiple rows found for that email address")
         return users[0] if len(users) == 1 else None
 
 
@@ -3563,20 +3620,18 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
             '''SELECT a.* FROM (
                    (SELECT geneset.*,jac_value,gic_value 
                        FROM geneset, geneset_jaccard gj
-                       WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s 
-                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                       WHERE gs_id=gs_id_right AND gs_id_left=408167 
                          AND gs_status NOT LIKE 'de%%' 
                            ORDER BY gj.jac_value DESC LIMIT 500
                      ) 
                      UNION
                    (SELECT geneset.*,jac_value,gic_value 
                        FROM geneset, geneset_jaccard gj 
-                       WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s 
-                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                       WHERE gs_id=gs_id_left AND gs_id_right=408167 
                          AND gs_status NOT LIKE 'de%%' 
                            ORDER BY gj.jac_value DESC LIMIT 500
                      ) 
-                 ) AS a ORDER BY ''' + order_by + ''' a.jac_value DESC LIMIT 1000''',
+                 ) AS a ORDER BY a.jac_value DESC LIMIT 1000''',
             {
                 'geneset_id': geneset_id,
                 'user_id': user_id,
@@ -3877,7 +3932,36 @@ def get_genesets_by_hom_id(hom_ids):
             cursor.execute('SELECT geneset_array FROM extsrc.hom2geneset WHERE hom_id=%s', (h,))
             geneset_list.append(cursor.fetchone()[0])
         list(set(geneset_list[0]))
-    return geneset_list[0]
+    return geneset_list
+
+
+def get_genesets_hom_ids(gs_ids):
+    """Get all hom_ids for a list of geneset ids.
+    :param gs_ids: list of geneset ids
+    :returns: dict of key=gs_id, value=list of hom_ids
+    """
+    with PooledCursor() as cursor:
+        cursor.execute("""
+        SELECT
+            g.gs_id,
+            ARRAY_AGG(DISTINCT h.hom_id) AS hom_ids
+        FROM
+            extsrc.homology h
+                INNER JOIN extsrc.geneset_value gsv ON h.ode_gene_id = gsv.ode_gene_id
+                INNER JOIN production.geneset g ON gsv.gs_id = g.gs_id
+        WHERE
+            g.gs_status NOT LIKE 'de%%'
+          AND g.gs_id = ANY(%(gs_ids)s)
+        GROUP BY
+            g.gs_id;
+        """, {"gs_ids": list(gs_ids)})
+        if cursor.rowcount == 0:
+            return {}
+        else:
+            return {
+                r[0]: list(r[1])
+                for r in cursor.fetchall()
+            }
 
 
 def insert_into_geneset_jaccard(jaccards, gs_id):

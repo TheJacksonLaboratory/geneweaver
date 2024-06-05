@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geneweaver-legacy-config
+data:
+  AUTH_CLIENTID: "wMjx3nGV24qneBjXqz52IhEpq6AU7reo"
+  APPLICATION_RESULTS: "/var/geneweaver/results"
