@@ -43,7 +43,8 @@ jobs:
 #      python-version: ${{ matrix.python-version }}
 #      required-coverage: ${{ vars.REQUIRED_COVERAGE }}
   version:
-    needs: test
+# TODO: Uncomment the following lines when we have the previous steps
+#    needs: test
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.version_check.outputs.should_release }}
@@ -98,7 +99,9 @@ jobs:
 
   build:
     name: "Build"
-    needs: [ test, check-coverage, format-lint, version ]
+# TODO: Replace with the commented line when we have a test step.
+#    needs: [ test, check-coverage, format-lint, version ]
+    needs: [ check-coverage, format-lint, version ]
     if: ${{ needs.version.outputs.should_release == 'true' }}
     uses: ./.github/workflows/_skaffold-build-k8s.yml
     secrets: inherit
