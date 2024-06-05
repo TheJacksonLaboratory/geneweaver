@@ -1,120 +1,128 @@
 import os
-import configparser
 import binascii
+from typing import Any
 
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
-## included in version control, especially if it has any usernames, passwords,
-## or API keys.
-rootpath=""
-CONFIG_PATH = rootpath+'geneweaver.cfg'
 
 ## Global config object, sholudn't be accessed directly but using the helper
 ## functions found below.
 CONFIG = None
 
 
-def createConfig():
-    """
-    Generates a new configuration file in the current directory. The config
-    file uses the common INI style which can be parsed with python's
-    configparser module.
+class ApplicationConfig(BaseModel):
 
-    :ret:
-    """
+    host: str = "127.0.0.1"
+    results: str = "/var/geneweaver/results"
+    secret: str = binascii.hexlify(os.urandom(32)).decode()
+    help_url: str = "http://geneweaver.org/help"
+    smtp: str = "smtp.jax.org"
+    admin_email: str = "noreply@geneweaver.org"
 
-    with open(CONFIG_PATH, 'w') as fl:
-        print('## GeneWeaver Configuration File', file=fl)
-        print('#', file=fl)
-        print('', file=fl)
-        print('[application]', file=fl)
-        print('host = 127.0.0.1', file=fl)
-        print('results = /opt/geneweaver/results', file=fl)
-        print('secret = ' + binascii.hexlify(os.urandom(32)).decode(), file=fl)
-        print('help_url = http://geneweaver.org/help', file=fl)
-        print('smtp = smtp.jax.org', file=fl)
-        print('admin_email = noreply@geneweaver.org', file=fl)
-        print('', file=fl)
-        print('[celery]', file=fl)
-        print('url = amqp://geneweaver:geneweaver@localhost:5672/geneweaver', file=fl)
-        print('backend = amqp', file=fl)
-        print('', file=fl)
-        print('[db]', file=fl)
-        print('database = dbname', file=fl)
-        print('user = user', file=fl)
-        print('password = somepassword', file=fl)
-        print('host = 127.0.0.1', file=fl)
-        print('port = 5432', file=fl)
-        print('', file=fl)
-        print('[sphinx]', file=fl)
-        print('host = 127.0.0.1', file=fl)
-        print('port = 9312', file=fl)
-        print('', file=fl)
-        print('[landing_page]', file=fl)
-        print('apikey_geneweaver = apikey', file=fl)
-        print('agr_url = https://www.alliancegenome.org/api/', file=fl)
-        print('api_key_disgenet = apikey', file=fl)
-        print('api_host_disgenet = https://www.disgenet.org/api', file=fl)
-        print('', file=fl)
 
-def checkIntegrity():
-    """
-    Checks to make sure all the key-value pairs have values and fills in any
-    missing spots so the app won't crash later.
-    """
+class Celery(BaseModel):
 
-    sections = ['application', 'celery', 'db', 'sphinx', 'landing_page']
+    url: str = "amqp://geneweaver:geneweaver@localhost:5672/geneweaver"
+    backend: str = "amqp"
 
-    for sec in sections:
-        for key, val in CONFIG.items(sec):
-            if not val:
-                val = '0'
 
-                CONFIG.set(sec, key, val)
+class DB(BaseModel):
 
-def loadConfig():
-    """
-    Attempts to load and parse a config file.
-    """
+    host: str = Field("127.0.0.1")
+    database: str = Field("geneweaver", validation_alias="name")
+    user: str = Field("postgres", validation_alias="username")
+    password: str = Field("postgres")
+    port: int = Field(5432)
 
-    if not os.path.exists(CONFIG_PATH):
-        createConfig()
 
-        raise IOError(('Could not find a config file, so we made '
-                       'one for you. Please fill it out.'))
+class Sphinx(BaseModel):
 
-    ## Assumes the config file info is correct. The app will throw exceptions
-    ## later anyway if any of the parameters are wrong.
-    CONFIG.read(CONFIG_PATH)
+    host: str = "127.0.0.1"
+    port: int = 9312
 
-    checkIntegrity()
 
-def get(section, option):
+class LandingPage(BaseModel):
+
+    apikey_geneweaver: str = "apikey"
+    agr_url: str = "https://www.alliancegenome.org/api/"
+    api_key_disgenet: str = "apikey"
+    api_host_disgenet: str = "https://www.disgenet.org/api"
+
+
+class Auth(BaseModel):
+    client_id: str = Field("wMjx3nGV24qneBjXqz52IhEpq6AU7reo", validation_alias="clientid")
+    client_secret: str = Field("", validation_alias="clientsecret")
+    domain: str = "geneweaver.auth0.com"
+    auth_endpoint: str = Field("authorize", validation_alias="authendpoint")
+    token_endpoint: str = Field("oauth/token", validation_alias="tokenendpoint")
+    userinfo_endpoint: str = Field("oauth/userinfo", validation_alias="userinfoendpoint")
+    jwks_endpoint: str = Field(".well-known/jwks.json", validation_alias="jwksendpoint")
+
+
+class GeneweaverLegacyConfig(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_nested_delimiter='_',
+        env_file='.env',
+        env_file_encoding='utf-8'
+    )
+
+    application: ApplicationConfig = ApplicationConfig()
+    celery: Celery = Celery()
+    db: DB = DB()
+    sphinx: Sphinx = Sphinx()
+    landing_page: LandingPage = LandingPage()
+    auth: Auth = Auth()
+
+    def get(self, section, option):
+        return getattr(
+            getattr(self, section),
+            option
+        )
+
+    def set(self, section, option, value):
+        setattr(
+            getattr(self, section),
+            option,
+            value
+        )
+
+    def getint(self, section, option):
+        return int(self.get(section, option))
+
+    def items(self, section):
+        return getattr(self, section).dict().items()
+
+    def keys(self, section):
+        return getattr(self, section).dict().keys()
+
+    def values(self, section):
+        return getattr(self, section).dict().values()
+
+
+def get(section, option) -> Any:
     """
     Returns the value of a section, key pair from the global config object.
 
-    :ret str: some config value
+    :returns some config value
     """
 
     return CONFIG.get(section, option)
 
 
-def getInt(section, option):
+def getInt(section, option) -> int:
     """
     Returns the value of a section, key pair from the global config object as
     an int.
 
-    :ret str: some config value
+    :returns int: some config value
     """
 
     return CONFIG.getint(section, option)
+
 
 ## This config module should be included prior to any others since other parts
 ## of the app may need to access its variables. The config will attempt to load
 ## and parse everything as soon as it's imported.
 if not CONFIG:
-    CONFIG = configparser.RawConfigParser(allow_no_value=True)
-    loadConfig()
-
-if __name__ == '__main__':
-    loadConfig()
+    CONFIG = GeneweaverLegacyConfig()
