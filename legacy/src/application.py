@@ -28,8 +28,7 @@ from flask_admin.base import MenuLink
 from intermine.webservice import Service
 from psycopg2 import Error
 from psycopg2 import IntegrityError
-# from wand.image import Image
-Image = None
+from wand.image import Image
 from werkzeug.routing import BaseConverter
 import urllib3
 import bleach
@@ -68,6 +67,13 @@ import search
 import uploadfiles
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+try:
+    from importlib import metadata
+except ImportError:
+    # Running on pre-3.8 Python; use importlib-metadata package
+    import importlib_metadata as metadata
+
+VERSION = metadata.version("geneweaver-legacy")
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1 ,x_proto=1)
@@ -208,6 +214,9 @@ SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rer
                  'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
                  'Canis familiaris']
 
+@app.context_processor
+def inject_version():
+    return dict(application_package_version=VERSION)
 
 @app.route('/register_or_login')
 def register_or_login():
@@ -4658,7 +4667,7 @@ def generate_api_key():
 def render_home():
     news_array = geneweaverdb.get_news()
     stats = geneweaverdb.get_stats()
-    return render_template('index.html', news_array=news_array, stats=stats)
+    return render_template('index.html', news_array=news_array, stats=stats, version=VERSION)
 
 
 @create_guest
