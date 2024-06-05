@@ -94,11 +94,16 @@
 </div>
 
     <script type="text/javascript">
-
-        jQuery("#report-bug").click(function(e) {
-			e.preventDefault();
-			$("#submitBugReportModal").modal('show');
-		});
+        jQuery("#report-bug").click(function (e) {
+            e.preventDefault();
+            const _window = window.open('https://github.com/TheJacksonLaboratory/geneweaver-legacy/issues/new', '_blank');
+            if (_window) {
+                _window.focus();
+            } else {
+                alert('Please allow popups for this site');
+            }
+            {#$("#submitBugReportModal").modal('show');#}
+        });
     </script>
 
 

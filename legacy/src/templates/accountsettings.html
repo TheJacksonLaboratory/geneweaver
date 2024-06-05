@@ -309,38 +309,34 @@
             <div class="col-md-6">
                 <div class="panel panel-primary">
                     <div class="page-header">
-                        <h2>Update Account</h2>
+                        <h2>Account</h2>
                     </div>
                     <div class="panel-body">
                         <form>
                             <div class="row">
-                                <label for="username"><h4>Name</h4></label>
-                                <input class="form-control input-lg" type="text" name="username"
-                                       value="{{ user.first_name }} {{ user.last_name }}">
+                                <h4>Name: {{ user.first_name }} {{ user.last_name }}</h4>
                             </div>
                             <br>
-
                             <div class="row">
-                                <label for="email"><h4>Email</h4></label>
-                                <input class="form-control input-lg" type="text" name="email"
-                                       value="{{ user.email }}">
+                                <h4>Email: {{ user.email }}</h4>
                             </div>
                             <br>
-                            <button class="ui-state-disabled btn btn-success btn-transparent pull-right">Save Changes
-                            </button>
-                            <br><br>
                         </form>
                     </div>
 
                 </div>
 
                 <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Settings</h2>
+                    </div>
                     <div class="panel-body">
                         <div class="row">
                             <label class="checkbox-inline" for="email_notifications"><h4>Receive Notifications As Email</h4>
                                 <input type="checkbox" name="email_notifications" id="email_notifications" {% if emailNotifications %}checked{% endif %}>
                             </label>
                         </div>
+                    <hr>
                         <div class="row">
                             <label for="annotation_pref"><h4>Text Annotator</h4>
                                 <select class="form-control" id="annotation_pref">
@@ -351,35 +347,6 @@
                                 </select>
                             </label>
                         </div>
-                    </div>
-                </div>
-
-                <div class="panel panel-primary">
-                    <div class="page-header">
-                        <h2>Change Password</h2>
-                    </div>
-                    <div class="panel-body">
-                        <form method="post" action="{{ url_for('change_password') }}" id="change-password">
-                            <div class="row">
-                                <label for="curr_pass"><h4>Current Password</h4></label>
-                                <input class="form-control input-lg" type="password" name="curr_pass" id="curr_pass">
-                            </div>
-                            <br>
-                            <div class="row">
-                                <label for="password_1"><h4>New Password</h4></label>
-                                <input class="form-control input-lg" type="password" name="new_pass" id="password_1">
-                            </div>
-                            <br>
-                            <div class="row">
-                                <label for="password_2"><h4>Confirm New Password</h4></label>
-                                <input class="form-control input-lg" type="password" name="conf_new" id="password_2">
-                            </div>
-                            <br>
-                            <button id="change_password"
-                                    class="ui-state-disabled btn btn-success btn-transparent pull-right">Change Password
-                            </button>
-                        </form>
-
                     </div>
                 </div>
             </div>

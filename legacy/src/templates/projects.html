@@ -62,24 +62,19 @@
             <div id="project-alert" class="alert alert-dismissible" data-alerts="alerts" 
                  data-titles="{'warning': '<em>Warning!</em>'}" 
                  data-ids="myid">
-             </div>
+            </div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>My Projects</strong></h3>
             </div>
-
 
             <div class="row">
 
                 <!-- the projects column -->
                 <form id="todo-id" class="form-horizontal" role="form" method="post">
 
-                    <div class="col-md-8">
-                        <div class="page-header"><h2>Projects</h2></div>
+                    {% include 'htmlfragments/favoriteProjectsList.html' %}
 
-                        {% include 'htmlfragments/projectsList.html' %}
-
-                    </div>
                 </form>
 
                 <!-- the Analysis tools column -->
@@ -132,7 +127,7 @@
 {% if g.user is defined %}
 
 {#
-    AddBlankProject is included in the addGenesetsToProjects_multiselect 
+    AddBlankProject is included in the addGenesetsToProjects_multiselect
     modal, so if we try to include it here for the New Project button, projects
     will get added twice...
 
@@ -169,7 +164,7 @@
             var projid = [];
             var projname = [];
 
-			// These selections also grab things other that projects and 
+			// These selections also grab things other that projects and
 			// should be filtered
             $('input[type=checkbox]:checked').each(function () {
                 var thisName = $(this).attr('data-project-name');
@@ -195,7 +190,7 @@
 				}]);
 
             } else{
-            
+
                 var p = projid.join(",");
                 var q = projname.join(", ");
 
@@ -205,7 +200,7 @@
             }
         });
 
-		// When a user is adding genesets to a new project, this allows them 
+		// When a user is adding genesets to a new project, this allows them
         // to hit enter to execute that addition without the page throwing
         // an http error
         $(document).on('keypress', function(e) {
