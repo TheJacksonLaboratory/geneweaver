@@ -34,3 +34,10 @@ spec:
                 name: geneweaver-legacy-secrets
           ports:
             - containerPort: 8000
+        - name: geneweaver-legacy-search
+          image: geneweaver-legacy
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: geneweaver-db
+          command: ["/bin/bash", "-c", "/app/sphinx/start_sphinx.sh"]

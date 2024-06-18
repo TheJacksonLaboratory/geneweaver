@@ -24,6 +24,8 @@ ENV PATH="${POETRY_HOME}/bin:${PATH}"
 
 WORKDIR /app
 
+COPY sample-configs/k8s/sphinx /app/sphinx/
+
 COPY pyproject.toml poetry.lock README.md /app/
 
 RUN poetry install --sync --no-root
