@@ -5,3 +5,6 @@ metadata:
 data:
   AUTH_CLIENTID: "wMjx3nGV24qneBjXqz52IhEpq6AU7reo"
   APPLICATION_RESULTS: "/var/geneweaver/results"
+  CELERY_HOST: "redis-master"
+  CELERY_PORT: "6379"
+  CELERY_BACKEND: "redis"

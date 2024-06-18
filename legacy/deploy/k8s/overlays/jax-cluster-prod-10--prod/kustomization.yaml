@@ -4,3 +4,5 @@ namespace: prod
 resources:
   - ../../base
   - ingress.yaml
+patchesStrategicMerge:
+  - persistent-volume-claim.yaml

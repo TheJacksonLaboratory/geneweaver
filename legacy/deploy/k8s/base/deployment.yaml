@@ -13,11 +13,14 @@ spec:
     metadata:
       labels:
         app: geneweaver-legacy
+      annotations:
+        gke-gcsfuse/volumes: "true"
     spec:
       serviceAccountName: workload-identity-geneweaver
       volumes:
         - name: geneweaver-legacy
-          emptyDir: { }
+          persistentVolumeClaim:
+            claimName: geneweaver-pvc
       containers:
         - name: geneweaver-legacy
           image: geneweaver-legacy
@@ -25,6 +28,12 @@ spec:
           volumeMounts:
             - name: geneweaver-legacy
               mountPath: /var/geneweaver/results
+          env:
+            - name: CELERY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
           envFrom:
             - configMapRef:
                 name: geneweaver-legacy-config

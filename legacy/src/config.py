@@ -1,8 +1,8 @@
 import os
 import binascii
-from typing import Any
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,8 +23,26 @@ class ApplicationConfig(BaseModel):
 
 class Celery(BaseModel):
 
-    url: str = "amqp://geneweaver:geneweaver@localhost:5672/geneweaver"
     backend: str = "amqp"
+    host: str = "localhost"
+    port: int = 5672
+    user: str = ""
+    password: str = ""
+    db: int = 1
+    url: Optional[str] = Field(None, validate_default=True)
+
+    @model_validator(mode='after')
+    def url_validator(self):
+        if self.url is None:
+            if self.password:
+                credentials = f"{self.user}:{self.password}@"
+            elif self.user:
+                credentials = f"{self.user}@"
+            else:
+                credentials = ""
+            db = f"/{self.db}" if self.db else ""
+            self.url = f"{self.backend}://{credentials}{self.host}:{self.port}{db}"
+        return self
 
 
 class DB(BaseModel):
