@@ -1,8 +1,8 @@
 import os
 import binascii
-from typing import Any
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +28,7 @@ class Celery(BaseModel):
     port: int = 5672
     user: str = ""
     password: str = ""
-    namespace: str = "geneweaver"
+    db: int = 1
     url: Optional[str] = Field(None, validate_default=True)
 
     @model_validator(mode='after')
@@ -40,8 +40,8 @@ class Celery(BaseModel):
                 credentials = f"{self.user}@"
             else:
                 credentials = ""
-            namespace = f"/{self.namespace}" if self.namespace else ""
-            self.url = f"{self.backend}://{credentials}{self.host}:{self.port}{namespace}"
+            db = f"/{self.db}" if self.db else ""
+            self.url = f"{self.backend}://{credentials}{self.host}:{self.port}{db}"
         return self
 
 
