@@ -8,5 +8,4 @@ spec:
   resources:
     requests:
       storage: 100Gi
-  volumeName: geneweaver-pv-rwm
   storageClassName: cloud-storage-rwm
