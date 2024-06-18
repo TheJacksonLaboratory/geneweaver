@@ -23,8 +23,26 @@ class ApplicationConfig(BaseModel):
 
 class Celery(BaseModel):
 
-    url: str = "amqp://geneweaver:geneweaver@localhost:5672/geneweaver"
     backend: str = "amqp"
+    host: str = "localhost"
+    port: int = 5672
+    user: str = ""
+    password: str = ""
+    namespace: str = "geneweaver"
+    url: Optional[str] = Field(None, validate_default=True)
+
+    @model_validator(mode='after')
+    def url_validator(self):
+        if self.url is None:
+            if self.password:
+                credentials = f"{self.user}:{self.password}@"
+            elif self.user:
+                credentials = f"{self.user}@"
+            else:
+                credentials = ""
+            namespace = f"/{self.namespace}" if self.namespace else ""
+            self.url = f"{self.backend}://{credentials}{self.host}:{self.port}{namespace}"
+        return self
 
 
 class DB(BaseModel):

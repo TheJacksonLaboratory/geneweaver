@@ -25,6 +25,12 @@ spec:
           volumeMounts:
             - name: geneweaver-legacy
               mountPath: /var/geneweaver/results
+          env:
+            - name: CELERY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
           envFrom:
             - configMapRef:
                 name: geneweaver-legacy-config
