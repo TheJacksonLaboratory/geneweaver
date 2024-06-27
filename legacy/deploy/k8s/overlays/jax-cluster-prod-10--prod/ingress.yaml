@@ -13,21 +13,22 @@ spec:
     - hosts:
         - "geneweaver-prod.jax.org"
         - "geneweaver.jax.org"
+        - "geneweaver.org"
       secretName: geneweaver-prod-jax-org-tls
   rules:
-  - host: "geneweaver.jax.org"
-    http:
-      paths:
-      - pathType: Prefix
-        path: "/"
-        backend:
-          service:
-            name: geneweaver-legacy
-            port:
-              number: 8000
-  - host: "geneweaver-prod.jax.org"
-    http:
-      paths:
+    - host: "geneweaver.org"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: geneweaver-legacy
+                port:
+                  number: 8000
+    - host: "geneweaver.jax.org"
+      http:
+        paths:
         - pathType: Prefix
           path: "/"
           backend:
@@ -35,3 +36,13 @@ spec:
               name: geneweaver-legacy
               port:
                 number: 8000
+    - host: "geneweaver-prod.jax.org"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: geneweaver-legacy
+                port:
+                  number: 8000
