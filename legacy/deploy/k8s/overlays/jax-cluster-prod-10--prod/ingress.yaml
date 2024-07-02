@@ -57,6 +57,7 @@ spec:
               service:
                 name: geneweaver-legacy
                 port:
+                  number: 8000
     - host: "classic.geneweaver.org"
       http:
         paths:
