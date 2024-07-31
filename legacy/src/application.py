@@ -28,7 +28,6 @@ from flask_admin.base import MenuLink
 from intermine.webservice import Service
 from psycopg2 import Error
 from psycopg2 import IntegrityError
-from wand.image import Image
 from werkzeug.routing import BaseConverter
 import urllib3
 import bleach
@@ -66,6 +65,11 @@ import report_bug
 import search
 import uploadfiles
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+try:
+    from wand.image import Image
+except ImportError:
+    logging.error("Wand is not installed. Image processing will not work.")
 
 try:
     from importlib import metadata
