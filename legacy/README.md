@@ -1,79 +1,81 @@
-# Geneweaver (scripted setup)
+# Geneweaver
 
-When installing on Centos7, you can use the install bash script in `sample-configs/install.sh`.
+## Development Setup
 
-The script does the following:
-*  Builds and installs python 3.7
-*  Installs OS level dependencies
-*  Clones geneweaver source
-*  Adds geneweaver user
-*  Sets up virtualenvironment
-*  Generates a default config file
-*  Syncs packages with pipenv
-*  Configures Nginx (website)
-*  Configures RabbitMQ (website)
-*  Configures celery (tools)
-*  Adds geneweaver or geneweaver-worker systemd service
+### Dependencies
+By default, only python3.9 and higher are supported. You _may_ be able to run the 
+application using python 3.7 or 3.8, but we do not explicitly maintain support for these 
+versions.
 
-> NOTE: This does not set up a postgres database
-
-Get the install script:
-
+Dependencies for the project are managed with poetry.
 ```
-wget -P /tmp https://bitbucket.org/geneweaver/py3-geneweaver-website/raw/master/sample-configs/install.sh
-chmod u+x /tmp/install.sh
-sudo /tmp/install.sh -h
+poetry install.
 ```
 
-Print usage instructions for install script
-```
-# Print usage instructions for install.sh
-sudo install.sh -h
+### Environment Config
+In the root directory of the project, create a `.env` file
+
+```bash
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_USERNAME = "geneweaver-dev"
+DB_PASSWORD = ""
+DB_NAME = "geneweaver-dev"
+AUTH_CLIENTID = ""
+AUTH_CLIENTSECRET = ""
 ```
 
-Install the web or worker backends:
-```
-sudo ./sample-configs/install.sh -m website
-sudo ./sample-configs/install.sh -m tools
+You will need to reach out to the Geneweaver development team for the 
+`AUTH_CLIENTID` and `AUTH_CLIENTSECRET` values.
+
+If you are not hosting your own database instance, you will need to reach out to the 
+Geneweaver development team for the value of `DB_PASSWORD`, and you will need to install
+and set up the cloud-sql-proxy tool from Google.
+
+#### Using Jax Hosted Development Infrastructure
+If you are using development infrastructure hosted by The Jackson laboratory, you will 
+need to install the cloud-sql-proxy tool from Google. You can find the installation
+instructions [here](https://cloud.google.com/sql/docs/postgres/sql-proxy#install).
+
+You will also need [gcloud](https://cloud.google.com/sdk/docs/install) and 
+[kubectl](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl)
+installed on your machine and configured with the appropriate credentials.
+
+Once you have the cloud-sql-proxy installed, you can run the following command to connect
+to the Geneweaver database. Please reach out to the Geneweaver team for the appropriate
+values for `$PROJECT`, `$REGION`, and `$DBINSTANCE`.
+
+```bash
+cloud-sql-proxy $PROJECT:$REGION:$DBINSTANCE
 ```
 
-After running the script, you'll need to update the corresponding cfg file to point to a running database:
-```
-vi /opt/compsci/geneweaver/website/website.cfg
-vi /opt/compsci/geneweaver/tools/tools.cfg
+To use the development search index, you can port forward the search index service to your
+local machine using the following command. You will need to reach out to the Geneweaver
+team to get the appropriate cluster credentials.
+
+```bash
+kubectl port-forward \
+  --namespace dev \
+  $(kubectl get pod \
+      --namespace dev \
+      --selector="app=geneweaver-legacy" \
+      --output jsonpath='{.items[0].metadata.name}') \
+  9312:9312
 ```
 
-You should start and enable the geneweaver service as it suggests:
-```
-sudo systemctl start geneweaver
-sudo systemctl enable geneweaver
+## Kubernetes Deployment
+Kubernetes deployments are fully defined in the deploy/k8s directory in this repository.
 
-sudo systemctl start geneweaver-tools
-sudo systemctl enable geneweaver-tools
+Deployments are orchestrated using skaffold. For example:
 ```
-
-To view service status
-```
-sudo systemctl status geneweaver
-sudo systemctl status geneweaver-tools
+skaffold run -p jax-cluster-dev-10--dev
 ```
 
-To view service logs
-```
-journalctl -u geneweaver
-journalctl -u geneweaver-tools
+You should never need to run these commands on your own. They are intended to be run
+through CICD.
 
-# Add the -f flag to tail/follow the logs as they're created
-journalctl -f -u geneweaver
-journalctl -f -u geneweaver-tools
-```
 
-To view celery logs:
-```
-tail -f /var/log/celery/geneweaver/*
-```
-
-# Geneweaver (manual setup)
+## Manual Setup (DEPRECATED)
 
 ### System Requirements
 
