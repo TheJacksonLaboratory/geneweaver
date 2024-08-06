@@ -780,8 +780,8 @@ def insert_into_geneset_value_by_gsid(gsid):
                     cursor.execute('''INSERT INTO extsrc.geneset_value (gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list,
                                      gsv_value_list, gsv_in_threshold, gsv_date)
                                          SELECT gs_id, ode_gene_id, avg(src_value) as gsv_value,
-                                           count(ode_gene_id) as gsv_hits, array_accum(src_id) as gsv_source_list,
-                                           array_accum(src_value) as gsv_value_list,'t' as gsv_in_threshold, now() as gsv_date
+                                           count(ode_gene_id) as gsv_hits, array_agg(src_id) as gsv_source_list,
+                                           array_agg(src_value) as gsv_value_list,'t' as gsv_in_threshold, now() as gsv_date
                                            FROM production.temp_geneset_value
                                            WHERE gs_id=%s GROUP BY gs_id,ode_gene_id ORDER BY ode_gene_id;''' % (gsid,))
                     ## Update geneset sp_id and identifier
