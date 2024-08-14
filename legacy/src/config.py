@@ -69,9 +69,9 @@ class LandingPage(BaseModel):
 
 
 class Auth(BaseModel):
-    client_id: str = Field("wMjx3nGV24qneBjXqz52IhEpq6AU7reo", validation_alias="clientid")
+    client_id: str = Field("x9IiBRyt8lS3lsqrz2H6aO1leRBbxyb7", validation_alias="clientid")
     client_secret: str = Field("", validation_alias="clientsecret")
-    domain: str = "geneweaver.auth0.com"
+    domain: str = "thejacksonlaboratory.auth0.com"
     auth_endpoint: str = Field("authorize", validation_alias="authendpoint")
     token_endpoint: str = Field("oauth/token", validation_alias="tokenendpoint")
     userinfo_endpoint: str = Field("oauth/userinfo", validation_alias="userinfoendpoint")
