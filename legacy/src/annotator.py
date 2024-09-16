@@ -155,7 +155,7 @@ def get_ncbo_link(link):
     }
 
     response = None
-    for _ in range(3):
+    for attempt in range(3):
         try:
             response = requests.get(link, headers=headers)
             response.raise_for_status()
