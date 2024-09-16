@@ -133,7 +133,7 @@ def fetch_ncbo_annotations(text, ncboids):
     ## for-else construct: if the loop doesn't break (in our case this
     ## indicates success) then this statement is executed
     else:
-        print('Failed to retrieve annotation data after three attempts')
+        print('Failed to retrieve NCBO annotation data after three attempts')
         return []
 
     return json.loads(res)
@@ -262,7 +262,7 @@ def fetch_monarch_annotations(text):
     ## for-else construct: if the loop doesn't break (in our case this
     ## indicates success) then this statement is executed
     else:
-        print('Failed to retrieve annotation data after three attempts')
+        print('Failed to retrieve Monarch annotation data after three attempts')
         return []
 
     return json.loads(res)
