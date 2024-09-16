@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "geneweaver-legacy"
-version = "1.4.2"
+version = "1.4.3"
 description = ""
 authors = ["Alexander Berger <alexander.berger@jax.org>"]
 readme = "README.md"

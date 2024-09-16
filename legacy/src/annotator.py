@@ -13,6 +13,7 @@ import requests
 # END Upload Fix
 
 import geneweaverdb
+from time import sleep
 
 
 NCBO_URL = 'http://data.bioontology.org'
@@ -140,7 +141,7 @@ def fetch_ncbo_annotations(text, ncboids):
 
 def get_ncbo_link(link):
     """
-    Since NCBO enjoys testing the sanity of it's users, (almost) every member
+    Since NCBO enjoys testing the sanity of its users, (almost) every member
     of an object returned by the NCBO API is in the form of a link which then
     requires further API calls to retrieve the data.
     This function calls any API returned link and (hopefully) returns the
@@ -149,28 +150,28 @@ def get_ncbo_link(link):
     :arg str: JSON-LD link
     :ret dict: json object representing whatever data we retrieved
     """
-
-    opener = urllib.request.build_opener()
-    opener.addheaders = [('Authorization', 'apikey token=' + API_KEY)]
+    headers = {
+        'Authorization': f'apikey token={API_KEY}'
+    }
 
     for _ in range(3):
         try:
-            res = opener.open(link)
-            res = res.read()
-
-        except urllib.error.HTTPError as e:
+            response = requests.get(link, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.HTTPError as e:
             print('Failed to retrieve annotation data from an NCBO link:')
             print(e)
+            sleep(1)
             continue
-
-        ## Success
-        break
-
+        except Exception as e:
+            print('Unknown error fetching annotations:')
+            print(e)
+            sleep(1)
+            continue
     else:
         print('Failed to retrieve data from an NCBO URL')
         return None
-
-    return json.loads(res)
 
 
 def parse_ncbo_annotations(annots):
