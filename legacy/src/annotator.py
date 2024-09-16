@@ -154,19 +154,21 @@ def get_ncbo_link(link):
         'Authorization': f'apikey token={API_KEY}'
     }
 
+    response = None
     for _ in range(3):
         try:
             response = requests.get(link, headers=headers)
             response.raise_for_status()
             return response.json()
         except requests.HTTPError as e:
-            print('Failed to retrieve annotation data from an NCBO link:')
-            print(e)
+            print(f'HTTPError on attempt {attempt + 1}: {e}')
+            if response is not None:
+                print(f'Response content: {response.content}')  # Log the response content
             sleep(1)
             continue
         except Exception as e:
-            print('Unknown error fetching annotations:')
-            print(e)
+            print(f'Unknown error on attempt {attempt + 1}: {e}')
+            print(traceback.format_exc())  # Print the full traceback for debugging
             sleep(1)
             continue
     else:
