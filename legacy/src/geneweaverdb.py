@@ -3926,13 +3926,10 @@ def get_genesets_by_hom_id(hom_ids):
     :param hom_ids:
     :return: list of genesets
     """
-    if not isinstance(hom_ids, list):
-        hom_ids = [hom_ids]
-
     with PooledCursor() as cursor:
         geneset_list = []
         for h in hom_ids:
-            cursor.execute('SELECT geneset_array FROM extsrc.hom2geneset WHERE hom_id=ANY(%s)', (h,))
+            cursor.execute('SELECT geneset_array FROM extsrc.hom2geneset WHERE hom_id=%s', (h,))
             geneset_list.append(cursor.fetchone()[0])
         list(set(geneset_list[0]))
     return geneset_list
