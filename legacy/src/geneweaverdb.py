@@ -3921,18 +3921,16 @@ def get_geneset_hom_ids(gs_id):
 
 def get_genesets_by_hom_id(hom_ids):
     """
-    Find which genesets are associated with which arrays. postgres does not have an any to
-    any array comparision so I have to loop :(
+    Find which genesets are associated with which arrays.
     :param hom_ids:
     :return: list of genesets
     """
+    geneset_list = []
     with PooledCursor() as cursor:
-        geneset_list = []
-        for h in hom_ids:
-            cursor.execute('SELECT geneset_array FROM extsrc.hom2geneset WHERE hom_id=%s', (h,))
-            geneset_list.append(cursor.fetchone()[0])
-        list(set(geneset_list[0]))
-    return geneset_list
+        cursor.execute("SELECT geneset_array FROM extsrc.hom2geneset WHERE hom_id=ANY(%s)", (hom_ids,))
+        for result in cursor.fetchall():
+            geneset_list.extend(result[0])
+    return list(set(geneset_list))
 
 
 def get_genesets_hom_ids(gs_ids):
