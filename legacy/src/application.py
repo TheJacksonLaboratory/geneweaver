@@ -3306,9 +3306,9 @@ def render_sim_genesets(gs_id, grp_by):
     species = []
     species_map = {}
 
-    for sp_id, sp_name in geneweaverdb.get_all_species().items():
-        species.append([sp_id, sp_name])
-        species_map[sp_id] = sp_name
+    for sp_id_, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id_, sp_name])
+        species_map[sp_id_] = sp_name
 
     # OK, OK, This is nasty. Loop through all curation tiers, then,
     # for each curation tier, Loop through all species. Then, Loop through
