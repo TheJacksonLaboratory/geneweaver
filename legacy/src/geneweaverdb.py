@@ -3940,18 +3940,7 @@ def get_genesets_hom_ids(gs_ids):
     """
     with PooledCursor() as cursor:
         cursor.execute("""
-        SELECT
-            g.gs_id,
-            ARRAY_AGG(DISTINCT h.hom_id) AS hom_ids
-        FROM
-            extsrc.homology h
-                INNER JOIN extsrc.geneset_value gsv ON h.ode_gene_id = gsv.ode_gene_id
-                INNER JOIN production.geneset g ON gsv.gs_id = g.gs_id
-        WHERE
-            g.gs_status NOT LIKE 'de%%'
-          AND g.gs_id = ANY(%(gs_ids)s)
-        GROUP BY
-            g.gs_id;
+        SELECT gs_id, hom_id_array FROM extsrc.geneset2hom WHERE gs_id = ANY(%(gs_ids)s)
         """, {"gs_ids": list(gs_ids)})
         if cursor.rowcount == 0:
             return {}
