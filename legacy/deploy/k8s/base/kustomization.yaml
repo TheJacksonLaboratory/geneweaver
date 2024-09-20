@@ -8,3 +8,4 @@ resources:
   - service.yaml
   - external-secrets.yaml
   - persistent-volume-claim.yaml
+  - ingress.yaml
