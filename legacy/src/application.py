@@ -3224,9 +3224,9 @@ def calculate_jaccard(gs_id, genesets):
     """
     jaccards = {}
     gs1 = geneweaverdb.get_geneset_hom_ids(gs_id)
+    gs2s = geneweaverdb.get_genesets_hom_ids(genesets)
     for g in genesets:
-        gs2 = geneweaverdb.get_geneset_hom_ids(g)
-        jaccards[g] = jaccard(gs1, gs2)
+        jaccards[g] = jaccard(gs1, gs2s[g])
     return jaccards
 
 
