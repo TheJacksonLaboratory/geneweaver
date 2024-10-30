@@ -141,6 +141,11 @@
                     }
                     $.ajax({
                         type: 'POST',
+                        {#
+                          Note: If you are doing local development, you will probably
+                            need to change this url to point at the dev API:
+                            url: 'http://geneweaver-dev.jax.org/api/genesets/{{ geneset.geneset_id }}/threshold',
+                         #}
                         url: '../api/genesets/{{ geneset.geneset_id }}/threshold',
                         contentType: 'application/json',
                         data: JSON.stringify(newTresh),
