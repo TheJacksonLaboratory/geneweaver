@@ -49,11 +49,10 @@
                 </div>
             </div>
         {% endif %}
-        {% if view is defined %}
         <hr>
         <div class="row">
             <div class="col-md-8" style="margin-bottom: 1rem;">
-                <div class="row" id="result"></div>
+            {% if view is defined and is_bimodal == 'False' %}
                 {%  if threshold_type == 4 or threshold_type == 5 %}
                     <div class="row">
                         <div class="input-group">
@@ -93,6 +92,7 @@
                         </div>
                     </div>
                 {% endif %}
+            {% endif %}
             </div>
 
             {#  right side menu #}
@@ -101,13 +101,15 @@
                 <a class="btn btn-block btn-warning" href="../{{ return_page }}/{{ geneset.geneset_id}}" role="button">
                      <i class="fa fa-arrow-left pull-left"></i> Back to GeneSet
                 </a>
+                {% if view is defined and is_bimodal == 'False' %}
                 <a class="btn btn-block btn-warning" href="../setthreshold-legacy/{{ geneset.geneset_id}}" role="button">
                     <i class="fa fa-history pull-left"></i> Legacy Page
                 </a>
+                {% endif %}
             </div>
 
         </div>
-
+        {% if view is defined and is_bimodal == 'False' %}
         <script type="text/javascript">
             function getCookie(name) {
                 const value = `; ${document.cookie}`;
@@ -160,7 +162,7 @@
                 });
             });
         </script>
-        {%  endif %}
+        {% endif %}
 
     </div>
 
