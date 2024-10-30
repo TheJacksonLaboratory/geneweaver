@@ -141,7 +141,7 @@
                     }
                     $.ajax({
                         type: 'POST',
-                        url: 'https://geneweaver-dev.jax.org/api/genesets/{{ geneset.geneset_id }}/threshold',
+                        url: '../api/genesets/{{ geneset.geneset_id }}/threshold',
                         contentType: 'application/json',
                         data: JSON.stringify(newTresh),
                         dataType: 'json',
