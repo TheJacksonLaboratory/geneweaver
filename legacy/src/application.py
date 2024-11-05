@@ -397,7 +397,6 @@ def callback_handling():
     # Handles response from token endpoint
     try:
         token = auth0.authorize_access_token()
-        flask.session['access_token'] = token
         response.set_cookie(
             'access_token',
             token['access_token'],
