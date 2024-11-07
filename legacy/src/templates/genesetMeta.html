@@ -34,6 +34,17 @@
                 </div>
             </div>
 
+            {% if threshold_value%}
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>THRESHOLD:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        <p>{{ threshold_value }}</p>
+                    </div>
+                </div>
+            {% endif %}
+
             <div class="row">
                 <div class="col-md-2">
                     <p class="text-right"><strong>DATE ADDED:</strong></p>

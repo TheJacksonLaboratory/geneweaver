@@ -38,6 +38,7 @@ from authlib.integrations.flask_client import OAuth
 from authlib.integrations.base_client.errors import OAuthError
 
 from decorators import login_required, create_guest, restrict_to_current_user
+from src.error import internal_server_error
 from tools import abbablueprint
 from tools import booleanalgebrablueprint
 from tools import combineblueprint
@@ -2745,6 +2746,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
+    # Try to get formated threshold value from geneset threshold
+    threshold_value = format_str_threshold_value(geneset)
+
     return render_template(
         'viewgenesetdetails.html',
         gs_id=gs_id,
@@ -2765,10 +2769,64 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         show_gene_list=show_gene_list,
         totalGenes=numgenes,
         uploaded_as=uploaded_as,
+        threshold_value=threshold_value,
         #SRP IMPLEMENTATION
         srp=srp
         #SRP IMPLEMENTATION END
     )
+
+def format_str_threshold_value(geneset: dict) -> str:
+    """
+    Formats the threshold value for a gene set to be displayed in the gene set
+    details page,
+    - if the threshold is set and the values are numbers a formatted string value is returned, otherwise None is returned.
+    - if the threshold is a single value, it is formatted as "< value"
+    - if the threshold is a range, it is formatted as "value1 < value2"
+    - if the threshold is binary type(3), None is returned
+    - if the threshold values are the same, None is returned
+
+    arguments
+        geneset: a GeneSet object
+
+    returns
+        a string representation of the threshold value
+    """
+    print (geneset)
+    response = None
+    type = geneset.threshold_type
+
+    ## if binary type return None
+    if type == 3:
+        return None
+
+    threshold = str(geneset.threshold)
+
+    if threshold is not None:
+        thresh = threshold.split(',')
+        if len(thresh) == 1:
+            if not is_number(thresh[0]):
+                response= None
+            else:
+                response= "< " + thresh[0]
+
+        elif len(thresh) > 1:
+            if not is_number(thresh[0]) or not is_number(thresh[1]):
+                response= None
+            elif thresh[0] == thresh[1]:
+                response= None
+            else:
+                response= thresh[0] + " < " + thresh[1]
+
+    return response
+
+def is_number(input):
+    """ Checks if the input is a number"""
+    try:
+        float(input)
+        return True
+    except ValueError:
+        return False
+
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
 @login_required(allow_guests=True)
