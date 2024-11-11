@@ -2791,7 +2791,6 @@ def format_str_threshold_value(geneset: dict) -> str:
     returns
         a string representation of the threshold value
     """
-    print (geneset)
     response = None
     type = geneset.threshold_type
 
