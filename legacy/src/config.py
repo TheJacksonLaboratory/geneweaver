@@ -76,6 +76,7 @@ class Auth(BaseModel):
     token_endpoint: str = Field("oauth/token", validation_alias="tokenendpoint")
     userinfo_endpoint: str = Field("oauth/userinfo", validation_alias="userinfoendpoint")
     jwks_endpoint: str = Field(".well-known/jwks.json", validation_alias="jwksendpoint")
+    audience: str = "https://cube.jax.org"
 
 
 class GeneweaverLegacyConfig(BaseSettings):

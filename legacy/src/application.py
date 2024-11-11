@@ -156,7 +156,9 @@ auth0 = oauth.register(
     api_base_url=f'https://{config.get("auth", "domain")}/',
     access_token_url=f'https://{config.get("auth", "domain")}/{config.get("auth", "token_endpoint")}',
     authorize_url=f'https://{config.get("auth", "domain")}/{config.get("auth", "auth_endpoint")}',
-    client_kwargs={'scope': 'openid profile email'},
+    client_kwargs={
+        'scope': 'openid profile email',
+    },
     server_metadata_url=f'https://{config.get("auth", "domain")}/.well-known/openid-configuration',
     jwks_uri=f'https://{config.get("auth", "domain")}/{config.get("auth", "jwks_endpoint")}'
 )
@@ -379,7 +381,11 @@ def login_as(as_user_id):
 @app.route('/login', methods=['GET'])
 @app.route('/ssologin', methods=['GET'])
 def sso_login():
-    return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True))
+    redirect_uri = url_for('callback_handling', _external=True)
+    return auth0.authorize_redirect(
+        redirect_uri=redirect_uri,
+        audience=config.get('auth', 'audience')
+    )
 
 @app.route('/ssosignup', methods=['GET'])
 def sso_signup():
@@ -388,9 +394,17 @@ def sso_signup():
 
 @app.route('/callback')
 def callback_handling():
+    response = make_response(redirect('/'))
     # Handles response from token endpoint
     try:
-        auth0.authorize_access_token()
+        token = auth0.authorize_access_token()
+        response.set_cookie(
+            'access_token',
+            token['access_token'],
+            httponly=False,
+            secure=True,
+            samesite='Strict'
+        )
     except OAuthError as e:
         if e.description == "Jax users must use Jax connection to log in.":
             _logout()
@@ -438,7 +452,7 @@ def callback_handling():
             flask.session['remote_addr'] = remote_addr
         geneweaverdb.update_user_seen(user.user_id)
 
-    return redirect('/')
+    return response
 
 @app.route('/callback/errors/email-mismatch')
 def callback_error_jax_email():
@@ -1940,9 +1954,50 @@ def render_remove_genesets(gs_id):
         gs_and_proj = geneweaverdb.get_selected_genesets_by_projects(gs_id)
     return render_template('removegenesets.html', user_id=user_id, gs_and_proj=gs_and_proj)
 
-
 @app.route('/setthreshold/<int:gs_id>')
 def render_set_threshold(gs_id):
+    user_id = session['user_id'] if 'user_id' in session else 0
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+
+        if view is None and geneweaverdb.user_is_assigned_curation(user_id, gs_id):
+            view = 'curator'
+    else:
+        view = None
+    # Determine if this is bi-modal, we won't display these
+    is_bimodal = geneweaverdb.get_bimodal_threshold(gs_id)
+    gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
+    threshold_type = geneset.threshold_type
+    threshold = str(geneset.threshold)
+    thresh = threshold.split(',')
+    if len(thresh) == 1:
+        thresh.append(str(0))
+    minVal = float(thresh[0])
+    maxVal = float(thresh[1])
+    if gsv_values is not None:
+        for k in gsv_values:
+            k_first_value = list(k.values())[0]
+            maxVal = float(k_first_value) if float(k_first_value) > maxVal else maxVal
+            minVal = float(k_first_value) if float(k_first_value) < minVal else minVal
+    score_types = {
+        1: "p-value",
+        2: "q-value",
+        3: "binary",
+        4: "correlation",
+        5: "effect"
+    }
+
+    return render_template('viewThreshold_new.html', geneset=geneset,
+                           user_id=user_id, view=view, is_bimodal=is_bimodal,
+                           threshold=thresh, threshold_type=threshold_type,
+                           minVal=minVal, maxVal=maxVal,
+                           scoreType=score_types[threshold_type])
+
+
+@app.route('/setthreshold-legacy/<int:gs_id>')
+def render_set_threshold_legacy(gs_id):
     d3BarChart = []
     user_id = session['user_id'] if 'user_id' in session else 0
     user_info = geneweaverdb.get_user(user_id)

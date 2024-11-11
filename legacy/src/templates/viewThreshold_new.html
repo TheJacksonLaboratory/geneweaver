@@ -1,0 +1,171 @@
+{% set title="Set GeneSet Threshold" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+{% if geneset.geneset_id is not defined or view is not defined %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+{% else %}
+
+    <div class="loader"></div>
+
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Set GeneSet Threshold</strong></h2>
+    </div>
+
+    <div class="panel panel-default">
+        {% include 'htmlfragments/curIDBoxes.html' %}
+
+    <div class="panel-body">
+        {% set threshold_symbol = 'p' if threshold_type == 1 else 'q' %}
+        {% if is_bimodal == 'False' %}
+        <div class="row">
+            {%  if threshold_type == 4 or threshold_type == 5 %}
+                {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
+                {% set threshold_name = 'a correlation' if threshold_type == 4 else 'an effect' %}
+               <div><p><strong>Current Threshold Values:
+                </strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
+                        {% if threshold[1] == '0' %}
+                            {{ maxVal }}
+                        {% else %}
+                            {{ threshold[1] }}
+                        {% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <div><p><strong>Current Threshold Values:
+                    </strong> {{ threshold_symbol }} < {{ threshold[0] }}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+        {% else %}
+            <div class="row">
+                <div class="alert bg-gray-light">
+                    This GeneSet only contains one uniform value.
+                    Set threshold cannot be performed.
+                </div>
+            </div>
+        {% endif %}
+        <hr>
+        <div class="row">
+            <div class="col-md-8" style="margin-bottom: 1rem;">
+            {% if view is defined and is_bimodal == 'False' %}
+                {%  if threshold_type == 4 or threshold_type == 5 %}
+                    <div class="row">
+                        <div class="input-group">
+                            <span class="input-group-addon">Manually enter {{ threshold_name }} threshold range.</span>
+                            <input type="number" min="0" step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
+                            <span class="input-group-addon"><i class="fa fa-arrows-h"></i></span>
+                            <input type="number" min="0" step="0.001" value="{{ threshold_high }}" class="form-control threshHigh">
+                            <div class="input-group-btn">
+                                <button class="btn btn-default setThresh" type="button">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                {%  else %}
+                    <div class="row">
+                        <button type="button" class="btn btn-block btn-default setThresh" id="setThresh05" value="0.05">
+                            Save as <code> {{ threshold_symbol }} < 0.05 </code>
+                        </button>
+                        <button type="button" class="btn btn-block btn-default setThresh" id="setThresh01" value="0.01">
+                            Save as <code> {{ threshold_symbol }} < 0.01 </code>
+                        </button>
+                        <button type="button" class="btn btn-block btn-default setThresh" id="setThresh001" value="0.001">
+                            Save as <code> {{ threshold_symbol }} < 0.001 </code>
+                        </button>
+                        <button type="button" class="btn btn-block btn-default setThresh" id="setThresh0001" value="0.0001">
+                            Save as <code> {{ threshold_symbol }} < 0.0001 </code>
+                        </button>
+
+                        <hr>
+
+                        <div class="input-group">
+                            <span class="input-group-addon">Manually enter a threshold value.</span>
+                            <span class="input-group-addon">Set to: {{ threshold_symbol }} < </span>
+                            <input type="number" min="0" step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
+                            <div class="input-group-btn">
+                                <button class="btn btn-default setThresh" type="button">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+            </div>
+
+            {#  right side menu #}
+            <div class="col-md-4 mb-3">
+                {% set return_page = 'curategeneset' if view == 'curator' else 'viewgenesetdetails' %}
+                <a class="btn btn-block btn-warning" href="../{{ return_page }}/{{ geneset.geneset_id}}" role="button">
+                     <i class="fa fa-arrow-left pull-left"></i> Back to GeneSet
+                </a>
+                {% if view is defined and is_bimodal == 'False' %}
+                <a class="btn btn-block btn-warning" href="../setthreshold-legacy/{{ geneset.geneset_id}}" role="button">
+                    <i class="fa fa-history pull-left"></i> Legacy Page
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+        {% if view is defined and is_bimodal == 'False' %}
+        <script type="text/javascript">
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            }
+            $(document).ready(function () {
+                $('.setThresh').on('click', function (e) {
+                    const access_token = getCookie('access_token');
+                    console.log(access_token);
+                    let value = $(this).val();
+                    let valueHigh = null;
+                    let newTresh;
+                    if (value === '' || value == null) {
+                        const $parent = $(this).parent().parent();
+                        value = $parent.find('.threshLow').val();
+                        valueHigh = $parent.find('.threshHigh').val();
+                    }
+                    console.log('Clicked button with value:', value, valueHigh);
+                    if (valueHigh === '' || valueHigh == null) {
+                        newTresh = {
+                            threshold: value,
+                            score_type: '{{ scoreType }}'
+                        };
+                    } else {
+                        newTresh = {
+                            threshold_low: value,
+                            threshold: valueHigh,
+                            score_type: '{{ scoreType }}'
+                        };
+                    }
+                    $.ajax({
+                        type: 'PUT',
+                        {#
+                          Note: If you are doing local development, you will probably
+                            need to change this url to point at the dev API:
+                            url: 'http://geneweaver-dev.jax.org/api/genesets/{{ geneset.geneset_id }}/threshold',
+                         #}
+                        url: '../api/genesets/{{ geneset.geneset_id }}/threshold',
+                        contentType: 'application/json',
+                        data: JSON.stringify(newTresh),
+                        dataType: 'json',
+                        headers: {
+                            'Authorization': `Bearer ${access_token}`
+                        },
+                        success: function (data) {
+                            location.reload();
+                        }
+                    });
+                });
+            });
+        </script>
+        {% endif %}
+
+    </div>
+
+{% endif %}
+
+{% include 'footer.html' %}
