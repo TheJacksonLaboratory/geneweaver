@@ -1,5 +1,5 @@
 /* Angular Imports */
-import { Component, ViewChild, ElementRef, EventEmitter, Output, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
@@ -34,6 +34,7 @@ export class SearchBarComponent implements OnInit {
   @Output() searchExecuted = new EventEmitter<string>();
   @Output() searchCompleted = new EventEmitter<GeneSet[]>();
   @Output() searchPaging = new EventEmitter<Paging>();
+  @Output() searchCleared = new EventEmitter<boolean>();
 
   constructor(
       private messageService: MessageService,
@@ -47,8 +48,16 @@ export class SearchBarComponent implements OnInit {
       if (params['search']) {
         this.searchValue = params['search'];
         this.onSearch(this.searchValue);
+      } else {
+        this.clearSearch();
       }
     });
+  }
+
+  clearSearch() {
+    this.searchValue = '';
+    this.searchCleared.emit(true);
+    this.searchCompleted.emit([]);
   }
 
   onSearch(searchTerm: string) {
@@ -76,9 +85,4 @@ export class SearchBarComponent implements OnInit {
     }
   }
 
-  onKeydown(event: KeyboardEvent, searchTerm: string) {
-    if (event.key === "Enter") {
-      this.onSearch(searchTerm);
-    }
-  }
 }

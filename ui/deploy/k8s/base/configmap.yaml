@@ -10,8 +10,9 @@ data:
       root /srv/dist;
       index index.html;
 
-      location / {
-        try_files $uri $uri/ /index.html;
+      location /next {
+        alias /srv/dist;
+        try_files $uri $uri/ /next/index.html;
       }
 
     }

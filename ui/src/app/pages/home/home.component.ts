@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
 import { GeneSetListComponent } from "../../components/genesetlist/genesetlist.component";
 import { Paging } from "../../jaxapiutils/models/api-interfaces";
 import { GeneSet } from "../../models/gene-set";
+import { Router } from "@angular/router";
 
 @Component({
   selector: 'app-home',
@@ -18,6 +19,15 @@ export class HomeComponent {
   geneSets: GeneSet[] = [];
   searchValue = '';
   paging: Paging | null = null;
+  isSpinning = true;
+
+  @ViewChild(SearchBarComponent) searchBarComponent!: SearchBarComponent;
+
+  constructor(private router: Router) {
+    setTimeout(() => {
+      this.isSpinning = false;
+    }, 700);
+  }
 
   onSearchExecuted() {
     this.isSearchActive = true;
@@ -31,5 +41,19 @@ export class HomeComponent {
 
   onSearchPaging(paging: Paging) {
     this.paging = paging;
+  }
+
+  onLogoClick() {
+    this.router.navigate(['/']);
+    this.isSearchActive = false;
+    this.searchValue = '';
+    this.geneSets = [];
+    this.paging = null;
+    this.searchBarComponent.clearSearch();
+    this.isSpinning = true;
+
+    setTimeout(() => {
+      this.isSpinning = false; 
+    }, 700);
   }
 }

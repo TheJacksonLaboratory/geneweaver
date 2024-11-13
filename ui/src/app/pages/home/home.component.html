@@ -8,9 +8,12 @@
         <!-- The Geneweaver Logo and Title -->
         <div class="block font-bold text-center md:p-4 border-round mb-3 w-full">
             <div class="flex justify-content-center">
-                <div class="grid">
+                <div class="grid cursor-pointer" tabindex="0" (click)="onLogoClick()" (keydown.enter)="onLogoClick()">
                     <div class="col-fixed" style="width:60px">
-                        <img src="geneweaver-logo.png" alt="Geneweaver Logo" class="bg-auto spin-animation">
+                        <img src="geneweaver-logo.png" 
+                             alt="Geneweaver Logo"
+                             [class.spin-animation]="isSpinning"
+                             class="bg-auto">
                     </div>
                     <div class="col flex align-items-center">
                         <h1 id="title" class="text-6xl font-bold m-0 carrois-gothic-regular">GeneWeaver</h1>

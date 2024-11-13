@@ -1,5 +1,4 @@
 import { Environment } from './environment-interface';
-import packageJson from '../../package.json';
 
 // This default environment is used for tests in the build pipeline
 export const environment: Environment = {
