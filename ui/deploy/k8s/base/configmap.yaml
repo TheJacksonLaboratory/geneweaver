@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geneweaver-ui-nginx-conf
+data:
+  default.conf: |
+    server {
+      listen 80;
+
+      root /srv/dist;
+      index index.html;
+
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+
+    }

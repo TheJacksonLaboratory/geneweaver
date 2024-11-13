@@ -1,2 +1,9 @@
-<app-nx-welcome></app-nx-welcome>
-<router-outlet></router-outlet>
+<main class="w-full">
+    <p-messages severity="info" closable="false">
+        <ng-template pTemplate>
+            <div class="ml-2 text-sm">A new search experiment from GeneWeaver.</div>
+            <div class="ml-2 ml-auto text-xs">v{{version}}</div>
+        </ng-template>
+    </p-messages>
+    <router-outlet />
+</main>

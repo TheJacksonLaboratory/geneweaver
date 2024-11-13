@@ -1,0 +1,41 @@
+<div class="block font-bold text-center md:p-4 border-round mb-3 flex h-fit"
+     [style.marginTop]="isSearchActive ? '0' : '18vh'" [style.transition]="'margin-top 0.1s ease-out'">
+    <div class="flex justify-content-center w-full h-fit">
+        <!-- The Navbar Component -->
+        <!-- <div class="block font-bold text-center border-round mb-3"> -->
+        <!-- <app-navbar></app-navbar> -->
+        <!-- </div> -->
+        <!-- The Geneweaver Logo and Title -->
+        <div class="block font-bold text-center md:p-4 border-round mb-3 w-full">
+            <div class="flex justify-content-center">
+                <div class="grid">
+                    <div class="col-fixed" style="width:60px">
+                        <img src="geneweaver-logo.png" alt="Geneweaver Logo" class="bg-auto spin-animation">
+                    </div>
+                    <div class="col flex align-items-center">
+                        <h1 class="text-6xl font-bold m-0 carrois-gothic-regular">GeneWeaver</h1>
+                    </div>
+                </div>
+            </div>
+
+            <!-- The Search Component -->
+            <div class="flex justify-content-center">
+                <div class="w-full md:w-12 lg:w-10 xl:w-8 xxl:w-6 sm:w-full p-3">
+                    <app-search-bar
+                            [searchValue]="searchValue"
+                            (searchExecuted)="onSearchExecuted()"
+                            (searchCompleted)="onSearchCompleted($event)"
+                            (searchPaging)="onSearchPaging($event)">
+                    </app-search-bar>
+                </div>
+            </div>
+
+            <!-- The Search Results Component -->
+            <div *ngIf="geneSets.length > 0" class="flex justify-content-center">
+                <div class="w-full md:w-12 lg:w-10 xl:w-8 xxl:w-6 sm:w-full p-3">
+                    <app-gene-set-list [geneSets]="geneSets"></app-gene-set-list>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

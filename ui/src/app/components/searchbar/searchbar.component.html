@@ -1,0 +1,18 @@
+<p-toast position="bottom-right" />
+<p-inputGroup>
+    <input type="text"
+           #searchInput
+           pInputText
+           placeholder="Search GeneSets"
+           [(ngModel)]="searchValue"
+           (keydown)="onKeydown($event, searchInput.value)"
+    />
+
+    <button type="button"
+            pButton label="Search"
+            class="p-button-success search-button"
+            (click)="onSearch(searchInput.value)"
+    >
+    </button>
+</p-inputGroup>
+<p-progressBar *ngIf="isSearching" mode="indeterminate" [style]="{ height: '6px' }" />

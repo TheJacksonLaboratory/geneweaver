@@ -1,0 +1,59 @@
+<p-table
+        selectionMode="single"
+        responsiveLayout="stack"
+        [scrollable]="true"
+        [breakpoint]="'960px'"
+        [value]="geneSets"
+        dataKey="id"
+>
+    <ng-template pTemplate="header">
+        <tr>
+            <th style="width: 3rem">ID</th>
+            <th>Name</th>
+            <th style="width: 2rem">Size</th>
+            <th style="width: 2rem">Tier</th>
+            <th style="width: 2rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-geneset let-columns="columns" let-expanded="expanded">
+        <tr>
+            <td>
+                <span class="p-column-title">ID</span>
+                <p-tag [value]="'GS' + geneset.id"
+                       severity="success"
+                       styleClass="text-xs text-light font-monospace gw-green carrois-gothic-regular">
+                </p-tag>
+            </td>
+            <td>
+                <span class="p-column-title">Name</span>
+                <p-button [label]="geneset.name"
+                          (onClick)="onGeneSetClick(geneset)"
+                          styleClass="p-button-text p-button-plain text-left p-0 font-semibold ml-4">
+                </p-button>
+            </td>
+            <td>
+                <span class="p-column-title">Size</span>
+                {{ geneset.count }}
+            </td>
+            <td>
+                <span class="p-column-title">Tier</span>
+                <app-tier-tag [tier]="geneset.curation_id"></app-tier-tag>
+            </td>
+            <td>
+                <span class="p-column-title">Details</span>
+                <div class="flex gap-1">
+                    <p-button type="button" pRipple [pRowToggler]="geneset" [text]="true" [rounded]="true" [plain]="true" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="rowexpansion" let-geneset>
+        <tr>
+            <td colspan="5">
+                <div class="px-8 pb-4">
+                    {{ geneset.description }}
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>

@@ -1,11 +1,14 @@
 {
   "name": "@geneweaver-ui/source",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "MIT",
   "scripts": {
     "start": "nx serve",
     "build": "nx build",
-    "test": "nx test"
+    "test": "nx test",
+    "lint": "nx lint",
+    "build:jax-cluster-dev-10": "nx build geneweaver-ui -c jax-cluster-dev-10--dev && nx build geneweaver-ui -c jax-cluster-dev-10--sqa",
+    "build:jax-cluster-prod-10": "nx build geneweaver-ui -c jax-cluster-prod-10--stage && nx build geneweaver-ui -c jax-cluster-prod-10--prod"
   },
   "private": true,
   "dependencies": {
@@ -17,6 +20,9 @@
     "@angular/platform-browser": "~18.2.0",
     "@angular/platform-browser-dynamic": "~18.2.0",
     "@angular/router": "~18.2.0",
+    "ng-mocks": "^14.13.1",
+    "primeflex": "^3.3.1",
+    "primeng": "^17.18.11",
     "rxjs": "~7.8.0",
     "zone.js": "~0.14.3"
   },
@@ -28,6 +34,7 @@
     "@angular/compiler-cli": "~18.2.0",
     "@angular/language-service": "~18.2.0",
     "@eslint/js": "^9.8.0",
+    "@happy-dom/jest-environment": "^15.11.3",
     "@nx/angular": "20.1.0",
     "@nx/cypress": "20.1.0",
     "@nx/eslint": "20.1.0",
@@ -48,6 +55,7 @@
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-cypress": "^3.5.0",
+    "happy-dom": "^15.11.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-preset-angular": "~14.1.0",

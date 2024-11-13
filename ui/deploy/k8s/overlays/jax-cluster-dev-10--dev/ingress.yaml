@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name:  geneweaver-ui-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/auth-signin: "https://auth.jax-cluster-dev-10.jax.org/oauth2/start?rd=https://$http_host$escaped_request_uri"
+spec:
+  tls:
+    - hosts:
+        - "geneweaver-dev.jax.org"
+      secretName: geneweaver-dev-jax-org-tls
+  rules:
+    - host: "geneweaver-dev.jax.org"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/next"
+            backend:
+              service:
+                name: geneweaver-ui
+                port:
+                  number: 80
