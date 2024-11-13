@@ -16,7 +16,7 @@ export class HomeComponent {
   isSearchActive = false;
   isLoading = false;
   geneSets: GeneSet[] = [];
-  searchValue: string = '';
+  searchValue = '';
   paging: Paging | null = null;
 
   onSearchExecuted() {

@@ -14,5 +14,6 @@ export interface Environment {
 }
 
 export interface FeatureFlags {
-
+    // Populate this interface once there are features to flag.
+    geneSetDetailsPage: boolean;
 }

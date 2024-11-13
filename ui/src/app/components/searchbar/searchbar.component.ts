@@ -28,9 +28,9 @@ import { GeneSet } from "../../models/gene-set";
   styleUrl: './searchbar.component.scss',
 })
 export class SearchBarComponent implements OnInit {
-  isSearching: boolean = false;
+  isSearching = false;
 
-  @Input() searchValue: string = '';
+  @Input() searchValue = '';
   @Output() searchExecuted = new EventEmitter<string>();
   @Output() searchCompleted = new EventEmitter<GeneSet[]>();
   @Output() searchPaging = new EventEmitter<Paging>();

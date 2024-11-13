@@ -13,7 +13,9 @@ export const environment: Environment = {
     urls: {
         geneWeaver: 'https://geneweaver-dev.jax.org',
     },
-    features: {}
+    features: {
+        geneSetDetailsPage: false
+    }
 };
 
 

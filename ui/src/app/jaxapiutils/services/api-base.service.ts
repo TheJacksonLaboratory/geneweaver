@@ -7,7 +7,7 @@ import { Response, CollectionResponse } from '../models/api-interfaces';
     providedIn: 'root'
 })
 export class APIBaseService {
-    private baseUrl: string = 'https://geneweaver.jax.org/api';
+    private baseUrl = 'https://geneweaver.jax.org/api';
 
     constructor(private http: HttpClient) {}
 

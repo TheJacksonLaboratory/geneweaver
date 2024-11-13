@@ -10,7 +10,7 @@ import {TagModule} from "primeng/tag";
   styleUrl: './tiertag.component.scss',
 })
 export class TierTagComponent {
-  @Input() tier: number = 5;
+  @Input() tier = 5;
 
   tierLabels = ['Tier I', 'Tier II', 'Tier III', 'Tier IV', 'Tier V'];
   tierColors = ['success', 'info', 'warning', 'danger', 'secondary'];
