@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SearchBarComponent } from './searchbar.component';
-import { MockModule, MockService } from "ng-mocks";
+import { MockService } from "ng-mocks";
 import { APIBaseService } from "../../jaxapiutils/services/api-base.service";
-import {ActivatedRoute} from "@angular/router";
+import { ActivatedRoute } from "@angular/router";
+import { of } from "rxjs";
 
 describe('SearchBarComponent', () => {
   let component: SearchBarComponent;
@@ -14,6 +15,12 @@ describe('SearchBarComponent', () => {
       imports: [SearchBarComponent],
       providers: [
         { provide: APIBaseService, useValue: mockAPIBaseService },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParams: of({search: 'something'})
+          }
+        }
       ]
     }).compileComponents();
 

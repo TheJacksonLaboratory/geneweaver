@@ -18,7 +18,6 @@ export class GeneSetListComponent {
   @Input() geneSets: GeneSet[] = [];
 
   constructor(private router: Router) {
-    console.log(this.geneSets);
   }
 
   onGeneSetClick(geneSet: any) {

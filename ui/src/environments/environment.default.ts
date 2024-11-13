@@ -4,7 +4,7 @@ import packageJson from '../../package.json';
 // This default environment is used for tests in the build pipeline
 export const environment: Environment = {
     production: false,
-    version: packageJson.version,
+    version: '0.0.0.test',
     auth: {
         audience: 'https://cube.jax.org',
         domain: 'thejacksonlaboratory.auth0.com',
@@ -17,5 +17,3 @@ export const environment: Environment = {
         geneSetDetailsPage: false
     }
 };
-
-

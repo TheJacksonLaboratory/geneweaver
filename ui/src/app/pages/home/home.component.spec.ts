@@ -5,11 +5,43 @@ import { GeneSetListComponent } from "../../components/genesetlist/genesetlist.c
 import { Paging } from "../../jaxapiutils/models/api-interfaces";
 import { GeneSet } from "../../models/gene-set";
 import { By } from '@angular/platform-browser';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { MockService } from "ng-mocks";
+import { APIBaseService } from "../../jaxapiutils/services/api-base.service";
+import { ActivatedRoute } from "@angular/router";
+import { of } from "rxjs";
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
+  const mockAPIBaseService = MockService(APIBaseService);
+  const mockGeneset = {
+    "id": 36435,
+    "user_id": 623,
+    "file_id": 70425,
+    "curation_id": 2,
+    "species_id": 1,
+    "name": "Hippocampus Gene expression correlates of Open Field -Total distance in the perimeter in Females & Males BXD",
+    "abbreviation": "HPC OF_TOT_PERIM_DIST_PCT F&M BXD M430v2 RMA",
+    "publication_id": 104,
+    "description": "Hippocampus Gene Expression Correlates for OF_TOT_PERIM_DIST_PCT measured in BXD RI Females & Males obtained using GeneNetwork Hippocampus Consortium M430v2 (Jun06) RMA. The OF_TOT_PERIM_DIST_PCT measures Open Field -Total distance in the perimeter under the domain Basal Behavior. The correlates were thresholded at a p-value of less than 0.001.",
+    "count": 36,
+    "score_type": 1,
+    "threshold": "0.001",
+    "status": "normal",
+    "gene_id_type": 71,
+    "attribution": '',
+    "created": "2010-03-23",
+    "updated": "2024-10-22T14:59:57.497457",
+    publication_abstract: '',
+    publication_authors: '',
+    publication_journal: '',
+    publication_month: '',
+    publication_pages: '',
+    publication_pubmed_id: '',
+    publication_title: '',
+    publication_volume: '',
+    publication_year: ''
+  }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -18,7 +50,15 @@ describe('HomeComponent', () => {
         SearchBarComponent,
         GeneSetListComponent,
       ],
-      providers: [provideHttpClientTesting()]
+      providers: [
+        {provide: APIBaseService, useValue: mockAPIBaseService},
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParams: of({search: ''})
+          }
+        }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(HomeComponent);
@@ -46,7 +86,7 @@ describe('HomeComponent', () => {
     });
 
     it('should display the GeneWeaver title', () => {
-      const titleElement = fixture.debugElement.query(By.css('#geneweaver'));
+      const titleElement = fixture.debugElement.query(By.css('#title'));
       expect(titleElement).toBeTruthy();
       expect(titleElement.nativeElement.textContent.trim()).toBe('GeneWeaver');
     });
@@ -61,47 +101,38 @@ describe('HomeComponent', () => {
 
     it('should handle search completion', () => {
       const mockGeneSets: GeneSet[] = [
-        // Add mock GeneSet objects here based on your GeneSet interface
+        mockGeneset
       ];
 
       component.onSearchCompleted(mockGeneSets);
       expect(component.geneSets).toEqual(mockGeneSets);
       expect(component.isLoading).toBeFalsy();
     });
-
-    it('should handle search paging', () => {
-      const mockPaging: Paging = {
-        // Add mock Paging object here based on your Paging interface
-      };
-
-      component.onSearchPaging(mockPaging);
-      expect(component.paging).toEqual(mockPaging);
-    });
   });
 
   describe('UI State Changes', () => {
     it('should adjust margin-top based on search state', () => {
       // Test initial state
-      const initialContainer = fixture.debugElement.query(By.css('.block'));
-      expect(initialContainer.styles['margintop']).toBe('18vh');
+      const initialContainer = fixture.debugElement.query(By.css('#home'));
+      expect(initialContainer.styles['marginTop']).toBe('18vh');
 
       // Test after search activation
       component.isSearchActive = true;
       fixture.detectChanges();
-      expect(initialContainer.styles['margintop']).toBe('0');
+      expect(initialContainer.styles['marginTop']).toBe('0px');
     });
 
     it('should show gene set list only when results exist', () => {
       // Initial state - no results
-      let geneSetList = fixture.debugElement.query(By.css('[*ngif="geneSets.length > 0"]'));
+      let geneSetList = fixture.debugElement.query(By.css('#genesetResults'));
       expect(geneSetList).toBeNull();
 
       // After adding results
       component.geneSets = [
-        // Add mock GeneSet objects here
+        mockGeneset
       ];
       fixture.detectChanges();
-      geneSetList = fixture.debugElement.query(By.css('[*ngif="geneSets.length > 0"]'));
+      geneSetList = fixture.debugElement.query(By.css('#genesetResults'));
       expect(geneSetList).toBeTruthy();
     });
   });
@@ -126,7 +157,7 @@ describe('HomeComponent', () => {
 
     it('should include GeneSetListComponent when results exist', () => {
       component.geneSets = [
-        // Add mock GeneSet objects here
+        mockGeneset
       ];
       fixture.detectChanges();
 

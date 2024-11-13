@@ -1,8 +1,9 @@
 import { Environment } from './environment-interface';
-import { environment as defaultEnvironment } from './environment.default';
+import { environment as sqaEnvironment } from './environment.jax-cluster-dev-10--sqa'
+import { version } from "./version";
 
 export const environment: Environment = {
-  ...defaultEnvironment,
+  ...sqaEnvironment,
   urls: {
     geneWeaver: 'https://geneweaver-dev.jax.org',
   },

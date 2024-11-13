@@ -22,7 +22,6 @@ export class HomeComponent {
   onSearchExecuted() {
     this.isSearchActive = true;
     this.isLoading = true;
-    console.log("Search executed");
   }
 
   onSearchCompleted(geneSets: GeneSet[]) {
