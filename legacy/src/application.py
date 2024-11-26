@@ -1972,15 +1972,35 @@ def render_set_threshold(gs_id):
     threshold_type = geneset.threshold_type
     threshold = str(geneset.threshold)
     thresh = threshold.split(',')
+
+    minVal = None
+    maxVal = None
+
     if len(thresh) == 1:
         thresh.append(str(0))
-    minVal = float(thresh[0])
-    maxVal = float(thresh[1])
+    elif len(thresh) > 1:
+        minVal = float(thresh[0])
+        maxVal = float(thresh[1])
+
+    g_values = []
     if gsv_values is not None:
         for k in gsv_values:
             k_first_value = list(k.values())[0]
-            maxVal = float(k_first_value) if float(k_first_value) > maxVal else maxVal
-            minVal = float(k_first_value) if float(k_first_value) < minVal else minVal
+            # maxVal = maxVal if maxVal is not None and float(k_first_value) < maxVal else float(k_first_value)
+            # minVal = minVal if minVal is not None and float(k_first_value) > minVal else float(k_first_value)
+
+            if maxVal is not None:
+                maxVal = float(k_first_value) if float(k_first_value) > maxVal else maxVal
+            else:
+                maxVal = float(k_first_value)
+
+            if minVal is not None:
+                minVal = float(k_first_value) if float(k_first_value) < minVal else minVal
+            else:
+                minVal = float(k_first_value)
+
+            # minVal = float(k_first_value) if float(k_first_value) < minVal else minVal
+            g_values.append(float(k_first_value))
     score_types = {
         1: "p-value",
         2: "q-value",
@@ -1993,7 +2013,7 @@ def render_set_threshold(gs_id):
                            user_id=user_id, view=view, is_bimodal=is_bimodal,
                            threshold=thresh, threshold_type=threshold_type,
                            minVal=minVal, maxVal=maxVal,
-                           scoreType=score_types[threshold_type])
+                           scoreType=score_types[threshold_type], gsv_values=g_values)
 
 
 @app.route('/setthreshold-legacy/<int:gs_id>')
