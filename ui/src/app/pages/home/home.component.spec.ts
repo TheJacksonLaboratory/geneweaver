@@ -2,18 +2,17 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HomeComponent } from './home.component';
 import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
 import { GeneSetListComponent } from "../../components/genesetlist/genesetlist.component";
-import { Paging } from "../../jaxapiutils/models/api-interfaces";
 import { GeneSet } from "../../models/gene-set";
 import { By } from '@angular/platform-browser';
 import { MockService } from "ng-mocks";
-import { APIBaseService } from "../../jaxapiutils/services/api-base.service";
+import { ApiBaseServiceFactory } from "jax-apiutils";
 import { ActivatedRoute } from "@angular/router";
 import { of } from "rxjs";
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
-  const mockAPIBaseService = MockService(APIBaseService);
+  const mockApiBaseServiceFactory = MockService(ApiBaseServiceFactory);
   const mockGeneset = {
     "id": 36435,
     "user_id": 623,
@@ -51,7 +50,7 @@ describe('HomeComponent', () => {
         GeneSetListComponent,
       ],
       providers: [
-        {provide: APIBaseService, useValue: mockAPIBaseService},
+        {provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory},
         {
           provide: ActivatedRoute,
           useValue: {
