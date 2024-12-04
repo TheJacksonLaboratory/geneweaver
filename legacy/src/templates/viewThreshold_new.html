@@ -23,12 +23,13 @@
         {% if is_bimodal == 'False' %}
         <div class="row">
             {%  if threshold_type == 4 or threshold_type == 5 %}
+                {% set threshold_low = threshold[0] if threshold[0] != 'None' else minVal %}
                 {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
                 {% set threshold_name = 'a correlation' if threshold_type == 4 else 'an effect' %}
                <div><p><strong>Current Threshold Values:
                 </strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
                         {% if threshold[1] == '0' %}
-                            {{ maxVal }}
+                            None
                         {% else %}
                             {{ threshold[1] }}
                         {% endif %}
@@ -51,18 +52,25 @@
         {% endif %}
         <hr>
         <div class="row">
-            <div class="col-md-8" style="margin-bottom: 1rem;">
+            <div class="col-md-9" style="margin-bottom: 1rem;">
             {% if view is defined and is_bimodal == 'False' %}
                 {%  if threshold_type == 4 or threshold_type == 5 %}
                     <div class="row">
                         <div class="input-group">
                             <span class="input-group-addon">Manually enter {{ threshold_name }} threshold range.</span>
-                            <input type="number" min="0" step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
+                            <input id="t_min" type="number" min="{{ threshold_low }}" step="0.001" value="{{ threshold_low }}" class="form-control threshLow">
                             <span class="input-group-addon"><i class="fa fa-arrows-h"></i></span>
-                            <input type="number" min="0" step="0.001" value="{{ threshold_high }}" class="form-control threshHigh">
+                            <input id="t_max" type="number" max="{{ threshold_high }}" step="0.001" value="{{ threshold_high }}" class="form-control threshHigh">
                             <div class="input-group-btn">
                                 <button class="btn btn-default setThresh" type="button">Save</button>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12" style="margin-bottom: 1rem;">
+                            <div id="myHisPlot" style="width:100%; height:500px;"></div>
+                            <p>** Use Box Select tool to set a threshold range on the histogram, or enter values in the input fields. </p>
+                            <p>* Selected threshold range in red color</p>
                         </div>
                     </div>
                 {%  else %}
@@ -96,7 +104,7 @@
             </div>
 
             {#  right side menu #}
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 {% set return_page = 'curategeneset' if view == 'curator' else 'viewgenesetdetails' %}
                 <a class="btn btn-block btn-warning" href="../{{ return_page }}/{{ geneset.geneset_id}}" role="button">
                      <i class="fa fa-arrow-left pull-left"></i> Back to GeneSet
@@ -109,60 +117,198 @@
             </div>
 
         </div>
+
         {% if view is defined and is_bimodal == 'False' %}
-        <script type="text/javascript">
-            function getCookie(name) {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-            }
-            $(document).ready(function () {
-                $('.setThresh').on('click', function (e) {
-                    const access_token = getCookie('access_token');
-                    console.log(access_token);
-                    let value = $(this).val();
-                    let valueHigh = null;
-                    let newTresh;
-                    if (value === '' || value == null) {
-                        const $parent = $(this).parent().parent();
-                        value = $parent.find('.threshLow').val();
-                        valueHigh = $parent.find('.threshHigh').val();
-                    }
-                    console.log('Clicked button with value:', value, valueHigh);
-                    if (valueHigh === '' || valueHigh == null) {
-                        newTresh = {
-                            threshold: value,
-                            score_type: '{{ scoreType }}'
-                        };
-                    } else {
-                        newTresh = {
-                            threshold_low: value,
-                            threshold: valueHigh,
-                            score_type: '{{ scoreType }}'
-                        };
-                    }
-                    $.ajax({
-                        type: 'PUT',
-                        {#
-                          Note: If you are doing local development, you will probably
-                            need to change this url to point at the dev API:
-                            url: 'http://geneweaver-dev.jax.org/api/genesets/{{ geneset.geneset_id }}/threshold',
-                         #}
-                        url: '../api/genesets/{{ geneset.geneset_id }}/threshold',
-                        contentType: 'application/json',
-                        data: JSON.stringify(newTresh),
-                        dataType: 'json',
-                        headers: {
-                            'Authorization': `Bearer ${access_token}`
-                        },
-                        success: function (data) {
-                            location.reload();
+            <script type="text/javascript">
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
+                }
+                $(document).ready(function () {
+                    $('.setThresh').on('click', function (e) {
+                        const access_token = getCookie('access_token');
+                        console.log(access_token);
+                        let value = $(this).val();
+                        let valueHigh = null;
+                        let newTresh;
+                        if (value === '' || value == null) {
+                            const $parent = $(this).parent().parent();
+                            value = $parent.find('.threshLow').val();
+                            valueHigh = $parent.find('.threshHigh').val();
                         }
+                        console.log('Clicked button with value:', value, valueHigh);
+                        if (valueHigh === '' || valueHigh == null) {
+                            newTresh = {
+                                threshold: value,
+                                score_type: '{{ scoreType }}'
+                            };
+                        } else {
+                            newTresh = {
+                                threshold_low: value,
+                                threshold: valueHigh,
+                                score_type: '{{ scoreType }}'
+                            };
+                        }
+                        $.ajax({
+                            type: 'PUT',
+                            {#
+                              Note: If you are doing local development, you will probably
+                                need to change this url to point at the dev API:
+                                url: 'http://geneweaver-dev.jax.org/api/genesets/{{ geneset.geneset_id }}/threshold',
+                             #}
+                            url: '../api/genesets/{{ geneset.geneset_id }}/threshold',
+                            contentType: 'application/json',
+                            data: JSON.stringify(newTresh),
+                            dataType: 'json',
+                            headers: {
+                                'Authorization': `Bearer ${access_token}`
+                            },
+                            success: function (data) {
+                                location.reload();
+                            }
+                        });
                     });
                 });
-            });
-        </script>
+            </script>
+
+            {%  if threshold_type == 4 or threshold_type == 5 %}
+                <script>
+                    // *** Logic and functions for Plotly Histogram
+
+                    // Determine selected range for the histogram
+                    var x = {{ gsv_values }};
+                    var threshold_min = document.getElementById('t_min');
+                    var threshold_max = document.getElementById('t_max');
+
+                    //calculate index values
+                    index_min = x.findIndex(n => n >= parseFloat(threshold_min.value));
+                    index_max = x.findLastIndex(n => n > parseFloat(threshold_min.value) && n <= parseFloat(threshold_max.value) );
+
+                    var selected_x = [];
+                    for (var i = index_min; i <= index_max; i++) {
+                        selected_x.push(i);
+                    }
+
+                    // Function to select points
+                    function setSelectPoints(plotElement, indices) {
+                      Plotly.restyle(plotElement, {
+                        selectedpoints: [indices],
+                        selected: {
+                         marker: {
+                            color: '#ff0000'
+                         }
+                        }
+                      });
+                    }
+
+                    // Set properties for Plotly histogram
+                    var v_min = {{ gsv_values[0] }};
+                    var v_max = {{ gsv_values[-1] }};
+                    var x_bin_size = v_max < 10 ? 0.1 : 0.5;
+                    var x = {{ gsv_values }};
+
+                    var trace = {
+                        x: x,
+                        type: 'histogram',
+                        opacity: 0.75,
+                        xbins: {
+                            size: x_bin_size   // Size of each bin
+                        }
+                      };
+
+                    var p_data = [trace];
+
+                    var p_layout = {
+                          title: {
+                            text: "Geneset Values Histogram"
+                          },
+                          xaxis: {
+                              title: {
+                                  text: "Threshold Range"
+                              }
+                          },
+                          yaxis: {
+                              title: {
+                                  text: "Gene Count"
+                              },
+                              fixedrange: true
+                          },
+                          selectdirection: 'h'
+                    };
+
+                    var p_config = {
+                        responsive: true,
+                        displayModeBar: true,
+                        displaylogo: false,
+                        modeBarButtonsToRemove: [
+                          'toggleSpikelines',
+                          'lasso2d',
+                          'hoverClosestCartesian',
+                          'hoverCompareCartesian'
+                        ],
+                        scrollZoom: true
+                      }
+
+                    //Set the plot into the div element
+                    var myPlot = document.getElementById('myHisPlot');
+                    Plotly.newPlot(myPlot, p_data, p_layout, p_config);
+
+                    // Callback function for selected points using Box Select tool
+                    myPlot.on('plotly_selected', function(data) {
+
+                       if (data !== undefined) {
+                           threshold_min.value = data.range.x[0];
+                           threshold_max.value = data.range.x[1];
+                       }
+
+                    });
+
+                    // callback function to set selected points using input fields
+                    function set_histogram_threshold_range(){
+
+                       if (threshold_min.value < v_min) {
+                           index_min = 0;
+                       } else {
+                           index_min = x.findIndex(n => n >= parseFloat(threshold_min.value));
+                       }
+
+                       if (threshold_max.value > v_max) {
+                           index_max = x.length - 1;
+                       } else {
+                           index_max = x.findLastIndex(n => n > parseFloat(threshold_min.value) && n <= parseFloat(threshold_max.value) );
+                       }
+
+                       if (index_min != -1 && index_max != -1) {
+                            selected_x = [];
+                           for (var i = index_min; i <= index_max; i++) {
+                                selected_x.push(i);
+                           }
+                           setSelectPoints(myPlot, selected_x)
+                       } else {
+                           //Do nothing -- index for values will not be found in histogram data
+                           console.log('Threshold values not found in histogram', 'index_min:', index_min, 'index_max:', index_max);
+                       }
+                    }
+
+                    // Callback function for selected points using input fields
+                    threshold_min.addEventListener("change", (event) => {
+                       set_histogram_threshold_range()
+                    });
+                    threshold_max.addEventListener("change", (event) => {
+                       set_histogram_threshold_range()
+                    });
+
+                    //Initial call to set selected points on the histogram
+                    setSelectPoints(myPlot, selected_x)
+
+                </script>
+
+            {%  endif %}
+
         {% endif %}
+
+
 
     </div>
 
