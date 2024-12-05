@@ -5,8 +5,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
 import { FormsModule } from "@angular/forms";
 /* Jax API Utils Imports */
-import { APIBaseService } from '../../jaxapiutils/services/api-base.service';
-import { Paging } from '../../jaxapiutils/models/api-interfaces';
+import { ApiBaseService, ApiBaseServiceFactory, Paging } from "jax-apiutils";
+
 /* PrimeNG Imports */
 import { MessageService } from 'primeng/api';
 import { ToastModule } from "primeng/toast";
@@ -29,6 +29,7 @@ import { GeneSet } from "../../models/gene-set";
 })
 export class SearchBarComponent implements OnInit {
   isSearching = false;
+  private gwApi: ApiBaseService;
 
   @Input() searchValue = '';
   @Output() searchExecuted = new EventEmitter<string>();
@@ -38,10 +39,12 @@ export class SearchBarComponent implements OnInit {
 
   constructor(
       private messageService: MessageService,
-      private apiService: APIBaseService,
+      private apiBaseServiceFactory: ApiBaseServiceFactory,
       private router: Router,
       private route: ActivatedRoute
-  ) {}
+  ) {
+    this.gwApi = this.apiBaseServiceFactory.create('https://geneweaver.jax.org/api')
+  }
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
@@ -68,7 +71,7 @@ export class SearchBarComponent implements OnInit {
         queryParams: { search: searchTerm },
         queryParamsHandling: 'merge'
       });
-      this.apiService
+      this.gwApi
           .getCollection<GeneSet>('/genesets/search', new HttpParams().set('search_text', searchTerm))
           .subscribe((geneSets) => {
         this.isSearching = false;

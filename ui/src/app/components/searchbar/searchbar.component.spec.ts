@@ -1,20 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SearchBarComponent } from './searchbar.component';
 import { MockService } from "ng-mocks";
-import { APIBaseService } from "../../jaxapiutils/services/api-base.service";
+import { ApiBaseServiceFactory } from "jax-apiutils";
 import { ActivatedRoute } from "@angular/router";
 import { of } from "rxjs";
 
 describe('SearchBarComponent', () => {
   let component: SearchBarComponent;
   let fixture: ComponentFixture<SearchBarComponent>;
-  const mockAPIBaseService = MockService(APIBaseService);
+  const mockApiBaseServiceFactory = MockService(ApiBaseServiceFactory);
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SearchBarComponent],
       providers: [
-        { provide: APIBaseService, useValue: mockAPIBaseService },
+        { provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory },
         {
           provide: ActivatedRoute,
           useValue: {
