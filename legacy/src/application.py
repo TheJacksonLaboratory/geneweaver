@@ -1972,6 +1972,7 @@ def render_set_threshold(gs_id):
     threshold_type = geneset.threshold_type
     threshold = str(geneset.threshold)
     thresh = threshold.split(',')
+    threshold_gene_counts = None
 
     minVal = None
     maxVal = None
@@ -1986,9 +1987,6 @@ def render_set_threshold(gs_id):
     if gsv_values is not None:
         for k in gsv_values:
             k_first_value = list(k.values())[0]
-            # maxVal = maxVal if maxVal is not None and float(k_first_value) < maxVal else float(k_first_value)
-            # minVal = minVal if minVal is not None and float(k_first_value) > minVal else float(k_first_value)
-
             if maxVal is not None:
                 maxVal = float(k_first_value) if float(k_first_value) > maxVal else maxVal
             else:
@@ -1999,8 +1997,15 @@ def render_set_threshold(gs_id):
             else:
                 minVal = float(k_first_value)
 
-            # minVal = float(k_first_value) if float(k_first_value) < minVal else minVal
             g_values.append(float(k_first_value))
+
+
+    # if Threshold type is 1 or 2 (p-value or q-value) then calculate gene counts for each threshold
+    curr_gene_count = 0;
+    if threshold_type == 1 or threshold_type == 2:
+        threshold_gene_counts = calc_genes_count_in_threshold(gsv_values, thresh)
+        curr_gene_count = curr_gene_count if thresh[0] == 'None' else threshold_gene_counts[float(thresh[0])]
+
     score_types = {
         1: "p-value",
         2: "q-value",
@@ -2013,7 +2018,33 @@ def render_set_threshold(gs_id):
                            user_id=user_id, view=view, is_bimodal=is_bimodal,
                            threshold=thresh, threshold_type=threshold_type,
                            minVal=minVal, maxVal=maxVal,
-                           scoreType=score_types[threshold_type], gsv_values=g_values)
+                           scoreType=score_types[threshold_type], gsv_values=g_values,
+                           threshold_gene_counts=threshold_gene_counts, curr_gene_count=curr_gene_count)
+
+def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
+    """ Calculate the number of genes that fall below a given threshold
+        for score types 1 and 2 (p-value and q-value)
+
+    :param gsv_values: list of gene set values
+    :return: dictionary of gene counts for each threshold
+    """
+    threshold_gene_counts = {}
+    thresholds = [0.05, 0.01, 0.001, 0.0001]
+
+    # Add the current threshold to the list
+    if curr_thresh[0] != 'None' and float(curr_thresh[0]) not in thresholds:
+        thresholds.append(float(curr_thresh[0]))
+
+    for threshold in thresholds:
+        threshold_gene_counts[threshold] = 0
+        if gsv_values is not None:
+            for gsv_value in gsv_values:
+                value = list(gsv_value.values())[0]
+                if float(value) < threshold:
+                    threshold_gene_counts[threshold] += 1
+
+    return threshold_gene_counts
+
 
 
 @app.route('/setthreshold-legacy/<int:gs_id>')

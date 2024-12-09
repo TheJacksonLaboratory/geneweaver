@@ -21,27 +21,37 @@
     <div class="panel-body">
         {% set threshold_symbol = 'p' if threshold_type == 1 else 'q' %}
         {% if is_bimodal == 'False' %}
-        <div class="row">
-            {%  if threshold_type == 4 or threshold_type == 5 %}
-                {% set threshold_low = threshold[0] if threshold[0] != 'None' else minVal %}
-                {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
-                {% set threshold_name = 'a correlation' if threshold_type == 4 else 'an effect' %}
-               <div><p><strong>Current Threshold Values:
-                </strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
-                        {% if threshold[1] == '0' %}
-                            None
-                        {% else %}
-                            {{ threshold[1] }}
-                        {% endif %}
-                    </p>
+            {%  if gsv_values|length == 0  %}
+                <div class="row">
+                    <div class="alert bg-gray-light">
+                        This GeneSet does not contain any geneset values.
+                        Set threshold cannot be performed.
+                    </div>
                 </div>
             {% else %}
-                <div><p><strong>Current Threshold Values:
-                    </strong> {{ threshold_symbol }} < {{ threshold[0] }}
-                    </p>
+                <div class="row">
+                    {%  if threshold_type == 4 or threshold_type == 5 %}
+                        {% set threshold_low = threshold[0] if threshold[0] != 'None' else minVal %}
+                        {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
+                        {% set threshold_name = 'a correlation' if threshold_type == 4 else 'an effect' %}
+                       <div><p><strong>Current Threshold Values:
+                        </strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
+                                {% if threshold[1] == '0' %}
+                                    None
+                                {% else %}
+                                    {{ threshold[1] }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% else %}
+                        <div><p><strong>Current Threshold Values:
+                            </strong> {{ threshold_symbol }} < {{ threshold[0] }} ( genes count: {{ curr_gene_count }} )
+                            </p>
+                        </div>
+                    {% endif %}
+
                 </div>
             {% endif %}
-        </div>
         {% else %}
             <div class="row">
                 <div class="alert bg-gray-light">
@@ -53,7 +63,7 @@
         <hr>
         <div class="row">
             <div class="col-md-9" style="margin-bottom: 1rem;">
-            {% if view is defined and is_bimodal == 'False' %}
+            {% if view is defined and is_bimodal == 'False' and gsv_values|length > 0%}
                 {%  if threshold_type == 4 or threshold_type == 5 %}
                     <div class="row">
                         <div class="input-group">
@@ -68,24 +78,37 @@
                     </div>
                     <div class="row">
                         <div class="col-md-12" style="margin-bottom: 1rem;">
-                            <div id="myHisPlot" style="width:100%; height:500px;"></div>
-                            <p>** Use Box Select tool to set a threshold range on the histogram, or enter values in the input fields. </p>
-                            <p>* Selected threshold range in red color</p>
+                            <div class="row">
+                                <div class="col-md-12" style="margin-top: 2rem; margin-bottom: 1rem;">
+                                    <p id="selectedGeneCount"></p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12" style="margin-bottom: 1rem;">
+                                     <div id="myHisPlot" style="width:100%; height:500px;"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12" style="margin-bottom: 1rem;">
+                                    <p>** Use Box Select tool to set a threshold range on the histogram, or enter values in the input fields. </p>
+                                    <p>* Selected threshold range in red color</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 {%  else %}
                     <div class="row">
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh05" value="0.05">
-                            Save as <code> {{ threshold_symbol }} < 0.05 </code>
+                            Save as <code> {{ threshold_symbol }} < 0.05 </code> ( genes count: {{ threshold_gene_counts[0.05]}} )
                         </button>
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh01" value="0.01">
-                            Save as <code> {{ threshold_symbol }} < 0.01 </code>
+                            Save as <code> {{ threshold_symbol }} < 0.01 </code> ( genes count: {{ threshold_gene_counts[0.01]}} )
                         </button>
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh001" value="0.001">
-                            Save as <code> {{ threshold_symbol }} < 0.001 </code>
+                            Save as <code> {{ threshold_symbol }} < 0.001 </code> ( genes count:{{ threshold_gene_counts[0.001]}} )
                         </button>
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh0001" value="0.0001">
-                            Save as <code> {{ threshold_symbol }} < 0.0001 </code>
+                            Save as <code> {{ threshold_symbol }} < 0.0001 </code> ( genes count: {{ threshold_gene_counts[0.0001]}} )
                         </button>
 
                         <hr>
@@ -200,6 +223,13 @@
                          }
                         }
                       });
+                      //update gene count display
+                      displaySelectedGeneCount(indices.length);
+                    }
+
+                    //Display selected gene count
+                    function displaySelectedGeneCount(count) {
+                        document.getElementById('selectedGeneCount').innerHTML =  '<b>Number of Genes in Selected Threshold:</b> ' + count;
                     }
 
                     // Set properties for Plotly histogram
@@ -256,6 +286,12 @@
 
                     // Callback function for selected points using Box Select tool
                     myPlot.on('plotly_selected', function(data) {
+                       var geneCount = 0;
+                       for (var i = 0; i < data.points.length; i++) {
+                           geneCount = data.points[i].pointIndices.length + geneCount;
+                       }
+                       //update gene count display
+                       displaySelectedGeneCount(geneCount);
 
                        if (data !== undefined) {
                            threshold_min.value = data.range.x[0];
@@ -286,7 +322,10 @@
                            }
                            setSelectPoints(myPlot, selected_x)
                        } else {
-                           //Do nothing -- index for values will not be found in histogram data
+                           //Index for values will not be found in histogram data
+                           //update histogram selection and gene count display to 0
+                           setSelectPoints(myPlot, [])
+                           displaySelectedGeneCount(0);
                            console.log('Threshold values not found in histogram', 'index_min:', index_min, 'index_max:', index_max);
                        }
                     }
@@ -307,8 +346,6 @@
             {%  endif %}
 
         {% endif %}
-
-
 
     </div>
 
