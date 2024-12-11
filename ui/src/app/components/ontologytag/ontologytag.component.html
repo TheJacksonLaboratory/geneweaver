@@ -1,0 +1,13 @@
+<p-tag
+        [pTooltip]="ontology?.description"
+        [value]="ontology_string"
+        styleClass="text-xs"
+        [style]="{
+        'white-space': 'nowrap',
+        'border-radius': '4px',
+        'border': '1px solid',
+        'background-color': 'var(--' + getOntologyColor() + '-100)',
+        'color': 'black',
+
+    }"
+></p-tag>

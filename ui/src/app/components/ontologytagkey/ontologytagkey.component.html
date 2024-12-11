@@ -1,0 +1,14 @@
+<div class="card flex flex-wrap justify-center gap-2">
+
+<p-tag *ngFor="let ontology of source_ontologies"
+        [value]="ontology.name"
+        styleClass="text-xs"
+        [style]="{
+        'white-space': 'nowrap',
+        'border-radius': '4px',
+        'border': '1px solid',
+        'background-color': 'var(--' + ontology.color + '-100)',
+        'color': 'black',
+    }"
+></p-tag>
+</div>
