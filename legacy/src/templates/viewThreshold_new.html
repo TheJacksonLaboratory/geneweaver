@@ -209,7 +209,7 @@
                         thresh_high = {{ threshold_high }};
                     }else{
                         thresh_low = {{ minVal }};
-                        thresh_high = {{ threshold[0] }};
+                        thresh_high = {{ threshold_low }};
                     }
 
                     var selected_x = [];
@@ -247,10 +247,7 @@
                     var v_min = {{ gsv_values[0] }};
                     var v_max = {{ gsv_values[-1] }};
                     var x_bin_size = 0.5;
-
-                    if (v_max < 100) { x_bin_size = 0.1 };
-                    if (v_max < 10) { x_bin_size = 0.01 };
-                    if (v_max <= 0.1)  { x_bin_size = 0.001 };
+                    if (v_max - v_min < 100) { x_bin_size = 0.1 };
 
                     //buttons to remove from plotly bar
                     var btns2rm = [ 'toggleSpikelines',  'lasso2d', 'hoverClosestCartesian', 'hoverCompareCartesian']
@@ -306,6 +303,7 @@
                     // only for correlation and effect threshold types
                     if (threshold_type == 4 || threshold_type == 5) {
                         myPlot.on('plotly_selected', function (data) {
+
                             var geneCount = 0;
                             for (var i = 0; i < data.points.length; i++) {
                                 geneCount = data.points[i].pointIndices.length + geneCount;
@@ -323,7 +321,6 @@
 
                     // callback function to set selected points using input fields
                     function set_histogram_threshold_range(min_val, max_val) {
-
                        if (min_val < v_min) {
                            index_min = 0;
                        } else {
@@ -333,7 +330,7 @@
                        if (max_val > v_max) {
                            index_max = x.length - 1;
                        } else {
-                           index_max = x.findLastIndex(n => n > parseFloat(min_val) && n <= parseFloat(max_val) );
+                           index_max = x.findLastIndex(n => n >= parseFloat(min_val) && n <= parseFloat(max_val) );
                        }
 
                        if (index_min != -1 && index_max != -1) {
