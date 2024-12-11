@@ -6,13 +6,11 @@ import { TagModule } from "primeng/tag";
 import { Button } from "primeng/button";
 import { TierTagComponent } from "../tiertag/tiertag.component";
 import { Router } from '@angular/router';
-import { GeneSet } from "../../models/gene-set";
 
 
 describe('GeneSetListComponent', () => {
   let component: GeneSetListComponent;
   let fixture: ComponentFixture<GeneSetListComponent>;
-  let router: Router;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

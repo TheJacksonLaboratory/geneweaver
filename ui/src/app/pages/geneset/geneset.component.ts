@@ -31,8 +31,8 @@ export class GeneSetComponent {
   geneset: any;
   geneset_values: any;
   publication: any;
-  has_publication: boolean = false;
-  score_type: string = '';
+  has_publication = false;
+  score_type = '';
 
   genes: any[] = []
 

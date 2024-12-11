@@ -18,7 +18,7 @@ export class OntologyTagComponent implements OnChanges {
     return this.getColorForOntology(this.ontology?.source_ontology || '', 0);
   }
 
-  ontology_string: string = '';
+  ontology_string = '';
 
   ngOnChanges(changes: SimpleChanges): void {
     this.ontology_string = this.ontology?.name + " (" + this.ontology?.ontology_term_id + ")"
