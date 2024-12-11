@@ -30,9 +30,9 @@
                 </div>
             {% else %}
                 <div class="row">
+                    {% set threshold_low = threshold[0] if threshold[0] != 'None' else minVal %}
+                    {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
                     {%  if threshold_type == 4 or threshold_type == 5 %}
-                        {% set threshold_low = threshold[0] if threshold[0] != 'None' else minVal %}
-                        {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
                         {% set threshold_name = 'a correlation' if threshold_type == 4 else 'an effect' %}
                        <div><p><strong>Current Threshold Values:
                         </strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
@@ -78,25 +78,25 @@
                     </div>
                     <div class="row">
                         <div class="col-md-12" style="margin-bottom: 1rem;">
-                            <div class="row">
-                                <div class="col-md-12" style="margin-top: 2rem; margin-bottom: 1rem;">
-                                    <p id="selectedGeneCount"></p>
-                                </div>
+                            <div class="row" style="margin-top: 1rem;">
+                                <p id="selectedGeneCount"></p>
                             </div>
                             <div class="row">
-                                <div class="col-md-12" style="margin-bottom: 1rem;">
-                                     <div id="myHisPlot" style="width:100%; height:500px;"></div>
-                                </div>
+                                <div id="myHisPlot" style="width:100%; height:500px;"></div>
                             </div>
                             <div class="row">
-                                <div class="col-md-12" style="margin-bottom: 1rem;">
-                                    <p>** Use Box Select tool to set a threshold range on the histogram, or enter values in the input fields. </p>
-                                    <p>* Selected threshold range in red color</p>
-                                </div>
+                                <p>** Use Box Select tool to set a threshold range on the histogram, or enter values in the input fields. </p>
+                                <p>* Selected threshold range in red color</p>
                             </div>
                         </div>
                     </div>
                 {%  else %}
+                    <div class="row">
+                        <div id="myHisPlot" style="width:100%; height:500px;"></div>
+                    </div>
+                    <div class="row">
+                        <p id="selectedGeneCount"></p>
+                    </div>
                     <div class="row">
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh05" value="0.05">
                             Save as <code> {{ threshold_symbol }} < 0.05 </code> ( genes count: {{ threshold_gene_counts[0.05]}} )
@@ -116,7 +116,7 @@
                         <div class="input-group">
                             <span class="input-group-addon">Manually enter a threshold value.</span>
                             <span class="input-group-addon">Set to: {{ threshold_symbol }} < </span>
-                            <input type="number" min="0" step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
+                            <input type="number" id="t_man" min="0" step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
                             <div class="input-group-btn">
                                 <button class="btn btn-default setThresh" type="button">Save</button>
                             </div>
@@ -151,7 +151,6 @@
                 $(document).ready(function () {
                     $('.setThresh').on('click', function (e) {
                         const access_token = getCookie('access_token');
-                        console.log(access_token);
                         let value = $(this).val();
                         let valueHigh = null;
                         let newTresh;
@@ -160,7 +159,6 @@
                             value = $parent.find('.threshLow').val();
                             valueHigh = $parent.find('.threshHigh').val();
                         }
-                        console.log('Clicked button with value:', value, valueHigh);
                         if (valueHigh === '' || valueHigh == null) {
                             newTresh = {
                                 threshold: value,
@@ -195,20 +193,30 @@
                 });
             </script>
 
-            {%  if threshold_type == 4 or threshold_type == 5 %}
+            {%  if threshold_type != 3 %}
                 <script>
                     // *** Logic and functions for Plotly Histogram
-
-                    // Determine selected range for the histogram
-                    var x = {{ gsv_values }};
                     var threshold_min = document.getElementById('t_min');
                     var threshold_max = document.getElementById('t_max');
+                    var x = {{ gsv_values }};
+                    var threshold_type = {{ threshold_type }};
+                    var thresh_low = 0;
+                    var thresh_high = 0;
 
-                    //calculate index values
-                    index_min = x.findIndex(n => n >= parseFloat(threshold_min.value));
-                    index_max = x.findLastIndex(n => n > parseFloat(threshold_min.value) && n <= parseFloat(threshold_max.value) );
+                    // Determine selected range for the histogram
+                    if (threshold_type === 4 || threshold_type === 5) {
+                        thresh_low = {{ threshold_low }};
+                        thresh_high = {{ threshold_high }};
+                    }else{
+                        thresh_low = {{ minVal }};
+                        thresh_high = {{ threshold[0] }};
+                    }
 
                     var selected_x = [];
+
+                    //calculate index of selected values
+                    index_min = x.findIndex(n => n >= parseFloat(thresh_low));
+                    index_max = x.findLastIndex(n => n > parseFloat(thresh_low) && n <= parseFloat(thresh_high));
                     for (var i = index_min; i <= index_max; i++) {
                         selected_x.push(i);
                     }
@@ -227,15 +235,30 @@
                       displaySelectedGeneCount(indices.length);
                     }
 
-                    //Display selected gene count
+                    //function to display selected gene count
                     function displaySelectedGeneCount(count) {
-                        document.getElementById('selectedGeneCount').innerHTML =  '<b>Number of Genes in Selected Threshold:</b> ' + count;
+                        elem = document.getElementById('selectedGeneCount');
+                        if (elem !== null){
+                            elem.innerHTML =  '<b>Number of Genes in Selected Threshold:</b> ' + count;
+                        }
                     }
 
                     // Set properties for Plotly histogram
                     var v_min = {{ gsv_values[0] }};
                     var v_max = {{ gsv_values[-1] }};
-                    var x_bin_size = v_max < 10 ? 0.1 : 0.5;
+                    var x_bin_size = 0.5;
+
+                    if (v_max < 100) { x_bin_size = 0.1 };
+                    if (v_max < 10) { x_bin_size = 0.01 };
+                    if (v_max <= 0.1)  { x_bin_size = 0.001 };
+
+                    //buttons to remove from plotly bar
+                    var btns2rm = [ 'toggleSpikelines',  'lasso2d', 'hoverClosestCartesian', 'hoverCompareCartesian']
+                    if (threshold_type == 1 || threshold_type == 2) {
+                        //box select tool is not needed for p-value and q-value threshold types
+                        btns2rm.push('select2d');
+                    }
+
                     var x = {{ gsv_values }};
 
                     var trace = {
@@ -271,12 +294,7 @@
                         responsive: true,
                         displayModeBar: true,
                         displaylogo: false,
-                        modeBarButtonsToRemove: [
-                          'toggleSpikelines',
-                          'lasso2d',
-                          'hoverClosestCartesian',
-                          'hoverCompareCartesian'
-                        ],
+                        modeBarButtonsToRemove: btns2rm,
                         scrollZoom: true
                       }
 
@@ -285,34 +303,37 @@
                     Plotly.newPlot(myPlot, p_data, p_layout, p_config);
 
                     // Callback function for selected points using Box Select tool
-                    myPlot.on('plotly_selected', function(data) {
-                       var geneCount = 0;
-                       for (var i = 0; i < data.points.length; i++) {
-                           geneCount = data.points[i].pointIndices.length + geneCount;
-                       }
-                       //update gene count display
-                       displaySelectedGeneCount(geneCount);
+                    // only for correlation and effect threshold types
+                    if (threshold_type == 4 || threshold_type == 5) {
+                        myPlot.on('plotly_selected', function (data) {
+                            var geneCount = 0;
+                            for (var i = 0; i < data.points.length; i++) {
+                                geneCount = data.points[i].pointIndices.length + geneCount;
+                            }
+                            //update gene count display
+                            displaySelectedGeneCount(geneCount);
 
-                       if (data !== undefined) {
-                           threshold_min.value = data.range.x[0];
-                           threshold_max.value = data.range.x[1];
-                       }
+                            if (data !== undefined) {
+                                threshold_min.value = data.range.x[0];
+                                threshold_max.value = data.range.x[1];
+                            }
 
-                    });
+                        });
+                    }
 
                     // callback function to set selected points using input fields
-                    function set_histogram_threshold_range(){
+                    function set_histogram_threshold_range(min_val, max_val) {
 
-                       if (threshold_min.value < v_min) {
+                       if (min_val < v_min) {
                            index_min = 0;
                        } else {
-                           index_min = x.findIndex(n => n >= parseFloat(threshold_min.value));
+                           index_min = x.findIndex(n => n >= parseFloat(min_val));
                        }
 
-                       if (threshold_max.value > v_max) {
+                       if (max_val > v_max) {
                            index_max = x.length - 1;
                        } else {
-                           index_max = x.findLastIndex(n => n > parseFloat(threshold_min.value) && n <= parseFloat(threshold_max.value) );
+                           index_max = x.findLastIndex(n => n > parseFloat(min_val) && n <= parseFloat(max_val) );
                        }
 
                        if (index_min != -1 && index_max != -1) {
@@ -331,12 +352,37 @@
                     }
 
                     // Callback function for selected points using input fields
-                    threshold_min.addEventListener("change", (event) => {
-                       set_histogram_threshold_range()
-                    });
-                    threshold_max.addEventListener("change", (event) => {
-                       set_histogram_threshold_range()
-                    });
+                    if (threshold_type == 4 || threshold_type == 5) {
+                        threshold_min.addEventListener("change", (event) => {
+                           set_histogram_threshold_range(threshold_min.value, threshold_max.value)
+                        });
+                        threshold_max.addEventListener("change", (event) => {
+                           set_histogram_threshold_range(threshold_min.value, threshold_max.value)
+                        });
+                    } else {
+                        // set callback functions for threshold buttons
+                        thresh01 = document.getElementById('setThresh01');
+                        thresh05 = document.getElementById('setThresh05');
+                        thresh001 = document.getElementById('setThresh001');
+                        thresh0001 = document.getElementById('setThresh0001');
+
+                        saveBtns = [thresh01, thresh05, thresh001, thresh0001];
+                        saveBtns.forEach(function(btn) {
+                            btn.addEventListener('click', function(e) {
+                                min = thresh_low;
+                                max = e.target.value;
+                                set_histogram_threshold_range(min, max);
+                            });
+                        });
+
+                        thresh_man = document.getElementById("t_man");
+                        thresh_man.addEventListener("change", (event) => {
+                            min = thresh_low;
+                            max = thresh_man.value;
+                            set_histogram_threshold_range(min, max);
+                        });
+
+                    }
 
                     //Initial call to set selected points on the histogram
                     setSelectPoints(myPlot, selected_x)
