@@ -8,8 +8,12 @@ import { of } from "rxjs";
 describe('SearchBarComponent', () => {
   let component: SearchBarComponent;
   let fixture: ComponentFixture<SearchBarComponent>;
-  const mockApiBaseServiceFactory = MockService(ApiBaseServiceFactory);
-
+  const mockApiBaseServiceFactory = {
+    create: jest.fn().mockReturnValue({
+      getCollection: jest.fn().mockReturnValue(of({ data: [] }))
+    })
+  };
+  
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SearchBarComponent],

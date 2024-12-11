@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 describe('GeneSetListComponent', () => {
   let component: GeneSetListComponent;
   let fixture: ComponentFixture<GeneSetListComponent>;
+  let router: Router;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

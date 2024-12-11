@@ -1,16 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SpeciesTagComponent } from './speciestag.component';
+import { SpeciestagComponent } from './speciestag.component';
 
 describe('SpeciesTagComponent', () => {
-  let component: SpeciesTagComponent;
-  let fixture: ComponentFixture<SpeciesTagComponent>;
+  let component: SpeciestagComponent;
+  let fixture: ComponentFixture<SpeciestagComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SpeciesTagComponent],
+      imports: [SpeciestagComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(SpeciesTagComponent);
+    fixture = TestBed.createComponent(SpeciestagComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
