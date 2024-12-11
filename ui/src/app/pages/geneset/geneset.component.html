@@ -1,0 +1,156 @@
+<div class="block font-bold text-center md:p-4 border-round mb-3 flex h-fit">
+    <div class="flex justify-content-center w-full h-fit">
+        <div class="block font-bold text-center md:p-4 border-round mb-3 w-full">
+            <div class="flex justify-content-center">
+                <!-- Main Content -->
+                <div class="grid w-full md:w-14 lg:w-12 xl:w-10 xxl:w-8 sm:w-full sm:p-3">
+                    <!-- Single Full-Width Column -->
+                    <div class="col-12 p-0">
+                        <p-panel *ngIf="geneset; else loadingState">
+                            <ng-template pTemplate="header">
+                                <!-- Replace buttons with menubar -->
+                                <div class="flex align-items-center gap-2">
+                                    <span class="text-xl font-bold">GeneSet Information</span>
+                                </div>
+                            </ng-template>
+                            <ng-template pTemplate="icons">
+                                <p-menubar [model]="menuItems" styleClass="p-button-secondary"></p-menubar>
+                            </ng-template>
+
+                            <p-divider align="left">
+                                <app-tier-tag [tier]="geneset.curation_id"></app-tier-tag>
+                                <span class="ml-2">GS{{geneset.id}} • {{geneset.name}}</span>
+                            </p-divider>
+
+                            <!-- Details Grid -->
+                            <div class="grid">
+                                <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Description:</div>
+                                <div class="col-12 sm:col-10 text-left">{{geneset.description}}</div>
+
+                                <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Label:</div>
+                                <div class="col-12 sm:col-10 text-left">{{geneset.abbreviation}}</div>
+
+                                <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Score Type:</div>
+                                <div class="col-12 sm:col-10 text-left">{{score_type}}</div>
+
+                                <div *ngIf="geneset.score_type!=3" class="col-12 sm:col-2 text-left sm:text-right font-bold">Threshold</div>
+                                <div *ngIf="geneset.score_type!=3" class="col-12 sm:col-10 text-left font-monospace">p < 0.05</div>
+
+                                <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Date Added:</div>
+                                <div class="col-12 sm:col-10 text-left">{{geneset.created}}</div>
+
+                                <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Date Updated:</div>
+                                <div class="col-12 sm:col-10 text-left">{{geneset.updated}}</div>
+
+                                <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Species:</div>
+                                <div class="col-12 sm:col-10 text-left" id="sp-tag"><app-speciestag [species_id]="geneset.species_id"></app-speciestag></div>
+                            </div>
+
+                            <!-- Publication Section -->
+                            <p-divider>
+                                <span class="ml-2">Publication Information</span>
+                            </p-divider>
+                            
+                            <div *ngIf="publication; else noPublication">
+                                <div class="grid">
+                                    <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Authors:</div>
+                                    <div class="col-12 sm:col-10 text-left">{{publication.authors}}</div>
+
+                                    <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Title:</div>
+                                    <div class="col-12 sm:col-10 text-left font-italic">{{publication.title}}</div>
+
+                                    <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Journal:</div>
+                                    <div class="col-12 sm:col-10 text-left">{{publication.journal}} {{publication.month}} {{publication.year}}, Vol {{publication.volume}}, pp. {{publication.pages}}</div>
+
+                                    <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Abstract:</div>
+                                    <div class="col-12 sm:col-10 text-left">{{publication.abstract}}</div>
+                                </div>
+                            </div>
+
+                            <ng-template #noPublication>
+                                <div class="text-center p-3 text-600">
+                                    No publication information is associated with this GeneSet.
+                                </div>
+                            </ng-template>
+
+                            <!-- Ontology Annotations -->
+                            <p-divider>
+                                <span class="ml-2">Ontology Annotations</span>
+                            </p-divider>
+
+                            <app-ontology-annotations [ontology_tags]="ontologies"></app-ontology-annotations>
+                        </p-panel>
+
+
+
+                        <!-- Gene List Table -->
+                        <p-panel header="Gene List • {{geneset_values.length}} Total Genes" styleClass="mt-4">
+                            <app-gene-list [genes]="geneset_values" [geneset_id]="geneset.id"></app-gene-list>
+                        </p-panel>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-template #loadingState>
+    <p-panel>
+        <ng-template pTemplate="header">
+            <div class="flex align-items-center gap-2">
+                <p-skeleton width="200px" height="27px"></p-skeleton>
+            </div>
+        </ng-template>
+
+        <p-divider align="left">
+            <p-skeleton width="300px" height="24px"></p-skeleton>
+        </p-divider>
+
+        <!-- Details Grid Skeleton -->
+        <div class="grid">
+            <ng-container>
+                <div class="col-12 sm:col-2">
+                    <p-skeleton width="100px" height="21px"></p-skeleton>
+                </div>
+                <div class="col-12 sm:col-10">
+                    <p-skeleton width="100%" height="63px"></p-skeleton>
+                </div>
+            </ng-container>
+            <ng-container *ngFor="let i of [1,2,3,4,5,6]">
+                <div class="col-12 sm:col-2">
+                    <p-skeleton width="100px" height="21px"></p-skeleton>
+                </div>
+                <div class="col-12 sm:col-10">
+                    <p-skeleton width="100%" height="21px"></p-skeleton>
+                </div>
+            </ng-container>
+        </div>
+
+        <!-- Publication Section Skeleton -->
+        <p-divider>
+            <p-skeleton width="180px" height="24px"></p-skeleton>
+        </p-divider>
+        <div class="grid">
+            <ng-container *ngFor="let i of [1,2,3,4]">
+                <div class="col-12 sm:col-2">
+                    <p-skeleton width="100px" height="21px"></p-skeleton>
+                </div>
+                <div class="col-12 sm:col-10">
+                    <p-skeleton width="100%" height="21px"></p-skeleton>
+                </div>
+            </ng-container>
+        </div>
+
+        <!-- Ontology Section Skeleton -->
+        <p-divider>
+            <p-skeleton width="180px" height="24px"></p-skeleton>
+        </p-divider>
+        <div class="grid">
+            <ng-container *ngFor="let i of [1,2,3,4,6,8]">
+                <div class="col-12 sm:col-2">
+                    <p-skeleton width="100px" height="21px"></p-skeleton>
+                </div>
+            </ng-container>
+        </div>
+    </p-panel>
+</ng-template>
