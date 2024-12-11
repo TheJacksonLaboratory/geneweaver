@@ -33,6 +33,7 @@ export class GeneSetComponent {
   publication: any;
   has_publication = false;
   score_type = '';
+  threshold_string = '';
 
   genes: any[] = []
 
@@ -75,13 +76,19 @@ export class GeneSetComponent {
     return this.score_type_map[score_type_int];
   }
 
-  // private formatThreshold(score_type_int: number, threshold: number): string {
-  //   if (score_type_int == 0) {
-  //
-  //   } else if (score_type_int == 1) {
-  //
-  //   }
-  // }
+  private formatThreshold(score_type_int: number, threshold: number): string {
+    if (score_type_int == 1) {
+      return `p < ${threshold}`;
+    } else if (score_type_int == 2) {
+      return `q > ${threshold}`;
+    } else if (score_type_int == 4 || score_type_int == 5) {
+      const [first, second] = threshold.toString().split(',');
+      console.log(first, second);
+      return `${first} < ${second}`;
+    } else {
+      return "";
+    }
+  }
 
   private fetchGenesetDetails(genesetId: string) {
     this.gwApi.get(`/genesets/${genesetId}`).subscribe({
@@ -90,6 +97,7 @@ export class GeneSetComponent {
         this.geneset = this.genesetDetails.geneset;
         this.geneset_values = this.genesetDetails.geneset_values;
         this.score_type = this.formatScoreType(this.geneset.score_type);
+        this.threshold_string = this.formatThreshold(this.geneset.score_type, this.geneset.threshold);
       },
       error: (error) => {
         console.error('Error fetching geneset details:', error);

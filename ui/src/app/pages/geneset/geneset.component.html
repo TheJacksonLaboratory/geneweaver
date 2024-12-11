@@ -34,7 +34,7 @@
                                 <div class="col-12 sm:col-10 text-left">{{score_type}}</div>
 
                                 <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-2 text-left sm:text-right font-bold">Threshold</div>
-                                <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-10 text-left font-monospace">p < 0.05</div>
+                                <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-10 text-left font-monospace">{{threshold_string}}</div>
 
                                 <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Date Added:</div>
                                 <div class="col-12 sm:col-10 text-left">{{geneset.created}}</div>
