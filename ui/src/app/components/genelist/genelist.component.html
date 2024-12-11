@@ -1,0 +1,19 @@
+<p-table
+        [value]="mapped_genes"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [paginator]="true"
+>
+    <ng-template pTemplate="header">
+        <tr>
+            <th>Gene Symbol</th>
+            <th>Score</th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-gene>
+        <tr>
+            <td>{{gene.symbol}}</td>
+            <td>{{gene.value | number:'1.2-4'}}</td>
+        </tr>
+    </ng-template>
+</p-table>
