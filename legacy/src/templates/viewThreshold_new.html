@@ -34,6 +34,7 @@
                     {% set threshold_high = threshold[1] if threshold[1] != '0' else maxVal %}
                     {%  if threshold_type == 4 or threshold_type == 5 %}
                         {% set threshold_name = 'a correlation' if threshold_type == 4 else 'an effect' %}
+                        {% set threshold_high = threshold_high if threshold[1] != '0' else threshold_low %}
                        <div><p><strong>Current Threshold Values:
                         </strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
                                 {% if threshold[1] == '0' %}
@@ -116,11 +117,12 @@
                         <div class="input-group">
                             <span class="input-group-addon">Manually enter a threshold value.</span>
                             <span class="input-group-addon">Set to: {{ threshold_symbol }} < </span>
-                            <input type="number" id="t_man" min="0" step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
+                            <input type="number" id="t_man" min="0" max=1 step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
                             <div class="input-group-btn">
                                 <button class="btn btn-default setThresh" type="button">Save</button>
                             </div>
                         </div>
+                        <p id="p_q_limit_msg" style="color: red;"></p>
                     </div>
                 {% endif %}
             {% endif %}
@@ -153,6 +155,7 @@
                         const access_token = getCookie('access_token');
                         let value = $(this).val();
                         let valueHigh = null;
+                        let minVal = {{ minVal }};
                         let newTresh;
                         if (value === '' || value == null) {
                             const $parent = $(this).parent().parent();
@@ -164,13 +167,17 @@
                                 threshold: value,
                                 score_type: '{{ scoreType }}'
                             };
+                            console.log('Threshold set successfully');
+                            set_histogram_threshold_range(minVal, value);
                         } else {
                             newTresh = {
                                 threshold_low: value,
                                 threshold: valueHigh,
                                 score_type: '{{ scoreType }}'
                             };
+                            console.log('Threshold set successfully');
                         }
+
                         $.ajax({
                             type: 'PUT',
                             {#
@@ -186,7 +193,9 @@
                                 'Authorization': `Bearer ${access_token}`
                             },
                             success: function (data) {
+
                                 location.reload();
+
                             }
                         });
                     });
@@ -196,6 +205,8 @@
             {%  if threshold_type != 3 %}
                 <script>
                     // *** Logic and functions for Plotly Histogram
+
+                    // Set threshold values for histogram
                     var threshold_min = document.getElementById('t_min');
                     var threshold_max = document.getElementById('t_max');
                     var x = {{ gsv_values }};
@@ -248,6 +259,13 @@
                     var v_max = {{ gsv_values[-1] }};
                     var x_bin_size = 0.5;
                     if (v_max - v_min < 100) { x_bin_size = 0.1 };
+                    if (v_max - v_min < 1) { x_bin_size = 0.01 };
+                    var x_bin_conf = {};
+                    if (threshold_type === 4 || threshold_type === 5) {
+                        x_bin_conf = {size: x_bin_size}
+                    } else {
+                        x_bin_conf = {start:0, size: x_bin_size}
+                    }
 
                     //buttons to remove from plotly bar
                     var btns2rm = [ 'toggleSpikelines',  'lasso2d', 'hoverClosestCartesian', 'hoverCompareCartesian']
@@ -262,9 +280,7 @@
                         x: x,
                         type: 'histogram',
                         opacity: 0.75,
-                        xbins: {
-                            size: x_bin_size   // Size of each bin
-                        }
+                        xbins: x_bin_conf
                       };
 
                     var p_data = [trace];
@@ -332,9 +348,8 @@
                        } else {
                            index_max = x.findLastIndex(n => n >= parseFloat(min_val) && n <= parseFloat(max_val) );
                        }
-
                        if (index_min != -1 && index_max != -1) {
-                            selected_x = [];
+                           selected_x = [];
                            for (var i = index_min; i <= index_max; i++) {
                                 selected_x.push(i);
                            }
@@ -364,25 +379,25 @@
                         thresh0001 = document.getElementById('setThresh0001');
 
                         saveBtns = [thresh01, thresh05, thresh001, thresh0001];
-                        saveBtns.forEach(function(btn) {
-                            btn.addEventListener('click', function(e) {
-                                min = thresh_low;
-                                max = e.target.value;
-                                set_histogram_threshold_range(min, max);
-                            });
-                        });
 
                         thresh_man = document.getElementById("t_man");
                         thresh_man.addEventListener("change", (event) => {
                             min = thresh_low;
                             max = thresh_man.value;
+                            if (max > 1 || max < 0) {
+                                document.getElementById('p_q_limit_msg').innerHTML = '* Threshold value must be between 0 and 1';
+                                thresh_man.value = ''
+                                return;
+                            } else {
+                                document.getElementById('p_q_limit_msg').innerHTML = '';
+                            }
+
                             set_histogram_threshold_range(min, max);
                         });
-
                     }
 
                     //Initial call to set selected points on the histogram
-                    setSelectPoints(myPlot, selected_x)
+                    setSelectPoints(myPlot, selected_x);
 
                 </script>
 
