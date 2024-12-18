@@ -23,7 +23,7 @@ export class GeneSetListComponent {
 
   onGeneSetClick(geneSet: any) {
     // Handle click event
-    // this.router.navigate(['/geneset', geneSet.id]);
-    window.open('https://geneweaver.org/viewgenesetdetails/' + geneSet.id, '_blank');
+    this.router.navigate(['/geneset', geneSet.id]);
+    // window.open('https://geneweaver.org/viewgenesetdetails/' + geneSet.id, '_blank');
   }
 }

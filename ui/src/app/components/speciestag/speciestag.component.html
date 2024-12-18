@@ -1,0 +1,13 @@
+<p-tag
+        [pTooltip]="getSpeciesCommonName()"
+        [value]="getSpeciesName()"
+        styleClass="text-xs"
+        [style]="{
+        'white-space': 'nowrap',
+        'border-radius': '2px',
+        'border': '1px solid',
+        'background-color': 'var(--' + getSpeciesColor() + '-100)',
+        'color': 'var(--' + getSpeciesColor() + '-700)',
+
+    }"
+></p-tag>

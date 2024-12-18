@@ -1,34 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SearchBarComponent } from './searchbar.component';
-import { MockService } from "ng-mocks";
+import { GeneListComponent } from './genelist.component';
 import { ApiBaseServiceFactory } from "jax-apiutils";
-import { ActivatedRoute } from "@angular/router";
-import { of } from "rxjs";
+import { of } from 'rxjs';
 
-describe('SearchBarComponent', () => {
-  let component: SearchBarComponent;
-  let fixture: ComponentFixture<SearchBarComponent>;
+describe('GeneListComponent', () => {
+  let component: GeneListComponent;
+  let fixture: ComponentFixture<GeneListComponent>;
   const mockApiBaseServiceFactory = {
     create: jest.fn().mockReturnValue({
       getCollection: jest.fn().mockReturnValue(of({ data: [] }))
     })
   };
-  
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SearchBarComponent],
+      imports: [GeneListComponent],
       providers: [
         { provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            queryParams: of({search: 'something'})
-          }
-        }
       ]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(SearchBarComponent);
+    fixture = TestBed.createComponent(GeneListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
