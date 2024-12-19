@@ -42,6 +42,7 @@
                                 {% else %}
                                     {{ threshold[1] }}
                                 {% endif %}
+                                ( genes count: {{ curr_gene_count }} )
                             </p>
                         </div>
                     {% else %}
@@ -95,6 +96,9 @@
                     <div class="row">
                         <div id="myHisPlot" style="width:100%; height:500px;"></div>
                     </div>
+                     <div class="row">
+                        <p>* Selected threshold range in red color</p>
+                     </div>
                     <div class="row">
                         <p id="selectedGeneCount"></p>
                     </div>

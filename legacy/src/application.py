@@ -2005,6 +2005,8 @@ def render_set_threshold(gs_id):
     if threshold_type == 1 or threshold_type == 2:
         threshold_gene_counts = calc_genes_count_in_threshold(gsv_values, thresh)
         curr_gene_count = curr_gene_count if thresh[0] == 'None' else threshold_gene_counts[float(thresh[0])]
+    elif threshold_type == 4 or threshold_type == 5:
+        curr_gene_count = calc_genes_in_threshold_range(gsv_values, thresh[0], thresh[1])
 
     score_types = {
         1: "p-value",
@@ -2045,7 +2047,28 @@ def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
 
     return threshold_gene_counts
 
+def calc_genes_in_threshold_range(gsv_values, min_thresh, max_thresh) -> int:
+    """ Calculate the number of genes that fall within a given threshold range
 
+    :param gsv_values: list of gene set values
+    :param min_thresh: minimum threshold value
+    :param max_thresh: maximum threshold value
+    :return: number of genes that fall within the threshold range
+    """
+    if min_thresh is None or max_thresh == '0':
+        return 0
+
+    min_thresh = float(min_thresh)
+    max_thresh = float(max_thresh)
+
+    gene_count = 0
+    if gsv_values is not None:
+        for gsv_value in gsv_values:
+            value = list(gsv_value.values())[0]
+            if min_thresh <= float(value) <= max_thresh:
+                gene_count += 1
+
+    return gene_count
 
 @app.route('/setthreshold-legacy/<int:gs_id>')
 def render_set_threshold_legacy(gs_id):
@@ -2777,6 +2800,21 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             if plat['pf_id'] == gene_type:
                 uploaded_as = plat['pf_name']
 
+    threshold = str(geneset.threshold)
+    threshold_type = geneset.threshold_type
+    curr_threshold = threshold.split(',')
+
+    gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
+    # get genes count for the current threshold
+    num_genes_in_threshold = 0;
+    if threshold_type == 1 or threshold_type == 2:
+        gene_counts = calc_genes_count_in_threshold(gsv_values, curr_threshold)
+        num_genes_in_threshold = num_genes_in_threshold if curr_threshold[0] == 'None' else gene_counts[float(curr_threshold[0])]
+    elif threshold_type == 4 or threshold_type == 5:
+        if len(curr_threshold) == 1:
+            curr_threshold.append('0')
+        num_genes_in_threshold = calc_genes_in_threshold_range(gsv_values, curr_threshold[0], curr_threshold[1])
+
     show_gene_list = True
     # get value for the alt-gene-id column
     # if this is a 'stub' geneset.gene_id_type might not be valid,
@@ -2876,6 +2914,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         totalGenes=numgenes,
         uploaded_as=uploaded_as,
         threshold_value=threshold_value,
+        num_genes_in_threshold = num_genes_in_threshold,
         #SRP IMPLEMENTATION
         srp=srp
         #SRP IMPLEMENTATION END
