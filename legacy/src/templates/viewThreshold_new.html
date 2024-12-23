@@ -42,6 +42,7 @@
                                 {% else %}
                                     {{ threshold[1] }}
                                 {% endif %}
+                                ( genes count: {{ curr_gene_count }} )
                             </p>
                         </div>
                     {% else %}
@@ -95,6 +96,9 @@
                     <div class="row">
                         <div id="myHisPlot" style="width:100%; height:500px;"></div>
                     </div>
+                     <div class="row">
+                        <p>* Selected threshold range in red color</p>
+                     </div>
                     <div class="row">
                         <p id="selectedGeneCount"></p>
                     </div>
@@ -237,9 +241,9 @@
                       Plotly.restyle(plotElement, {
                         selectedpoints: [indices],
                         selected: {
-                         marker: {
-                            color: '#ff0000'
-                         }
+                             marker: {
+                                color: '#ff0000'
+                             }
                         }
                       });
                       //update gene count display
@@ -260,12 +264,8 @@
                     var x_bin_size = 0.5;
                     if (v_max - v_min < 100) { x_bin_size = 0.1 };
                     if (v_max - v_min < 1) { x_bin_size = 0.01 };
-                    var x_bin_conf = {};
-                    if (threshold_type === 4 || threshold_type === 5) {
-                        x_bin_conf = {size: x_bin_size}
-                    } else {
-                        x_bin_conf = {start:0, size: x_bin_size}
-                    }
+                    var x_bin_conf = {size: x_bin_size};
+
 
                     //buttons to remove from plotly bar
                     var btns2rm = [ 'toggleSpikelines',  'lasso2d', 'hoverClosestCartesian', 'hoverCompareCartesian']
@@ -292,7 +292,8 @@
                           xaxis: {
                               title: {
                                   text: "Threshold Range"
-                              }
+                              },
+                              range: [v_min, v_max]
                           },
                           yaxis: {
                               title: {
