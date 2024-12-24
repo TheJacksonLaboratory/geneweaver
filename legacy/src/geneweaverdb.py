@@ -4273,6 +4273,28 @@ def get_all_geneset_values(gs_id):
 							  g.ode_pref='t' ORDER BY gv.gsv_value ASC''', (gs_id,))
         return list(dictify_cursor(cursor)) if cursor.rowcount != 0 else None
 
+def get_all_geneset_values_by_gdb_id(gs_id, gdb_id=7):
+    '''
+    Generic function to get all geneset values geneset_value.gs_values
+    :param geneset_id: geneset id
+    :param gdb_id: gdb id -- default is 7
+
+    :return:
+    '''
+    user_id = flask.session['user_id']
+    geneset = get_geneset(gs_id, user_id)
+    with PooledCursor() as cursor:
+        if geneset.gene_id_type < 0:
+            cursor.execute('''SELECT gv.gsv_value as gsv, g.ode_ref_id as ref FROM geneset_value gv, gene g, geneset gs WHERE
+							  g.ode_pref='t' AND gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND
+							  gv.ode_gene_id=g.ode_gene_id AND g.gdb_id=%s ORDER BY gv.gsv_value ASC''', (gs_id, gdb_id,))
+        else:
+            cursor.execute('''SELECT gv.gsv_value, g.ode_ref_id FROM geneset_value gv, gene g, geneset gs WHERE
+							  gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND gv.ode_gene_id=g.ode_gene_id AND
+							  g.ode_pref='t' AND g.gdb_id=%s ORDER BY gv.gsv_value ASC''', (gs_id, gdb_id,))
+        return list(dictify_cursor(cursor)) if cursor.rowcount != 0 else None
+
+
 def get_species_homologs(hom_id):
     """
     Uses a given homology ID to return a list of homologous species.
