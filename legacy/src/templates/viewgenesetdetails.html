@@ -114,9 +114,11 @@
         <div class="panel-body" style="padding-top:10px;">
             <div class="row">
                 <div class="col-xs-12 col-md-9">
-                    <div class="row">
-                        <p>Genes in threshold: {{ num_genes_in_threshold }}</p>
-                    </div>
+                    {% if geneset.threshold_type != 3 %}
+                        <div class="row">
+                            <p>Genes in threshold: {{ num_genes_in_threshold }}</p>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
 					{% if g.user is defined and not curation_view %}

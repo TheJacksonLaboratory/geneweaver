@@ -1968,7 +1968,7 @@ def render_set_threshold(gs_id):
         view = None
     # Determine if this is bi-modal, we won't display these
     is_bimodal = geneweaverdb.get_bimodal_threshold(gs_id)
-    gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
+    gsv_values = geneweaverdb.get_all_geneset_values_by_gdb_id(gs_id)
     threshold_type = geneset.threshold_type
     threshold = str(geneset.threshold)
     thresh = threshold.split(',')
@@ -2804,9 +2804,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     threshold_type = geneset.threshold_type
     curr_threshold = threshold.split(',')
 
-    gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
+    gsv_values = geneweaverdb.get_all_geneset_values_by_gdb_id(gs_id)
     # get genes count for the current threshold
-    num_genes_in_threshold = 0;
+    num_genes_in_threshold = 0
     if threshold_type == 1 or threshold_type == 2:
         gene_counts = calc_genes_count_in_threshold(gsv_values, curr_threshold)
         num_genes_in_threshold = num_genes_in_threshold if curr_threshold[0] == 'None' else gene_counts[float(curr_threshold[0])]
