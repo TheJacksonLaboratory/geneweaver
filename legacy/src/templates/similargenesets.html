@@ -752,10 +752,9 @@
                 var gschecked = {};
 
                 // Called every time a checkbox is clicked
-                $(document).on('click', '.gsoptionsCheckBox', function () {
-                    const checkBox = $(this).find('input[type="checkbox"]');
-                    const gsid = checkBox.val();
-                    if (checkBox.is(':checked')) {
+                $(document).on('change', '.gsoptionsCheckBox input[type="checkbox"]', function () {
+                    const gsid = $(this).val();
+                    if ($(this).is(':checked')) {
                         gschecked[gsid] = gsid;
                     } else {
                         delete gschecked[gsid];
