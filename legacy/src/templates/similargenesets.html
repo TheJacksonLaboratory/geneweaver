@@ -394,7 +394,7 @@
                                 <td width="10px" style="vertical-align: middle">
                                     <div class="ui-checkbox" style="padding: 0; border: 0;">
                                         <label for="addGeneset{{ i.geneset_id }}">
-                                            <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i.geneset_id }}"
+                                            <input type="checkbox" name="gsoptions[]" class="gsoptionsCheckBox" id="addGeneset{{ i.geneset_id }}"
                                                    value="{{ i.geneset_id }}"/>
                                         </label>
                                     </div>
@@ -752,15 +752,15 @@
                 var gschecked = {};
 
                 // Called every time a checkbox is clicked
-                $("input[name='gsoptions[]']").on('click', function(event) {
-
+                $(document).on('click', '.gsoptionsCheckBox', function (event) {
                     // The element object this event is referring to
                     var box = event.target;
                     var gsid = ($(this).val());
+                    console.log(gsid)
                     if (box.checked)
                         gschecked[gsid] = gsid;
                     else
-                        delete gschecked[gsid];
+                        delete gschecked[gsid]
                 });
 
                 // The 'Add GeneSet(s) to Project' button
