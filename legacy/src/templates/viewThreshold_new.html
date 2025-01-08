@@ -47,7 +47,7 @@
                         </div>
                     {% else %}
                         <div><p><strong>Current Threshold Values:
-                            </strong> {{ threshold_symbol }} < {{ threshold[0] }} ( genes count: {{ curr_gene_count }} )
+                            </strong> {{ threshold_symbol }} <= {{ threshold[0] }} ( genes count: {{ curr_gene_count }} )
                             </p>
                         </div>
                     {% endif %}
@@ -104,23 +104,23 @@
                     </div>
                     <div class="row">
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh05" value="0.05">
-                            Save as <code> {{ threshold_symbol }} < 0.05 </code> ( genes count: {{ threshold_gene_counts[0.05]}} )
+                            Save as <code> {{ threshold_symbol }} <= 0.05 </code> ( genes count: {{ threshold_gene_counts[0.05]}} )
                         </button>
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh01" value="0.01">
-                            Save as <code> {{ threshold_symbol }} < 0.01 </code> ( genes count: {{ threshold_gene_counts[0.01]}} )
+                            Save as <code> {{ threshold_symbol }} <= 0.01 </code> ( genes count: {{ threshold_gene_counts[0.01]}} )
                         </button>
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh001" value="0.001">
-                            Save as <code> {{ threshold_symbol }} < 0.001 </code> ( genes count:{{ threshold_gene_counts[0.001]}} )
+                            Save as <code> {{ threshold_symbol }} <= 0.001 </code> ( genes count:{{ threshold_gene_counts[0.001]}} )
                         </button>
                         <button type="button" class="btn btn-block btn-default setThresh" id="setThresh0001" value="0.0001">
-                            Save as <code> {{ threshold_symbol }} < 0.0001 </code> ( genes count: {{ threshold_gene_counts[0.0001]}} )
+                            Save as <code> {{ threshold_symbol }} <= 0.0001 </code> ( genes count: {{ threshold_gene_counts[0.0001]}} )
                         </button>
 
                         <hr>
 
                         <div class="input-group">
                             <span class="input-group-addon">Manually enter a threshold value.</span>
-                            <span class="input-group-addon">Set to: {{ threshold_symbol }} < </span>
+                            <span class="input-group-addon">Set to: {{ threshold_symbol }} <= </span>
                             <input type="number" id="t_man" min="0" max=1 step="0.001" value="{{ threshold[0] }}" class="form-control threshLow">
                             <div class="input-group-btn">
                                 <button class="btn btn-default setThresh" type="button">Save</button>
@@ -172,7 +172,7 @@
                                 score_type: '{{ scoreType }}'
                             };
                             console.log('Threshold set successfully');
-                            set_histogram_threshold_range(minVal, value);
+                            set_histogram_threshold_range(0, value);
                         } else {
                             newTresh = {
                                 threshold_low: value,
@@ -223,7 +223,7 @@
                         thresh_low = {{ threshold_low }};
                         thresh_high = {{ threshold_high }};
                     }else{
-                        thresh_low = {{ minVal }};
+                        thresh_low = 0;
                         thresh_high = {{ threshold_low }};
                     }
 
@@ -231,7 +231,8 @@
 
                     //calculate index of selected values
                     index_min = x.findIndex(n => n >= parseFloat(thresh_low));
-                    index_max = x.findLastIndex(n => n > parseFloat(thresh_low) && n <= parseFloat(thresh_high));
+                    index_max = x.findLastIndex(n => n >= parseFloat(thresh_low) && n <= parseFloat(thresh_high));
+
                     for (var i = index_min; i <= index_max; i++) {
                         selected_x.push(i);
                     }
@@ -349,6 +350,7 @@
                        } else {
                            index_max = x.findLastIndex(n => n >= parseFloat(min_val) && n <= parseFloat(max_val) );
                        }
+
                        if (index_min != -1 && index_max != -1) {
                            selected_x = [];
                            for (var i = index_min; i <= index_max; i++) {
