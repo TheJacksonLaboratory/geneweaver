@@ -2042,7 +2042,8 @@ def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
         if gsv_values is not None:
             for gsv_value in gsv_values:
                 value = list(gsv_value.values())[0]
-                if float(value) < threshold:
+                value = float(value)
+                if value >= 0 and value <= threshold:
                     threshold_gene_counts[threshold] += 1
 
     return threshold_gene_counts
@@ -2951,7 +2952,7 @@ def format_str_threshold_value(geneset: dict) -> str:
             if not is_number(thresh[0]):
                 response= None
             else:
-                response= "< " + thresh[0]
+                response= "<= " + thresh[0]
 
         elif len(thresh) > 1:
             if not is_number(thresh[0]) or not is_number(thresh[1]):
@@ -2959,7 +2960,7 @@ def format_str_threshold_value(geneset: dict) -> str:
             elif thresh[0] == thresh[1]:
                 response= None
             else:
-                response= thresh[0] + " < " + thresh[1]
+                response= thresh[0] + " <=> " + thresh[1]
 
     return response
 
