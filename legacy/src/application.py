@@ -2960,7 +2960,7 @@ def format_str_threshold_value(geneset: dict) -> str:
             elif thresh[0] == thresh[1]:
                 response= None
             else:
-                response= thresh[0] + " <= " + thresh[1]
+                response= thresh[0] + " <=> " + thresh[1]
 
     return response
 
