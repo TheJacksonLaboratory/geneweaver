@@ -4676,8 +4676,7 @@ def update_geneset_identifier():
 
 @app.route('/help/')
 def render_help():
-    help_url = config.get('application', 'help_url')
-    return render_template('help.html', help_url=help_url)
+    return redirect('https://thejacksonlaboratory.github.io/geneweaver-docs/')
 
 
 @app.route('/about')
