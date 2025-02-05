@@ -1970,6 +1970,9 @@ def render_set_threshold(gs_id):
     is_bimodal = geneweaverdb.get_bimodal_threshold(gs_id)
     gsv_values = geneweaverdb.get_all_geneset_values_by_gdb_id(gs_id)
     threshold_type = geneset.threshold_type
+    if threshold_type is None:
+        view = None
+
     threshold = str(geneset.threshold)
     thresh = threshold.split(',')
     threshold_gene_counts = None
@@ -2016,11 +2019,15 @@ def render_set_threshold(gs_id):
         5: "effect"
     }
 
+    score_type = None
+    if threshold_type is not None:
+        score_type = score_types[threshold_type]
+
     return render_template('viewThreshold_new.html', geneset=geneset,
                            user_id=user_id, view=view, is_bimodal=is_bimodal,
                            threshold=thresh, threshold_type=threshold_type,
                            minVal=minVal, maxVal=maxVal,
-                           scoreType=score_types[threshold_type], gsv_values=g_values,
+                           scoreType=score_type, gsv_values=g_values,
                            threshold_gene_counts=threshold_gene_counts, curr_gene_count=curr_gene_count)
 
 def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
