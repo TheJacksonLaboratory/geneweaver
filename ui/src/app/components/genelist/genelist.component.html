@@ -20,7 +20,7 @@
                             <p-dropdown
                                 [options]="idTypes"
                                 [(ngModel)]="selectedIdType"
-                                (onChange)="fetchGeneValues(selectedIdType?.code)"
+                                (onChange)=fetchGeneValues(selectedIdType?.code)
                                 optionLabel="name"
                                 placeholder="Select One"
                             >

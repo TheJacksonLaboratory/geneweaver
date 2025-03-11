@@ -40,7 +40,7 @@ export class GeneListComponent implements OnInit {
   ngOnInit(): void {
     /* Initialize the gene list component */
 
-    this.selectedIdType = { name: 'Gene Symbol', code: 'Gene Symbol' };
+    this.selectedIdType = { name: GeneIdTypes.GENE_SYMBOL.toUpperCase(), code: GeneIdTypes.GENE_SYMBOL };
 
     this.idTypes = [];
     for (const key in GeneIdTypes) {
@@ -52,7 +52,7 @@ export class GeneListComponent implements OnInit {
     this.fetchGeneValues();
   }
 
-  fetchGeneValues(idType = 'Gene Symbol') {
+  fetchGeneValues(idType: string = GeneIdTypes.GENE_SYMBOL) {
     /* Fetch the gene values for the given gene set */
 
     this.gwApi.getCollection<GeneSet>(`/genesets/${this.geneset_id}`, new HttpParams().set('gene_id_type', idType)).subscribe(response => {
