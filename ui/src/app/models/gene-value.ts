@@ -14,3 +14,15 @@ export interface SimpleGeneValue {
     symbol: string,
     value: number
 }
+
+export enum GeneIdTypes {
+    GENE_SYMBOL = 'Gene Symbol',
+    ENTREZ = 'Entrez',
+    ENSEMBL_GENE = 'Ensemble Gene',
+    UNIGENE = 'Unigene',
+    MGI = 'MGI',
+    FLYBASE = 'FlyBase',
+    WORMBASE = 'Wormbase',
+    RGD = 'RGD',
+    ZFIN = 'ZFIN'
+}
