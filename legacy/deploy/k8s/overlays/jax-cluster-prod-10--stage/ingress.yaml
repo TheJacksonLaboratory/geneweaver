@@ -14,15 +14,55 @@ spec:
   tls:
     - hosts:
         - "geneweaver-stage.jax.org"
-      secretName: geneweaver-sqa-jax-org-tls
+      secretName: geneweaver-stage-jax-org-tls
   rules:
-  - host: "geneweaver-stage.jax.org"
-    http:
-      paths:
-      - pathType: Prefix
-        path: "/"
-        backend:
-          service:
-            name: geneweaver-legacy
-            port:
-              number: 8000
+    - host: geneweaver-stage.jax.org
+      http:
+        paths:
+          - backend:
+              service:
+                name: geneweaver-aon-api
+                port:
+                  number: 8000
+            path: /aon/api
+            pathType: Prefix
+    - host: geneweaver-stage.jax.org
+      http:
+        paths:
+        - backend:
+            service:
+              name: geneweaver-api
+              port:
+                number: 8000
+          path: /api
+          pathType: Prefix
+    - host: geneweaver-stage.jax.org
+      http:
+        paths:
+        - backend:
+            service:
+              name: geneweaver-ui
+              port:
+                number: 80
+          path: /next
+          pathType: Prefix
+    - host: geneweaver-stage.jax.org
+      http:
+        paths:
+        - backend:
+            service:
+              name: gene-expression-service
+              port:
+                number: 80
+          path: /gedb
+          pathType: Prefix
+    - host: geneweaver-stage.jax.org
+      http:
+        paths:
+        - pathType: Prefix
+          path: "/"
+          backend:
+            service:
+              name: geneweaver-legacy
+              port:
+                number: 8000

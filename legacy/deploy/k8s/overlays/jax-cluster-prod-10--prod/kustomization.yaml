@@ -7,3 +7,4 @@ patchesStrategicMerge:
   - persistent-volume-claim.yaml
   - configmap.yaml
   - ingress.yaml
+  - deployment.yaml
