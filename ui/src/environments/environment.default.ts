@@ -11,6 +11,7 @@ export const environment: Environment = {
     },
     urls: {
         geneWeaver: 'https://geneweaver-dev.jax.org',
+        pubmed: 'https://pubmed.ncbi.nlm.nih.gov',
     },
     features: {
         geneSetDetailsPage: false

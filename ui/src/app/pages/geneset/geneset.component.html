@@ -63,7 +63,13 @@
                                     <div class="col-12 sm:col-10 text-left">{{publication.journal}} {{publication.month}} {{publication.year}}, Vol {{publication.volume}}, pp. {{publication.pages}}</div>
 
                                     <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Abstract:</div>
-                                    <div class="col-12 sm:col-10 text-left">{{publication.abstract}}</div>
+                                    <div class="col-12 sm:col-10 text-left">{{publication.abstract}}
+                                      <span *ngIf="publication.pubmed_id">
+                                        <a target="_blank" [href]="pubmedUrl + publication.pubmed_id">
+                                          <b>PUBMED: {{publication.pubmed_id}}</b>
+                                        </a>
+                                      </span>
+                                    </div>
                                 </div>
                             </div>
 

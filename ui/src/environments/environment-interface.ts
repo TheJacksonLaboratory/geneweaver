@@ -8,6 +8,7 @@ export interface Environment {
     };
     urls: {
         geneWeaver: string;
+        pubmed: string;
     };
     // feature flag
     features: FeatureFlags

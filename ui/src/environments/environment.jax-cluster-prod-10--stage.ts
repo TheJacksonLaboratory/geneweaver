@@ -5,5 +5,6 @@ export const environment: Environment = {
   ...prodEnvironment,
   urls: {
     geneWeaver: 'https://geneweaver-stage.jax.org',
+    pubmed: 'https://pubmed.ncbi.nlm.nih.gov',
   },
 };
