@@ -9,7 +9,8 @@ metadata:
     # Optional: Prevent connection closing during idle time
     nginx.ingress.kubernetes.io/proxy-buffering: "off"      # Ensure SSE is not buffered
     nginx.ingress.kubernetes.io/keep-alive: "75s"           # Adjust keep-alive duration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
-    nginx.ingress.kubernetes.io/cors-allow-headers: DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization
-    nginx.ingress.kubernetes.io/cors-allow-methods: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT
-    nginx.ingress.kubernetes.io/cors-allow-origin: https://*.jax.org
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://*.jax.org"
