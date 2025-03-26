@@ -48,6 +48,13 @@ spec:
             path: /gedb
             pathType: Prefix
           - pathType: Prefix
+            path: "/voice"
+            backend:
+              service:
+                name: gweaver-graph-ui
+                port:
+                  number: 80
+          - pathType: Prefix
             path: "/"
             backend:
               service:
