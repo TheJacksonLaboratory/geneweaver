@@ -17,6 +17,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { OntologyAnnotationsComponent } from "../../components/ontologyannotations/ontologyannotations.component";
 import { OntologyTerm } from "../../models/ontology-term"
 import { HttpParams } from "@angular/common/http";
+import { environment} from '../../../environments/environment';
 
 @Component({
   selector: 'app-gene-set',
@@ -27,6 +28,7 @@ import { HttpParams } from "@angular/common/http";
 })
 export class GeneSetComponent {
   private gwApi: ApiBaseService;
+  pubmedUrl: string = environment.urls.pubmed + "/";
   genesetDetails: any;
   geneset: any;
   geneset_values: any;
