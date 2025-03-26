@@ -27,43 +27,31 @@ spec:
                   number: 8000
             path: /aon/api
             pathType: Prefix
-    - host: geneweaver-dev.jax.org
-      http:
-        paths:
-        - backend:
-            service:
-              name: geneweaver-api
-              port:
-                number: 8000
-          path: /api
-          pathType: Prefix
-    - host: geneweaver-dev.jax.org
-      http:
-        paths:
-        - backend:
-            service:
-              name: geneweaver-ui
-              port:
-                number: 80
-          path: /next
-          pathType: Prefix
-    - host: geneweaver-dev.jax.org
-      http:
-        paths:
-        - backend:
-            service:
-              name: gene-expression-service
-              port:
-                number: 80
-          path: /gedb
-          pathType: Prefix
-    - host: "geneweaver-dev.jax.org"
-      http:
-        paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: geneweaver-legacy
-              port:
-                number: 8000
+          - backend:
+              service:
+                name: geneweaver-api
+                port:
+                  number: 8000
+            path: /api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-ui
+                port:
+                  number: 80
+            path: /next
+            pathType: Prefix
+          - backend:
+              service:
+                name: gene-expression-service
+                port:
+                  number: 80
+            path: /gedb
+            pathType: Prefix
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: geneweaver-legacy
+                port:
+                  number: 8000
