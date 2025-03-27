@@ -18,9 +18,30 @@ spec:
         - "classic.geneweaver.org"
       secretName: geneweaver-prod-jax-org-tls
   rules:
-    - host: "geneweaver.org"
+    - host: geneweaver.jax.org
       http:
         paths:
+          - backend:
+              service:
+                name: geneweaver-aon-api
+                port:
+                  number: 8000
+            path: /aon/api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-api
+                port:
+                  number: 8000
+            path: /api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-ui
+                port:
+                  number: 80
+            path: /next
+            pathType: Prefix
           - pathType: Prefix
             path: "/"
             backend:
@@ -28,19 +49,61 @@ spec:
                 name: geneweaver-legacy
                 port:
                   number: 8000
-    - host: "geneweaver.jax.org"
+    - host: "geneweaver.org"
       http:
         paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: geneweaver-legacy
-              port:
-                number: 8000
+          - backend:
+              service:
+                name: geneweaver-aon-api
+                port:
+                  number: 8000
+            path: /aon/api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-api
+                port:
+                  number: 8000
+            path: /api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-ui
+                port:
+                  number: 80
+            path: /next
+            pathType: Prefix
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: geneweaver-legacy
+                port:
+                  number: 8000
     - host: "geneweaver-prod.jax.org"
       http:
         paths:
+          - backend:
+              service:
+                name: geneweaver-aon-api
+                port:
+                  number: 8000
+            path: /aon/api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-api
+                port:
+                  number: 8000
+            path: /api
+            pathType: Prefix
+          - backend:
+              service:
+                name: geneweaver-ui
+                port:
+                  number: 80
+            path: /next
+            pathType: Prefix
           - pathType: Prefix
             path: "/"
             backend:
