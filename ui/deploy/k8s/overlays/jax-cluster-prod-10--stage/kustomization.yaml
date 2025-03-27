@@ -3,5 +3,3 @@ kind: Kustomization
 namespace: stage
 resources:
   - ../../base
-patchesStrategicMerge:
-  - ingress.yaml
