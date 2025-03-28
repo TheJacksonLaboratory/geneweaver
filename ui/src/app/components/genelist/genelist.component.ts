@@ -1,4 +1,4 @@
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, Input, OnInit, Output} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GeneValue,  SimpleGeneValue, GeneIdTypes} from '../../models/gene-value';
 import { TableModule } from "primeng/table";
@@ -7,6 +7,7 @@ import { ApiBaseService, ApiBaseServiceFactory } from "jax-apiutils";
 import {HttpParams} from "@angular/common/http";
 import { GeneSet } from '../../models/gene-set';
 import { FormsModule } from '@angular/forms';
+import { EventEmitter } from '@angular/core';
 
 interface IDType {
   name: string;
@@ -27,7 +28,7 @@ export class GeneListComponent implements OnInit {
   @Input() geneset_id?: number;
   @Input() genes: GeneValue[] = [];
   @Input() mapped_genes: SimpleGeneValue[] = []
-
+  @Output() genesListChange: EventEmitter<GeneValue[]> = new EventEmitter<GeneValue[]>();
 
   idTypes: IDType[] | undefined;
   selectedIdType: IDType | undefined;
@@ -57,7 +58,8 @@ export class GeneListComponent implements OnInit {
 
     this.gwApi.getCollection<GeneSet>(`/genesets/${this.geneset_id}`, new HttpParams().set('gene_id_type', idType)).subscribe(response => {
       this.geneset= response;
-      this.genes = this.geneset.object.geneset_values;
+      this.genes = this.geneset.object.geneset_values as GeneValue[];
+      this.genesListChange.emit(this.genes);
     })
   }
 }
