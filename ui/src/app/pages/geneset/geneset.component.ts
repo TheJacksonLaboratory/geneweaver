@@ -22,6 +22,8 @@ import { ngxCsv } from 'ngx-csv/ngx-csv';
 import { MenuModule } from 'primeng/menu';
 import { ButtonModule } from 'primeng/button';
 import { GeneValue } from '../../models/gene-value';
+import { GeneValueDownload } from '../../models/gene-value';
+import { convertModel} from '../../utils/utils';
 
 @Component({
   selector: 'app-gene-set',
@@ -212,7 +214,7 @@ export class GeneSetComponent {
      * Download the CSV file
      * Sets the options for the CSV file and triggers the download
      */
-
+    const downloadData: GeneValueDownload[] = this.geneset_values.map(gene => convertModel<GeneValue, GeneValueDownload>(gene, GeneValueDownload));
     const date = new Date();
     const dateString = date.toISOString().slice(0, 10);
     const options = {
@@ -226,21 +228,13 @@ export class GeneSetComponent {
       noDownload: false,
       headers: [
         'gs_id',
-        'ode_gene_id',
-        'gsv_value',
-        'gsv_hits',
         'gsv_source_list',
-        'gsv_value_list',
-        'gsv_in_threshold',
-        'gsv_date',
-        'hom_id',
-        'gene_rank',
-        'ode_ref_id',
-        'gdb_id',
+        'gsv_value',
+        'ode_ref_id'
       ],
     };
     const csv = new ngxCsv(
-      this.geneset_values,
+       downloadData,
       'geneweaver-genes-GS-' + this.geneset.id + '-' + dateString,
       options
     );
@@ -251,10 +245,12 @@ export class GeneSetComponent {
      *  Creates an objectURL for the JSON file and triggers a download
      *  using the anchor element
      * */
+
+    const downloadData: GeneValueDownload[] = this.geneset_values.map(gene => convertModel<GeneValue, GeneValueDownload>(gene, GeneValueDownload));
     const date = new Date();
     const dateString = date.toISOString().slice(0, 10);
     // set the objectURL for the JSON file
-    const theJSON = JSON.stringify(this.geneset_values);
+    const theJSON = JSON.stringify(downloadData);
     const blob = new Blob([theJSON], { type: 'text/json' });
     const link = document.createElement('a');
     const url = window.URL.createObjectURL(blob);
