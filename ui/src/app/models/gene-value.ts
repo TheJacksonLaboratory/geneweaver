@@ -26,3 +26,10 @@ export enum GeneIdTypes {
     RGD = 'RGD',
     ZFIN = 'ZFIN'
 }
+
+export class GeneValueDownload {
+    gs_id: any;
+    gsv_source_list: any;
+    gsv_value: any;
+    ode_ref_id: any;
+}

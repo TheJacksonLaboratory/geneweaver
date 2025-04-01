@@ -87,11 +87,13 @@
                             <app-ontology-annotations [ontology_tags]="ontologies"></app-ontology-annotations>
                         </p-panel>
 
-
-
                         <!-- Gene List Table -->
                         <p-panel header="Gene List • {{geneset_values.length}} Total Genes" styleClass="mt-4">
-                            <app-gene-list [genes]="geneset_values" [geneset_id]="geneset.id"></app-gene-list>
+                          <ng-template pTemplate="icons">
+                              <p-button icon="pi pi-download" severity="secondary" rounded text (click)="menu.toggle($event)" />
+                              <p-menu #menu id="config_menu" [model]="configMenuItems" [popup]="true" />
+                          </ng-template>
+                          <app-gene-list [genes]="geneset_values" [geneset_id]="geneset.id"  (genesListChange)="onGeneListChange($event)"></app-gene-list>
                         </p-panel>
                     </div>
                 </div>
