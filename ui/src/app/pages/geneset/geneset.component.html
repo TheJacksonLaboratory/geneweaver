@@ -93,7 +93,7 @@
                               <p-button icon="pi pi-download" severity="secondary" rounded text (click)="menu.toggle($event)" />
                               <p-menu #menu id="config_menu" [model]="configMenuItems" [popup]="true" />
                           </ng-template>
-                          <app-gene-list [genes]="geneset_values" [geneset_id]="geneset.id"  (genesListChange)="onGeneListChange($event)"></app-gene-list>
+                          <app-gene-list *ngIf="geneset" [genes]="geneset_values" [geneset_id]="geneset.id"  (genesListChange)="onGeneListChange($event)"></app-gene-list>
                         </p-panel>
                     </div>
                 </div>

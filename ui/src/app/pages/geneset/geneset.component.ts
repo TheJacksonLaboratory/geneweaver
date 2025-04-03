@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -48,7 +48,7 @@ import { convertModel} from '../../utils/utils';
   templateUrl: './geneset.component.html',
   styleUrl: './geneset.component.css',
 })
-export class GeneSetComponent {
+export class GeneSetComponent implements OnInit {
   private gwApi: ApiBaseService;
   pubmedUrl: string = environment.urls.pubmed + '/';
   genesetDetails: any;
@@ -108,7 +108,7 @@ export class GeneSetComponent {
     );
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.route.params.subscribe((params) => {
       const genesetId = params['id'];
       this.fetchGenesetDetails(genesetId);
@@ -184,7 +184,6 @@ export class GeneSetComponent {
       )
       .subscribe({
         next: (response) => {
-          console.log(response);
           this.ontologies = response.data;
         },
         error: (error) => {
