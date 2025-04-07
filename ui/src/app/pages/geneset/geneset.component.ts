@@ -214,6 +214,9 @@ export class GeneSetComponent implements OnInit {
      * Sets the options for the CSV file and triggers the download
      */
     const downloadData: GeneValueDownload[] = this.geneset_values.map(gene => convertModel<GeneValue, GeneValueDownload>(gene, GeneValueDownload));
+    downloadData.forEach((gene) => {
+      gene.gsv_source_list = gene.gsv_source_list.join(',');
+    });
     const date = new Date();
     const dateString = date.toISOString().slice(0, 10);
     const options = {
