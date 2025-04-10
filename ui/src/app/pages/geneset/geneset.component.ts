@@ -24,6 +24,7 @@ import { ButtonModule } from 'primeng/button';
 import { GeneValue } from '../../models/gene-value';
 import { GeneValueDownload } from '../../models/gene-value';
 import { convertModel} from '../../utils/utils';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-gene-set',
@@ -101,7 +102,8 @@ export class GeneSetComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private apiBaseServiceFactory: ApiBaseServiceFactory
+    private apiBaseServiceFactory: ApiBaseServiceFactory,
+    private router: Router
   ) {
     this.gwApi = this.apiBaseServiceFactory.create(
       'https://geneweaver.jax.org/api'
@@ -267,5 +269,11 @@ export class GeneSetComponent implements OnInit {
   onGeneListChange(genes: GeneValue[]) {
     // Handle gene list change from child component
     this.geneset_values = genes;
+  }
+
+  searchGenesetsForPublication(searchTerm: string) {
+    this.router.navigate(['/search'], {
+      queryParams: { search: searchTerm }
+    });
   }
 }

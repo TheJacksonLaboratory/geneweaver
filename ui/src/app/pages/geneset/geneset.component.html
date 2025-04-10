@@ -69,6 +69,13 @@
                                           <b>PUBMED: {{publication.pubmed_id}}</b>
                                         </a>
                                       </span>
+                                      <div *ngIf="publication.pubmed_id">
+                                        <a (click)="searchGenesetsForPublication(publication.pubmed_id)">
+                                          Find other GeneSets from this publication
+                                          <span class="pi pi-search"></span>
+                                        </a>
+                                      </div>
+
                                     </div>
                                 </div>
                             </div>
