@@ -59,6 +59,8 @@ export class GeneSetComponent implements OnInit {
   has_publication = false;
   score_type = '';
   threshold_string = '';
+  genesInThreshold: GeneValue[] = [];
+  displayGenesInThreshold = ""
 
   score_type_map: { [key: number]: string } = {
     1: 'P-Value',
@@ -116,6 +118,7 @@ export class GeneSetComponent implements OnInit {
       this.fetchGenesetDetails(genesetId);
       this.fetchPublicationDetails(genesetId);
       this.fetchOntologyDetails(genesetId);
+      this.fetchGenesetValuesInThreshold(genesetId);
     });
   }
 
@@ -197,6 +200,30 @@ export class GeneSetComponent implements OnInit {
           } else {
             console.error('Error fetching publication details:', error);
           }
+        },
+      });
+  }
+
+  private fetchGenesetValuesInThreshold(genesetId: string) {
+    /**
+     * Fetch geneset values in threshold
+     * Sets the genesInThreshold array with the response data
+     * and sets the displayGenesInThreshold string with the length of the array
+     */
+    this.gwApi
+      .getCollection<GeneValue>(
+        `/genesets/${genesetId}/values`,
+        new HttpParams().set('in_threshold', true)
+      )
+      .subscribe({
+        next: (response) => {
+          this.genesInThreshold = response.data;
+          if (this.genesInThreshold.length > 0) {
+            this.displayGenesInThreshold = "| (genes in threshold: " + this.genesInThreshold.length + ")";
+          }
+        },
+        error: (error) => {
+          console.error('Error fetching geneset values:', error);
         },
       });
   }

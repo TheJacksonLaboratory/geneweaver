@@ -33,8 +33,11 @@
                                 <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Score Type:</div>
                                 <div class="col-12 sm:col-10 text-left">{{score_type}}</div>
 
-                                <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-2 text-left sm:text-right font-bold">Threshold</div>
+                                <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-2 text-left sm:text-right font-bold">Threshold:</div>
                                 <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-10 text-left font-monospace">{{threshold_string}}</div>
+
+                                <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-2 text-left sm:text-right font-bold">Genes in Threshold:</div>
+                                <div *ngIf="geneset.score_type!==3" class="col-12 sm:col-10 text-left font-monospace">{{genesInThreshold.length}}</div>
 
                                 <div class="col-12 sm:col-2 text-left sm:text-right font-bold">Date Added:</div>
                                 <div class="col-12 sm:col-10 text-left">{{geneset.created}}</div>
@@ -95,11 +98,12 @@
                         </p-panel>
 
                         <!-- Gene List Table -->
-                        <p-panel header="Gene List • {{geneset_values.length}} Total Genes" styleClass="mt-4">
+                        <p-panel header="Gene List • {{geneset_values.length}} Total Genes {{displayGenesInThreshold}}" styleClass="mt-4">
                           <ng-template pTemplate="icons">
                               <p-button icon="pi pi-download" severity="secondary" rounded text (click)="menu.toggle($event)" />
                               <p-menu #menu id="config_menu" [model]="configMenuItems" [popup]="true" />
                           </ng-template>
+<!--                          <div class="text-left sm:text-left">Genes in threshold:</div>-->
                           <app-gene-list *ngIf="geneset" [genes]="geneset_values" [geneset_id]="geneset.id"  (genesListChange)="onGeneListChange($event)"></app-gene-list>
                         </p-panel>
                     </div>
