@@ -10,6 +10,7 @@ from collections import Counter as mset
 from collections import defaultdict as dd
 from copy import deepcopy
 import re
+from typing import Union, Tuple, Match
 
 import geneweaverdb as gwdb
 from pubmedsvc import get_pubmed_info
@@ -185,7 +186,7 @@ class BatchReader(object):
         elif s.lower().find('p-value') != -1:
             ## All the regexs used in this function are taken from the
             ## original GW1 code
-            m = re.search(r"([0-9.-]{2,})", s.lower())
+            m = re.search(r"^(0(\.\d+)?|1(\.0+)?)$", s.lower())
             stype = 1
 
             if m:
@@ -194,7 +195,7 @@ class BatchReader(object):
                 self.warns.append('Invalid threshold. Using p < 0.05.')
 
         elif s.lower().find('q-value') != -1:
-            m = re.search(r"([0-9.-]{2,})", s.lower())
+            m = re.search(r"^(0(\.\d+)?|1(\.0+)?)$", s.lower())
             stype = 2
 
             if m:
@@ -203,38 +204,124 @@ class BatchReader(object):
                 self.warns.append('Invalid threshold. Using q < 0.05.')
 
         elif s.lower().find('correlation') != -1:
-            ## This regex doesn't work on some input. It doesn't properly parse
-            ## integers (only floats) and you must have two threshold values 
-            ## (you can't do something like Correlation < 5.0).
-            ## Too lazy to change it though since this score type isn't widely
-            ## used.
-            m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
+            # Regex pattern for validating correlation range (e.g., -0.75 < Correlation < 0.75)
+            # Explanation:
+            # 1. `^-?` allows an optional negative sign for the first number.
+            # 2. `[0-9]+(\.[0-9]+)?` matches integers or decimals.
+            # 3. `<` ensures the presence of the comparison operator.
+            # 4. `-?` allows an optional negative sign for the second number.
+            # 5. `[0-9]+(\.[0-9]+)?` matches the second numeric value.
+            valid, match = self.validate_correlation_range(s.lower())
             stype = 4
 
-            if m:
-                thresh = m.group(1) + ',' + m.group(2)
+            if valid:
+                thresh = match.group(1) + ',' + match.group(2)
             else:
-                thresh = '-0.75,0.75'
+                thresh = ''
 
                 self.warns.append(
-                    'Invalid threshold. Using -0.75 < Correlation < 0.75'
+                    'Invalid threshold. No default threshold set for correlation.'
                 ) 
 
         elif s.lower().find('effect') != -1:
-            ## Same comments as the correlation regex
-            m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
+
+            valid, match = self.validate_effect_range(s.lower())
             stype = 5
 
-            if m:
-                thresh = m.group(1) + ',' + m.group(2)
+            if valid:
+                thresh = match.group(1) + ',' + match.group(2)
             else:
-                thresh = '0,1'
-                self.warns.append('Invalid threshold. Using 0 < Effect < 1.')
+                thresh = ''
+                self.warns.append('Invalid threshold. No default threshold set for effect.')
 
         else:
             self.errors.append('An unknown score type (%s) was provided.' % s)
 
         return (stype, thresh)
+
+    @staticmethod
+    def validate_correlation_range(value: str) -> Tuple[bool, Union[Match, None]]:
+        """
+        Validates whether the given string matches the format of a correlation range.
+
+        The correlation range is expected to be in the format:
+        `<lower_bound> < correlation < <upper_bound>`, where:
+        - `<lower_bound>` and `<upper_bound>` are numeric values (integer or decimal).
+        - `Correlation` is a keyword separating the bounds.
+        - `<` is the comparison operator.
+
+        Arguments:
+            value (str): The string to validate.
+
+        Returns:
+            tuple:
+                - bool: True if the range is valid and the lower bound is less than the upper bound, False otherwise.
+                - re.Match | None: The match object if the string matches the format, None otherwise.
+
+        Example:
+            validate_correlation_range("-0.75 < correlation < 0.75") -> (True, <Match object>)
+            validate_correlation_range("1 < correlation < -1") -> (False, None)
+        """
+
+        # Regex pattern for validating correlation range (e.g., -0.75 < Correlation < 0.75)
+        # Explanation:
+        # 1. `^-?` allows an optional negative sign for the first number.
+        # 2. `[0-9]+(\.[0-9]+)?` matches integers or decimals.
+        # 3. `<` ensures the presence of the comparison operator.
+        # 4. `-?` allows an optional negative sign for the second number.
+        # 5. `[0-9]+(\.[0-9]+)?` matches the second numeric value.
+        correlation_range_regex = r"^(-?[0-9]+(\.[0-9]+)?)\s*<\s*correlation\s*<\s*(-?[0-9]+(\.[0-9]+)?)$"
+        match = re.match(correlation_range_regex, value)
+        if match:
+            # Extract the numerical values
+            lower_bound = float(match.group(1))
+            upper_bound = float(match.group(3))
+            # Ensure the first number is less than the second
+            if lower_bound < upper_bound:
+                return True, match
+        return False, None
+
+    @staticmethod
+    def validate_effect_range(value: str) -> Tuple[bool, Union[Match, None]]:
+        """
+        Validates whether the given string matches the format of an effect range.
+
+        The effect range is expected to be in the format:
+        `<lower_bound> < effect < <upper_bound>`, where:
+        - `<lower_bound>` and `<upper_bound>` are numeric values (integer or decimal).
+        - `Effect` is a keyword separating the bounds.
+        - `<` is the comparison operator.
+
+        Arguments:
+            value (str): The string to validate.
+
+        Returns:
+            tuple:
+                - bool: True if the range is valid and the lower bound is less than the upper bound, False otherwise.
+                - re.Match | None: The match object if the string matches the format, None otherwise.
+
+        Example:
+            validate_effect_range("6.0 < effect < 22.50") -> (True, <Match object>)
+            validate_effect_range("10 < effect < -5") -> (False, None)
+        """
+
+        # Regex pattern for validating effect range (e.g., 6.0 < Effect < 22.50)
+        # Explanation:
+        # 1. `^-?[0-9]+(\.[0-9]+)?` matches the first numeric value, allowing optional negative signs and decimals.
+        # 2. `<\s*effect\s*<` ensures the presence of the comparison operator and the word `effect` with optional spaces.
+        # 3. `-?[0-9]+(\.[0-9]+)?$` matches the second numeric value, allowing optional negative signs and decimals.
+        effect_range_regex = r"^(-?[0-9]+(\.[0-9]+)?)\s*<\s*effect\s*<\s*(-?[0-9]+(\.[0-9]+)?)$"
+
+        # Match the input string against the regex pattern
+        match = re.match(effect_range_regex, value)
+        if match:
+            # Extract the numerical values
+            lower_bound = float(match.group(1))
+            upper_bound = float(match.group(3))
+            # Ensure the first number is less than the second
+            if lower_bound < upper_bound:
+                return True, match
+        return False, None
 
     def __parse_gene_type(self, gtype, platforms, gene_types):
         """
