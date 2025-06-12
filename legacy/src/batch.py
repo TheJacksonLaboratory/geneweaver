@@ -184,33 +184,27 @@ class BatchReader(object):
             thresh = '1'
 
         elif s.lower().find('p-value') != -1:
-            ## All the regexs used in this function are taken from the
-            ## original GW1 code
-            m = re.search(r"^(0(\.\d+)?|1(\.0+)?)$", s.lower())
+            # validate value with p-value pattern
+            valid, match = self.validate_pq_value(s.lower())
             stype = 1
 
-            if m:
-                thresh = m.group(1)
+            if valid:
+                thresh = match.group(1)
             else:
                 self.warns.append('Invalid threshold. Using p < 0.05.')
 
         elif s.lower().find('q-value') != -1:
-            m = re.search(r"^(0(\.\d+)?|1(\.0+)?)$", s.lower())
+            # validate value with q-value pattern
+            valid, match = self.validate_pq_value(s.lower())
             stype = 2
 
-            if m:
-                thresh = m.group(1)
+            if valid:
+                thresh = match.group(1)
             else:
                 self.warns.append('Invalid threshold. Using q < 0.05.')
 
         elif s.lower().find('correlation') != -1:
-            # Regex pattern for validating correlation range (e.g., -0.75 < Correlation < 0.75)
-            # Explanation:
-            # 1. `^-?` allows an optional negative sign for the first number.
-            # 2. `[0-9]+(\.[0-9]+)?` matches integers or decimals.
-            # 3. `<` ensures the presence of the comparison operator.
-            # 4. `-?` allows an optional negative sign for the second number.
-            # 5. `[0-9]+(\.[0-9]+)?` matches the second numeric value.
+            # validate correlation range
             valid, match = self.validate_correlation_range(s.lower())
             stype = 4
 
@@ -224,7 +218,7 @@ class BatchReader(object):
                 ) 
 
         elif s.lower().find('effect') != -1:
-
+            # validate effect range
             valid, match = self.validate_effect_range(s.lower())
             stype = 5
 
@@ -238,6 +232,48 @@ class BatchReader(object):
             self.errors.append('An unknown score type (%s) was provided.' % s)
 
         return (stype, thresh)
+
+    @staticmethod
+    def validate_pq_value(value: str) -> Tuple[bool, Union[Match, None]]:
+        """
+        Validates whether the given string matches the format of a p-value or q-value.
+
+        The value is expected to be a numeric value between 0 and 1, inclusive.
+
+        Regex Pattern:
+            r"^(0(\.\d+)?|1(\.0+)?)$"
+
+        Explanation:
+        1. **`^`**: Anchors the match to the start of the string.
+        2. **`0(\.\d+)?`**:
+           - Matches the number `0`.
+           - `(\.\d+)?`: Optionally matches a decimal point (`.`) followed by one or more digits (`\d+`).
+             - Examples: `0`, `0.5`, `0.123`.
+        3. **`|`**: Logical OR operator, allowing the regex to match either the `0` part or the `1` part.
+        4. **`1(\.0+)?`**:
+           - Matches the number `1`.
+           - `(\.0+)?`: Optionally matches a decimal point (`.`) followed by one or more zeros (`0+`).
+             - Examples: `1`, `1.0`, `1.000`.
+        5. **`$`**: Anchors the match to the end of the string.
+
+        Arguments:
+            value (str): The string to validate.
+
+        Returns:
+            tuple:
+                - bool: True if the value is valid, False otherwise.
+                - re.Match | None: The match object if the string matches the format, None otherwise.
+
+        Example:
+            validate_pq_value("0.05") -> (True, <Match object>)
+            validate_pq_value("1.5") -> (False, None)
+        """
+        # Regex pattern for validating p-value or q-value (e.g., 0.05, 1.0)
+        pq_value_regex = r"^(0(\.\d+)?|1(\.0+)?)$"
+        match = re.match(pq_value_regex, value)
+        if match:
+            return True, match
+        return False, None
 
     @staticmethod
     def validate_correlation_range(value: str) -> Tuple[bool, Union[Match, None]]:

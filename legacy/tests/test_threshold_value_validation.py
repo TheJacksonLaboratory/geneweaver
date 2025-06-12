@@ -91,5 +91,48 @@ class TestThresholdValidationMethods(unittest.TestCase):
         self.assertEqual(BatchReader.validate_effect_range("-0.0001 < effect < 0.0001"), (True, unittest.mock.ANY))
         self.assertEqual(BatchReader.validate_effect_range("-100.0 < effect < 100.0"), (True, unittest.mock.ANY))
 
+
+    def test_valid_pq_values(self):
+        """
+        Test valid p-value and q-value inputs.
+        """
+        self.assertEqual(BatchReader.validate_pq_value("0"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("0.5"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("0.123"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("1"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("1.0"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("1.000"), (True, unittest.mock.ANY))
+
+    def test_invalid_pq_values(self):
+        """
+        Test invalid p-value and q-value inputs.
+        """
+        self.assertEqual(BatchReader.validate_pq_value("-0.5"), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value("1.5"), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value("2"), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value("0.abc"), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value("abc"), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value(""), (False, None))
+
+    def test_pq_value_edge_cases(self):
+        """
+        Test edge cases for p-value and q-value inputs.
+        """
+        self.assertEqual(BatchReader.validate_pq_value("0.0000001"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("0.9999999"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("1.0000000"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("0.000"), (True, unittest.mock.ANY))
+        self.assertEqual(BatchReader.validate_pq_value("1.000"), (True, unittest.mock.ANY))
+
+    def test_pq_value_whitespace_and_formatting(self):
+        """
+        Test inputs with extra whitespace or formatting issues.
+        """
+        self.assertEqual(BatchReader.validate_pq_value(" 0 "), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value(" 1.0 "), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value("\t0.5"), (False, None))
+        self.assertEqual(BatchReader.validate_pq_value("\n1.000"), (False, None))
+
+
 if __name__ == '__main__':
     unittest.main()
