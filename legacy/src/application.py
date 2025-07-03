@@ -2010,7 +2010,8 @@ def render_set_threshold(gs_id):
     # if Threshold type is 1 or 2 (p-value or q-value) then calculate gene counts for each threshold
     curr_gene_count = 0;
     if threshold_type == 1 or threshold_type == 2:
-        threshold_gene_counts = calc_genes_count_in_threshold(gsv_values, thresh)
+        threshold_gene_counts = \
+        =]`(gsv_values, thresh)
         curr_gene_count = curr_gene_count if thresh[0] == 'None' else threshold_gene_counts[float(thresh[0])]
     elif threshold_type == 4 or threshold_type == 5:
         curr_gene_count = calc_genes_in_threshold_range(gsv_values, thresh[0], thresh[1])
@@ -4033,10 +4034,6 @@ def render_project_genesets():
     #get geneset threshold counts for list of geneset ids
     geneset_ids = [gs.geneset_id for gs in genesets]
     geneset_threshold_counts = geneweaverdb.get_genesets_with_threshold_counts(geneset_ids)
-    print (geneset_threshold_counts)
-    # Add threshold counts to each geneset
-    # for gs in genesets:
-    #     gs['threshold_counts'] = geneset_threshold_counts.get(gs.geneset_id)
 
     species = geneweaverdb.get_all_species()
     splist = []
