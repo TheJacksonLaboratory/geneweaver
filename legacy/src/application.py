@@ -4033,10 +4033,6 @@ def render_project_genesets():
     #get geneset threshold counts for list of geneset ids
     geneset_ids = [gs.geneset_id for gs in genesets]
     geneset_threshold_counts = geneweaverdb.get_genesets_with_threshold_counts(geneset_ids)
-    print (geneset_threshold_counts)
-    # Add threshold counts to each geneset
-    # for gs in genesets:
-    #     gs['threshold_counts'] = geneset_threshold_counts.get(gs.geneset_id)
 
     species = geneweaverdb.get_all_species()
     splist = []
