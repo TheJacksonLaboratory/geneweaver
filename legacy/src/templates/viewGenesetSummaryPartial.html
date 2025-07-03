@@ -71,7 +71,7 @@
 
     <td>
         <!-- Show the geneset size -->
-        <strong>{{ gs.count }}</strong>
+        <strong>{{ gs.count }} ({{ geneset_threshold_counts[gs.geneset_id] }})</strong>
     </td>
 
     <td>
@@ -211,6 +211,14 @@
                         {{ gs.publication.authors }} 
                     {% else %}None{% endif %}
                 </i></td>
+            </tr>
+             <tr>
+                <th>Geneset Count:</th>
+                <td>{{ gs.count }}</td>
+            </tr>
+            <tr>
+                <th>Threshold Count:</th>
+                <td>{{ geneset_threshold_counts[gs.geneset_id]}}</td>
             </tr>
 
         </table>
