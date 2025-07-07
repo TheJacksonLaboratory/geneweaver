@@ -148,6 +148,31 @@ class Project:
         return get_genesets_for_project(self.project_id, auth_user_id)
 
 
+def get_genesets_with_threshold_counts(geneset_ids):
+    """
+    Retrieves a list of geneset IDs along with their corresponding threshold counts.
+    Filters results based on the provided list of geneset IDs.
+
+    Args:
+        geneset_ids (List[int]): List of geneset IDs to filter results.
+
+    Returns:
+        List[Dict]: A list of dictionaries containing geneset IDs and threshold counts.
+    """
+    query = """
+            SELECT gs.gs_id, count(*) as in_threshold_count
+            FROM geneset as gs
+            LEFT JOIN geneset_value as gv on gs.gs_id = gv.gs_id
+            WHERE gs.gs_id = ANY(ARRAY[%s])
+            AND gv.gsv_in_threshold = TRUE
+            GROUP BY gs.gs_id, gs.gs_threshold_type, gs_threshold
+        """
+    with PooledCursor() as cursor:
+        cursor.execute(query, (geneset_ids,))
+        result = cursor.fetchall()
+
+    return {row[0]:row[1] for row in result}
+
 def get_genesets_for_project(project_id, auth_user_id):
     """
     Get all genesets in the given project that the given user is authorized to read

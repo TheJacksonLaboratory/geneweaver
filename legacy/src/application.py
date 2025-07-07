@@ -1980,6 +1980,10 @@ def render_set_threshold(gs_id):
     minVal = None
     maxVal = None
 
+    if threshold == ',':
+        thresh[0]= (str(0))
+        thresh[1]= (str(0))
+
     if len(thresh) == 1:
         thresh.append(str(0))
     elif len(thresh) > 1:
@@ -2096,6 +2100,10 @@ def render_set_threshold_legacy(gs_id):
     gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
     threshold = str(geneset.threshold)
     thresh = threshold.split(',')
+    if threshold == ',':
+        thresh[0] = (str(0))
+        thresh[1] = (str(0))
+
     if len(thresh) == 1:
         thresh.append(str(0))
     i = 1
@@ -2819,9 +2827,10 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         gene_counts = calc_genes_count_in_threshold(gsv_values, curr_threshold)
         num_genes_in_threshold = num_genes_in_threshold if curr_threshold[0] == 'None' else gene_counts[float(curr_threshold[0])]
     elif threshold_type == 4 or threshold_type == 5:
-        if len(curr_threshold) == 1:
-            curr_threshold.append('0')
-        num_genes_in_threshold = calc_genes_in_threshold_range(gsv_values, curr_threshold[0], curr_threshold[1])
+        if threshold == ',' or len(curr_threshold) != 2:
+            num_genes_in_threshold = numgenes
+        elif len(curr_threshold) == 2:
+            num_genes_in_threshold = calc_genes_in_threshold_range(gsv_values, curr_threshold[0], curr_threshold[1])
 
     show_gene_list = True
     # get value for the alt-gene-id column
@@ -4021,6 +4030,10 @@ def render_project_genesets():
     pid = request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 
+    #get geneset threshold counts for list of geneset ids
+    geneset_ids = [gs.geneset_id for gs in genesets]
+    geneset_threshold_counts = geneweaverdb.get_genesets_with_threshold_counts(geneset_ids)
+
     species = geneweaverdb.get_all_species()
     splist = []
 
@@ -4031,6 +4044,7 @@ def render_project_genesets():
 
     return render_template('singleProject.html',
                                  genesets=genesets,
+                                 geneset_threshold_counts = geneset_threshold_counts,
                                  proj={'project_id': pid},
                                  species=species)
 

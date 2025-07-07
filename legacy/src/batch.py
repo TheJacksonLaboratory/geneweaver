@@ -211,10 +211,9 @@ class BatchReader(object):
             if valid:
                 thresh = match.group(1) + ',' + match.group(2)
             else:
-                thresh = ''
-
+                thresh = ','
                 self.warns.append(
-                    'Invalid threshold. No default threshold set for correlation.'
+                    'Threshold not found. No default threshold set for correlation.'
                 ) 
 
         elif s.lower().find('effect') != -1:
@@ -225,8 +224,8 @@ class BatchReader(object):
             if valid:
                 thresh = match.group(1) + ',' + match.group(2)
             else:
-                thresh = ''
-                self.warns.append('Invalid threshold. No default threshold set for effect.')
+                thresh = ','
+                self.warns.append('Threshold not found. No default threshold set for effect.')
 
         else:
             self.errors.append('An unknown score type (%s) was provided.' % s)
@@ -865,21 +864,31 @@ class BatchReader(object):
 
         ttype = gs['gs_threshold_type']
         thresh = None
+        is_threshold_set = True
 
         if ttype == 1 or ttype == 2 or ttype == 3:
             thresh = float(gs['gs_threshold'])
 
         elif ttype == 4 or ttype == 5:
-            thresh = list(map(float, gs['gs_threshold'].split(',')))
+            if gs['gs_threshold'] == ',':
+                is_threshold_set = False
+            else:
+                thresh = list(map(float, gs['gs_threshold'].split(',')))
 
         ## This should never happen
         else:
             thresh = 1.0
 
         for ref, ode, value in gs['geneset_values']:
+            # all gs values should be within threshold if the gs threshold is not set
+            if not is_threshold_set:
+                gs_value_in_threshold = True
+            else:
+                gs_value_in_threshold = self.__check_thresholds(ttype, thresh, value)
+
             gwdb.insert_geneset_value(
                 gs['gs_id'], ode, value, ref, 
-                self.__check_thresholds(ttype, thresh, value)
+                gs_value_in_threshold
             )
 
     def __insert_annotations(self, gs):
