@@ -1,33 +1,35 @@
 [tool.poetry]
 name = "geneweaver-legacy"
-version = "1.5.15"
+version = "1.5.17"
 description = ""
 authors = ["Alexander Berger <alexander.berger@jax.org>"]
 readme = "README.md"
 packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-flask = ">1"
+python = ">=3.9.2,<4.0"
+flask = "^3.1.1"
 flask-admin = "^1.6.1"
 flask-restful = "^0.3.10"
 xmlrunner = "^1.7.7"
 sphinxapi-py3 = "^2.1.11"
 wand = "^0.6.13"
-bleach = "3.1.5"
+bleach = "^6.2.0"
 psycopg2-binary = "^2.9.9"
-urllib3 = "1.25.9"
-celery = "4.4.2"
-configparser = "5.0.0"
-requests = "^2.23.0"
-gunicorn = "^22.0.0"
-jinja2 = "^3.1.4"
+urllib3 = "^2.5.0"
+celery = "^5.5.3"
+configparser = "^7.2.0"
+requests = "^2.32.4"
+gunicorn = "^23.0.0"
+jinja2 = "^3.1.6"
 intermine = "^1.13.0"
 pandas = "^2.2.2"
 pydantic = "^2.7.3"
 pydantic-settings = "^2.3.0"
-authlib = "^1.3.1"
+authlib = "^1.6.0"
 redis = "^5.0.6"
+cryptography = "^45.0.5"
+setuptools = "^78.1.1"
 
 [build-system]
 requires = ["poetry-core"]
