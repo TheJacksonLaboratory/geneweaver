@@ -6150,7 +6150,7 @@ def get_genesymbols_by_gs_id(gs_id):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            select g.ode_ref_id from gene g, geneset_value gv where gv.gs_id= %s and gv.ode_gene_id=g.ode_gene_id and g.gdb_id=7 and ode_pref='t';
+            select g.ode_ref_id from gene g, geneset_value gv where gv.gs_id= %s and gv.ode_gene_id=g.ode_gene_id and gv.gsv_in_threshold and g.gdb_id=7 and ode_pref='t';
             ''', (gs_id,)
         )
 
