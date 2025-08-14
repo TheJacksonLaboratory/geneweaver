@@ -211,9 +211,9 @@ class BatchReader(object):
             if valid:
                 thresh = match.group(1) + ',' + match.group(2)
             else:
-                thresh = ','
+                thresh = '-1,1'
                 self.warns.append(
-                    'Threshold not found. No default threshold set for correlation.'
+                    'Threshold not found or invalid. Default set to -1,1 for correlation.'
                 ) 
 
         elif s.lower().find('effect') != -1:
@@ -224,8 +224,8 @@ class BatchReader(object):
             if valid:
                 thresh = match.group(1) + ',' + match.group(2)
             else:
-                thresh = ','
-                self.warns.append('Threshold not found. No default threshold set for effect.')
+                thresh = '-1000,1000'
+                self.warns.append('Threshold not found or invalid. Default set to -1000, 1000 for effect.')
 
         else:
             self.errors.append('An unknown score type (%s) was provided.' % s)

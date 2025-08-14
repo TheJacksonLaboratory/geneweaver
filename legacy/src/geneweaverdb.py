@@ -3626,7 +3626,7 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
     """
 
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
-    if user_id is 0:
+    if user_id == 0:
         user_id = -1
 
     # updating the sql to include a partition_by clause. 0 = sorted by jaccard (no grouping; 1 = group by tier;
@@ -3681,7 +3681,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
     gs_ids = []
     gs_ids_clean = []
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
-    if user_id is 0:
+    if user_id == 0:
         user_id = -1
     # print geneset_id
     with PooledCursor() as cursor:
@@ -3719,7 +3719,7 @@ def get_genesets_for_publication(pub_id, user_id):
     genesets = []
 
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
-    if user_id is 0:
+    if user_id == 0:
         user_id = -1
 
     with PooledCursor() as cursor:
@@ -5025,7 +5025,7 @@ def get_all_gene_ids(gs_id):
                 data[gid[0]][name] = '-'
             cur_value = data[gid[0]][name]
             if str(gid[2]) == name:
-                if data[gid[0]][name] is '-':
+                if data[gid[0]][name] == '-':
                     data[gid[0]][name] = str(gid[1])
                 else:
                     data[gid[0]][name] = '|'.join((cur_value + '|' + str(gid[1])).split('|'))
