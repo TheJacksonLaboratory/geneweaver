@@ -235,7 +235,7 @@ def create_new_geneset_for_user(args, user_id):
     #gs_count = len(gs_data)
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
     gs_threshold_type = formData['gs_threshold_type'][0]
-    gs_threshold = str('0.5')
+    gs_threshold = get_default_threshold(gs_threshold_type)
     gs_status = 'normal'
     gs_uri = str('')
     gs_attribution = 1
@@ -396,7 +396,7 @@ def create_new_large_geneset_for_user(args, user_id):
     # gs_count = len(gs_data)
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
     gs_threshold_type = formData['gs_threshold_type'][0]
-    gs_threshold = str('0.5')
+    gs_threshold = get_default_threshold(gs_threshold_type)
     gs_status = 'delayed:processing'
     gs_uri = str('')
     gs_attribution = 1
@@ -489,6 +489,39 @@ def create_new_large_geneset_for_user(args, user_id):
     insert_into_hom2geneset_by_gsid(gs_id)
 
     return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
+
+
+def get_default_threshold(gs_threshold_type: str) -> str:
+    """
+    Returns the default threshold value as a string based on the threshold type.
+
+    The mapping matches the logic in __parse_score_type from batch.py:
+      - '1': P-Value, default '0.05'
+      - '2': Q-Value, default '0.05'
+      - '3': Binary, default '1'
+      - '4': Correlation, default '-1,1'
+      - '5': Effect, default '-1000,1000'
+      - Any other value: default '0.05'
+
+    Args:
+        gs_threshold_type (str): The threshold type code as a string.
+
+    Returns:
+        str: The default threshold value for the given type.
+    """
+    t = str(gs_threshold_type)
+    if t == '1':  # P-Value
+        return '0.05'
+    elif t == '2':  # Q-Value
+        return '0.05'
+    elif t == '3':  # Binary
+        return '1'
+    elif t == '4':  # Correlation
+        return '-1,1'
+    elif t == '5':  # Effect
+        return '-1000,1000'
+    else:
+        return '0.05'
 
 
 def process_gene_list(gene_list):
