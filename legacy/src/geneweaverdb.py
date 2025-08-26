@@ -194,11 +194,16 @@ def get_genesets_with_threshold_counts(geneset_ids):
 
 def get_genesets_for_project(project_id, auth_user_id):
     """
-    Get all genesets in the given project that the given user is authorized to read
-    :param project_id:		the project that we're looking up genesets for
-    :param auth_user_id:	the user that is authenticated (we need to ensure that the
-                            genesets are readable by the user)
-    :return:				A list of genesets in the project
+    Retrieves all genesets in a project that the authenticated user is authorized to read.
+
+    Args:
+        project_id (int): The project ID to look up genesets for.
+        auth_user_id (int): The authenticated user ID. Used to ensure genesets 
+                           are readable by the user.
+
+    Returns:
+        List[Geneset]: List of Geneset objects that the user is authorized to read 
+                      from the specified project.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -426,9 +431,13 @@ def get_group_name(grp_id):
 
 def get_all_members_of_group(usr_id):
     """
-    return a dictionary of groups owned by user_id and all members
-    :param usr_id:
-    :return: list
+    Returns a dictionary of groups owned by the user and all their members.
+
+    Args:
+        usr_id (int): The user ID of the group owner.
+
+    Returns:
+        List[Dict[str, Any]]: List of dictionaries containing group information and member details.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -441,9 +450,15 @@ def get_all_members_of_group(usr_id):
 
 def get_group_members(grp_id):
     """
-    return a list of dictionaries of all members for a given group
-    :param grp_id:
-    :return: list
+    Retrieves all members of a specified group.
+
+    Args:
+        grp_id (int): The group ID to retrieve members for.
+
+    Returns:
+        List[Dict[str, Any]] or None: List of dictionaries containing member information 
+                                     (user ID, first name, last name, email) ordered by name,
+                                     or None if no members found.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -1187,6 +1202,15 @@ def get_stats():
 # *************************************
 
 def delete_geneset_by_gsid(rargs):
+    """
+    Deletes a geneset by its geneset ID.
+
+    Args:
+        rargs (Dict): Request arguments containing 'user_id' and 'gs_id'.
+
+    Returns:
+        int: The geneset ID that was deleted.
+    """
     usr_id = rargs.get('user_id', type=int)
     gs_id = rargs.get('gs_id', type=int)
     with PooledCursor() as cursor:
@@ -1261,12 +1285,32 @@ def delete_geneset_value_by_id(rargs):
 
 
 def user_is_owner(usr_id, gs_id):
+    """
+    Checks if a user is the owner of a specific geneset.
+
+    Args:
+        usr_id (int): The user ID to check ownership for.
+        gs_id (int): The geneset ID to check ownership of.
+
+    Returns:
+        int: 1 if the user is the owner, 0 otherwise.
+    """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''', (usr_id, gs_id))
         return cursor.fetchone()[0]
 
 
 def user_is_assigned_curation(usr_id, gs_id):
+    """
+    Checks if a user is assigned to curate a specific geneset.
+
+    Args:
+        usr_id (int): The user ID to check assignment for.
+        gs_id (int): The geneset ID to check assignment of.
+
+    Returns:
+        bool: True if the user is assigned to curate the geneset, False otherwise.
+    """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=%s''', (usr_id, gs_id, CurationAssignment.ASSIGNED))
 
@@ -1276,6 +1320,18 @@ def user_is_assigned_curation(usr_id, gs_id):
 
 
 def user_can_edit(usr_id, gs_id):
+    """
+    Checks if a user can edit a specific geneset.
+
+    A user can edit a geneset if they are either the owner or assigned as a curator.
+
+    Args:
+        usr_id (int): The user ID to check edit permissions for.
+        gs_id (int): The geneset ID to check edit permissions of.
+
+    Returns:
+        bool: True if the user can edit the geneset, False otherwise.
+    """
     if user_is_owner(usr_id, gs_id) or user_is_assigned_curation(usr_id, gs_id):
         return True
 
@@ -3466,9 +3522,13 @@ def get_results_by_runhash(runhash):
 
 def get_user(user_id):
     """
-    Looks up a User in the database
-    :param user_id:		the user's ID
-    :return:			the User matching the given ID or None if no such user is found
+    Retrieves a user from the database by their user ID.
+
+    Args:
+        user_id (int): The user's unique identifier.
+
+    Returns:
+        User or None: The User object matching the given ID, or None if no such user is found.
     """
     with PooledCursor() as cursor:
         try:
@@ -3536,9 +3596,16 @@ def register_sso_user(name, user_email, user_sso_id):
 
 def get_user_byemail(user_email):
     """
-    Looks up a User in the database
-    :param user_email: the email a user entered
-    :return: the User matching the given email or None if no such user is found
+    Retrieves a user from the database by their email address.
+
+    Args:
+        user_email (str): The email address to look up.
+
+    Returns:
+        User or None: The User object matching the given email, or None if no such user is found.
+
+    Raises:
+        AttributeError: If multiple users are found with the same email address.
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email.lower(),))
@@ -5135,7 +5202,13 @@ def get_all_userids():
 
 def get_species_name_by_id(sp_id):
     """
-    returns the species name given a valid species id
+    Retrieves the species name for a given species ID.
+
+    Args:
+        sp_id (int): The species ID to look up.
+
+    Returns:
+        str or None: The species name if found, None if not found.
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT sp_name FROM species WHERE sp_id=%s;''', (sp_id,))
