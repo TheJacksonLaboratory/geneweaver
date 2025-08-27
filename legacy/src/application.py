@@ -223,51 +223,122 @@ SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rer
 
 @app.context_processor
 def inject_version():
+    """Inject application version into template context.
+    
+    Returns:
+        dict: Dictionary containing the application package version for use in templates.
+    """
     return dict(application_package_version=VERSION)
 
 @app.route('/register_or_login')
 def register_or_login():
+    """Render the registration or login page.
+    
+    Returns:
+        str: Rendered HTML template for the registration or login page.
+    """
     return render_template('register_or_login.html')
 
 
 @app.errorhandler(400)
 def bad_request(e):
+    """Handle 400 Bad Request errors.
+    
+    Args:
+        e: The error exception object.
+        
+    Returns:
+        tuple: Rendered HTML template and HTTP status code 400.
+    """
     return render_template('error/400.html'), 400
 
 
 @app.errorhandler(401)
 def unauthorized(e):
+    """Handle 401 Unauthorized errors.
+    
+    Args:
+        e: The error exception object.
+        
+    Returns:
+        tuple: Rendered HTML template and HTTP status code 401.
+    """
     return render_template('error/401.html'), 401
 
 
 @app.errorhandler(403)
 def forbidden(e):
+    """Handle 403 Forbidden errors.
+    
+    Args:
+        e: The error exception object.
+        
+    Returns:
+        tuple: Rendered HTML template and HTTP status code 403.
+    """
     return render_template('error/403.html'), 403
 
 
 @app.errorhandler(404)
 def not_found(e):
+    """Handle 404 Not Found errors.
+    
+    Args:
+        e: The error exception object.
+        
+    Returns:
+        tuple: Rendered HTML template and HTTP status code 404.
+    """
     return render_template('error/404.html'), 404
 
 
 @app.errorhandler(405)
 def not_allowed(e):
+    """Handle 405 Method Not Allowed errors.
+    
+    Args:
+        e: The error exception object.
+        
+    Returns:
+        tuple: Rendered HTML template and HTTP status code 405.
+    """
     return render_template('error/405.html'), 405
 
 
 @app.errorhandler(500)
 def unexpected_error(e):
+    """Handle 500 Internal Server Error.
+    
+    Args:
+        e: The error exception object.
+        
+    Returns:
+        tuple: Rendered HTML template and HTTP status code 500.
+    """
     return render_template('error/500.html'), 500
 
 
 @app.route('/results/<path:filename>')
 def static_results(filename):
+    """Serve static result files.
+    
+    Args:
+        filename (str): The path to the requested file.
+        
+    Returns:
+        Response: The requested file from the results directory.
+    """
     return send_from_directory(config.get('application', 'results'),
                                filename)
 
 
 @app.before_request
 def lookup_user_from_session():
+    """Look up the current user from session before each request.
+    
+    Sets flask.g.user to the current user object if a user_id is found
+    in the session, otherwise sets it to None.
+    """
     # lookup the current user if the user_id is found in the session
     flask.g.user = None
     user_id = session.get('user_id')
@@ -277,6 +348,14 @@ def lookup_user_from_session():
 
 @app.route('/logout')
 def _logout():
+    """Log out the current user and clear session data.
+    
+    Clears all session data including user_id and remote_addr, removes
+    the user from flask.g, and redirects to Auth0 logout endpoint.
+    
+    Returns:
+        Response: Redirect to Auth0 logout endpoint with return URL.
+    """
     try:
         del session['user_id']
     except KeyError:
@@ -301,6 +380,14 @@ def _logout():
 
 
 def _form_login():
+    """Authenticate user using form login credentials.
+    
+    Attempts to log in a user using email and password from the request form.
+    If successful, creates a session and updates user's last seen timestamp.
+    
+    Returns:
+        User: User object if authentication successful, None otherwise.
+    """
     user = None
     _logout()
 
@@ -324,6 +411,17 @@ def _form_login():
 
 
 def send_mail(to, subject, body):
+    """Send an email using the system's sendmail command.
+    
+    Args:
+        to (str): Email address of the recipient.
+        subject (str): Subject line of the email.
+        body (str): Body content of the email.
+        
+    Note:
+        Uses the system sendmail command at /usr/bin/mail to send emails.
+        Prints sendmail exit status if there are any errors.
+    """
     # print to, subject, body
     sendmail_location = "/usr/bin/mail"  # sendmail location
     p = os.popen("%s -t" % sendmail_location, "w")
@@ -340,6 +438,17 @@ def send_mail(to, subject, body):
 # TODO: Fully replace this endpoint with ssologin endpoint
 @app.route('/login.json', methods=['POST'])
 def json_login():
+    """Handle JSON-based login requests.
+    
+    Processes user authentication via form data and returns JSON response
+    with user information if successful, or redirects to error page.
+    
+    Returns:
+        Response: Redirect to home page or login error page.
+        
+    Note:
+        TODO: This endpoint should be fully replaced with ssologin endpoint.
+    """
     json_result = dict()
     user = _form_login()
     if user is None:
@@ -355,6 +464,20 @@ def json_login():
 
 @app.route('/login_as/<int:as_user_id>', methods=['GET'])
 def login_as(as_user_id):
+    """Allow admin users to log in as another user.
+    
+    Enables administrator impersonation functionality for support and testing.
+    Validates that the current user is an admin before allowing the switch.
+    
+    Args:
+        as_user_id (int): ID of the user to impersonate.
+        
+    Returns:
+        Response: JSON error response or redirect to home page.
+        
+    Note:
+        Only available to users with admin privileges.
+    """
     if not as_user_id:
         return jsonify({'error': ''})
 
@@ -381,6 +504,14 @@ def login_as(as_user_id):
 @app.route('/login', methods=['GET'])
 @app.route('/ssologin', methods=['GET'])
 def sso_login():
+    """Initiate SSO login process with Auth0.
+    
+    Redirects user to Auth0 authentication service for login.
+    Handles both /login and /ssologin routes.
+    
+    Returns:
+        Response: Redirect to Auth0 authorization endpoint.
+    """
     redirect_uri = url_for('callback_handling', _external=True)
     return auth0.authorize_redirect(
         redirect_uri=redirect_uri,
@@ -389,11 +520,34 @@ def sso_login():
 
 @app.route('/ssosignup', methods=['GET'])
 def sso_signup():
+    """Initiate SSO signup process with Auth0.
+    
+    Redirects user to Auth0 signup screen for new account creation.
+    
+    Returns:
+        Response: Redirect to Auth0 signup endpoint.
+    """
     return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True),
                                     screen_hint='signup')
 
 @app.route('/callback')
 def callback_handling():
+    """Handle OAuth callback from Auth0 authentication.
+    
+    Processes the authentication response, retrieves user information,
+    and establishes the user session. Handles both existing and new users,
+    linking SSO IDs as needed.
+    
+    Returns:
+        Response: Redirect response with authentication cookies set.
+        
+    Raises:
+        OAuthError: When authentication fails or Jax users use wrong connection.
+        
+    Note:
+        Creates new user accounts for first-time SSO users and links
+        existing accounts with SSO IDs when necessary.
+    """
     response = make_response(redirect('/'))
     # Handles response from token endpoint
     try:
@@ -456,16 +610,44 @@ def callback_handling():
 
 @app.route('/callback/errors/email-mismatch')
 def callback_error_jax_email():
+    """Display error page for Jax email authentication mismatch.
+    
+    Shows error when Jax users attempt to authenticate using
+    the wrong connection type.
+    
+    Returns:
+        str: Rendered error template for Jax email connection mismatch.
+    """
     return render_template('error/403_jax_emails_connection_mismatch.html')
 
 @app.route('/callback/errors/duplicate-email')
 def callback_error_duplicate_email():
+    """Display error page for duplicate email issues.
+    
+    Shows error when there are problems with duplicate email
+    addresses during authentication.
+    
+    Returns:
+        str: Rendered error template for duplicate email issues.
+    """
     return render_template('error/403_duplicate_email.html')
 
 
 @app.route('/analyze')
 @login_required(allow_guests=True)
 def render_analyze():
+    """Render the analysis page with available tools and user projects.
+    
+    Displays active analysis tools and organizes user's shared projects
+    by group for easy navigation. Supports both authenticated users
+    and guests.
+    
+    Returns:
+        str: Rendered HTML template for the analyze page with tools and projects.
+        
+    Note:
+        Projects found in multiple groups use only the first group for display.
+    """
     grp2proj = OrderedDict()
     active_tools = geneweaverdb.get_active_tools()
 
@@ -495,6 +677,18 @@ def render_analyze():
 
 @app.route('/analyzeshared')
 def render_analyze_shared():
+    """Render the shared analysis page with group projects and tools.
+    
+    Displays analysis tools and shared projects organized by groups,
+    allowing users to analyze data across collaborative projects.
+    
+    Returns:
+        str: Rendered HTML template for shared analysis page.
+        
+    Note:
+        Only displays projects if user is authenticated. Projects in
+        multiple groups use the first group for organization.
+    """
     if "user" in flask.g:
         grp2proj = OrderedDict()
 
@@ -519,6 +713,20 @@ def render_analyze_shared():
 @app.route('/get_user_projects.json')
 @login_required(allow_guests=True)
 def get_user_projects():
+    """Get all projects belonging to the current user.
+    
+    Returns a JSON response containing user's projects with formatted metadata.
+    Each project includes name, ID, group information, creation date, notes,
+    star status, gene count, and ownership details.
+    
+    Returns:
+        flask.Response: JSON response containing list of project dictionaries.
+            Returns empty list if user is not authenticated.
+            
+    Note:
+        Requires user to be logged in (accessible via flask.g.user).
+        Creation dates are formatted as 'YYYY-MM-DD' strings.
+    """
 
     if 'user' in flask.g:
         projects = []
@@ -547,16 +755,43 @@ def get_user_projects():
 @app.route('/projects')
 @login_required(allow_guests=True)
 def render_projects():
+    """Render the projects management page.
+    
+    Returns:
+        str: Rendered HTML template for the projects page.
+        
+    Note:
+        Requires login but allows guest users.
+    """
     return render_template('projects.html')
 
 
 @app.route("/gwdb/get_group/<user_id>/")
 def get_group(user_id):
+    """Get all groups that a user is a member of.
+    
+    Args:
+        user_id (str): The ID of the user to get groups for.
+        
+    Returns:
+        dict: Dictionary containing all member groups for the specified user.
+    """
     return geneweaverdb.get_all_member_groups(user_id)
 
 
 @app.route("/gwdb/create_group/<group_name>/<group_private>/<user_id>/")
 def create_group(group_name, group_private, user_id):
+    """Create a new group.
+    
+    Args:
+        group_name (str): Name of the group to create. URL-encoded characters
+            (like %2F for /) will be decoded.
+        group_private (str): Privacy setting for the group.
+        user_id (str): ID of the user creating the group.
+        
+    Returns:
+        str: JSON string containing the result of the group creation operation.
+    """
     # decode the group_name in case "/" had been encoded at "%2f"
     group_name = urllib.parse.unquote_plus(group_name)
     results = geneweaverdb.create_group(group_name, group_private, user_id)
@@ -565,29 +800,78 @@ def create_group(group_name, group_private, user_id):
 
 @app.route("/gwdb/edit_group/<group_name>/<group_id>/<group_private>/<user_id>/")
 def edit_group_name(group_name, group_id, group_private, user_id):
+    """Edit the name and privacy settings of an existing group.
+    
+    Args:
+        group_name (str): New name for the group.
+        group_id (str): ID of the group to edit.
+        group_private (str): New privacy setting for the group.
+        user_id (str): ID of the user making the edit.
+        
+    Returns:
+        str: JSON string containing the result of the edit operation.
+    """
     results = geneweaverdb.edit_group_name(group_name, group_id, group_private, user_id)
     return json.dumps(results)
 
 
 @app.route("/gwdb/add_user_group/<group_id>/<user_id>/<user_email>/")
 def add_user_group(group_id, user_id, user_email):
+    """Add a user to a group.
+    
+    Args:
+        group_id (str): ID of the group to add the user to.
+        user_id (str): ID of the user adding the member.
+        user_email (str): Email address of the user to be added.
+        
+    Returns:
+        str: JSON string containing the result of the operation.
+    """
     results = geneweaverdb.add_user_to_group(group_id, user_id, user_email)
     return json.dumps(results)
 
 
 @app.route("/gwdb/remove_user_group/<group_name>/<user_id>/<user_email>/")
 def remove_user_group(group_name, user_id, user_email):
+    """Remove a user from a group.
+    
+    Args:
+        group_name (str): Name of the group to remove the user from.
+        user_id (str): ID of the user performing the removal.
+        user_email (str): Email address of the user to be removed.
+        
+    Returns:
+        dict: Result of the user removal operation.
+    """
     return geneweaverdb.remove_user_from_group(group_name, user_id, user_email)
 
 
 @app.route("/gwdb/delete_group/<group_name>/<user_id>/")
 def delete_group(group_name, user_id):
+    """Delete a group.
+    
+    Args:
+        group_name (str): Name of the group to delete.
+        user_id (str): ID of the user requesting the deletion.
+        
+    Returns:
+        str: JSON string containing the result of the deletion operation.
+    """
     results = geneweaverdb.delete_group(group_name, user_id)
     return json.dumps(results)
 
 
 @app.route("/gwdb/remove_member/<group_name>/<user_id>/")
 def remove_member(group_name, user_id):
+    """Remove a member from a group.
+    
+    Args:
+        group_name (str): Name of the group to remove the member from.
+        user_id (str): ID of the user to be removed from the group.
+        
+    Returns:
+        str: JSON string containing the result of the removal operation.
+    """
     results = geneweaverdb.remove_member_from_group(group_name, user_id)
     return json.dumps(results)
 
@@ -618,6 +902,32 @@ def render_curategeneset_edit(gs_id):
 
 @app.route('/editgeneset/<int:gs_id>')
 def render_editgenesets(gs_id, curation_view=False):
+    """Render the geneset editing page.
+    
+    Provides a comprehensive interface for editing geneset metadata,
+    including species, publications, ontologies, and relationships.
+    Access is restricted based on user permissions.
+    
+    Args:
+        gs_id (int): ID of the geneset to edit.
+        curation_view (bool, optional): Whether this is being accessed
+            from a curation context. Defaults to False.
+            
+    Returns:
+        str: Rendered HTML template for the geneset editing page with
+            geneset data, species list, publications, ontologies,
+            and user preferences.
+            
+    Note:
+        Access is restricted to:
+        - Geneset owners
+        - Administrators
+        - Curators
+        - Users assigned to curate the geneset
+        
+        Non-admin/non-curator users have limited reference types available.
+        Updates geneset modification timestamp when accessed.
+    """
     if 'user_id' in session:
         user_id = session['user_id']
     else:
@@ -1845,6 +2155,18 @@ def get_ont_root_nodes():
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
+    """Update geneset metadata.
+    
+    Updates geneset information based on form data submitted by the user.
+    
+    Returns:
+        str: JSON string containing the result of the update operation,
+            including the user ID who performed the update.
+            
+    Note:
+        Requires user to be logged in. Uses request.form to get
+        updated geneset data.
+    """
     if 'user_id' in session:
         user_id = session['user_id']
         result = geneweaverdb.update_geneset(user_id, request.form)
@@ -1948,6 +2270,14 @@ def render_editgeneset_genes(gs_id, curation_view=False):
 
 @app.route('/removegenesetsfromproject/<gs_id>')
 def render_remove_genesets(gs_id):
+    """Render the page for removing genesets from projects.
+    
+    Args:
+        gs_id (str): Geneset ID to remove from projects.
+        
+    Returns:
+        str: Rendered HTML template for the remove genesets page.
+    """
     user_id = session['user_id'] if 'user_id' in session else 0
     gs_and_proj = None
     if user_id != 0:
@@ -2035,11 +2365,23 @@ def render_set_threshold(gs_id):
                            threshold_gene_counts=threshold_gene_counts, curr_gene_count=curr_gene_count)
 
 def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
-    """ Calculate the number of genes that fall below a given threshold
-        for score types 1 and 2 (p-value and q-value)
-
-    :param gsv_values: list of gene set values
-    :return: dictionary of gene counts for each threshold
+    """Calculate the number of genes that fall below given thresholds.
+    
+    Counts genes with p-values or q-values (score types 1 and 2) that fall
+    below various threshold values including 0.05, 0.01, 0.001, and 0.0001.
+    
+    Args:
+        gsv_values (list): List of dictionaries containing gene set values.
+        curr_thresh (list): Current threshold value as [threshold_value].
+        
+    Returns:
+        dict: Dictionary mapping threshold values to gene counts.
+        
+    Example:
+        >>> gsv_values = [{'gene1': 0.03}, {'gene2': 0.008}, {'gene3': 0.2}]
+        >>> curr_thresh = ['0.05']
+        >>> result = calc_genes_count_in_threshold(gsv_values, curr_thresh)
+        >>> print(result[0.05])  # Returns 2 (gene1 and gene2)
     """
     threshold_gene_counts = {}
     thresholds = [0.05, 0.01, 0.001, 0.0001]
@@ -2060,12 +2402,23 @@ def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
     return threshold_gene_counts
 
 def calc_genes_in_threshold_range(gsv_values, min_thresh, max_thresh) -> int:
-    """ Calculate the number of genes that fall within a given threshold range
-
-    :param gsv_values: list of gene set values
-    :param min_thresh: minimum threshold value
-    :param max_thresh: maximum threshold value
-    :return: number of genes that fall within the threshold range
+    """Calculate the number of genes that fall within a given threshold range.
+    
+    Counts genes with values that fall between minimum and maximum thresholds,
+    inclusive on both ends.
+    
+    Args:
+        gsv_values (list): List of dictionaries containing gene set values.
+        min_thresh (str or float): Minimum threshold value.
+        max_thresh (str or float): Maximum threshold value.
+        
+    Returns:
+        int: Number of genes with values in the specified range.
+        
+    Example:
+        >>> gsv_values = [{'gene1': 0.5}, {'gene2': 1.5}, {'gene3': 2.5}]
+        >>> count = calc_genes_in_threshold_range(gsv_values, 1.0, 2.0)
+        >>> print(count)  # Returns 1 (gene2)
     """
     if min_thresh is None or max_thresh == '0':
         return 0
@@ -2141,6 +2494,16 @@ def save_threshold_values():
 
 @app.route('/updateGenesetGenes', methods=['GET'])
 def update_geneset_genes():
+    """Update genes in a geneset.
+    
+    Processes form data to update the gene list and values for a geneset.
+    
+    Returns:
+        str: JSON string containing the result of the gene update operation.
+        
+    Note:
+        Uses request.form to get updated gene data.
+    """
     if 'user_id' in session:
         user_id = request.args['user_id']
         gs_id = request.args['gs_id']
@@ -2152,6 +2515,16 @@ def update_geneset_genes():
 
 @app.route('/updateProjectGroups', methods=['GET'])
 def update_project_groups():
+    """Update group associations for projects.
+    
+    Updates which groups have access to specific projects based on form data.
+    
+    Returns:
+        str: JSON string containing the result of the update operation.
+        
+    Note:
+        Uses request.form to get updated project-group associations.
+    """
     if 'user_id' in session:
         user_id = request.args['user_id']
         proj_id = request.args['proj_id']
@@ -2264,6 +2637,16 @@ def update_group_admins():
 @app.route('/deleteProjectByID', methods=['GET'])
 @login_required(json=True, allow_guests=True)
 def delete_projects():
+    """Delete multiple projects.
+    
+    Processes a request to delete multiple projects based on form data.
+    
+    Returns:
+        str: JSON string containing the result of the deletion operation.
+        
+    Note:
+        Uses request.form to get project data for deletion.
+    """
     results = geneweaverdb.delete_project_by_id(request.args['projids'])
     return json.dumps(results)
 
@@ -2271,6 +2654,16 @@ def delete_projects():
 @app.route('/addProjectByName', methods=['GET'])
 @create_guest
 def add_projects():
+    """Add multiple projects.
+    
+    Processes a request to add multiple projects based on form data.
+    
+    Returns:
+        str: JSON string containing the result of the addition operation.
+        
+    Note:
+        Uses request.form to get project data for addition.
+    """
     results = geneweaverdb.add_project_by_name(request.args['name'], request.args['comment'])
     return json.dumps(results)
 
@@ -2304,6 +2697,18 @@ def add_public_groups_to_user():
 @app.route('/accountsettings')
 @login_required()
 def render_accountsettings():
+    """Render the account settings page.
+    
+    Displays user account information, group memberships, group ownerships,
+    notification preferences, and annotation preferences.
+    
+    Returns:
+        str: Rendered HTML template for the account settings page.
+        
+    Note:
+        Requires user to be logged in. Retrieves user preferences from
+        JSON-stored preferences including email notifications and annotator choice.
+    """
     user = flask.g.user
     user_id = user.user_id
     groupsMemberOf = geneweaverdb.get_all_member_groups(user_id)
@@ -2357,16 +2762,36 @@ def set_annotator():
 
 @app.route('/login/deprecated')
 def render_login():
+    """Render the deprecated login page.
+    
+    Returns:
+        str: Rendered HTML template for the login page.
+        
+    Note:
+        This is a deprecated login route. Modern authentication
+        should use the SSO or other login methods.
+    """
     return render_template('login.html')
 
 
 @app.route('/login_error')
 def render_login_error():
+    """Render the login page with an error message.
+    
+    Returns:
+        str: Rendered HTML template for the login page with
+            'Invalid Credentials' error message displayed.
+    """
     return render_template('login.html', error="Invalid Credentials")
 
 
 @app.route('/resetpassword.html')
 def render_forgotpass():
+    """Render the forgot password page.
+    
+    Returns:
+        str: Rendered HTML template for the forgot password page.
+    """
     return render_template('resetpassword.html')
 
 
@@ -2539,6 +2964,19 @@ def rerun_tool():
 @app.route('/createtempgeneset_original', methods=["POST"])
 @login_required(json=True)
 def create_geneset_meta():
+    """Create metadata for a new geneset.
+    
+    Creates initial geneset metadata based on form data, typically as the
+    first step in geneset creation before adding genes.
+    
+    Returns:
+        str: JSON string containing the result of the metadata creation,
+            typically including the new geneset ID.
+            
+    Note:
+        Uses request.form to get geneset metadata like name, description,
+        species, etc.
+    """
     if int(request.form['sp_id']) == 0:
         return json.dumps({'error': 'You must select a species.'})
     if str(request.form['gdb_id']) == '0':
@@ -2550,6 +2988,18 @@ def create_geneset_meta():
 @app.route('/createtempgeneset_large', methods=["POST"])
 @login_required(json=True)
 def create_large_geneset():
+    """Create a geneset with a large number of genes.
+    
+    Handles bulk creation of genesets with many genes, typically used
+    for importing large datasets or results from analysis tools.
+    
+    Returns:
+        str: JSON string containing the result of the large geneset creation.
+        
+    Note:
+        Uses request.form to get geneset data and gene list.
+        May implement special handling for performance with large datasets.
+    """
     user = flask.g.user
     if int(request.form['sp_id']) == 0:
         return json.dumps({'error': 'You must select a species.'})
@@ -2562,6 +3012,18 @@ def create_large_geneset():
 @app.route('/transposeGenesetIDs', methods=["POST"])
 @login_required(json=True)
 def transposeGSIDs():
+    """Transpose genes by species for geneset analysis.
+    
+    Processes form data to transpose gene identifiers across different
+    species, allowing for cross-species gene analysis and comparison.
+    
+    Returns:
+        str: JSON string containing transposed gene data organized by species.
+        
+    Note:
+        Expects form data containing gene identifiers and species information.
+        Uses geneweaverdb.transpose_genes_by_species() for the actual processing.
+    """
     results = geneweaverdb.transpose_genes_by_species(request.form)
     return json.dumps(results)
 
@@ -2570,6 +3032,22 @@ def transposeGSIDs():
 @create_guest
 @login_required(allow_guests=True)
 def render_viewgeneset(gs_id):
+    """Render the geneset view page.
+    
+    Displays detailed information about a specific geneset including genes,
+    annotations, and curation status. Handles curation assignments and
+    redirects to the main geneset view with appropriate curation context.
+    
+    Args:
+        gs_id (int): ID of the geneset to view.
+        
+    Returns:
+        str: Rendered HTML template for the geneset view page.
+        
+    Note:
+        Allows guest users. Retrieves any curation assignment for the geneset
+        and passes it to the main view function.
+    """
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
     return render_viewgeneset_main(gs_id, curation_assignment=assignment)
 
@@ -2577,6 +3055,29 @@ def render_viewgeneset(gs_id):
 @app.route('/curategeneset/<int:gs_id>', methods=['GET', 'POST'])
 @login_required()
 def render_curategeneset(gs_id):
+    """Render the geneset curation page.
+    
+    Provides different views based on user role and curation assignment state:
+    - Curation leader: Can assign curators
+    - Curator: Can edit geneset during curation
+    - Reviewer: Can review completed curation
+    
+    The function determines the appropriate view based on:
+    - Current curation assignment state
+    - User's role (curator, admin, curation leader)
+    - User's relationship to the assignment
+    
+    Args:
+        gs_id (int): ID of the geneset to curate.
+        
+    Returns:
+        str: Rendered HTML template for the geneset curation page with
+            appropriate view context and team member information.
+        
+    Note:
+        Requires user to be logged in. Handles state transitions like
+        resetting assignment state when requested by curators/admins.
+    """
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
     curation_view = None
     curation_team_members = None
@@ -2629,6 +3130,31 @@ def render_curategeneset(gs_id):
 
 @app.route('/get_geneset_values', methods=['GET'])
 def get_geneset_genes():
+    """Get genes associated with a geneset in JSON format for DataTables.
+    
+    Processes DataTables request parameters for pagination, sorting, and searching.
+    Returns gene data including symbols, alternative names, values, and priorities.
+    Highlights emphasized genes for the current user.
+    
+    Query parameters (via request.args):
+        gs_id (str): ID of the geneset
+        gs_len (str): Total number of genes in geneset
+        order[0][column] (str): Column index for sorting
+        order[0][dir] (str): Sort direction ('ASC' or 'DESC')
+        length (str): Number of records per page
+        start (str): Starting record for pagination
+        search[value] (str): Search term for filtering
+    
+    Returns:
+        flask.Response: JSON response compatible with DataTables format containing:
+            - aaData: List of gene records with symbols, values, and linkouts
+            - iTotalDisplayRecords: Total number of records
+            - iTotalRecords: Total number of records
+            
+    Note:
+        Requires user to be logged in. Stores pagination/sorting preferences
+        in session. Provides external linkouts using gene symbols.
+    """
     #return the list of genes associated with a geneset in json format
     #this endpoint wil only get hit from a logged in page (viewgenesetdetails)
     if 'user_id' in session:
@@ -2938,20 +3464,28 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     )
 
 def format_str_threshold_value(geneset: dict) -> str:
-    """
-    Formats the threshold value for a gene set to be displayed in the gene set
-    details page,
-    - if the threshold is set and the values are numbers a formatted string value is returned, otherwise None is returned.
-    - if the threshold is a single value, it is formatted as "< value"
-    - if the threshold is a range, it is formatted as "value1 < value2"
-    - if the threshold is binary type(3), None is returned
-    - if the threshold values are the same, None is returned
-
-    arguments
-        geneset: a GeneSet object
-
-    returns
-        a string representation of the threshold value
+    """Format threshold values for display in geneset details page.
+    
+    Formats threshold values based on type and content:
+    - Single value: formatted as "<= value"
+    - Range values: formatted as "value1 <=> value2"
+    - Binary type (3): returns None
+    - Invalid/same values: returns None
+    
+    Args:
+        geneset (dict): Geneset object containing threshold information.
+        
+    Returns:
+        str or None: Formatted threshold string or None if not displayable.
+        
+    Example:
+        >>> geneset = {'threshold_type': 1, 'threshold': '0.05'}
+        >>> result = format_str_threshold_value(geneset)
+        >>> print(result)  # "<= 0.05"
+        
+        >>> geneset = {'threshold_type': 4, 'threshold': '1.0,2.0'}
+        >>> result = format_str_threshold_value(geneset)
+        >>> print(result)  # "1.0 <=> 2.0"
     """
     response = None
     type = geneset.threshold_type
@@ -2981,7 +3515,39 @@ def format_str_threshold_value(geneset: dict) -> str:
     return response
 
 def is_number(input):
-    """ Checks if the input is a number"""
+    """Check if input can be converted to a number.
+    
+    Attempts to convert the input to a float to determine if it represents
+    a valid numeric value.
+    
+    Args:
+        input: Value to test for numeric conversion.
+        
+    Returns:
+        bool: True if input can be converted to a number, False otherwise.
+        
+    Example:
+        >>> is_number('3.14')
+        True
+        >>> is_number('not a number')
+        False
+    """
+    """Check if the input can be converted to a number.
+    
+    Args:
+        input: Value to test for numeric conversion.
+        
+    Returns:
+        bool: True if input can be converted to float, False otherwise.
+        
+    Example:
+        >>> is_number('123.45')
+        True
+        >>> is_number('not_a_number')
+        False
+        >>> is_number(42)
+        True
+    """
     try:
         float(input)
         return True
@@ -3241,6 +3807,32 @@ def render_viewgenesetoverlap(gs_ids):
 
 # function to draw the venn diagrams for the overlap page
 def createVennDiagram(i, ii, j, size=100):
+    """Create Venn diagram configuration for two-set overlap visualization.
+    
+    Calculates circle positions, radii, and overlap for drawing a Venn diagram
+    representing two gene sets and their intersection. Uses mathematical formulas
+    to determine optimal positioning and scaling.
+    
+    Args:
+        i (int): Size of the first gene set.
+        ii (int): Size of the second gene set.
+        j (int): Size of the intersection between the two gene sets.
+        size (int, optional): Canvas size for the diagram. Defaults to 100.
+        
+    Returns:
+        str: JSON string containing circle configuration with positions and radii.
+        
+    Example:
+        >>> # Gene set A has 100 genes, gene set B has 80 genes, 20 overlap
+        >>> config = createVennDiagram(100, 80, 20)
+        >>> import json
+        >>> data = json.loads(config)
+        >>> print(data['circledata']['r1'])  # Radius of first circle
+        
+    Note:
+        Algorithm originally written by zuopan and rewritten multiple times.
+        Uses iterative approach to find optimal circle positioning.
+    """
     pi = math.acos(-1.0)
     r1 = math.sqrt(i / pi)
     r2 = math.sqrt(ii / pi)
@@ -3294,6 +3886,28 @@ def createVennDiagram(i, ii, j, size=100):
 @app.route('/mygenesets')
 @login_required()
 def render_user_genesets():
+    """Render the user's genesets page.
+    
+    Displays all genesets owned by or shared with the current user,
+    organized by projects and groups. Provides filtering and management
+    capabilities for the user's geneset collection.
+    
+    Returns:
+        str: Rendered HTML template for the user genesets page with
+            user's geneset data, project information, and group access.
+            
+    Note:
+        Requires user to be logged in. Already contains comprehensive
+        docstring documentation.
+    """
+    """Render the user's personal genesets page.
+    
+    Displays all genesets owned by the current user, organized by groups
+    and providing management capabilities.
+    
+    Returns:
+        str: Rendered HTML template for the user's genesets page.
+    """
     table = 'production.geneset'
     my_groups = []
     other_groups = []
@@ -3417,13 +4031,43 @@ def group_id_in_groups(id, groups):
 
 
 def jaccard(a, b):
+    """Calculate Jaccard similarity coefficient between two sets.
+    
+    The Jaccard coefficient measures similarity between finite sample sets,
+    defined as the size of the intersection divided by the size of the union.
+    
+    Args:
+        a (set): First set for comparison.
+        b (set): Second set for comparison.
+        
+    Returns:
+        float: Jaccard coefficient ranging from 0 (no similarity) to 1 (identical sets).
+        
+    Example:
+        >>> jaccard({1, 2, 3}, {2, 3, 4})
+        0.5
     """
-    stupid easy jaccard with no pair-wise deletion
-    but maybe not needed because mapping to hom_id?
-    This is something that we need to verify.
-    :param a: gs_id of geneset that is the seed of the search
-    :param b: gs_id of geneset for comparison
-    :return: non-normalized jaccard
+    """Calculate Jaccard similarity coefficient between two gene sets.
+    
+    Computes the Jaccard index as the size of intersection divided by
+    the size of union of two gene sets. Returns non-normalized jaccard value.
+    
+    Args:
+        a (list): First gene set (list of gene IDs).
+        b (list): Second gene set (list of gene IDs).
+        
+    Returns:
+        float: Jaccard similarity coefficient (0.0 to 1.0).
+        
+    Example:
+        >>> genes_a = ['gene1', 'gene2', 'gene3']
+        >>> genes_b = ['gene2', 'gene3', 'gene4']
+        >>> similarity = jaccard(genes_a, genes_b)
+        >>> print(f"Jaccard similarity: {similarity:.3f}")  # 0.500
+        
+    Note:
+        Uses simple jaccard calculation without pair-wise deletion.
+        May need verification for hom_id mapping compatibility.
     """
     # TODO: This can be improved in better way.
     if a == 0:
@@ -3435,11 +4079,23 @@ def jaccard(a, b):
 
 
 def calculate_jaccard(gs_id, genesets):
-    """
-    get hom ids from gs_id and each geneset.
-    :param gs_id: gs_id of geneset that is the seed of the search
-    :param genesets: list of gs_ids that contain hom_ids from a
-    :return: a dictionary of gs_id => jaccard value
+    """Calculate Jaccard similarity between a target geneset and multiple comparison genesets.
+    
+    Retrieves homologous gene IDs for the target geneset and compares them
+    against a list of other genesets to compute pairwise Jaccard similarities.
+    
+    Args:
+        gs_id (int): Target geneset ID used as the seed for comparisons.
+        genesets (list): List of geneset IDs to compare against the target.
+        
+    Returns:
+        dict: Dictionary mapping geneset IDs to their Jaccard similarity values.
+        
+    Example:
+        >>> target_gs = 12345
+        >>> comparison_genesets = [12346, 12347, 12348]
+        >>> similarities = calculate_jaccard(target_gs, comparison_genesets)
+        >>> print(similarities)  # {12346: 0.25, 12347: 0.67, 12348: 0.33}
     """
     jaccards = {}
     gs1 = geneweaverdb.get_geneset_hom_ids(gs_id)
@@ -3491,6 +4147,27 @@ def top_twenty_simgenesets(simgs):
 
 
 def decimal_default(obj):
+    """JSON serialization handler for Decimal and bytes objects.
+    
+    Converts Decimal objects to float and bytes to UTF-8 strings
+    for JSON serialization. Used as a default function in json.dumps().
+    
+    Args:
+        obj: Object to convert for JSON serialization.
+        
+    Returns:
+        float: If obj is a Decimal instance.
+        str: If obj is a bytes instance (decoded as UTF-8).
+        
+    Raises:
+        TypeError: If obj is not a Decimal or bytes instance.
+        
+    Example:
+        >>> decimal_default(Decimal('3.14'))
+        3.14
+        >>> decimal_default(b'hello')
+        'hello'
+    """
     if isinstance(obj, bytes):
         return obj.decode('utf-8')
     if isinstance(obj, Decimal):
@@ -4323,10 +5000,47 @@ def get_assignment_status_string(status):
 
 
 def str_handler(obj):
+    """Generic string conversion handler.
+    
+    Converts any object to its string representation.
+    Used as a fallback serialization handler.
+    
+    Args:
+        obj: Object to convert to string.
+        
+    Returns:
+        str: String representation of the object.
+        
+    Example:
+        >>> str_handler(42)
+        '42'
+        >>> str_handler([1, 2, 3])
+        '[1, 2, 3]'
+    """
     return str(obj)
 
 
 def date_handler(obj):
+    """JSON serialization handler for date/datetime objects.
+    
+    Converts date and datetime objects to ISO format strings
+    for JSON serialization. Returns the object unchanged if
+    it doesn't have an isoformat method.
+    
+    Args:
+        obj: Object to convert, typically a date/datetime.
+        
+    Returns:
+        str: ISO format date/datetime string if obj has isoformat method.
+        obj: Original object if it doesn't have isoformat method.
+        
+    Example:
+        >>> from datetime import datetime
+        >>> date_handler(datetime(2023, 1, 1, 12, 0))
+        '2023-01-01T12:00:00'
+        >>> date_handler('not a date')
+        'not a date'
+    """
     return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
 
@@ -4431,6 +5145,16 @@ def remove_genesets_from_multiple_projects():
 @app.route('/deleteGeneset')
 @login_required(json=True)
 def delete_geneset():
+    """Delete a geneset.
+    
+    Removes a geneset from the database based on form data.
+    
+    Returns:
+        str: JSON string containing the result of the deletion operation.
+        
+    Note:
+        Uses request.form to identify the geneset to delete.
+    """
     results = geneweaverdb.delete_geneset_by_gsid(request.args)
     return json.dumps(results)
 
@@ -4450,16 +5174,69 @@ def edit_geneset_id_value():
 
 
 def remove_non_ascii(text):
+    """Remove non-ASCII characters from text.
+    
+    Replaces any character with ASCII value >= 128 with a space,
+    and strips carriage returns from the input text.
+    
+    Args:
+        text (str or None): The text to process.
+        
+    Returns:
+        str or None: Text with non-ASCII characters replaced by spaces,
+                    or None if input is None/empty.
+                    
+    Example:
+        >>> remove_non_ascii("Hello 世界")
+        "Hello   "
+        >>> remove_non_ascii(None)
+        None
+    """
     return ''.join([i if ord(i) < 128 else ' ' for i in text.strip('\r')]) if text else None
 
 
 def split_lines_and_tabs(to_split=''):
+    """Split text into lines and then split each line by tabs.
+    
+    Processes multi-line text by splitting on newlines, then splitting
+    each line on one or more tab characters. Returns a generator for
+    memory efficiency.
+    
+    Args:
+        to_split (str): Text to split, defaults to empty string.
+        
+    Returns:
+        generator: Generator yielding lists of tab-split fields for each line,
+                  or empty tuple if input is empty.
+                  
+    Example:
+        >>> list(split_lines_and_tabs("a\tb\tc\nx\ty\tz"))
+        [['a', 'b', 'c'], ['x', 'y', 'z']]
+    """
     return (re.split(r'\t+', row) for row in iter(to_split.splitlines())) if to_split else ()
 
 
 @app.route('/addGenesetGene', methods=['GET', 'POST'])
 @login_required(json=True)
 def add_geneset_gene():
+    """Add a gene to an existing geneset.
+    
+    Processes form data to add a new gene with its value and priority
+    to a geneset. Handles gene symbol validation and duplicate checking.
+    
+    Form parameters (via request.form):
+        gs_id: ID of the geneset to add gene to
+        gene_symbol: Symbol/identifier of the gene to add
+        gene_value: Numeric value associated with the gene
+        gene_priority: Priority level for the gene
+    
+    Returns:
+        str: JSON string containing the result of the gene addition operation.
+        
+    Note:
+        Performs validation on gene symbols and handles non-ASCII characters.
+        May split input on lines and tabs for batch gene addition.
+    """
 
     # Data from GET / POST
     input_data = request.args if request.args else request.form
@@ -4615,6 +5392,25 @@ def render_user_results():
 
 @app.route('/updateAltGeneSymbol')
 def update_alternate_gene_symbol():
+    """Update geneset display to use alternate gene symbol identifiers.
+    
+    Changes the gene identifier type used for displaying genes in a geneset.
+    Updates session variables to track the selected identifier type and
+    returns geneset values with the new identifier mapping.
+    
+    Query Parameters (via request.args):
+        altSymbol (str): Name of the alternate gene identifier type.
+        gs_id (str): ID of the geneset to update.
+        user_id (str): ID of the user making the request.
+        
+    Returns:
+        str: JSON string containing geneset values with updated gene identifiers,
+             including ode_gene_id, ode_ref_id, gdb_id, and alt_gene_id fields.
+             
+    Note:
+        Updates session variables for extsrc, sort, dir, length, start, and search.
+        Falls back to default gene identifier (gdb_id=1) if alternate symbol not found.
+    """
     alt_symbol = request.args['altSymbol']
     gs_id = request.args['gs_id']
     user_id = request.args['user_id']
@@ -4674,6 +5470,24 @@ def update_alternate_gene_symbol():
 
 @app.route('/updateGenesetSpecies', methods=['GET'])
 def update_geneset_species():
+    """Update the species assignment for a geneset.
+    
+    Changes the species associated with a specific geneset, affecting
+    how genes are interpreted and analyzed within that geneset.
+    
+    Query Parameters (via request.args):
+        user_id (str): ID of the user making the request.
+        gs_id (str): ID of the geneset to update.
+        species_id (str): New species ID to assign to the geneset.
+        
+    Returns:
+        str: JSON string containing update results, or nothing if user
+             is not authorized to make the change.
+             
+    Note:
+        Only allows updates if the session user_id matches the request user_id.
+        Uses uploadfiles.update_species_by_gsid() for the actual database update.
+    """
     args = request.args
     if int(session['user_id']) == int(args['user_id']):
         results = uploadfiles.update_species_by_gsid(args)
@@ -4682,6 +5496,24 @@ def update_geneset_species():
 
 @app.route('/updateGenesetIdentifier', methods=['GET'])
 def update_geneset_identifier():
+    """Update the gene identifier type for a geneset.
+    
+    Changes the gene identifier/database type used for genes within
+    a specific geneset, affecting how gene symbols are interpreted.
+    
+    Query Parameters (via request.args):
+        user_id (str): ID of the user making the request.
+        gs_id (str): ID of the geneset to update.
+        gdb_id (str): New gene database/identifier type ID.
+        
+    Returns:
+        str: JSON string containing update results, or nothing if user
+             is not authorized to make the change.
+             
+    Note:
+        Only allows updates if the session user_id matches the request user_id.
+        Uses uploadfiles.update_identifier_by_gsid() for the actual database update.
+    """
     args = request.args
     if int(session['user_id']) == int(args['user_id']):
         results = uploadfiles.update_identifier_by_gsid(args)
@@ -4893,6 +5725,14 @@ def generate_api_key():
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
+    """Render the application home page.
+    
+    Displays news updates, site statistics, and current application version.
+    
+    Returns:
+        str: Rendered HTML template for the home page with news array,
+            site statistics, and version information.
+    """
     news_array = geneweaverdb.get_news()
     stats = geneweaverdb.get_stats()
     return render_template('index.html', news_array=news_array, stats=stats, version=VERSION)
@@ -4902,17 +5742,54 @@ def render_home():
 @login_required(allow_guests=True)
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
+    """Add a geneset to a project.
+    
+    Args:
+        project_id (str): ID of the project to add the geneset to.
+        geneset_id (str): ID of the geneset to be added.
+        
+    Returns:
+        str: String representation of the database operation result.
+        
+    Note:
+        Requires login but allows guest users.
+    """
     return str(geneweaverdb.insert_geneset_to_project(project_id, geneset_id))
 
 
 @app.route('/create_project/<string:project_name>.html', methods=['GET', 'POST'])
 def create_project(project_name):
+    """Create a new project for the current user.
+    
+    Args:
+        project_name (str): Name of the project to create.
+        
+    Returns:
+        str: String representation of the database operation result.
+        
+    Note:
+        Uses the current user's ID from the session.
+    """
     user_id = session['user_id']
     return str(geneweaverdb.create_project(project_name, user_id))
 
 
 @app.template_filter('quoted')
 def quoted(s):
+    """Extract quoted strings from input.
+    
+    Uses regex to find content within single quotes and returns the first match.
+    
+    Args:
+        s: String to search for quoted content.
+        
+    Returns:
+        str or None: First quoted string found, or None if no quotes found.
+        
+    Example:
+        >>> quoted("The 'quick' brown fox")
+        'quick'
+    """
     l = re.findall('\'([^\']*)\'', str(s))
     if l:
         return l[0]
@@ -4922,12 +5799,39 @@ def quoted(s):
 @app.route('/notifications')
 @login_required()
 def render_notifications():
+    """Render the user notifications page.
+    
+    Returns:
+        str: Rendered HTML template for the notifications page.
+        
+    Note:
+        Requires user to be logged in.
+    """
     return render_template('notifications.html')
 
 
 @app.route('/notifications.json')
 @login_required(json=True)
 def get_notifications_json():
+    """Get user notifications in JSON format.
+    
+    Retrieves paginated notifications for the current user with optional
+    start offset and limit parameters.
+    
+    Query parameters (via request.args):
+        start (str, optional): Starting offset for pagination. Defaults to 0.
+        limit (str, optional): Maximum number of notifications to return.
+            When provided, an extra notification is fetched to determine
+            if more results are available.
+    
+    Returns:
+        flask.Response: JSON response containing:
+            - Notification data for the requested range
+            - has_more flag when limit is specified
+            
+    Note:
+        Requires user to be logged in (uses session['user_id']).
+    """
     if 'start' in request.args:
         start = request.args['start']
     else:
