@@ -96,7 +96,17 @@ class PooledCursor(object):
 
 
 def _dictify_row(cursor, row):
-    """Turns the given row into a dictionary where the keys are the column names"""
+    """
+    Converts a database row into a dictionary using column names as keys.
+
+    Args:
+        cursor: Database cursor object containing column descriptions.
+        row: Database row tuple to be converted.
+
+    Returns:
+        OrderedDict: Dictionary where keys are column names and values are row data.
+                    Handles UTF-8 encoding for Python 2 compatibility.
+    """
     d = OrderedDict()
     for i, col in enumerate(cursor.description):
         # TODO find out what the right way to do unicode for postgres is? Is UTF-8 the right encoding here?
@@ -112,7 +122,16 @@ def _dictify_row(cursor, row):
 
 
 def dictify_cursor(cursor):
-    """converts all cursor rows into dictionaries where the keys are the column names"""
+    """
+    Converts all cursor rows into dictionaries where the keys are column names.
+
+    Args:
+        cursor: Database cursor object containing query results.
+
+    Returns:
+        Generator[OrderedDict]: Generator yielding OrderedDict objects for each row,
+                               where keys are column names and values are row data.
+    """
     return (_dictify_row(cursor, row) for row in cursor)
 
 
@@ -175,11 +194,16 @@ def get_genesets_with_threshold_counts(geneset_ids):
 
 def get_genesets_for_project(project_id, auth_user_id):
     """
-    Get all genesets in the given project that the given user is authorized to read
-    :param project_id:		the project that we're looking up genesets for
-    :param auth_user_id:	the user that is authenticated (we need to ensure that the
-                            genesets are readable by the user)
-    :return:				A list of genesets in the project
+    Retrieves all genesets in a project that the authenticated user is authorized to read.
+
+    Args:
+        project_id (int): The project ID to look up genesets for.
+        auth_user_id (int): The authenticated user ID. Used to ensure genesets 
+                           are readable by the user.
+
+    Returns:
+        List[Geneset]: List of Geneset objects that the user is authorized to read 
+                      from the specified project.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -211,6 +235,16 @@ def get_genesets_for_project(project_id, auth_user_id):
 
 
 def insert_geneset_to_project(project_id, geneset_id):
+    """
+    Associates a geneset with a project by inserting a record into project2geneset table.
+
+    Args:
+        project_id (int): The ID of the project to associate with the geneset.
+        geneset_id (int): The ID of the geneset to associate with the project.
+
+    Returns:
+        int: The project ID that was inserted into the project2geneset table.
+    """
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
@@ -226,10 +260,19 @@ def insert_geneset_to_project(project_id, geneset_id):
         return cursor.fetchone()[0]
 
 
-# this function creates a project with no genesets associated with it
-# if a guest is creating a project, pass in -1 for user_id
-# NOT TESTED
 def create_project(project_name, user_id):
+    """
+    Creates a new project with no genesets associated with it.
+
+    Note: This function is NOT TESTED.
+
+    Args:
+        project_name (str): The name of the project to create.
+        user_id (int): The ID of the user creating the project. Pass -1 for guest users.
+
+    Returns:
+        int: The project ID of the newly created project.
+    """
     if user_id > 0:
         with PooledCursor() as cursor:
             cursor.execute(
@@ -260,7 +303,13 @@ def create_project(project_name, user_id):
 
 def get_project_by_id(pid):
     """
-    Retrieves the project associated with the given project ID
+    Retrieves the project associated with the given project ID.
+
+    Args:
+        pid (int): The project ID to look up.
+
+    Returns:
+        Project or None: The Project object if found, None otherwise.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -281,7 +330,13 @@ def get_project_by_id(pid):
 
 def get_all_projects(usr_id):
     """
-    returns all projects associated with the given user ID
+    Returns all projects associated with the given user ID.
+
+    Args:
+        usr_id (int): The user ID to retrieve projects for.
+
+    Returns:
+        List[Project]: List of Project objects associated with the user.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -376,9 +431,13 @@ def get_group_name(grp_id):
 
 def get_all_members_of_group(usr_id):
     """
-    return a dictionary of groups owned by user_id and all members
-    :param usr_id:
-    :return: list
+    Returns a dictionary of groups owned by the user and all their members.
+
+    Args:
+        usr_id (int): The user ID of the group owner.
+
+    Returns:
+        List[Dict[str, Any]]: List of dictionaries containing group information and member details.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -391,9 +450,15 @@ def get_all_members_of_group(usr_id):
 
 def get_group_members(grp_id):
     """
-    return a list of dictionaries of all members for a given group
-    :param grp_id:
-    :return: list
+    Retrieves all members of a specified group.
+
+    Args:
+        grp_id (int): The group ID to retrieve members for.
+
+    Returns:
+        List[Dict[str, Any]] or None: List of dictionaries containing member information 
+                                     (user ID, first name, last name, email) ordered by name,
+                                     or None if no members found.
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -467,10 +532,14 @@ def get_other_visible_groups(usr_id):
 
 def add_user_to_public_groups(group_ids, user_id):
     """
+    Adds a user to multiple public groups.
 
-    :param group_ids: list of group_ids
-    :param user_id: the user_id of the user to add to groups
-    :return:
+    Args:
+        group_ids (List[int]): List of group IDs to add the user to.
+        user_id (int): The user ID of the user to add to groups.
+
+    Returns:
+        Dict[str, str]: Dictionary containing 'success' and 'error' status messages.
     """
 
     with PooledCursor() as c:
@@ -485,11 +554,19 @@ def add_user_to_public_groups(group_ids, user_id):
         return {'success': c.statusmessage, 'error': 'None'}
 
 
-# group_name is a string provided by user, group_private should be either true or false
-# true, the group is private. false the group is public.
-# The user_id will be initialized as the owner of the group   
-
 def create_group(group_name, group_private, user_id):
+    """
+    Creates a new group and assigns the specified user as the group owner.
+
+    Args:
+        group_name (str): The name for the new group.
+        group_private (str): Group privacy setting. "Private" for private groups, 
+                           any other value for public groups.
+        user_id (int): The ID of the user who will be the group owner.
+
+    Returns:
+        int: The group ID of the newly created group.
+    """
     if group_private == 'Private':
         priv = 't'
     else:
@@ -541,18 +618,18 @@ def edit_group_name(group_name, group_id, group_private, user_id):
 
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
     """
-    Adds a user to a group.
+    Adds a user to a group with specified permissions.
 
-    args
-        group_id:   the grp_id of the group the user is being added to
-        owner_id:   the usr_id of the user that owns the group
-        usr_email:  the email of the user being added to the group
-        permission: flag indicating whether or not the user being added is an
-                    admin. For normal users permission == 0, admins it is == 1.
+    Args:
+        group_id (int): The group ID of the group the user is being added to.
+        owner_id (int): The user ID of the user that owns the group.
+        usr_email (str): The email address of the user being added to the group.
+        permission (int, optional): Permission level for the user being added.
+                                  0 for normal users, 1 for admin users. Defaults to 0.
 
-    returns
-        a dict containing a single field, 'error' that indicates if any errors
-        were encountered while adding the user to the group.
+    Returns:
+        Dict[str, str]: Dictionary containing 'error' field that indicates if any errors
+                       were encountered while adding the user to the group.
     """
 
     usr_email = str(usr_email).lower()
@@ -858,7 +935,11 @@ def get_file_contents(file_id):
 
 def get_all_species():
     """
-    returns an ordered mapping from species ID to species name for all available species
+    Retrieves an ordered mapping of all available species.
+
+    Returns:
+        OrderedDict[int, str]: Ordered mapping from species ID to species name for all 
+                              available species with non-empty names, ordered by species ID.
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT sp_id, sp_name FROM species WHERE sp_name != '' ORDER BY sp_id;''')
@@ -867,7 +948,11 @@ def get_all_species():
 
 def get_all_species_resources():
     """
-    returns an ordered mapping from species ID to species name for all available species
+    Retrieves detailed species resource information for all available species.
+
+    Returns:
+        List[Dict[str, Any]]: List of dictionaries containing species name, taxonomy ID,
+                             and date information for all species with non-empty names.
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT sp_name, sp_taxid, sp_date FROM species WHERE sp_name != '' ORDER BY sp_id;''')
@@ -1117,6 +1202,15 @@ def get_stats():
 # *************************************
 
 def delete_geneset_by_gsid(rargs):
+    """
+    Deletes a geneset by its geneset ID.
+
+    Args:
+        rargs (Dict): Request arguments containing 'user_id' and 'gs_id'.
+
+    Returns:
+        int: The geneset ID that was deleted.
+    """
     usr_id = rargs.get('user_id', type=int)
     gs_id = rargs.get('gs_id', type=int)
     with PooledCursor() as cursor:
@@ -1191,12 +1285,32 @@ def delete_geneset_value_by_id(rargs):
 
 
 def user_is_owner(usr_id, gs_id):
+    """
+    Checks if a user is the owner of a specific geneset.
+
+    Args:
+        usr_id (int): The user ID to check ownership for.
+        gs_id (int): The geneset ID to check ownership of.
+
+    Returns:
+        int: 1 if the user is the owner, 0 otherwise.
+    """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''', (usr_id, gs_id))
         return cursor.fetchone()[0]
 
 
 def user_is_assigned_curation(usr_id, gs_id):
+    """
+    Checks if a user is assigned to curate a specific geneset.
+
+    Args:
+        usr_id (int): The user ID to check assignment for.
+        gs_id (int): The geneset ID to check assignment of.
+
+    Returns:
+        bool: True if the user is assigned to curate the geneset, False otherwise.
+    """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=%s''', (usr_id, gs_id, CurationAssignment.ASSIGNED))
 
@@ -1206,6 +1320,18 @@ def user_is_assigned_curation(usr_id, gs_id):
 
 
 def user_can_edit(usr_id, gs_id):
+    """
+    Checks if a user can edit a specific geneset.
+
+    A user can edit a geneset if they are either the owner or assigned as a curator.
+
+    Args:
+        usr_id (int): The user ID to check edit permissions for.
+        gs_id (int): The geneset ID to check edit permissions of.
+
+    Returns:
+        bool: True if the user can edit the geneset, False otherwise.
+    """
     if user_is_owner(usr_id, gs_id) or user_is_assigned_curation(usr_id, gs_id):
         return True
 
@@ -1350,6 +1476,37 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
 
 
 def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value, overwrite=False):
+    """
+    Adds a single gene with a value to the temporary geneset storage for editing.
+
+    This function validates user permissions, checks if the gene identifier exists,
+    and adds it to temporary storage for later confirmation.
+
+    Args:
+        gs_id (int): The geneset ID to add the gene to.
+        user_id (int): The ID of the user making the edit.
+        gene_id (str): The gene identifier (e.g., gene symbol, RefSeq ID).
+        value (str or float): The numeric value associated with the gene.
+        overwrite (bool, optional): Whether to overwrite existing entries. Defaults to False.
+
+    Returns:
+        Dict[str, str]: Dictionary containing either success confirmation or error message.
+                       Success: {'success': 'Gene added successfully'}
+                       Error: {'error': 'Error description'}
+
+    Example:
+        >>> result = add_geneset_gene_to_temp(
+        ...     gs_id=12345,
+        ...     user_id=678,
+        ...     gene_id="BRCA1",
+        ...     value="2.5",
+        ...     overwrite=False
+        ... )
+        >>> if 'success' in result:
+        ...     print("Gene added successfully!")
+        ... else:
+        ...     print(f"Error: {result['error']}")
+    """
     try:
         float(str(value))
     except ValueError:
@@ -1398,23 +1555,38 @@ def cancel_geneset_edit_by_id(rargs):
 
 def update_geneset(usr_id, form):
     """
-    Selectively updates geneset metacontent and publication information. The
-    function determines how to update things in the following order: 
-    If a PMID (pub_pubmed) is provided, all metacontent fields will be 
-    updated. 
-    If a PMID is not provided and all other metacontent fields are blank, all
-    publication information associated with the geneset is removed. 
-    Finally, if any metacontent fields are filled out, all publication
-    metacontent fields are updated and a new publication ID (pub_id) is created
-    depending on whether it already exstis or not.
+    Selectively updates geneset metadata and publication information based on form data.
 
-    :param usr_id:  ID of the user updating the geneset
-    :param form:    form dict containing data from the edit geneset form
-    :return:        an object containing two fields, 'success' and 'error'. If
-                    any error occurs during update 'success' is set to False
-                    and the error message is contained in 'error'. A successful
-                    update results in 'success' being set to True and the 'error'
-                    field missing from the result dict.
+    The function updates geneset information in the following priority order:
+    1. If PMID (pub_pubmed) is provided: all metadata fields are updated
+    2. If no PMID and all metadata fields are blank: publication info is removed  
+    3. If any metadata fields are provided: publication metadata is updated and
+       a new publication ID is created if it doesn't already exist
+
+    Args:
+        usr_id (int): ID of the user updating the geneset.
+        form (Dict[str, Any]): Form dictionary containing geneset edit data.
+                              Expected keys include: gs_name, gs_description, 
+                              gs_abbreviation, pub_pubmed, pub_title, pub_authors, etc.
+
+    Returns:
+        Dict[str, Union[bool, str]]: Result dictionary with:
+                                   - 'success' (bool): True if successful, False if error
+                                   - 'error' (str): Error message (only present if success=False)
+
+    Example:
+        >>> form_data = {
+        ...     'gs_name': 'Updated Geneset Name',
+        ...     'gs_description': 'New description for the geneset',
+        ...     'pub_pubmed': '12345678',
+        ...     'pub_title': 'Research Paper Title',
+        ...     'pub_authors': 'Smith, J. et al.'
+        ... }
+        >>> result = update_geneset(user_id=123, form=form_data)
+        >>> if result['success']:
+        ...     print("Geneset updated successfully!")
+        ... else:
+        ...     print(f"Update failed: {result['error']}")
     """
 
     gs_id = int(form.get('gs_id', 0))
@@ -3079,6 +3251,19 @@ def get_srp(gs_id):
             return None
 
 def update_geneset_date(gs_id):
+    """
+    Updates the last modified timestamp for a geneset to the current time.
+
+    Args:
+        gs_id (int): The geneset ID to update the timestamp for.
+
+    Returns:
+        datetime: The new updated timestamp that was set.
+
+    Example:
+        >>> updated_time = update_geneset_date(12345)
+        >>> print(f"Geneset 12345 was updated at: {updated_time}")
+    """
     with PooledCursor() as cursor:
         cursor.execute('''UPDATE geneset SET gs_updated = NOW() WHERE gs_id = %s RETURNING gs_updated''', (gs_id, ))
         cursor.connection.commit()
@@ -3088,6 +3273,22 @@ def update_geneset_date(gs_id):
 # END SRP IMPLEMENTATION
 
 def get_publication(pub_id):
+    """
+    Retrieves a publication record by its publication ID.
+
+    Args:
+        pub_id (int): The publication ID to look up.
+
+    Returns:
+        Publication or None: Publication object if found, None if not found.
+
+    Example:
+        >>> publication = get_publication(12345)
+        >>> if publication:
+        ...     print(f"Found publication: {publication.title}")
+        ... else:
+        ...     print("Publication not found")
+    """
     with PooledCursor() as cursor:
         cursor.execute("SELECT * from publication WHERE pub_id=%s",
                        (pub_id,))
@@ -3221,11 +3422,22 @@ class GenesetInfo:
 
 def authenticate_user(email, password):
     """
-    Looks up user in the database
-    :param email:		the user's email address
-    :param password:	the user's password
-    :return:			the User with the corresponding email address and password
-                        OR None if no such User is found
+    Authenticates a user by validating their email and password against the database.
+
+    Args:
+        email (str): The user's email address.
+        password (str): The user's password (will be MD5 hashed for comparison).
+
+    Returns:
+        User or None: The User object with the corresponding email address and password,
+                     or None if no such User is found or if credentials are invalid.
+
+    Example:
+        >>> user = authenticate_user("john.doe@example.com", "secure_password")
+        >>> if user:
+        ...     print(f"Authentication successful for user: {user.email}")
+        ... else:
+        ...     print("Invalid credentials")
     """
     email = email.strip()
     if not email or not password:
@@ -3310,9 +3522,13 @@ def get_results_by_runhash(runhash):
 
 def get_user(user_id):
     """
-    Looks up a User in the database
-    :param user_id:		the user's ID
-    :return:			the User matching the given ID or None if no such user is found
+    Retrieves a user from the database by their user ID.
+
+    Args:
+        user_id (int): The user's unique identifier.
+
+    Returns:
+        User or None: The User object matching the given ID, or None if no such user is found.
     """
     with PooledCursor() as cursor:
         try:
@@ -3380,9 +3596,16 @@ def register_sso_user(name, user_email, user_sso_id):
 
 def get_user_byemail(user_email):
     """
-    Looks up a User in the database
-    :param user_email: the email a user entered
-    :return: the User matching the given email or None if no such user is found
+    Retrieves a user from the database by their email address.
+
+    Args:
+        user_email (str): The email address to look up.
+
+    Returns:
+        User or None: The User object matching the given email, or None if no such user is found.
+
+    Raises:
+        AttributeError: If multiple users are found with the same email address.
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email.lower(),))
@@ -3412,11 +3635,20 @@ def new_guest():
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
     """
-    Insert a user to the db
-    :param user_first_name: the user's first name, if not provided use "Guest" as default
-    :param user_last_name:	the user's last name, if not provided use "User" as default
-    :param user_email:		the user's email address, if not provided use "" as default
-    :param user_password:	the user's password, if not provided use "" as default
+    Registers a new user in the database.
+
+    Args:
+        user_first_name (str): The user's first name. If not provided, use "Guest" as default.
+        user_last_name (str): The user's last name. If not provided, use "User" as default.
+        user_email (str): The user's email address. If not provided, use "" as default.
+        user_password (str): The user's password. If not provided, use "" as default.
+
+    Returns:
+        int: The user ID of the newly registered user.
+        
+    Example:
+        >>> user_id = register_user("John", "Doe", "john.doe@example.com", "secure_password")
+        >>> print(f"New user registered with ID: {user_id}")
     """
     with PooledCursor() as cursor:
         if sys.version_info[0] < 3:
@@ -3443,12 +3675,17 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
 
 def register_user_from_guest(user_first_name, user_last_name, user_email, user_password, guest_id):
     """
-    Updates a guest user to a registered user
-    :param user_first_name: the user's first name, if not provided use "Guest" as default
-    :param user_last_name:	the user's last name, if not provided use "User" as default
-    :param user_email:		the user's email address, if not provided use "" as default
-    :param user_password:	the user's password, if not provided use "" as default
-    :param guest_id:        the id of the guest account to register
+    Converts a guest user account to a registered user account.
+
+    Args:
+        user_first_name (str): The user's first name. If not provided, use "Guest" as default.
+        user_last_name (str): The user's last name. If not provided, use "User" as default.
+        user_email (str): The user's email address. If not provided, use "" as default.
+        user_password (str): The user's password. If not provided, use "" as default.
+        guest_id (int): The ID of the guest account to be converted to a registered user.
+
+    Returns:
+        int: The user ID of the newly registered user (same as the guest_id).
     """
     with PooledCursor() as cursor:
         if sys.version_info[0] < 3:
@@ -3575,12 +3812,24 @@ def get_geneset_tier(gsid):
 
 def get_geneset(geneset_id, user_id=None, temp=None):
     """
-    Gets the Geneset if either the geneset is publicly visible or the user
-    has permission to view it.
-    :param geneset_id:	the geneset ID
-    :param user_id:		the user ID that needs permission
-    :return:			the Geneset corresponding to the given ID if the
-                        user has read permission, None otherwise
+    Retrieves a geneset if the geneset is publicly visible or the user has permission to view it.
+
+    Args:
+        geneset_id (int): The geneset ID to retrieve.
+        user_id (int, optional): The user ID that needs permission to view the geneset.
+                                If None, defaults to -1 (guest user). Defaults to None.
+        temp (optional): Temporary parameter (currently unused). Defaults to None.
+
+    Returns:
+        Geneset or None: The Geneset object corresponding to the given ID if the user has 
+                        read permission, None otherwise.
+
+    Example:
+        >>> geneset = get_geneset(12345, user_id=678)
+        >>> if geneset:
+        ...     print(f"Retrieved geneset: {geneset.name}")
+        ... else:
+        ...     print("Geneset not found or no permission")
     """
 
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
@@ -4892,6 +5141,33 @@ def get_run_status(run_hash):
 
 
 def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_api='f'):
+    """
+    Inserts a new analysis result record into the database.
+
+    Args:
+        usr_id (int): The user ID who created the result.
+        res_runhash (str): Unique hash identifier for the analysis run.
+        gs_ids (List[str]): List of geneset IDs used in the analysis.
+        res_data (str): JSON or other data format containing the analysis results.
+        res_tool (str): Name of the analysis tool used.
+        res_description (str): Description of the analysis result.
+        res_status (str): Status of the analysis (e.g., 'completed', 'failed', 'running').
+        res_api (str, optional): API flag (currently not used in database). Defaults to 'f'.
+
+    Returns:
+        int: The result ID of the newly inserted result record.
+
+    Example:
+        >>> result_id = insert_result(
+        ...     usr_id=123,
+        ...     res_runhash="abc123def456",
+        ...     gs_ids=["1001", "1002", "1003"],
+        ...     res_data='{"jaccard": 0.85}',
+        ...     res_tool="JaccardSimilarity",
+        ...     res_description="Similarity analysis of genesets",
+        ...     res_status="completed"
+        ... )
+    """
     with PooledCursor() as cursor:
         ## res_api isn't part of the database (at least on crick), rather than
         ## screw up table structure, res_api is commented out for now
@@ -4926,7 +5202,13 @@ def get_all_userids():
 
 def get_species_name_by_id(sp_id):
     """
-    returns the species name given a valid species id
+    Retrieves the species name for a given species ID.
+
+    Args:
+        sp_id (int): The species ID to look up.
+
+    Returns:
+        str or None: The species name if found, None if not found.
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT sp_name FROM species WHERE sp_id=%s;''', (sp_id,))
