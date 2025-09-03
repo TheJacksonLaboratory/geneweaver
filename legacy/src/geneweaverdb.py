@@ -3939,7 +3939,7 @@ def get_geneset_hom_ids(gs_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT DISTINCT hom_id FROM extsrc.homology h INNER JOIN extsrc.geneset_value gsv 
                 ON h.ode_gene_id=gsv.ode_gene_id INNER JOIN production.geneset g ON gsv.gs_id=g.gs_id 
-                WHERE gs_status not like 'de%%' AND g.gs_id=%s''', (gs_id,))
+                WHERE gs_status not like 'de%%' AND g.gs_id=%s AND gsv.gsv_in_threshold''', (gs_id,))
         if cursor.rowcount == 0:
             return 0
         else:
