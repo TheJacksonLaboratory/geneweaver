@@ -20,7 +20,8 @@ export class OntologyTagComponent implements OnChanges {
 
   ontology_string = '';
 
-  ngOnChanges(changes: SimpleChanges): void {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ngOnChanges(_changes: SimpleChanges): void {
     this.ontology_string = this.ontology?.name + " (" + this.ontology?.ontology_term_id + ")"
   }
 
