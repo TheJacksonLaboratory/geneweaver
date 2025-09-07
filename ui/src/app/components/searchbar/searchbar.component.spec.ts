@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SearchBarComponent } from './searchbar.component';
-import { MockService } from "ng-mocks";
 import { ApiBaseServiceFactory } from "jax-apiutils";
 import { ActivatedRoute } from "@angular/router";
 import { of } from "rxjs";

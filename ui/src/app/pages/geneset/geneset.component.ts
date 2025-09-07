@@ -264,7 +264,7 @@ export class GeneSetComponent implements OnInit {
         'ode_ref_id'
       ],
     };
-    const csv = new ngxCsv(
+    new ngxCsv(
        downloadData,
       'geneweaver-genes-GS-' + this.geneset.id + '-' + dateString,
       options
