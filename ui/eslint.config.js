@@ -33,6 +33,21 @@ module.exports = [
           style: 'kebab-case',
         },
       ],
+      // Fix for TypeScript ESLint rules configuration issues
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        {
+          allowShortCircuit: true,
+          allowTernary: true,
+          allowTaggedTemplates: true,
+        },
+      ],
+      '@typescript-eslint/no-empty-function': [
+        'error',
+        {
+          allow: ['arrowFunctions', 'functions', 'methods'],
+        },
+      ],
     },
   },
   {
