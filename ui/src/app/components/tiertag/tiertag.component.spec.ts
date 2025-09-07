@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TierTagComponent } from './tiertag.component';
 import { TagModule } from 'primeng/tag';
-import { MockComponent } from 'ng-mocks';
 
 describe('TierTagComponent', () => {
   let component: TierTagComponent;
@@ -112,7 +111,6 @@ describe('TierTagComponent', () => {
     it('should render the correct tier label in the template', () => {
       component.tier = 1;
       fixture.detectChanges();
-      const compiled = fixture.nativeElement as HTMLElement;
 
       expect(component.tier).toBe(1);
 
