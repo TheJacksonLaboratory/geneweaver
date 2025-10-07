@@ -5402,6 +5402,7 @@ def get_intersect_by_homology(gsid1, gsid2):
                 INNER JOIN  gene_info AS gi 
                 USING       (ode_gene_id) 
                 WHERE       gs_id = %s
+                AND         gv.gsv_in_threshold
             ) g1
             INNER JOIN (
                 SELECT      gv.ode_gene_id, gi.gi_symbol, h.hom_id
@@ -5411,6 +5412,7 @@ def get_intersect_by_homology(gsid1, gsid2):
                 INNER JOIN  gene_info AS gi 
                 USING       (ode_gene_id) 
                 WHERE       gs_id = %s
+                AND         gv.gsv_in_threshold
             ) g2
             ON g1.hom_id = g2.hom_id;
             ''', (gsid1, gsid2)
@@ -5445,12 +5447,14 @@ def get_geneset_intersect(gsid1, gsid2):
                 SELECT  ode_gene_id
                 FROM    geneset_value
                 WHERE   gs_id = %s
+                AND     gsv_in_threshold
 
                 INTERSECT
 
                 SELECT  ode_gene_id
                 FROM    extsrc.geneset_value
                 WHERE   gs_id = %s
+                AND     gsv_in_threshold
             ) gv
             INNER JOIN  gene_info AS gi
             USING       (ode_gene_id);

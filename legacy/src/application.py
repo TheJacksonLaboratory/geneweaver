@@ -3589,6 +3589,11 @@ def render_viewgenesetoverlap(gs_ids):
         if gs:
             genesets.append(gs)
 
+    # get geneset threshold counts for list of geneset ids
+    geneset_ids = [gs.geneset_id for gs in genesets]
+    geneset_threshold_counts = geneweaverdb.get_genesets_with_threshold_counts(geneset_ids)
+
+
     # Get the current user id
     user_info = geneweaverdb.get_user(user_id)
 
@@ -3802,7 +3807,8 @@ def render_viewgenesetoverlap(gs_ids):
                            intersects=intersects,
                            species=species,
                            venn=json.dumps(venn),
-                           venn_text=json.dumps(venn_text))
+                           venn_text=json.dumps(venn_text),
+                           geneset_threshold_counts=geneset_threshold_counts)
 
 
 # function to draw the venn diagrams for the overlap page
