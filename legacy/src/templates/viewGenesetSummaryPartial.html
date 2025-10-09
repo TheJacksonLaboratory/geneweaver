@@ -30,7 +30,7 @@
     {% endif %}
 
     {# 
-		Used to select genesets from the search results page. Should only be
+		Used to select genesets from the search results page. Should only <be></be>
 		shown on the search page. render_search_json added to prevent
 		checkboxes disappearing as a user is flipping through paginated results.
 	#}
@@ -71,7 +71,11 @@
 
     <td>
         <!-- Show the geneset size -->
-        <strong>{{ gs.count }} ({{ geneset_threshold_counts[gs.geneset_id] }})</strong>
+        {% if geneset_threshold_counts is defined %}
+            <strong>{{ gs.count }} ({{ geneset_threshold_counts[gs.geneset_id] }})</strong>
+        {% else %}
+            <strong>{{ gs.count }} </strong>
+        {% endif %}
     </td>
 
     <td>
@@ -216,10 +220,13 @@
                 <th>Geneset Count:</th>
                 <td>{{ gs.count }}</td>
             </tr>
-            <tr>
-                <th>Threshold Count:</th>
-                <td>{{ geneset_threshold_counts[gs.geneset_id]}}</td>
-            </tr>
+
+            {% if geneset_threshold_counts is defined %}
+                <tr>
+                    <th>Threshold Count:</th>
+                    <td>{{ geneset_threshold_counts[gs.geneset_id]}}</td>
+                </tr>
+            {% endif %}
 
         </table>
     </td>
