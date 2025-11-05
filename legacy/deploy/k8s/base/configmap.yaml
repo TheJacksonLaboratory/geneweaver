@@ -7,4 +7,6 @@ data:
   APPLICATION_RESULTS: "/var/geneweaver/results"
   CELERY_HOST: "redis-master"
   CELERY_PORT: "6379"
-  CELERY_BACKEND: "redis"
+  CELERY_TRANSPORT: "redis"
+  CELERY_DB: "0"
+  CELERY_BACKEND: "redis://redis-master:6379/0"

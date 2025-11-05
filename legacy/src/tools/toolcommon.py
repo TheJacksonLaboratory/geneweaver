@@ -12,7 +12,7 @@ celery_app = Celery(
     #broker=BROKER_URL,
     #backend=CELERY_RESULT_BACKEND,
     broker=config.get('celery', 'url'),
-    backend=config.get('celery', 'url'),
+    backend=config.get('celery', 'backend'),
 )
 
 # Optional configuration, see the application user guide.
