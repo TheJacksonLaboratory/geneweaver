@@ -5,8 +5,13 @@ metadata:
 data:
   AUTH_CLIENTID: "x9IiBRyt8lS3lsqrz2H6aO1leRBbxyb7"
   APPLICATION_RESULTS: "/var/geneweaver/results"
+  # Broker configuration
+  CELERY_TRANSPORT: "redis"
   CELERY_HOST: "redis-master"
   CELERY_PORT: "6379"
-  CELERY_TRANSPORT: "redis"
   CELERY_DB: "0"
-  CELERY_BACKEND: "redis://redis-master:6379/0"
+  # Backend configuration (falls back to broker config if not specified)
+  CELERY_RESULT_BACKEND_TRANSPORT: "redis"
+  CELERY_RESULT_BACKEND_HOST: "redis-master"
+  CELERY_RESULT_BACKEND_PORT: "6379"
+  CELERY_RESULT_BACKEND_DB: "0"
