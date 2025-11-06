@@ -23,12 +23,13 @@ class ApplicationConfig(BaseModel):
 
 class Celery(BaseModel):
 
-    backend: str = "amqp"
+    backend: str = "redis://localhost:6379/0"
+    transport: str = "redis"
     host: str = "localhost"
-    port: int = 5672
+    port: int = 6379
     user: str = ""
     password: str = ""
-    db: int = 1
+    db: int = 0
     url: Optional[str] = Field(None, validate_default=True)
 
     @model_validator(mode='after')
@@ -41,7 +42,7 @@ class Celery(BaseModel):
             else:
                 credentials = ""
             db = f"/{self.db}" if self.db else ""
-            self.url = f"{self.backend}://{credentials}{self.host}:{self.port}{db}"
+            self.url = f"{self.transport}://{credentials}{self.host}:{self.port}{db}"
         return self
 
 
