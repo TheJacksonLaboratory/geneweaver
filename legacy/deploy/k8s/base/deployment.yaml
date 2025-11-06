@@ -34,6 +34,11 @@ spec:
                 secretKeyRef:
                   name: redis
                   key: redis-password
+            - name: CELERY_RESULT_BACKEND_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
           envFrom:
             - configMapRef:
                 name: geneweaver-legacy-config

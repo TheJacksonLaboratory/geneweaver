@@ -22,8 +22,7 @@ class ApplicationConfig(BaseModel):
 
 
 class Celery(BaseModel):
-
-    backend: str = "redis://localhost:6379/0"
+    # Broker configuration
     transport: str = "redis"
     host: str = "localhost"
     port: int = 6379
@@ -32,8 +31,18 @@ class Celery(BaseModel):
     db: int = 0
     url: Optional[str] = Field(None, validate_default=True)
 
+    # Backend configuration
+    backend: Optional[str] = Field(None, validate_default=True)
+    result_backend_transport: str = "redis"
+    result_backend_host: Optional[str] = None
+    result_backend_port: Optional[int] = None
+    result_backend_user: Optional[str] = None
+    result_backend_password: Optional[str] = None
+    result_backend_db: Optional[int] = None
+
     @model_validator(mode='after')
     def url_validator(self):
+        # Construct broker URL if not explicitly provided
         if self.url is None:
             if self.password:
                 credentials = f"{self.user}:{self.password}@"
@@ -43,8 +52,26 @@ class Celery(BaseModel):
                 credentials = ""
             db = f"/{self.db}" if self.db else ""
             self.url = f"{self.transport}://{credentials}{self.host}:{self.port}{db}"
-        return self
 
+        # Construct backend URL if not explicitly provided
+        if self.backend is None:
+            # Use backend-specific values, fall back to broker values if not set
+            backend_host = self.result_backend_host if self.result_backend_host is not None else self.host
+            backend_port = self.result_backend_port if self.result_backend_port is not None else self.port
+            backend_user = self.result_backend_user if self.result_backend_user is not None else self.user
+            backend_password = self.result_backend_password if self.result_backend_password is not None else self.password
+            backend_db = self.result_backend_db if self.result_backend_db is not None else self.db
+
+            if backend_password:
+                backend_credentials = f"{backend_user}:{backend_password}@"
+            elif backend_user:
+                backend_credentials = f"{backend_user}@"
+            else:
+                backend_credentials = ""
+            backend_db_str = f"/{backend_db}" if backend_db else ""
+            self.backend = f"{self.result_backend_transport}://{backend_credentials}{backend_host}:{backend_port}{backend_db_str}"
+
+        return self
 
 class DB(BaseModel):
 
