@@ -71,11 +71,14 @@
 
     <td>
         <!-- Show the geneset size -->
-        {% if geneset_threshold_counts is defined %}
-            <strong>{{ gs.count }} ({{ geneset_threshold_counts[gs.geneset_id] }})</strong>
-        {% else %}
-            <strong>{{ gs.count }} </strong>
-        {% endif %}
+        <span data-toggle="tooltip" data-rel="tooltip"
+              data-original-title="{% if geneset_threshold_counts is defined %}Gene count (In threshold count){% else %}Gene count{% endif %}">
+            {% if geneset_threshold_counts is defined %}
+                <strong>{{ gs.count }} ({{ geneset_threshold_counts[gs.geneset_id] }})</strong>
+            {% else %}
+                <strong>{{ gs.count }} </strong>
+            {% endif %}
+        </span>
     </td>
 
     <td>
