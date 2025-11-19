@@ -9,9 +9,9 @@ data:
   CELERY_TRANSPORT: "redis"
   CELERY_HOST: "redis-master"
   CELERY_PORT: "6379"
-  CELERY_DB: "0"
+  CELERY_DB: "1"
   # Backend configuration (falls back to broker config if not specified)
   CELERY_RESULT_BACKEND_TRANSPORT: "redis"
   CELERY_RESULT_BACKEND_HOST: "redis-master"
   CELERY_RESULT_BACKEND_PORT: "6379"
-  CELERY_RESULT_BACKEND_DB: "0"
+  CELERY_RESULT_BACKEND_DB: "1"
