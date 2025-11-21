@@ -6072,8 +6072,8 @@ def get_genes_by_geneset_id(geneset_id):
         cursor.execute(
                 ''' SELECT row_to_json(row, true)
                 FROM (	SELECT gene.*
-                        FROM extsrc.gene join extsrc.geneset_value using(ode_gene_id)
-                        where gs_id = %s) row; ''', (geneset_id,))
+                        FROM extsrc.gene join extsrc.geneset_value as gsv using(ode_gene_id)
+                        where gs_id = %s and gsv.gsv_in_threshold) row; ''', (geneset_id,))
 
     return cursor.fetchall()
 
