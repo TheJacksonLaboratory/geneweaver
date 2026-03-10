@@ -18,8 +18,6 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - name: Install Poetry
         run: pipx install poetry
-      - name: Configure Poetry
-        run: poetry config virtualenvs.create false
       - name: Install Black and Ruff
         run: poetry install --only dev
       - name: Run Ruff Linter

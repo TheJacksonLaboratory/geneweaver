@@ -37,8 +37,6 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - name: Install Poetry
         run: pipx install poetry
-      - name: Configure Poetry
-        run: poetry config virtualenvs.create false
       - name: Install dependencies with Poetry
         run: poetry install
       - name: Test with pytest
