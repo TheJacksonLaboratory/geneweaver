@@ -21,6 +21,6 @@ jobs:
       - name: Install Black and Ruff
         run: poetry install --only dev
       - name: Run Ruff Linter
-        run: ruff src/ tests/
+        run: poetry run ruff src/ tests/
       - name: Run Black Formatter
-        run: black --check src/ tests/
+        run: poetry run black --check src/ tests/
