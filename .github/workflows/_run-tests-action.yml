@@ -30,11 +30,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "/Users/runner/.local/bin:$PATH" >> $GITHUB_PATH
-          fi
+        run: pipx install poetry
       - name: Configure Poetry
         run: poetry config virtualenvs.create false
       - name: Install dependencies with Poetry
