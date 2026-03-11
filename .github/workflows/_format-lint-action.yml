@@ -17,16 +17,10 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "/Users/runner/.local/bin:$PATH" >> $GITHUB_PATH
-          fi
-      - name: Configure Poetry
-        run: poetry config virtualenvs.create false
+        run: pipx install poetry
       - name: Install Black and Ruff
         run: poetry install --only dev
       - name: Run Ruff Linter
-        run: ruff src/ tests/
+        run: poetry run ruff src/ tests/
       - name: Run Black Formatter
-        run: black --check src/ tests/
+        run: poetry run black --check src/ tests/
