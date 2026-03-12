@@ -289,6 +289,8 @@ def get_geneset_gene_values(
 
         genes_data = []
         for gsv in geneset_values:
+            if gsv["ode_ref_id"] is None:
+                continue
             gene_value = {"symbol": gsv["ode_ref_id"], "value": float(gsv["gsv_value"])}
             genes_data.append(gene_value)
 
@@ -337,7 +339,9 @@ def get_geneset_w_gene_id_type(
         return {
             "gene_identifier_type": gene_id_type.name,
             "geneset": geneset,
-            "geneset_values": geneset_values,
+            "geneset_values": [
+                gsv for gsv in geneset_values if gsv["ode_ref_id"] is not None
+            ],
         }
 
     except Exception as err:

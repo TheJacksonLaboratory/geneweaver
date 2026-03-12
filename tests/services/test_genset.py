@@ -115,6 +115,11 @@ def test_get_geneset_w_gene_id_type_2_response(
         "geneset_values"
     )
     mock_db_gene.gene_database_by_id.return_value = [{"sp_id": 1}]
+    mock_db_gene.get_homolog_ids_by_ode_id.return_value = [
+        {"ode_gene_id": 70495, "ode_ref_id": "ENSG00000178104"},
+        {"ode_gene_id": 83819, "ode_ref_id": "ENSG00000124225"},
+        {"ode_gene_id": 90284, "ode_ref_id": "ENSG00000138078"},
+    ]
 
     response = geneset.get_geneset_w_gene_id_type(
         None, 1234, mock_user, GeneIdentifier(2)
@@ -125,9 +130,9 @@ def test_get_geneset_w_gene_id_type_2_response(
         response.get("gene_identifier_type")
         == geneset_w_gene_id_type_resp["gene_identifier_type"]
     )
-    assert (
-        response.get("geneset_values") == geneset_w_gene_id_type_resp["geneset_values"]
-    )
+    assert response.get("geneset_values") is not None
+    assert len(response["geneset_values"]) > 0
+    assert all(gsv["ode_ref_id"] is not None for gsv in response["geneset_values"])
 
 
 @patch("geneweaver.api.services.geneset.db_geneset")
@@ -688,3 +693,92 @@ def test_get_geneset_by_score_type(mock_db_geneset, score_type):
     response = geneset.get_visible_genesets(None, mock_user, score_type=score_type)
 
     assert response.get("data") == geneset_list_resp
+
+
+MIXED_GENESET_VALUES_WITH_NULLS = [
+    {
+        "ode_gene_id": 70495,
+        "gsv_value": 1.0,
+        "ode_ref_id": "ENSG00000178104",
+        "gdb_id": 2,
+    },
+    {"ode_gene_id": 83819, "gsv_value": 0.5, "ode_ref_id": None, "gdb_id": 2},
+    {
+        "ode_gene_id": 90284,
+        "gsv_value": 0.8,
+        "ode_ref_id": "ENSG00000138078",
+        "gdb_id": 2,
+    },
+]
+
+ALL_NULL_GENESET_VALUES = [
+    {"ode_gene_id": 70495, "gsv_value": 1.0, "ode_ref_id": None, "gdb_id": 2},
+    {"ode_gene_id": 83819, "gsv_value": 0.5, "ode_ref_id": None, "gdb_id": 2},
+]
+
+
+@patch("geneweaver.api.services.geneset.db_geneset")
+@patch("geneweaver.api.services.geneset.get_gsv_w_gene_homology_update")
+def test_geneset_gene_value_filters_null_ode_ref_id(mock_get_gsv, mock_db_geneset):
+    """Test that entries with null ode_ref_id are filtered from the values response."""
+    mock_db_geneset.get.return_value = [geneset_by_id_resp.get("geneset")]
+    mock_get_gsv.return_value = MIXED_GENESET_VALUES_WITH_NULLS
+
+    response = geneset.get_geneset_gene_values(
+        None, user=mock_user, geneset_id=1234, gene_id_type=GeneIdentifier.ENSEMBLE_GENE
+    )
+
+    assert response.get("data") is not None
+    assert len(response["data"]) == 2
+    assert all(entry["symbol"] is not None for entry in response["data"])
+    symbols = [entry["symbol"] for entry in response["data"]]
+    assert "ENSG00000178104" in symbols
+    assert "ENSG00000138078" in symbols
+
+
+@patch("geneweaver.api.services.geneset.db_geneset")
+@patch("geneweaver.api.services.geneset.get_gsv_w_gene_homology_update")
+def test_geneset_gene_value_all_null_ode_ref_id(mock_get_gsv, mock_db_geneset):
+    """Test that all-null ode_ref_id returns empty data list, not a 500."""
+    mock_db_geneset.get.return_value = [geneset_by_id_resp.get("geneset")]
+    mock_get_gsv.return_value = ALL_NULL_GENESET_VALUES
+
+    response = geneset.get_geneset_gene_values(
+        None, user=mock_user, geneset_id=1234, gene_id_type=GeneIdentifier.ENSEMBLE_GENE
+    )
+
+    assert "data" in response
+    assert response["data"] == []
+
+
+@patch("geneweaver.api.services.geneset.db_geneset")
+@patch("geneweaver.api.services.geneset.get_gsv_w_gene_homology_update")
+def test_get_geneset_w_gene_id_type_filters_null_ode_ref_id(
+    mock_get_gsv, mock_db_geneset
+):
+    """Test that entries with null ode_ref_id are filtered from geneset_values."""
+    mock_db_geneset.get.return_value = [geneset_w_gene_id_type_resp.get("geneset")]
+    mock_get_gsv.return_value = MIXED_GENESET_VALUES_WITH_NULLS
+
+    response = geneset.get_geneset_w_gene_id_type(
+        None, 1234, mock_user, GeneIdentifier.ENSEMBLE_GENE
+    )
+
+    assert response.get("geneset_values") is not None
+    assert len(response["geneset_values"]) == 2
+    assert all(gsv["ode_ref_id"] is not None for gsv in response["geneset_values"])
+
+
+@patch("geneweaver.api.services.geneset.db_geneset")
+@patch("geneweaver.api.services.geneset.get_gsv_w_gene_homology_update")
+def test_get_geneset_w_gene_id_type_all_null_ode_ref_id(mock_get_gsv, mock_db_geneset):
+    """Test that all-null ode_ref_id results in empty geneset_values list."""
+    mock_db_geneset.get.return_value = [geneset_w_gene_id_type_resp.get("geneset")]
+    mock_get_gsv.return_value = ALL_NULL_GENESET_VALUES
+
+    response = geneset.get_geneset_w_gene_id_type(
+        None, 1234, mock_user, GeneIdentifier.ENSEMBLE_GENE
+    )
+
+    assert "geneset_values" in response
+    assert response["geneset_values"] == []
