@@ -1,0 +1,160 @@
+site_name: GeneWeaver
+theme:
+  name: material
+  logo: assets/GW2-logo.png
+  favicon: assets/GW2-logo.png
+  icon:
+    repo: fontawesome/brands/git-alt
+  font:
+    text: Roboto
+    code: Roboto Mono
+  palette:
+    - scheme: geneweaver
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      primary: blue grey
+      accent: blue
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+#    - navigation.tabs
+    - navigation.sections
+#    - navigation.expand
+    - navigation.indexes
+  #    - navigation.tabs.sticky
+  #    - header.autohide
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+extra_css:
+  - stylesheets/extra.css
+repo_name: TheJacksonLaboratory/geneweaver-docs
+repo_url: https://github.com/TheJacksonLaboratory/geneweaver-docs
+edit_uri: edit/main/docs/
+extra:
+  generator: true
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/orgs/TheJacksonLaboratory/repositories?q=geneweaver
+      name: GitHub Repositories
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/search/?q=geneweaver
+      name: Python Packages
+    - icon: material/web
+      link: https://geneweaver.org
+      name: Geneweaver Website
+    - icon: material/api
+      link: https://geneweaver.jax.org/api/docs
+      name: Geneweaver API
+copyright: These pages are maintained by the GeneWeaver team and the Chesler Lab at The Jackson Laboratory in Bar Harbor, Maine.
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - md_in_html
+  - pymdownx.superfences
+  - def_list
+  - footnotes
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+plugins:
+  - search
+  - mkdocs-jupyter:
+      include_source: True
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Foundational Concepts: getting-started/foundational-concepts.md
+      - Web Application: getting-started/web-application.md
+      - Command Line Interface: getting-started/command-line-interface.md
+      - Running Tools Locally: getting-started/running-tools-locally.md
+#      - Contributing to Packages: getting-started/contributing-to-packages.md
+#      - Contributing to Documentation: getting-started/contributing-to-documentation.md
+  - Concepts:
+      - concepts/index.md
+      - Genes and GeneSets: concepts/genes-and-genesets.md
+      - External Source Data: concepts/geneweaver-data.md
+      - Geneweaver Data Model: concepts/geneweaver-data-model.md
+      - Package Based Architecture: concepts/package-based-architecture.md
+  - 'Web Application':
+      - web-application/index.md
+      - User Registration: web-application/user-registration.md
+      - Uploading GeneSets: web-application/uploading-genesets.md
+      - Batch Upload: web-application/batch-upload.md
+      - View Genesets: web-application/view-genesets.md
+      - Users and Groups: web-application/users-and-groups.md
+      - Projects: web-application/projects.md
+      - Notifications: web-application/notifications.md
+  - Tutorial:
+      - tutorial/index.md
+      - Client Login: tutorial/geneweaver_client_login.ipynb
+      - Map Gene IDs: tutorial/map-gene-ids.ipynb
+      - Finding Genesets: tutorial/finding-genesets.ipynb
+      - NCI-60 Example Workflow: tutorial/nci_60_example_01.ipynb
+#      - Geneweaver Command Line Interface:
+#          - tutorial/geneweaver_command_line.md
+#          - tutorial/geneweaver_command_line.md
+#      - Download Genesets (CLI): tutorial/downloading_geneset_command_line.md
+#      - Download Genesets: tutorial/download_genesets.ipynb
+#      - Accessing Geneweaver Data: tutorial/accessing-geneweaver-data.md
+#      - Running a Local Database: tutorial/running-a-local-database.md
+#      - Creating New Tools: tutorial/creating-new-tools.md
+#      - Testing New Tools: tutorial/testing-new-tools.md
+#      - Exploring Data in Javascript: tutorial/exploring-data-in-javascript.md
+#      - Creating Documentation Sites: tutorial/creating-a-new-documentation-site.md
+  - Reference:
+      - reference/index.md
+      - 'Analysis Tools':
+          - analysis-tools/index.md
+          - 'HiSim Graph': analysis-tools/hisim-graph.md
+          - 'GeneSet Graph': analysis-tools/geneset-graph.md
+          - 'Jaccard Similarity': analysis-tools/jaccard-similarity.md
+          - 'GeneSet Clustering': analysis-tools/clustering.md
+          - DBSCAN: analysis-tools/dbscan.md
+          - MSET: analysis-tools/mset.md
+          - 'ABBA Gene Search': analysis-tools/abba.md
+          - 'Boolean Algebra': analysis-tools/boolean-algebra.md
+          - 'Find Variants': analysis-tools/find-variants.md
+      - gweave (Command Line):
+        - reference/command-line/index.md
+        - Logging In: reference/command-line/logging-in.md
+        - API Commands: reference/command-line/api-commands.md
+      - GeneSet Tiers: reference/geneset-tiers.md
+      - GeneSet Utilities: reference/geneset-utilities.md
+      - Curation:
+          - reference/curation/index.md
+          - Standards: reference/curation/curation-standards.md
+          - Process: reference/curation/curation-process.md
+          - Definitions: reference/curation/general-definitions.md
+          - GeneSet Types: reference/curation/geneset-type-standards.md
+      - ReST API: reference/restful-api.md
+      - Available Packages: reference/available-packages.md
+      - Data Model: reference/data-model.md
+      - Contributing Guide: reference/contributing-guide.md
+      - Development Guide: reference/development-guide.md
+      - External Data Sources: reference/external-data-sources.md
+      - Publications: reference/publications.md
+      - License: reference/license.md
+      - Policies: reference/policies.md
+      - Acknowledgements: reference/acknowledgements.md
