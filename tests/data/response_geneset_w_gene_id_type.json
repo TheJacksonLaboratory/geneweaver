@@ -1,0 +1,132 @@
+{
+  "gene_identifier_type": "ENSEMBLE_GENE",
+  "geneset": {
+    "id": 1234,
+    "user_id": 51,
+    "file_id": 1715,
+    "curation_id": 3,
+    "species_id": 2,
+    "name": "Differential expression in heroin and cocaine abusers-Down-regulated Cocaine, Up-regulated Heroin",
+    "abbreviation": "UpRegHeroinDwnRegCocaine",
+    "publication_id": 6,
+    "description": "From the initial set of differentially expressed genes in post mortum nucleus accumbens of chronic heroin and cocaine abusers, this set contains genes upregulated in cocaine abusers but downregulated in heroin abusers.",
+    "count": 3,
+    "score_type": 3,
+    "threshold": "0.5",
+    "status": "normal",
+    "gene_id_type": -7,
+    "attribution": null,
+    "created": "2008-04-22",
+    "updated": "2020-05-06T09:19:44.883323"
+  },
+  "geneset_values": [
+    {
+      "gs_id": 1234,
+      "ode_gene_id": 70495,
+      "gsv_value": 1,
+      "gsv_hits": 1,
+      "gsv_source_list": [
+        "PDE4DIP"
+      ],
+      "gsv_value_list": [
+        1
+      ],
+      "gsv_in_threshold": true,
+      "gsv_date": "2020-05-05",
+      "hom_id": 66961,
+      "gene_rank": 0,
+      "ode_ref_id": "ENSG00000178104",
+      "gdb_id": 2
+    },
+    {
+      "gs_id": 1234,
+      "ode_gene_id": 70495,
+      "gsv_value": 1,
+      "gsv_hits": 1,
+      "gsv_source_list": [
+        "PDE4DIP"
+      ],
+      "gsv_value_list": [
+        1
+      ],
+      "gsv_in_threshold": true,
+      "gsv_date": "2020-05-05",
+      "hom_id": 66961,
+      "gene_rank": 0,
+      "ode_ref_id": "ENSG00000178104",
+      "gdb_id": 2
+    },
+    {
+      "gs_id": 1234,
+      "ode_gene_id": 83819,
+      "gsv_value": 1,
+      "gsv_hits": 1,
+      "gsv_source_list": [
+        "TMEPAI"
+      ],
+      "gsv_value_list": [
+        1
+      ],
+      "gsv_in_threshold": true,
+      "gsv_date": "2020-05-05",
+      "hom_id": 10608,
+      "gene_rank": 0,
+      "ode_ref_id": "ENSG00000124225",
+      "gdb_id": 2
+    },
+    {
+      "gs_id": 1234,
+      "ode_gene_id": 83819,
+      "gsv_value": 1,
+      "gsv_hits": 1,
+      "gsv_source_list": [
+        "TMEPAI"
+      ],
+      "gsv_value_list": [
+        1
+      ],
+      "gsv_in_threshold": true,
+      "gsv_date": "2020-05-05",
+      "hom_id": 10608,
+      "gene_rank": 0,
+      "ode_ref_id": "ENSG00000124225",
+      "gdb_id": 2
+    },
+    {
+      "gs_id": 1234,
+      "ode_gene_id": 90284,
+      "gsv_value": 1,
+      "gsv_hits": 1,
+      "gsv_source_list": [
+        "PREPL"
+      ],
+      "gsv_value_list": [
+        1
+      ],
+      "gsv_in_threshold": true,
+      "gsv_date": "2020-05-05",
+      "hom_id": 15481,
+      "gene_rank": 0,
+      "ode_ref_id": "ENSG00000138078",
+      "gdb_id": 2
+    },
+    {
+      "gs_id": 1234,
+      "ode_gene_id": 90284,
+      "gsv_value": 1,
+      "gsv_hits": 1,
+      "gsv_source_list": [
+        "PREPL"
+      ],
+      "gsv_value_list": [
+        1
+      ],
+      "gsv_in_threshold": true,
+      "gsv_date": "2020-05-05",
+      "hom_id": 15481,
+      "gene_rank": 0,
+      "ode_ref_id": "ENSG00000138078",
+      "gdb_id": 2
+    }
+  ]
+}

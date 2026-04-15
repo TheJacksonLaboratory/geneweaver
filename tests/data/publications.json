@@ -1,0 +1,105 @@
+{
+  "publication_by_id": {
+      "pubmed_id": 12805289,
+      "authors": "Tabakoff B, Bhave SV, Hoffman PL",
+      "title": "Selective breeding, quantitative trait locus analysis, and gene arrays identify candidate genes for complex drug-related behaviors.",
+      "abstract": "Acute functional tolerance to ethanol develops during a single exposure to ethanol; it has been suggested to be a predisposing factor for the development of ethanol dependence. Genetic determinants of acute functional tolerance, as well as of ethanol dependence, have been clearly demonstrated. We describe a novel approach that uses a combination of selective breeding (to segregate genes contributing to the phenotype of interest, i.e., acute functional tolerance to the incoordinating effect of ethanol), quantitative trait locus analysis (to define chromosomal regions associated with acute functional tolerance), and DNA microarray technology (to identify differentially expressed genes in the brains of the selected lines of mice) to identify candidate genes for the complex phenotype of ethanol tolerance. The results indicate the importance of a signal transduction cascade that involves the glutamate receptor delta2 protein, the Ephrin B3 ligand, and the NMDA receptor, as well as a transcriptional regulatory protein that may be induced by activation of the NMDA receptor (zinc finger protein 179) and a protein that can modulate downstream responses to NMDA receptor activation (peroxiredoxin), in mediating acute tolerance to the incoordinating effect of ethanol.",
+      "journal": "The Journal of neuroscience : the official journal of the Society for Neuroscience",
+      "volume": "23",
+      "pages": "4491-8",
+      "month": "Jun",
+      "year": 2003,
+      "id": 123
+  },
+  "publication_by_pubmed_id": {
+      "pubmed_id": 17931734,
+      "authors": "Kovacs P, Kress R, Rocha J, Kurtz U, Miquel JF, Nervi F, Mndez-Snchez N, Uribe M, Bock HH, Schirin-Sokhan R, Stumvoll M, Mssner J, Lammert F, Wittenburg H",
+      "title": "Variation of the gene encoding the nuclear bile salt receptor FXR and gallstone susceptibility in mice and humans.",
+      "abstract": "From quantitative trait locus mapping in inbred mice, we identified the Nr1h4 gene encoding the nuclear bile salt receptor FXR as a candidate gene for the cholesterol gallstone susceptibility locus Lith7. Here, we investigated further an association of the gene encoding FXR and gallstone susceptibility in mice and humans.The Nr1h4 gene was sequenced in inbred mouse strains with susceptible and resistant Lith7 alleles. Quantitative RT-PCR was employed to determine mRNA expression levels. Gallstone carriers and control subjects of three different populations comprising 1004 individuals were genotyped for polymorphisms of the orthologous human gene detected by sequencing.Expression and sequence analyses in inbred mice were consistent with Nr1h4 underlying Lith7. In the human populations, we identified three frequent haplotypes that accounted for &gt; 95% of all haplotypes observed. In a Mexican population, the most common haplotype NR1H4_1 was associated with gallstone prevalence. In contrast, NR1H4_1 displayed no association with gallstone prevalence in a German population, whereas in a Chilean population we observed a trend towards a protective effect of NR1H4_1.Our study in an inbred mouse model and in three ethnically distinct populations indicates complex interactions of NR1H4 alleles and other risk factors for the development of cholelithiasis.",
+      "journal": "Journal of hepatology",
+      "volume": "48",
+      "pages": "116-24",
+      "month": "Jan",
+      "year": 2008,
+      "id": 1234
+  },
+  "add_pubmed_info": {
+    "pubmed_id": 1234,
+    "authors": "D Nadeau, C Marchand",
+    "title": "Change in the kinetics of sulphacetamide tissue distribution in Walker tumor-bearing rats.",
+    "abstract": "The effect of Walker tumor on sulphacetamide distribution was studied in rats 21 days after tumor implantation in a hind leg. After oral administration of sulphacetamide (5 and 20 min), the concentration of the drug was found to be lower in the plasma and liver of tumor-bearing rats when compared with that of control group. However, 90 min after sulphacetamide administration, the concentration of the drug in these same tissues was found to be higher in tumor-bearing rats than in control animals. Whereas the tumor had no apparent effect on sulphacetamide concentration in the brain, drug concentrations in the fat tissue of tumor-bearing rats were constantly higher than those of control animals. These changes in sulphacentamide disposition kinetics could be explained in part by delay in gastrointestinal absorption of the drug. Contrary to what was observed after oral administration, constantly higher drug concentrations were found in the plasma of tumor-bearing rats after iv injection of sulphacetamide. Furthermore, the half-life of sulphacetamide in these same animals was much higher than in control animals. It is concluded that, in Walker tumor-bearing rats, there are changes in the kinetics of sulphacetamide which are functions of the route of administration of the drug.",
+    "journal": "Drug metabolism and disposition: the biological fate of chemicals",
+    "volume": "3",
+    "pages": "565-76",
+    "month": null,
+    "year": "1975"
+  },
+  "add_pubmed_resp": {
+    "pubmed_id": 1234,
+    "pub_id": 79325
+  },
+  "get_publications": {
+    "data": [
+      {
+        "id": 79322,
+        "authors": "D Nadeau, C Marchand",
+        "title": "Change in the kinetics of sulphacetamide tissue distribution in Walker tumor-bearing rats.",
+        "abstract": "The effect of Walker tumor on sulphacetamide distribution was studied in rats 21 days after tumor implantation in a hind leg. After oral administration of sulphacetamide (5 and 20 min), the concentration of the drug was found to be lower in the plasma and liver of tumor-bearing rats when compared with that of control group. However, 90 min after sulphacetamide administration, the concentration of the drug in these same tissues was found to be higher in tumor-bearing rats than in control animals. Whereas the tumor had no apparent effect on sulphacetamide concentration in the brain, drug concentrations in the fat tissue of tumor-bearing rats were constantly higher than those of control animals. These changes in sulphacentamide disposition kinetics could be explained in part by delay in gastrointestinal absorption of the drug. Contrary to what was observed after oral administration, constantly higher drug concentrations were found in the plasma of tumor-bearing rats after iv injection of sulphacetamide. Furthermore, the half-life of sulphacetamide in these same animals was much higher than in control animals. It is concluded that, in Walker tumor-bearing rats, there are changes in the kinetics of sulphacetamide which are functions of the route of administration of the drug.",
+        "journal": "Drug metabolism and disposition: the biological fate of chemicals",
+        "volume": "3",
+        "pages": "565-76",
+        "month": null,
+        "year": 1975,
+        "pubmed_id": 1234
+      },
+      {
+        "id": 79323,
+        "authors": "D Nadeau, C Marchand",
+        "title": "Change in the kinetics of sulphacetamide tissue distribution in Walker tumor-bearing rats.",
+        "abstract": "The effect of Walker tumor on sulphacetamide distribution was studied in rats 21 days after tumor implantation in a hind leg. After oral administration of sulphacetamide (5 and 20 min), the concentration of the drug was found to be lower in the plasma and liver of tumor-bearing rats when compared with that of control group. However, 90 min after sulphacetamide administration, the concentration of the drug in these same tissues was found to be higher in tumor-bearing rats than in control animals. Whereas the tumor had no apparent effect on sulphacetamide concentration in the brain, drug concentrations in the fat tissue of tumor-bearing rats were constantly higher than those of control animals. These changes in sulphacentamide disposition kinetics could be explained in part by delay in gastrointestinal absorption of the drug. Contrary to what was observed after oral administration, constantly higher drug concentrations were found in the plasma of tumor-bearing rats after iv injection of sulphacetamide. Furthermore, the half-life of sulphacetamide in these same animals was much higher than in control animals. It is concluded that, in Walker tumor-bearing rats, there are changes in the kinetics of sulphacetamide which are functions of the route of administration of the drug.",
+        "journal": "Drug metabolism and disposition: the biological fate of chemicals",
+        "volume": "3",
+        "pages": "565-76",
+        "month": null,
+        "year": 1975,
+        "pubmed_id": 1234
+      },
+      {
+        "id": 79324,
+        "authors": "D Nadeau, C Marchand",
+        "title": "Change in the kinetics of sulphacetamide tissue distribution in Walker tumor-bearing rats.",
+        "abstract": "The effect of Walker tumor on sulphacetamide distribution was studied in rats 21 days after tumor implantation in a hind leg. After oral administration of sulphacetamide (5 and 20 min), the concentration of the drug was found to be lower in the plasma and liver of tumor-bearing rats when compared with that of control group. However, 90 min after sulphacetamide administration, the concentration of the drug in these same tissues was found to be higher in tumor-bearing rats than in control animals. Whereas the tumor had no apparent effect on sulphacetamide concentration in the brain, drug concentrations in the fat tissue of tumor-bearing rats were constantly higher than those of control animals. These changes in sulphacentamide disposition kinetics could be explained in part by delay in gastrointestinal absorption of the drug. Contrary to what was observed after oral administration, constantly higher drug concentrations were found in the plasma of tumor-bearing rats after iv injection of sulphacetamide. Furthermore, the half-life of sulphacetamide in these same animals was much higher than in control animals. It is concluded that, in Walker tumor-bearing rats, there are changes in the kinetics of sulphacetamide which are functions of the route of administration of the drug.",
+        "journal": "Drug metabolism and disposition: the biological fate of chemicals",
+        "volume": "3",
+        "pages": "565-76",
+        "month": null,
+        "year": 1975,
+        "pubmed_id": 1234
+      },
+      {
+        "id": 79325,
+        "authors": "D Nadeau, C Marchand",
+        "title": "Change in the kinetics of sulphacetamide tissue distribution in Walker tumor-bearing rats.",
+        "abstract": "The effect of Walker tumor on sulphacetamide distribution was studied in rats 21 days after tumor implantation in a hind leg. After oral administration of sulphacetamide (5 and 20 min), the concentration of the drug was found to be lower in the plasma and liver of tumor-bearing rats when compared with that of control group. However, 90 min after sulphacetamide administration, the concentration of the drug in these same tissues was found to be higher in tumor-bearing rats than in control animals. Whereas the tumor had no apparent effect on sulphacetamide concentration in the brain, drug concentrations in the fat tissue of tumor-bearing rats were constantly higher than those of control animals. These changes in sulphacentamide disposition kinetics could be explained in part by delay in gastrointestinal absorption of the drug. Contrary to what was observed after oral administration, constantly higher drug concentrations were found in the plasma of tumor-bearing rats after iv injection of sulphacetamide. Furthermore, the half-life of sulphacetamide in these same animals was much higher than in control animals. It is concluded that, in Walker tumor-bearing rats, there are changes in the kinetics of sulphacetamide which are functions of the route of administration of the drug.",
+        "journal": "Drug metabolism and disposition: the biological fate of chemicals",
+        "volume": "3",
+        "pages": "565-76",
+        "month": null,
+        "year": 1975,
+        "pubmed_id": 1234
+      },
+      {
+        "id": 79327,
+        "authors": "D Nadeau, C Marchand",
+        "title": "Change in the kinetics of sulphacetamide tissue distribution in Walker tumor-bearing rats.",
+        "abstract": "The effect of Walker tumor on sulphacetamide distribution was studied in rats 21 days after tumor implantation in a hind leg. After oral administration of sulphacetamide (5 and 20 min), the concentration of the drug was found to be lower in the plasma and liver of tumor-bearing rats when compared with that of control group. However, 90 min after sulphacetamide administration, the concentration of the drug in these same tissues was found to be higher in tumor-bearing rats than in control animals. Whereas the tumor had no apparent effect on sulphacetamide concentration in the brain, drug concentrations in the fat tissue of tumor-bearing rats were constantly higher than those of control animals. These changes in sulphacentamide disposition kinetics could be explained in part by delay in gastrointestinal absorption of the drug. Contrary to what was observed after oral administration, constantly higher drug concentrations were found in the plasma of tumor-bearing rats after iv injection of sulphacetamide. Furthermore, the half-life of sulphacetamide in these same animals was much higher than in control animals. It is concluded that, in Walker tumor-bearing rats, there are changes in the kinetics of sulphacetamide which are functions of the route of administration of the drug.",
+        "journal": "Drug metabolism and disposition: the biological fate of chemicals",
+        "volume": "3",
+        "pages": "565-76",
+        "month": null,
+        "year": 1975,
+        "pubmed_id": 1234
+      }
+    ]
+  }
+}
