@@ -1,0 +1,285 @@
+{% set title="Set GeneSet Threshold" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-slider.css') }}"
+      rel="stylesheet">
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-slider.js') }}"></script>
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+<script src="/static/d3/BarChartThreshold.js" charset="utf-8"></script>
+
+<style type="text/css">
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
+    }
+
+    .axis path, .axis line {
+            fill: none;
+            stroke: #777;
+            shape-rendering: crispEdges;
+    }
+
+    .axis text {
+            font-family: 'Arial';
+            font-size: 13px;
+    }
+
+    .tick {
+            stroke-dasharray: 1, 2;
+    }
+
+    .bar {
+            fill: FireBrick;
+    }
+
+    .legend {
+        overflow: hidden;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    #sliderMin, #sliderMax {
+        color: #ff4500;
+    }
+
+    #chart {
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+    }
+
+
+</style>
+
+{% if geneset.geneset_id is not defined or view is not defined %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+{% else %}
+
+    <div class="loader"></div>
+
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Set GeneSet Threshold</strong></h2>
+    </div>
+
+    <div class="panel panel-default">
+    {% include 'htmlfragments/curIDBoxes.html' %}
+
+    <div class="panel-body">
+        <div class="row">
+            {# left side stuff #}
+            <div class="col-xs-12 col-md-9">
+
+                {% if is_bimodal == 'True' %}
+
+                    <div class="row">
+                        <div class="alert bg-gray-light">This GeneSet only contains one uniform value.
+                            Set threshold cannot be performed.
+                        </div>
+                    </div>
+
+                {% else %}
+
+                    <div class="row" id="result"></div>
+
+                    <div class="row">
+                        <div><p><strong><i class="fa fa-info-circle"></i> GeneSet Threshold Values</strong> allow
+                                    you to select a portion of
+                                    a GeneSet to include for analysis. The value for a gene is indicated on the y-axis, the
+                                    gene name is on the a-axis, sorted by value. Green bars indicate
+                                    genes within the currently set threshold. Us the slider to set new thresholds.</p>
+                        </div>
+                    </div>
+
+                    <!-- Bar Chart for frequency -->
+                    <div id="barChart" style="padding-bottom: 20pt">
+                        <center>
+                            {# This is where the bar chart goes #}
+                            <svg id="threshold" width="1000" height="300"></svg>
+                        </center>
+                    </div>
+
+                    <div class="row">
+                        <div><p><strong>Current Threshold Values:</strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
+                                {% if threshold[1] == '0' %}
+                                    {{ maxVal }}
+                                {% else %}
+                                    {{ threshold[1] }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <p><strong><label for="slider">Set New Threshold Values: </label>
+                            <span id="sliderMin">{{ minVal }}</span>
+                                <i class="fa fa-arrows-h"></i>
+                            <span id="sliderMax">{{ maxVal }}</span>
+                            </strong>
+                            <input id="slider" type="text" value="" />
+                        </p>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+            {#  right side menu #}
+            <div class="col-xs-6 col-md-3">
+
+                <button type="button" class="btn btn-block btn-warning" id="viewGenesetDetails">
+                    <i class="fa fa-arrow-left pull-left"></i> Back to GeneSet
+                </button>
+                <a class="btn btn-block btn-success" href="../setthreshold/{{ geneset.geneset_id}}" role="button">
+                    <i class="fa fa-history pull-left"></i> New Page
+                </a>
+                {% if view is defined %}
+                    <button type="button" class="btn btn-block btn-warning" id="saveThreshold">
+                        <i class="fa fa-save pull-left"></i> Save Threshold
+                    </button>
+                    <button type="button" class="btn btn-block btn-danger" id="cancelThreshold">
+                        <i class="fa fa-times pull-left"></i> Cancel Threshold
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- <body onload="myFunction()"> -->
+
+    <script type="text/javascript">
+        var b = {{ d3BarChart | safe }};
+        var t = {{ threshold[0] | string | safe }};
+        var m = {{ threshold[1] | string | safe }};
+        var amts = {{ valArray | safe }};
+
+
+        //Call the barchart
+        InitChart.draw(b,t,m,amts);
+
+        var minVal = {{ minVal }};
+
+
+        $("#slider").slider({
+            animate: true,
+            precision: 10,
+            step: 1,
+            value: [0,amts.length-1],
+            min: 0,
+            max: amts.length-1
+        });
+
+        $("#slider").on("slide", function(s) {
+            $("#sliderMin").text(amts[s.value[0]]);
+            $("#sliderMax").text(amts[s.value[1]]);
+            var minv = amts[s.value[0]];
+            var maxv = amts[s.value[1]];
+        });
+
+
+        $("[name='g_id[]']").bootstrapSwitch();
+
+        $(window).on("load",function (e) {
+            $(".loader").fadeOut("slow");
+        });
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableHomology').popover({
+            title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
+            'within GeneWeaver. Mouseover the boxes to reveal species names.'
+        });
+
+
+        $(document).ready(function () {
+            $('#viewGenesetDetails').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if view == 'curator' %}
+                    window.location.href = '../curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
+            });
+            $('#cancelThreshold').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if view == 'curator' %}
+                    window.location.href = '../curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
+            });
+            $('#saveThreshold').on('click', function (e) {
+                var min = $('#sliderMin').text();
+                var max = $('#sliderMax').text();
+                $.trim(min);
+                $.trim(max);
+                //update geneset_value for the sp_id
+                $.ajax({
+                        type: "GET",
+                        url: "../saveThresholdValues",
+                        data: {"min": min, "max": max, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                        success: function (data) {
+                            var v = JSON.parse(data);
+                            if (v["error"] == 'None') {
+                                location.reload();
+                                //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                                $("#result").html('<div class="alert alert-success fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>GeneSet Thresholds Successfully Reset</div>');
+                            }
+                            else {
+                                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>An ERROR occured. ' + v["error"] + '</div>');
+                            }
+                            },
+                            error: function(){
+                                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An error occured while updating thresholds.</div>');
+                            }
+                    });
+
+            });
+
+        });
+
+
+    </script>
+
+{% endif %}
+
+
+
+{% include 'footer.html' %}

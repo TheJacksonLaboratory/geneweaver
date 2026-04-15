@@ -1,0 +1,393 @@
+{#
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+ #}
+
+
+<!-- TODO remove inline CSS to something else?-->
+<style>
+    .ui-checkbox {
+        margin: 0 0 !important;
+    }
+
+    .filter-checkbox {
+        font-size: 12px;
+    }
+
+    /* Make the check box check graphic smaller */
+    .ui-icon-check:after, html .ui-btn.ui-checkbox-on.ui-checkbox-on:after {
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2214px%22%20height%3D%2214px%22%20viewBox%3D%220%200%2014%2014%22%20style%3D%22enable-background%3Anew%200%200%2014%2014%3B%22%20xml%3Aspace%3D%22preserve%22%3E%3Cpolygon%20style%3D%22fill%3A%23FFFFFF%3B%22%20points%3D%2214%2C4%2011%2C1%205.003%2C6.997%203%2C5%200%2C8%204.966%2C13%204.983%2C12.982%205%2C13%20%22%2F%3E%3C%2Fsvg%3E");
+        background-size: 10px 10px;
+    }
+
+    .ui-btn.ui-checkbox-off:after, .ui-btn.ui-checkbox-on:after, .ui-btn.ui-radio-off:after, .ui-btn.ui-radio-on:after {
+        display: block;
+        height: 14px;
+        margin: -9px 2px 0;
+        width: 14px;
+    }
+
+    .filter-title {
+
+        border-bottom: 4px solid #006400;
+        font-family: "Open Sans", verdana, arial;
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+
+    .ui-slider-horizontal .ui-slider-handle {
+        top: -0.6em;
+    }
+
+    .ui-slider .ui-slider-handle {
+
+        border: none;
+        color: #009900;
+        background-color: #009900;
+        height: 2em;
+        width: 1em;
+    }
+
+    .ui-slider .ui-slider-range {
+
+        border: none;
+        background-color: #E1E1E1;
+    }
+
+
+</style>
+
+{% if searchFilters is defined %}
+<script>
+
+    $(function () {
+        // Slider for filtering sets based on their size
+        $("#size-slider").slider({
+            range: true,
+            min: {{searchFilters.geneCounts.geneCountMin}},
+            max: {{searchFilters.geneCounts.geneCountMax}},
+            //Set the initial values
+            values: [
+                {% if userFilters is defined and 
+                   userFilters.geneCounts is defined %}
+
+                    {{userFilters.geneCounts.geneCountMin}}
+
+                {% else %}
+
+                    {{searchFilters.geneCounts.geneCountMin}}
+
+                {% endif %} ,
+                {% if userFilters is defined and 
+                   userFilters.geneCounts is defined %}
+
+                    {{userFilters.geneCounts.geneCountMax}}
+
+                {% else %}
+
+                    {{searchFilters.geneCounts.geneCountMax}}
+
+                {% endif %}
+            ],
+            // Update the form on each slide event
+            slide: function(event, ui) {
+                $( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
+                $( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
+                // Update the label
+                $("#genesetCountLabel").empty()
+                    .append("Geneset Size: " + 
+                        $("#size-slider").slider("values", 0) + " to " + 
+                        $("#size-slider").slider( "values", 1 ));
+            },
+            start: function (event, ui) {
+                this.previous_low = ui.values[0];
+                this.previous_high = ui.values[1];
+            },
+            stop: function (event, ui) {
+                if (ui.values[0] != this.previous_low || 
+                    ui.values[1] != this.previous_high)
+                        $( "#filterForm" ).change();
+            }
+        });
+
+        // Set initial values for minimum label
+        $("#geneCountMin")
+            .val( "" + $("#size-slider").slider("values", 0));
+        // Set initial values for maximum label
+        $("#geneCountMax")
+            .val("" + $("#size-slider").slider("values", 1));
+        // Update the label
+        $("#genesetCountLabel").empty()
+            .append("Geneset Size: " + $("#size-slider").slider("values", 0) + 
+                    " to " + $("#size-slider").slider("values", 1));
+
+        var timeHandle = null;
+
+        // This function calls a new paginated search anytime a filter option is
+        // changed in the filter panel. The HTML view of the results is placed
+        // inside the search wrapper div.
+        $("#filterForm").on("change", function (event) {
+
+            // Stop form from submitting normally
+            event.preventDefault();
+
+            // Prevent a previously delayed form submission from activating
+            clearTimeout(timeHandle);
+
+            var $form = $(this),
+                url = $form.attr("action"),
+                sortby = $('#sortBy').val();
+
+            var data = $("#filterForm").serialize() + "&" + 
+                       $("#searchBarForm").serialize();
+
+            // After a user changes a filter option, we delay submission of 
+            // the form for a bit in case the user decides to change other
+            // options. This allows the user to change several options in quick
+            // succession without interrupting and resetting their selections.
+            timeHandle = setTimeout(function() {
+                $.post(url, data).done(function (data) {
+                    // Update the searchwrapper with the results
+                    $("#replaceConentsOnUpdatedSeach").html(data)
+                        .trigger("create");
+                });
+            }, 1500);
+        });
+    });
+</script>
+
+{% endif %}
+
+
+<div class="panel bd-0 bd-l-blue">
+
+    <div class="panel-body">
+        <div class="row">
+
+                <!-- BEGIN FILTER PANEL CONTENTS -->
+                {% if searchFilters is defined %}
+                    <div class="tabcordion">
+                        <ul id="myTab" class="nav nav-tabs">
+                            <li class="active">
+                                <a data-toggle="tab" href="#tab1_1">General</a>
+                            </li>
+                            <li class="">
+                                <a data-toggle="tab" href="#tab_tiers">Tiers</a>
+                            </li>
+                            <li class="">
+                                <a data-toggle="tab" href="#tab_species">Species</a>
+                            </li>
+                            <li class="">
+                                <a data-toggle="tab" href="#tab_attributions">Attributions</a>
+                            </li>
+
+                        </ul>
+                        <div class="tab-content">
+                            <div id="tab1_1" class="tab-pane active in">
+                                <!-- Expects the jinja dict variable searchFilters as created by getSearchFilterValues() in search.py to determine which values to give ie there are 100 tier5 genes in the results-->
+                                <!-- Expects the jinja dict variable userFilters to determine which items are checked or unchecked.-->
+                                <!-- If the variable does not exist, default behavior is for all items possible to be checked-->
+                                <form class="fff" action="/searchFilter.json" id="filterForm">
+
+                                    <!-- Used to preserve sort ordering when the user applies other
+                                    filters -->
+                                    {%if sort_by is not defined %}
+                                        <input type="hidden" name="sortBy"
+                                               id="sortBy" value="relevance" />
+                                    {% else %}
+                                        <input type="hidden" name="sortBy"
+                                               id="sortBy" value="{{ sort_by }}" />
+                                    {% endif %}
+
+                                    {%if sort_ascending is not defined %}
+                                        <input type="hidden" name="sortAscending"
+                                               id="sortAscending" value="true">
+                                    {% else %}
+                                        <input type="hidden" name="sortAscending"
+                                               id="sortAscending" value="{{ sort_ascending }}">
+                                    {% endif %}
+
+                                    <div class="filter-title">Global Filters</div>
+                                    <br/>
+
+                                    <input type="checkbox"
+                                            {% if userFilters is not defined or userFilters.statusList.provisional == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="provisional" id="provisionalCheckbox"> <label class="filter-checkbox"
+                                                                                               for="provisionalCheckbox">Include
+                                    <span class="gs_provisional"> Provisional </span>
+                                    ({{ searchFilters.status_counts.provisional }}) </label>
+
+                                    <input type="checkbox"
+                                            {% if userFilters is not defined or userFilters.statusList.deprecated == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="deprecated" id="deprecatedCheckbox"> <label class="filter-checkbox"
+                                                                                             for="deprecatedCheckbox">Include
+                                    <span class="gs_deprecated"> Deprecated </span>
+                                    ({{ searchFilters.status_counts.deprecated }}) </label>
+
+                                    <input type="hidden" name="geneCountMin" id="geneCountMin">
+
+                                    <input type="hidden" name="geneCountMax" id="geneCountMax">
+
+                                    <br />
+                                    <div id="size-slider"></div>
+                                {#
+                                    <div id="genesetCountLabel" class="text-center"></div>
+                                #}
+                                    <br />
+                                    <div class="text-center">
+                                    <label id="genesetCountLabel" class="text-center"></label>
+                                    </div>
+                                    <br/>
+
+
+                                    <div class="filter-title">Tiers</div>
+                                    <br/>
+
+                                    <input type="checkbox"
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.noTier == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="noTier" id="noTierCheckbox"> <label class="filter-checkbox"
+                                                                                     for="noTierCheckbox"> No Tier
+                                    ({{ searchFilters.tier_counts.0 }}) </label>
+                                    <input type="checkbox"
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier1 == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="tier1" id="tier1Checkbox"> <label class="filter-checkbox"
+                                                                                   for="tier1Checkbox"> I: Resources
+                                    ({{ searchFilters.tier_counts.1 }}) </label>
+                                    <input type="checkbox"
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier2 == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="tier2" id="tier2Checkbox"> <label class="filter-checkbox"
+                                                                                   for="tier2Checkbox"> II: Pro-Curated
+                                    ({{ searchFilters.tier_counts.2 }}) </label>
+                                    <input type="checkbox"
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier3 == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="tier3" id="tier3Checkbox"> <label class="filter-checkbox"
+                                                                                   for="tier3Checkbox"> III: Curated
+                                    ({{ searchFilters.tier_counts.3 }}) </label>
+                                    <input type="checkbox"
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier4 == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="tier4" id="tier4Checkbox"> <label class="filter-checkbox"
+                                                                                   for="tier4Checkbox"> IV: Provisional
+                                    ({{ searchFilters.tier_counts.4 }}) </label>
+                                    <input type="checkbox"
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier5 == "yes" %}
+                                           checked="checked"
+                                            {% else %}
+
+                                            {% endif %}
+                                           name="tier5" id="tier5Checkbox"> <label class="filter-checkbox"
+                                                                                   for="tier5Checkbox"> V: Private
+                                    ({{ searchFilters.tier_counts.5 }}) </label>
+                                    <!-- Species Filters -->
+
+                                    <br/>
+
+                                    <div class="filter-title">Species</div>
+                                    <br/>
+
+                                    {% for spID, spName in searchFilters.sp_counts.items()| sort %}
+                                        {% if searchFilters.sp_counts[spID] >0 %}
+                                            <input type="checkbox"
+                                                    {% if userFilters.speciesList is not defined or userFilters.speciesList[spID] == "yes" %}
+                                                   checked="checked"
+                                                    {% else %}
+
+                                                    {% endif %}
+                                                   name="{{ spID }}" id="{{ spID }}Checkbox">
+                                            <label class="filter-checkbox" for="{{ spID }}Checkbox">
+                                                {% if spName == "" %}
+                                                    No Species
+                                                {% else %}
+                                                    {{ searchFilters.spmap[spID] }}
+                                                {% endif %}
+                                                ({{ searchFilters.sp_counts[spID] }}) </label>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <!-- Attribution Filters -->
+                                    <br/>
+
+                                    <div class="filter-title">Attribution</div>
+                                    <br/>
+
+                                    {% for atID, atName in searchFilters.att_counts.items()| sort %}
+                                        {% if searchFilters.att_counts[atID] > 0 %}
+                                            <input
+                                                    type="checkbox"
+                                                    {% if userFilters.attributionsList is not defined or userFilters.attributionsList[atID] == "yes" %}
+                                                    checked="checked"
+                                                    {% endif %}
+                                                    name="{{ atID }}" id="{{ atID }}Checkbox">
+
+                                            <label class="filter-checkbox" for="{{ atID }}Checkbox">
+                                                {{ searchFilters.attrmap[atID] }}
+                                                ({{ searchFilters.att_counts[atID] }}) </label>
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+
+                                </form>
+
+
+                            </div>
+
+                            {% include 'search/tab_tiers.html' %}
+
+                            {% include 'search/tab_species.html' %}
+
+                            {% include 'search/tab_attributions.html' %}
+                            <!--
+                            <div id="tab1_2" class="tab-pane">
+                                Tiers
+                            </div>
+                            -->
+                            <!--
+                            <div id="tab1_3" class="tab-pane">
+                                Species
+                            </div>
+                            -->
+                            <!--
+                            <div id="tab1_4" class="tab-pane">
+                                Attributions
+                            </div>
+                            -->
+
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- END FILTER PANEL CONTENTS -->
+
+
+        </div>
+    </div>
+</div>

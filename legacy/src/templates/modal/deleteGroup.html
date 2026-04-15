@@ -1,0 +1,25 @@
+{# Modal to delete group from usr_id #}
+
+<div class="modal fade" id="delModal_{{ grpO.grp_id }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="delForm_{{ grpO.grp_id }}" name="deleteGroupByID" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5" id="delLabel">Delete Group</h3>
+                </div>
+                <div class="modal-body">
+                    <h4>Are you sure that you want to delete Group
+                        <strong style="color: #006400;"><span class="rows" id="myModalLabel_{{ grpO.grp_id }}"></span></strong>?
+                        This will permanently remove this Group and cannot be recovered.</h4>
+                </div>
+                <input type="hidden" name="user_id" id="user_id_{{ grpO.grp_id }}"/>
+                <input type="hidden" name="grp_id" id="grp_id_{{ grpO.grp_id }}"/>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning deleteGroupFromUser"
+                            data-dismiss="modal" data-modal-id={{ grpO.grp_id }} id="deleteGroupFromUser">Delete Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

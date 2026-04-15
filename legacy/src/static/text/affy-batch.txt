@@ -1,0 +1,22 @@
+## Example batch geneset file
+## Should succeed during upload
+#
+
+! P-value < 0.05
+@ Mus musculus
+% microarray Affymetrix Human Gene 1.0 ST
+A Public
+
+#
+## The following lines give the label, name, and description of
+## this set, respectively.
+#
+: HuGene1.0-ST Test
+= HuGene1.0-ST Platform Test
++ Testing newly uploaded platforms. Affymetrix Human Gene 1.0 ST.
+
+7896739	0.01
+7896741	0.02
+7896743	0.0003
+7896745	0.1
+7902310	0.002

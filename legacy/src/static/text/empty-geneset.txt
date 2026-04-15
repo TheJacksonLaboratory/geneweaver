@@ -1,0 +1,21 @@
+## Example batch geneset file
+## Should fail during upload
+#
+
+! P-value < 0.05
+@ Mus musculus
+% Gene Symbol
+A Public
+
+#
+## The following lines give the label, name, and description of
+## this set, respectively.
+#
+: EGT
+= Empty Geneset Test
++ Testing to see if the batch upload allows the upload of empty genesets
+
+These	0.01
+Symbols	0.02
+dont	0.0003
+exist	0.1

@@ -1,0 +1,65 @@
+{# Modal to add project to group #}
+
+<div class="modal fade" id="addProjToGroup-{{ proj.project_id }}" xmlns="http://www.w3.org/1999/html">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addProjectsToGroup" name="addProjectsToGroup" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5" id="addUsrLabel">Share Projects with Groups</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <h4>Select Groups to add to <strong style="color: #006400;">{{ proj.name }}</strong>.
+                        </h4>
+                    </div>
+                    <div class="row">
+                        <table class="table table-striped" width="150">
+                            {% for n in g.user.get_groups_by_user %}
+                                <tr>
+                                    <td>
+
+
+                                        {#
+                                        <label for="addProjects{{ n.grp_id }}"
+                                            {% for i in proj.group_id.split(',') %}
+                                                {% if n.grp_id|string() == i|string() %}
+                                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-on"
+                                                {% else %}
+                                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off"
+                                                {% endif %}
+                                            {%  endfor %}>
+                                        </label>
+                                        #}
+                                        <div class="row">
+                                            <div class="col-md-1" style="text-align:right">
+                                                <input
+                                                    type="checkbox"
+                                                    name="grpOptions[]"
+                                                    id="addProjects{{ n.grp_id }}"
+                                                            {% for i in proj.group_id.split(',') %}
+                                                                {% if n.grp_id|string() == i|string() %}
+                                                                    checked
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                    value="{{ n.grp_id }}">
+                                            </div>
+                                            <div class="col-md-11" style="text-align:left">
+                                                <span>{{ n.grp_name }}</span>
+                                            </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+                <input type="hidden" name="proj_id" id="myProjId"/>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning addProjToGroup"
+                            data-dismiss="modal" data-modal-id='' data-proj-id="{{ proj.project_id }}"
+                            id="addProjectsToGroups">Update Groups</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

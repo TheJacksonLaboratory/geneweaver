@@ -1,0 +1,678 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<head xmlns="http://www.w3.org/1999/html">
+    <meta charset="utf-8">
+    <style>
+        .node circle {
+            cursor: pointer;
+            stroke: #3182bd;
+            stroke-width: 3px;
+        }
+
+        .found {
+            fill: #ff4136;
+            stroke: #ff4136;
+        }
+
+        .node text {
+            /*font: 12px sans-serif;*/
+            font-size: 12px;
+            font-family: "Arial", sans-serif;
+            pointer-events: none;
+            text-shadow: -1px -1px 0 #FFF,
+            1px -1px 0 #FFF,
+            -1px 1px 0 #FFF,
+            1px 1px 0 #FFF;
+        }
+
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+
+        /*Just making sure the select2 box is glued to the top*/
+        .search {
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        a.d3-slider-handle {
+            background: #00A2D9;
+            border-radius: 4px;
+            border: 0px;
+        }
+
+        .d3-slider {
+            background: #2B3647;
+            border-radius: 4px;
+            width: 720px;
+            position: absolute;
+        }
+
+        a.btn-success {
+            color: #fff;
+            background-color: #006400;
+            border-color: #004C74;
+        }
+    </style>
+
+</head>
+<!-- Styling for d3 sliders -->
+<link rel="stylesheet" type="text/css" href="../../static/css/d3.slider.css"> </link>
+<!-- Styling for select2 search bar -->
+<link rel="stylesheet" type="text/css" href="../../static/select2/select2.min.css"> </link>
+<!-- Library for standard d3 functions -->
+<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
+<!-- Library for select2 search bar -->
+<script type="text/javascript" src="../../static/select2/select2.min.js"></script>
+<!-- Additional d3 library for d3 sliders -->
+<script type="text/javascript" src="../../static/d3/d3.slider.js"></script>
+
+
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
+</div>
+
+
+{#
+	Checks to see if runhash is defined. If it is, that means we're
+	viewing a stored result and PhenomeMap.js won't work properly without
+	the extra $.get() call below.
+#}
+
+
+{% if runhash %}
+    <script type="text/javascript">
+
+        var graph_url = '/results/' + '{{async_result.result_image}}';
+        var xml = '';
+        $.get(graph_url, function (data) {
+            xml = data;
+            load_cytoscape();
+        });
+
+    </script>
+{% endif %}
+
+
+{#
+{% if state == 'FAILURE' %}
+ #}
+{% if async_result.error %}
+    <div class="panel-body bg-red p-15" style="text-align:center">
+        <strong>
+            {{ async_result.error }}
+        </strong>
+    </div>
+    <br />
+{% endif %}
+
+<span id="lol-hack" style="display:none;">{{async_result.parameters.output_prefix}}</span>
+
+<div id="ui-container">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div>
+            <div id="show-tool-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Tool Options
+                <i id="tool-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="tool-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:100%">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}
+                    </div>
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
+                            Re-Run Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <br />
+
+    <div>
+        <div id="show-viz-options" style="color:#006400; cursor:pointer;
+             font-weight:600; text-decoration:underline;">
+            Visualization Options
+            <i id="viz-options-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="viz-options" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div class="row">
+                <div class="col-md-3">
+                    {#
+                        TODO: Highlighting entities should be done by gene 
+                        name, not by internal GW identifier.
+                    #}
+                    <p style="font-size:13px; font-weight:400;">
+                        <b>Highlight Genes, GeneSets, or Species:</b>
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <div id="search"></div>
+                </div>
+            </div>
+				<div class="row">
+					<div class="col-md-3">
+						<p style="font-size:13px; font-weight:400;">
+							<b>Visualization Type:</b>
+						</p>
+					</div>
+					<div class="col-md-6">
+						<form role="form" method="post">
+							<select id="visualizationType" name="visualizationType">
+                                <option label="classic" value="classic">
+                                    Classic HiSim
+                                </option>
+                                <option label="modern" value="modern"
+                                        selected="selected">
+                                    Modern HiSim
+                                </option>
+							</select>
+						</form>
+					</div>
+				</div>
+
+            <br />
+
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="btn-group">
+                        <button type="button" 
+                                class="btn btn-primary dropdown-toggle" 
+                                data-toggle="dropdown" aria-haspopup="true" 
+                                aria-expanded="false">
+                            Download as...
+                            <span id="download-icon" class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="download-image" id="dl-pdf" href="">
+                                    PDF
+                                </a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-png" href="">
+                                    PNG
+                                </a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-svg" href="">
+                                    SVG
+                                </a>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li>
+                                <a class="download-image" id="ol-png" href="">
+                                    PNG (Classic HiSim)
+                                </a>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li>
+                                <a class="download-text" id="dl-csv" 
+                                   href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
+                                    CSV
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br />
+
+    <div>
+        <div id="show-help" style="color:#006400; cursor:pointer; 
+             font-weight:600; text-decoration:underline;">
+            Help
+            <i id="help-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="help" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div style="color:#006400; font-family:'Open Sans',sans-serif;
+                 font-size:13px;">
+                <p style="padding-left:0px">
+                    <b>Hover</b> over nodes in the graph to display metadata
+                    about that node. The information shown includes GeneSet IDs
+                    and labels, the number of publications associated with the
+                    GeneSets in the given node, and the number (and possibly
+                    names) of genes in the given node.
+                    <br />
+                    <b>Left click</b> on intersection (grey) nodes to collapse
+                    the node.
+                    <br />
+                    <b>Right click</b> or <b>hold shift and left click</b> on 
+                    intersection (grey) nodes to view the overlap between 
+                    GeneSets involved in the intersection.
+                    <br />
+                    <b>Left click</b> on GeneSet nodes to highlight other
+                    nodes and edges in the graph that contain the given
+                    GeneSet.
+                    <br />
+                    <b>Right click</b> on a GeneSet node to open a new
+                    "GeneSet Details" window.
+                    <br />
+                </p>
+            </div>
+            <span style="color:#006400">
+                Visit our 
+                <a href="https://thejacksonlaboratory.github.io/geneweaver-docs/analysis-tools/hisim-graph/"
+                   style="color:#006400; font-weight:600;" 
+                   target="_blank">wiki</a>
+                for more information.
+            </span>
+        </div>
+    </div>
+
+</div>
+
+{#
+    TEAM HISIM GRAPH NOTES:
+        We left this section commented out and didn't use it at all in testing our page, however it appears that there
+        is some important error handling happening here. We're leaving the code here commented out instead of
+        either uncommenting it to be used or deleting it outright, so that it might be used and tested by someone
+        working on this file in the future.
+    END TEAM HISIM GRAPH NOTES
+
+	A hack, since for some reason the tools return SUCCESS even when
+	they fail. Checks to see if the results have a key, 'failed', which
+	contains the error message for the failure.
+#}
+{% if not async_result.failed %}
+<div id="PhenomeMap_cyt" 
+     style="display:hidden; position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
+    <br/>
+    <br/>
+    Loading Hierarchical Similarity Graph...<br/>
+    <br/>
+    <br/>
+<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a> |
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in Static View</a>
+</div>
+
+{% else %}
+	<div class="panel-body bg-red p-15" style="text-align:center">
+		<strong>
+			No bicliques were found during the analysis. Try running the
+			tool again using different parameters.
+		</strong>
+	</div>
+{% endif %}
+{##}
+
+
+<div id="viz2">
+</div>
+<div id="viz-clone" style="display: none;">
+</div>
+<div class="">
+</div>
+
+<div id="stats" align="left" style="float: left; margin: 10px;">
+    <h3>Stats</h3>
+</div>
+<div id="shortcuts" align="left" style="float: left; margin: 10px;">
+    <h3>Shortcuts</h3>
+    <table>
+        <tr>
+            <td><b>Zoom in: </b></td>
+            <td>hover over the graph and scroll up</td>
+        </tr>
+        <tr>
+            <td><b>Zoom out: </b></td>
+            <td>hover over the graph and scroll down</td>
+        </tr>
+        <tr>
+            <td><b>Panning mode: </b></td>
+            <td>drag background</td>
+        </tr>
+        <tr>
+            <td><b>Collapsing nodes: </b></td>
+            <td>click on a circle on the graph</td>
+        </tr>
+        <tr>
+            <td><b>Moving nodes: </b></td>
+            <td>click and hold a circle to drag</td>
+        </tr>
+        <tr>
+            <td><b>Emphasis genes: </b></td>
+            <td>indicated with red text</td>
+        </tr>
+    </table>
+</div>
+<div id="legend" style="float: right; margin: 10px;">
+    <h3>Legend</h3>
+</div>
+<canvas id="save-canvas" width="1000" height="1000" style="display:none;">
+</canvas>
+<div id="pngdataurl" style="display:none;"></div>
+<div id="svgdataurl" style="display:none;" class="svg-saver">
+</div>
+
+{#
+<div class="slider slider-horizontal">
+
+
+</div>
+<h4>
+    Repulsion:
+</h4>
+<div id="charge_slider" style="padding-right:5px;margin:0 0px 20px 10px"></div>
+
+<h4>
+    Max repulsion distance:
+</h4>
+<div id="cd_slider" style="margin:0 0px 20px 10px"></div>
+
+<h4>
+    Link Strength:
+</h4>
+<div id="ls_slider" style="margin:0 0px 20px 10px"></div>
+
+
+<h4>
+    Link Distance:
+</h4>
+<div id="ld_slider" style="margin:0 0px 20px 10px"></div>
+
+
+<h4>
+    Gravitation towards center:
+</h4>
+<div id="gravity_slider" style="margin:0 0px 20px 10px"></div>
+#}
+
+
+<script type="text/javascript" src="../../static/tools/PhenomeMap.js"></script>
+<script>
+
+    /**
+      * Updates the "Download as..." drop down icon to inform the user that
+      * their click and image download is being processed.
+      * Changes the caret to a spinning wheel when they select a download
+      * option. Changes back to the caret after the image is finished
+      * processing and ready for download.
+      */
+    var changeDownloadIcon = function() {
+
+        if ($('#download-icon').hasClass('caret'))
+            $('#download-icon').attr('class', 'fa fa-cog fa-spin');
+        else
+            $('#download-icon').attr('class', 'caret');
+    };
+
+	$(function() {
+        // Initially hide the classic HiSim display
+        $('#PhenomeMap_cyt').hide();
+
+		var graphData = {{data | safe}};
+		var graphStats = {{async_result | tojson}};
+        console.log(graphStats);
+
+		doThings(graphData);
+		loadStats(graphStats);
+
+        /**
+          * Called when the 'Download as...' button is used download the
+          * visualization as a high resolution image.
+          */
+        $('.download-image').on('click', function(event) {
+
+            // Prevent the button from doing anything (i.e. reloading the page)
+            event.preventDefault();
+
+            changeDownloadIcon();
+
+            var dlurl = '/downloadResult';
+            // Removes 'dl-' from the id string
+            var filetype = event.target.id.slice(3);
+            var isOld = event.target.id.slice(0, 2) == 'ol' ? true : false;
+
+            // Gives our SVG a white background color prior to conversion.
+            // This actually changes the image the user is seeing, but they
+            // shouldn't be able to notice.
+            d3.select('svg')
+                .insert('rect', 'g')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', 'white');
+
+            var html = d3.select("svg")
+                .attr("version", 1.1)
+                .attr("xmlns", "http://www.w3.org/2000/svg")
+                .node().parentNode.innerHTML;
+
+            if (isOld) {
+                //var runhash = '{{async_result.parameters.output_prefix}}';
+                var runhash = d3.select('#lol-hack').node().innerHTML;
+                var fp = runhash + '.svg';
+                var oldver = fp;
+
+            } else {
+               var oldver = '';
+            }
+
+            {% if runhash %}
+                var runhash = '{{runhash | safe}}';
+            {% else %}
+                var runhash = '{{async_result.parameters.output_prefix}}';
+            {% endif %}
+
+            $.ajax({
+                type: 'POST',
+                url: dlurl,
+                data: {svg: html, filetype: filetype, version: oldver, runhash: runhash},
+                success: function(result, status) {
+
+                    changeDownloadIcon();
+
+                    let win = window.open(location.origin + '/' + result, '_blank');
+                    win.focus();
+                },
+                error: function(xml, status, error) {
+                    console.log(status);
+                    console.log(error);
+                    changeDownloadIcon();
+                }
+            });
+        });
+
+        $('#show-tool-options').on('click', function() {
+
+            $('#tool-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-viz-options').on('click', function() {
+
+            $('#viz-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-help').on('click', function() {
+
+            $('#help').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        /**
+          * Allows the user to select between classic and modern HiSim
+          * displays.
+          */
+        $("select#visualizationType").change(function(event){
+
+            if (event.target.value === 'classic') {
+
+                $('#viz2').hide();
+                $('#PhenomeMap_cyt').show();
+
+            } else {
+
+                $('#PhenomeMap_cyt').hide();
+                $('#viz2').show();
+            }
+        });
+
+	});
+    
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things.
+                if (elemType == 'INPUT') {
+
+                    // Maybe it's a radio button or checkbox, both of which
+                    // use the same type of default selection attribute
+                    if ($(this).attr('type') === 'radio') {
+
+                        if ($(this).attr('value') === parameters[param]) {
+
+                            $(this).attr('checked', 'checked');
+                            // The styling for this stupid element is in a
+                            // neighboring node
+                            $(this).siblings().removeClass('ui-radio-off');
+                            $(this).siblings().addClass('ui-radio-on');
+
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-on');
+                                $(this).siblings().addClass('ui-radio-off');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-on');
+                                $(this).siblings().addClass('ui-checkbox-off');
+                            }
+                        }
+                    }
+                }
+
+            });
+        }
+    });
+</script>
+
+<!-- Old HiSim dependencies -->
+<script type="text/javascript" src="../../static/js/cytoscape/AC_OETags.min.js"></script>
+<script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
+<script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
+

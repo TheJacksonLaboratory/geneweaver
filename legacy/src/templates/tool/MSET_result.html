@@ -1,0 +1,983 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<script type="text/javascript" src="/static/js/downloadSvg.js" charset="utf-8"></script>
+<style>
+
+.tick{
+    font-size: 13.5px
+}
+.key > * {
+    margin: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#panel, #flip {
+    padding: 5px;
+    text-align: left;
+}
+
+#panel {
+    display: none;
+    background-color: #FFFFFF;
+}
+
+#flip {
+ height: 50px;
+}
+
+#rerunPanel, #rerunFlip {
+    padding: 5px;
+    text-align: left;
+}
+
+#rerunPanel {
+    height: 350px;
+    text-align: left;
+    display: none;
+}
+
+#rerunFlip {
+   height: 50px;
+   text-shadow: none;
+}
+#rerun{
+ float:right;
+    display:block;
+    margin-right: 585px;
+    clear:left;
+ }
+
+.left-cell {
+  vertical-align: middle;
+  width: 200px;
+}
+
+.right-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  right: 0;
+}
+
+.middle-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: left;
+  padding-left: 320px;
+}
+
+.box-header {
+  padding-bottom: 5px;
+  display: table;
+  width: 90%;
+}
+
+#addToProject, #exportData {
+    float: left;
+}
+
+ .divider{
+    margin: 5px;
+}
+
+#checkall{
+    float: left;
+}
+
+.bar {
+    fill: green;
+    opacity: 0.2;
+}
+
+.bar:hover {
+    fill: green;
+    opacity: 1.0;
+}
+
+.bar > text{
+    stroke: grey;
+}
+
+.bar:hover > text{
+    stroke: black;
+}
+
+.top-buffer { margin-top:20px; }
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.axis--x path {
+  display: none;
+}
+
+.line {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+}
+
+ div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 300px;
+  height: 60px;
+  padding: 2px;
+  font: 10px sans-serif;
+  background: ghostwhite;
+  pointer-events: none;}
+
+</style>
+
+<style type="text/css">
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    #clickableHomology {
+        cursor: pointer;
+    }
+
+    #clickablePriority {
+        cursor: pointer;
+    }
+
+    #clickableGeneSymbol {
+        cursor: pointer;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+    }
+
+</style>
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <h4>{{ runhash }}</h4>
+</div>
+
+<div class="page-header">
+    <p style="font-size: 16px">
+        GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }} share <b>{{ selected_intersect_size }}</b> genes and reside in a
+        universe containing {{ universe_size }} genes. <br/>
+        MSET performed <b>{{ num_trials }}</b> trials and created two simulated gene sets per trial, one each for
+        GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }}.<br/><br/>
+        <b>{{ trials_gt_int }}</b> trials contained simulated gene sets that shared at least as many genes as are shared
+        by GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }} ({{ selected_intersect_size }}).<br/>
+        MSET returned p-value: <b>{{ p_value }}</b>.<br/><br/>
+        There is a {{ p_value }} probability that the genes shared by GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }}
+        occurred due to randomness.
+    </p>
+</div>
+
+<div id="graphDiv">
+    <table>
+        <tr onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group'); $('#barGraphButton')[0].setAttribute('class','btn-group');">
+            <td id="circleContainer">
+                <svg id="circleSVG" width="300" height="500"></svg>
+                <div class="circleLegend"></div>
+            </td>
+            <td style="padding-left:50px">
+                <svg id="barGraph" width="660" height="500"></svg>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: center">
+                <div class="btn-group"
+                     onmouseover="this.setAttribute('class','btn-group open');"
+                     id="sizeGraphButton">
+                    <button type="button" data-toggle="dropdown"
+                            class="btn btn-primary dropdown-toggle"
+                            aria-haspopup="true" aria-expanded="false">
+                        Download as...
+                        <span class="caret"></span>
+                    </button>
+                    <script> var sizeGraph = $('#circleSVG')[0] </script>
+                    <ul class="dropdown-menu" onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');">
+                        <!--TODO: Fix PNG download-->
+                        <li onclick="download(sizeGraph,null,true);" class='disabled'>
+                            <a class="download-image" id="dl-png">PNG</a>
+                        </li>
+                        <li onclick="download(sizeGraph,null,false);">
+                            <a class="download-image" id="dl-svg" >SVG</a>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+            <td style="text-align: center">
+                <div style="padding-left:60px">
+                    <div class="btn-group" id="barGraphButton"
+                         onmouseover="this.setAttribute('class','btn-group open');">
+                        <button type="button" data-toggle="dropdown"
+                                class="btn btn-primary dropdown-toggle"
+                                aria-haspopup="true" aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <script> var barGraph=$('#barGraph')[0]; </script>
+                        <ul class="dropdown-menu"
+                            onmouseout="$('#barGraphButton')[0].setAttribute('class','btn-group');">
+                            <!--TODO: Fix PNG download-->
+                            <li onclick="download(barGraph,null,true);" class='disabled'>
+                                <a class="download-image" id="dl-png2">PNG</a></li>
+                            <li onclick="download(barGraph,null,false);">
+                                <a class="download-image" id="dl-svg2" >SVG</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding-top: -20px">
+                <hr/>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script>
+<script>
+var width = 300,
+    height = 500,
+    first = true,
+    colors = d3.scaleOrdinal(d3.schemeCategory10),
+    margin = {top: 50, right: 20, bottom: 70, left: 40};
+
+
+var container = d3.select("#circleSVG")
+    .attr("width", width)
+    .attr("height", height);
+
+drawCircles();
+circleTitleLegend(container, margin);
+
+function circleTitleLegend(container, margins) {
+    // Add the title
+    container.append("g")
+        .append("text")
+        .attr("x", 0)
+        .attr("y", margins.top / 2)
+        .style("text-anchor", "start")
+        .style("alignment-baseline", "middle")
+        .style("font-size", "20")
+        .text("Size Comparison");
+
+    // Create the legend
+    var legend = container.append("g")
+        .style("display", "block")
+        .style("margin", "auto")
+        .style("stroke-width", ".01px")
+        .attr("transform", "translate(0, 400)");
+
+    // Universe
+    legend.append("rect")
+        .attr("y", "-30")
+        .attr("width", "300")
+        .attr("height", "25")
+        .style("fill", colors(0))
+        .style("stroke-width", "1px")
+        .style("fill-opacity", 0.2);
+
+    legend.append("text")
+        .attr("y", "-10")
+        .attr("x", "10")
+        .text("Background Universe ({{ universe_size }} genes)");
+
+    // Group 1
+    legend.append("rect")
+        .attr("y", "0")
+        .attr("width", "300")
+        .attr("height", "25")
+        .style("fill", colors(1))
+        .style("stroke-width", "1px")
+        .style("fill-opacity", 0.2);
+
+    legend.append("text")
+        .attr("y", "20")
+        .attr("x", "10")
+        .text("GS:{{ group_1_gsid }} ({{ group_1_in_universe }} genes)");
+
+    // Group 2
+    legend.append("rect")
+        .attr("y", "30")
+        .attr("width", "300")
+        .attr("height", "25")
+        .style("fill", colors(2))
+        .style("stroke-width", "1px")
+        .style("fill-opacity", 0.2);
+
+    legend.append("text")
+        .attr("y", "50")
+        .attr("x", "10")
+        .text("GS:{{ group_2_gsid }} ({{ group_2_in_universe }} genes)");
+}
+
+
+/**
+ * Draw the circles representing the size and intersect of the two groups used to run MSET
+ */
+function drawCircles() {
+
+    var group1 = {{ group_1_in_universe }},
+        group2 = {{ group_2_in_universe }},
+        universe_size = {{ universe_size }},
+        intersection = {{ selected_intersect_size }};
+
+    intersection = intersection * Math.min(group1, group2) / 100;
+
+    var init_dim = geometry(group1, group2, intersection),
+        // scale = Math.min(width / (init_dim.r1 + init_dim.r2 + init_dim.d),
+        //     height / Math.max(2 * init_dim.r1, 2 * init_dim.r2))
+        scale = 150 / Math.sqrt( universe_size / Math.PI);
+
+
+    var circles = [
+        {
+            r: 150,
+            cx: width/2
+        },
+        {
+            r: init_dim.r1 * scale,
+            cx: (width - (init_dim.r1 + init_dim.d + init_dim.r2) * scale) / 2
+        },
+        {
+            r: init_dim.r2 * scale,
+            cx: (width - (init_dim.r1 + init_dim.d + init_dim.r2) * scale) / 2 + init_dim.d * scale
+        }];
+
+    var selection = container.selectAll("circle").data(circles);
+    if (first) {
+        selection = selection.enter().append("circle");
+        first = false;
+    }
+
+    selection
+        .attr("cx", function (d) { return d.cx; })
+        .attr("cy", height * 2 / 5)
+        .attr("r", function (d) { return d.r; })
+        .style("fill", function(d, i) { return colors(i); })
+        .style("fill-opacity", 0.25);
+
+}
+
+/**
+ * Determine the radius of circles representing each group and the distance between them to accurately display
+ * the intersection size of the two groups.
+ *
+ * @param {number} group1 The size of the first group
+ * @param {number} group2 The size of the second group
+ * @param {number} intersection The size of the intersection between each group
+ *
+ * @returns {object}    radius of first, radius of second, distance between them
+ */
+function geometry (group1, group2, intersection) {
+    var r1, r2, d;
+
+    r1 = Math.sqrt(group1 / Math.PI);
+    r2 = Math.sqrt(group2 / Math.PI);
+
+    var gamma_alpha = function(x) { return Math.asin(Math.sqrt(r1 * Math.sin(x) / r2)); };
+    var aux_alpha = function (x) {
+        var gamma = gamma_alpha(x);
+        return intersection -
+            r1*r1*(x - Math.sin(x)*Math.cos(x)) -
+            r2*r2*(gamma - Math.sin(gamma)*Math.cos(gamma));
+    };
+
+    var test = 0.01,
+        best = group1 + group2 + intersection,
+        best2 = best,
+        x0,
+        x1,
+        alpha;
+
+    while (test < Math.PI) {
+        var p = Math.abs(aux_alpha(test));
+        if (p < best2) {
+            if (p < best) {
+                x1 = x0;
+                x0 = test;
+                best2 = best;
+                best = p;
+            }
+            else {
+                x1 = test;
+                best2 = p;
+            }
+        }
+        test = test + 0.01;
+    }
+
+    try {
+        alpha = brents(aux_alpha, x0, x1);
+    } catch (e) {
+        if (e === "Roots not bracketed") {
+            alpha = secant(aux_alpha, x0, x1);
+        }
+    }
+
+    var gamma = gamma_alpha(alpha);
+    d = r1 * Math.cos(alpha) + r2 * Math.cos(gamma);
+
+    return {r1: r1, r2: r2, d: d};
+}
+
+/**
+ * Brent's Root Finding Algorithm.
+ *
+ * This is a Javascipt implementation of Brent's method, a root-finding algorithm that combines the bisection method,
+ * the secant method and inverse quadratic interpolation.
+ *
+ * @link http://mathworld.wolfram.com/BrentsMethod.html
+ *
+ * @param {function}    f           The function whose roots to find
+ * @param {number}      x0          Initial x0
+ * @param {number}      x1          Initial x1
+ * @param {number}      max_iter    The max iterations to try
+ * @param {number}      tol         The acceptable tolerance
+ *
+ * @returns {number}    The root
+ */
+function brents(f, x0, x1, max_iter, tol) {
+    if (!max_iter) max_iter = 50;
+    if (!tol) tol = 0.00005;
+
+    var fx0 = f(x0),
+        fx1 = f(x1);
+
+    if ((fx0 * fx1) <= 0) throw "Roots not bracketed";
+
+    if (Math.abs(fx0) < Math.abs(fx1)) {
+        [x0, x1] = [x1, x0];
+        [fx0, fx1] = [fx1, fx0];
+    }
+
+    var x2 = x0,
+        fx2 = fx0,
+        steps_taken = 0,
+        mflag = true,
+        brents_new,
+        fnew,
+        d;
+
+    while (steps_taken < max_iter && Math.abs(x1 - x0) > tol) {
+        fx0 = f(x0);
+        fx1 = f(x1);
+        fx2 = f(x2);
+
+        if (fx0 !== fx2 && fx1 !== fx2) {
+            var L0 = (x0 * fx1 * fx2) / ((fx0 - fx1) * (fx0 - fx2)),
+                L1 = (x1 * fx0 * fx2) / ((fx1 - fx0) * (fx1 - fx2)),
+                L2 = (x2 * fx1 * fx0) / ((fx2 - fx0) * (fx2 - fx1));
+            brents_new = L0 + L1 + L2;
+        } else {
+            brents_new = x1 - ( (fx1 * (x1-x0)) - (fx1 - fx0) );
+        }
+
+        if ((brents_new < ((3 * x0 + x1) / 4)) ||
+            (mflag === true && (Math.abs(brents_new - x1) >= Math.abs(x1 - x2) / 2)) ||
+            (mflag === false && (d) && (Math.abs(brents_new - x1) >= Math.abs(x2 - d) / 2)) ||
+            (mflag === true && (Math.abs(x1 - x2) < tol)) ||
+            (mflag === false && (d) && (Math.abs(x2 - d) < tol))) {
+            brents_new = (x0 + x1) / 2;
+            mflag = true;
+        } else {
+            mflag = false;
+        }
+        fnew = f(brents_new);
+        d = x2;
+        x2 = x1;
+        if ( fx0 * fnew  < 0 ) {
+            x1 =brents_new;
+        } else {
+            x0 = brents_new;
+        }
+
+        if (Math.abs(fx0) < Math.abs(fx1)) {
+            [x0, x1] = [x1, x0];
+        }
+
+        steps_taken += 1;
+    }
+    return x1
+}
+
+/**
+ * Secant root finding algorithm.
+ *
+ * @link http://mathworld.wolfram.com/SecantMethod.html
+ *
+ * @param {function}    f           The function whose roots to find
+ * @param {number}      x0          Initial x0
+ * @param {number}      x1          Initial x1
+ * @param {number}      max_iter    The max iterations to try
+ * @param {number}      tol         The acceptable tolerance
+ *
+ * @returns {number}    The root
+ */
+function secant(f, x0, x1, max_iter, tol) {
+    if (!max_iter) max_iter = 10000;
+    if (!tol) tol = 0.000001;
+    var f_x0 = f(x0),
+        f_x1 = f(x1),
+        iteration_counter = 0,
+        denominator,
+        x;
+    while(Math.abs(f_x1) > tol && iteration_counter < max_iter) {
+        try {
+            denominator = (f_x1 - f_x0) / (x1 - x0);
+            x = x1 - f_x1 / denominator;
+        } catch (e) {
+            throw "Divide by zero error"
+        }
+        x0 = x1;
+        x1 = x;
+        f_x0 = f_x1;
+        f_x1 = f(x1);
+        iteration_counter += 1;
+    }
+    return x
+}
+</script>
+
+<style>
+    .d3-tip {
+        line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+    }
+
+    /* Creates a small triangle extender for the tooltip */
+    .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+    }
+
+    /* Style northward tooltips differently */
+    .d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+    }
+
+    .comparisonline {
+        stroke: #006400;
+        stroke-width: 2px;
+        stroke-dasharray: 8 4;
+    }
+
+    .comparisonlinetext {
+        fill: #006400;
+    }
+</style>
+<script>//frequency graph
+/**
+ *
+ *
+ * @param size
+ * @param break_size
+ * @returns {*}
+ */
+function numBins(size, break_size) {
+    var val = 1;
+    for (var i = break_size; i > 1; i--) {
+        if (size % i === 0) {
+            val = i;
+            break
+        }
+    }
+    if (val < 6) {
+        val = size
+    }
+    return val
+}
+
+/**
+ * Bin data 
+ *
+ * @param data The data to bin
+ * @param num_bins The number of bins to create
+ * @returns {*}
+ */
+function binData(data, num_bins) {
+    var chunk_size = data.length / num_bins;
+    return data
+            .map(function (item, index) {
+                return index % chunk_size === 0 ? data.slice(index, index + chunk_size) : null;
+            })
+            .filter(function (item) {
+                return item;
+            })
+            .map(function (item) {
+                var keys = item.map(function (i) {
+                        return i.name
+                    }),
+                    min_key = Math.min.apply(null, keys),
+                    max_key = Math.max.apply(null, keys),
+                    red = item.reduce(function (p, c) {
+                        return p + c.value
+                    }, 0);
+                return {name: min_key + " - " + max_key, value: red};
+            });
+}
+
+var margin = ({top: 50, right: 20, bottom: 30, left: 60}),
+    num_trials = {{ num_trials }},
+    width = 640,
+    height = 425,
+    overflow_amount = 32,
+    binned = false,
+    pre_data = ({{ density_data | safe }}),
+    data = pre_data.map(function (d) {
+        return {name: d.intersectSize, value: Math.round(d.frequency * num_trials)}
+    });
+
+// Bin data
+var num_bins = numBins(data.length, overflow_amount);
+if (data.length > overflow_amount) {
+    if (num_bins > 2 && num_bins < data.length) {
+        data = binData(data, num_bins);
+        binned = true;
+    }
+}
+
+data.x = "Intersection Size";
+data.y = "Frequency";
+
+var x = d3.scaleBand()
+    .domain(data.map(function (d) {
+        return d.name
+    }))
+    .range([margin.left, width - margin.right])
+    .padding(0.1);
+
+var y = d3.scaleLinear()
+    .domain([0, d3.max(data, function(d) {return d.value})]).nice()
+    .range([height - margin.bottom, margin.top]);
+
+var xAxis = function(g) {
+    var ret = g.attr("transform", "translate(0,"+(height - margin.bottom)+")")
+        .attr('id', 'xaxis')
+        .call(d3.axisBottom(x)
+            .tickSizeOuter(0));
+
+    if(binned) {
+        ret.selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)");
+    }
+    ret = ret.call(function(g) {
+        g.append("text")
+            .attr("x", width / 2 + margin.left)
+            .attr("y", function() { return ((binned) ? 85 : 50 )})
+            .attr("fill", "#000")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "end")
+            .attr("class", "tick")
+            .text(data.x);
+        g.append('text')
+            .attr('x', x({{ selected_intersect_size }}) + (x.bandwidth() / 2))
+            .attr('y', function() { return ((binned) ? 85 : 50 )})
+            .attr('dy', '1em')
+            .attr('text-anchor', 'middle')
+            .text('Observed')
+            .attr('class', 'comparisonlinetext');
+    });
+    return ret
+};
+
+var yAxis = function(g) {
+    return g.attr("transform", "translate("+margin.left+",0)")
+        .call(d3.axisLeft(y))
+        .call(function(g) { return g.select(".domain").remove() })
+        .call(function(g) { return g.select(".tick:last-of-type text").clone()
+            .attr("x", 4)
+            .attr("text-anchor", "start")
+            .attr("font-weight", "bold")
+            .text(data.y)
+        })
+};
+
+var svg = d3.select("#barGraph");
+
+var title = svg
+    .append("g")
+    .append("text")
+    .attr("x", margin.left)
+    .attr("y", margin.top / 2)
+    .style("text-anchor","start")
+    .style("alignment-baseline","middle")
+    .style("font-size","20")
+    .text("Simulated Intersect Sizes");
+
+var tip = d3.tip()
+    .attr('class', 'd3-tip')
+    .offset([-10, 0])
+    .html(function (d) {
+        var tip_html = "<strong>Size:</strong> <span>" + d.name + "</span>";
+        tip_html += "<br><strong>Frequency:</strong> <span>" + Math.round(d.value) + "</span>";
+        return tip_html
+    });
+
+svg.call(tip);
+
+var bar = svg.append("g")
+    .attr("fill", "PowderBlue")
+    .selectAll("rect")
+    .data(data)
+    .enter().append("rect")
+    .attr("class", "bar")
+    .attr("x", function(d) {return x(d.name)})
+    .attr("y", function(d) {return y(d.value)})
+    .attr("width", x.bandwidth())
+    .attr("height", function(d) { return y(0) - y(d.value)})
+    .on('mouseover', tip.show)
+    .on('mouseout', tip.hide);
+
+svg.append("g")
+    .call(xAxis);
+
+svg.append("g")
+    .call(yAxis);
+
+if (data.length > overflow_amount) {
+    d3.select('#xaxis')
+        .selectAll('.tick text')
+        .attr("class", function(d,i){
+            if(i%(Math.round(data.length/10)) !== 0 || i > data.length - 6){
+                if (i !== data.length - 1) d3.select(this).remove();
+            }
+        });
+}
+
+var line = d3.line()
+        .x(function(d){ return x(d.name)+(x.bandwidth()/2);})
+        .y(function(d){ return y(d.value);});
+
+line.curve(d3.curveBasis);
+
+svg.append("g").append("path")
+    .attr("d",line(data))
+    .style("fill","none")
+    .style("stroke","black")
+    .style("stroke-width","4-px");
+
+var selected_intersect_size = {{ selected_intersect_size }},
+    corrected_x_int = Math.round(selected_intersect_size * (num_bins / pre_data.length));
+
+svg.append('line')
+    .attr('x1', x(corrected_x_int) + (x.bandwidth()/2))
+    .attr('x2', x(corrected_x_int) + (x.bandwidth()/2))
+    .attr('y1', y(0) + 50)
+    .attr('y2', y(d3.max(data, function(d) {return d.value})))
+    .attr('class', 'comparisonline');
+</script>
+
+{% if geneset | length > 0 %}
+<div class="panel panel-default">
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">Gene in both Top Genes and Set of Interest </h3>
+    </div>
+    <div class="panel-body" style="padding-top:10px;">
+
+        <div class="row">
+            <div class="col-xs-12 col-md-5" style="margin:0; padding:0;">
+                <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+                    <i class="fa fa-list-ul pull-left"></i> Create Geneset from MSET Intersection
+                </button>
+            </div>
+            <div class="col-xs-6 col-md-7">
+                <div class="row">
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <table class="table table-hover" id="intersect-table">
+                <tbody>
+                <tr>
+                    <th>Default</th>
+                    <th>Value</th>
+                    <th>Linkouts</th>
+                    <th></th>
+                </tr>
+
+                {% for geneset_value in geneset %}
+                    <tr class="gene-list-row">
+                        <td id="defaultSymbol">
+                            <strong>
+                                <a href="/search/?searchbar={{ geneset_value[1] }}&pagination_page=1&searchGenes=yes">
+                                    {{ geneset_value[1] }}
+                                </a>
+                            </strong>
+                        </td>
+                        <td class="gene-value">
+                            <strong>
+                                {{ '%0.4f' % 1|float }}
+                            </strong>
+                        </td>
+                        <td>
+                            <!-- TODO Insert outside links here -->
+                            {% set gene=geneset_value[0] %}
+                            {% include 'linkouts.html' %}
+                        </td>
+                        <td>
+                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0; display: none;">
+                                <label for="addGeneset{{ geneset_value[0] }}"
+                                       style="margin: -6px; padding-right: 0;">
+                                    <input type="checkbox" name="gsoptions[]"
+                                           id="addGeneset{{ geneset_value[0] }}"
+                                           value="{{ geneset_value[0] }}"/>
+                                </label>
+                            </div>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script type="text/javascript">
+
+        $('.group-checkbox').on('click', function () {
+
+            var table = $('#intersect-table'),
+                select_all = $(this).find('input[type=checkbox]'),
+                checks = table.find('input[type=checkbox]'),
+                btns = table.find('.ui-btn');
+
+            if (select_all.attr('checked')) {
+                checks.each(function () {
+                    $(this).attr('checked', false);
+                });
+                btns.each(function () {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+            } else {
+                checks.each(function () {
+                    $(this).attr('checked', true);
+                });
+                btns.each(function () {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+        });
+
+    	$('#addNewGeneset').on('click', function () {
+
+		var checkedArray = [];
+		$("input:checkbox[name='gsoptions[]']").each(function(){
+			checkedArray.push($(this).val());
+		});
+
+		if(typeof checkedArray !== "undefined" &&
+            checkedArray != null &&
+            checkedArray.length > 0) {
+
+		    var name = 'Genes dervied from the MSET Enrichment Test';
+		    var description = 'Genes dervied from the MSET Enrichment Test';
+		    var genes = checkedArray;
+            // Generates a hidden form that is used to submit data to the
+            // upload page
+            var form = $('<form></form>', {
+                id: 'uploadform',
+                name: 'uploadform',
+                method: 'post',
+                action: '/uploadgeneset',
+                target: '_blank',
+                type: 'hidden'
+            });
+
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'name',
+                value: name
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'species',
+                value: '{{ species }}'
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'description',
+                value: description
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'genes',
+                value: genes
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'sp',
+                value: {{ sp_id |safe }}
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'tool',
+                value: 'mset'
+            }));
+
+            form.appendTo('body').submit();
+		}
+		else{
+			window.alert("No genes selected.")
+		}
+	});
+
+</script>
+
+{% include 'modal/addGenesetsToProjects.html' %}
+
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
+
+<!-- Includes the footer for the page -->
+{% include 'footer.html' %}

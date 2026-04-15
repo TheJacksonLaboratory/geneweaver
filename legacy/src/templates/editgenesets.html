@@ -1,0 +1,1101 @@
+{% set title="Edit GeneSet" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+
+    #clickablePubmed {
+        cursor: pointer;
+    }
+
+    #clickableSRP {
+        cursor: pointer;
+    }
+
+    #clickableGenes {
+        cursor: pointer;
+    }
+
+    #pubmed_button_div, #pubmed_button_div_minus {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        {% if curation_view %}
+            background: url('../../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+        {% else %}
+            background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+        {% endif %}
+
+    }
+
+    #ontologyInformation, #noAnotologyInformation {
+        cursor: pointer;
+    }
+
+    #genesetOntologyAlert {
+        padding: 8px;
+        margin-top: 0px;
+        margin-left: 0px;
+        margin-right: 0px;
+        margin-bottom: 20px;
+    }
+
+</style>
+
+
+
+
+{% if geneset.geneset_id is not defined or view != 'True' %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+{% else %}
+
+    <div class="loader"></div>
+
+    <div class="row" id="result"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Edit GeneSet Information</strong></h2>
+    </div>
+
+    {# Right Side List of Buttons #}
+    <div class="row">
+        <div class="col-md-4 pull-left">
+            <p>(<strong>*</strong>) = mandatory.</p>
+        </div>
+        <div class="col-md-4 pull-right">
+            {% if curation_view %}
+                <a href="/curategeneset/{{ geneset.geneset_id }}">
+            {% else %}
+                <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
+            {% endif %}
+            <b>Go to GeneSet Details <i class="fa fa-step-forward"></i></b></a>
+
+        </div>
+    </div>
+
+
+    <form id="upload-geneset-form"  enctype="multipart/form-data" method="POST" >
+
+        {# Geneset MetaContent #}
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                GeneSet MetaContent &bull; GS{{ geneset.geneset_id }}
+            </h2>
+        </div>
+
+        <div style="margin-left: 1em;">
+            <br>
+            <p>
+                Please complete the descriptive information about this GeneSet.
+                Follow the guidelines outlined in our
+                <a href="https://thejacksonlaboratory.github.io/geneweaver-docs/reference/curation/">
+                    Curation Standards
+                </a>
+                to facilitate acceptance of your public data submission by
+                GeneWeaver Curators. Following these guidelines for private
+                data will assist you and your team in interpreting results and
+                taking advantage of text and ontology analysis tools.
+            </p>
+            <br>
+            <input type="hidden" name="gs_id" value="{{ geneset.geneset_id }}"/>
+            <input type="hidden" name="pmid" value="{{ geneset.pub_id }}" />
+            <div class="row">
+                <div class="col-md-2">
+                    GeneSet Name <strong>*</strong>:
+                </div>
+                <div class="col-md-8">
+                    <input id="genesetName" type="text" name="gs_name" value="{{ geneset.name }}" size="50"
+                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    GeneSet Figure Label <strong>*</strong>:
+                </div>
+                <div class="col-md-8">
+                    <input id="genesetLabel" type="text" name="gs_abbreviation" value="{{ geneset.abbreviation }}" size="50"
+                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Score Type <strong>*</strong>:
+                </div>
+                <div class="col-xs-2">
+                    <select id="gs_threshold_type" class="form-control" name="gs_threshold_type" required>
+                        <option {% if geneset.threshold_type==1 %} selected="selected"{% endif %} id="gs-tt-pvalue" label="p-value" value="1" style="font-weight:bold;">P-Value</option>
+                        <option {% if geneset.threshold_type==2 %} selected="selected"{% endif %} id="gs-tt-qvalue" label="qvalue" value="2" style="font-weight:bold;">Q-Value</option>
+                        <option {% if geneset.threshold_type==3 %} selected="selected"{% endif %} id="gs-tt-binary" label="binary" value="3" style="font-weight:bold;">Binary</option>
+                        <option {% if geneset.threshold_type==4 %} selected="selected"{% endif %} id="gs-tt-correlation" label="correlation" value="4" style="font-weight:bold;">Correlation</option>
+                        <option {% if geneset.threshold_type==5 %} selected="selected"{% endif %} id="gs-tt-effect" label="effect" value="5" style="font-weight:bold;">Effect</option>
+                    </select>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    GeneSet Description <strong>*</strong>:
+                </div>
+                <div class="col-md-8">
+                    <textarea id="genesetDescription" rows="10" cols="50" name="gs_description"
+                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>{{ geneset.description }}
+                    </textarea>
+                </div>
+            </div>
+        </div>
+
+        {# Permissions #}
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Access Permissions
+            </h2>
+        </div>
+
+        <div style="margin-left: 1em;">
+            <br>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Access Restrictions <strong>*</strong>:
+                </div>
+                <div class="col-xs-2">
+
+                    <select name="permissions" class="form-control" required>
+                        {% if geneset.group_ids == '-1' %}
+                            <option value="private" selected>Private</option>
+                            <option value="public">Public</option>
+                        {% else %}
+                            <option value="private">Private</option>
+                            <option value="public" selected>Public</option>
+                        {% endif %}
+                    </select>
+
+                </div>
+            </div>
+        </div>
+        <br>
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Publication Information
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+            <br>
+            <p>
+                If this GeneSet has been published in a PubMed indexed journal,
+                just enter the PubMed ID below to automatically fill in the
+                publication info, otherwise you may manually enter publication
+                information. Providing this will allow others to discover and
+                use your data more quickly, provide a means to link here
+                directly from PubMed, avoid data duplication and streamline
+                our curation efforts.
+            </p>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    PubMed ID:
+                </div>
+                <div class="col-md-4">
+                    <input id="pub_pubmed" type="text" name="pub_pubmed" size="10" value="{{ pubs.pubmed_id }}">&nbsp;
+                        <i id="clickablePubmed" class="fa fa-refresh"></i>
+                </div><br><br>
+                <div id="pubmed_manual" style="display:none">
+                    <div class="col-md-2">Title:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_title" id="pub_title" value="{{ pubs.title }}" size="50"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Authors:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_authors" id="pub_authors" value="{{ pubs.authors }}" size="50"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Journal:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_journal" id="pub_journal" value="{{ pubs.journal }}" size="50"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Volume:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_volume" id="pub_volume" value="{{ pubs.volume }}" size="10" maxlength="10"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Pages:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_pages" id="pub_pages" value="{{ pubs.pages }}" size="15" maxlength="15"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Month:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_month" id="pub_month" value="{{ pubs.month }}" size="3" maxlength="3"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Year:</div>
+                    <div  class="col-md-2">
+                        <input type="text" name="pub_year" id="pub_year" value="{{ pubs.year }}" size="4" maxlength="4"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Abstract:</div>
+                    <div  class="col-md-4">
+                        <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >{{ pubs.abstract }}</textarea>
+                    </div><br><br>
+                </div>
+            </div>
+            <br>
+            <div id="pubmed_button_div">
+                <span id="pubmed_manual_button"><b>Manual Entry <i class="fa fa-angle-down"></i></b></span><br>
+            </div>
+            <div id="pubmed_button_div_minus" style="display: none;">
+                <span id="pubmed_manual_button_minus"><b>Less <i class="fa fa-angle-up"></i></b></span><br>
+            </div>
+        </div>
+
+        {# Elissa will probably want these buttons moved #}
+        {% if user_pref.get("annotator") in ["monarch", "ncbo", "both"] %}
+        <div class="row">
+            <div class="col-md-2 col-md-offset-6">
+                <button type="submit" class="btn btn-block btn-warning"
+                        id="run-annotator">
+                    <i id="annotator-icon" class="fa fa-play"></i>
+                    <span id="annotator-text">
+                        Run Annotator
+                    </span>
+                </button>
+            </div>
+            {% endif %}
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-block btn-warning"
+                        id="save-updates">
+                    <i class="fa fa-save "></i>
+                    Save Updates
+                </button>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-block btn-warning"
+                        id="edit-genes">
+                    <i class="fa fa-fast-forward "></i> Edit Genes
+                </button>
+            </div>
+        <!--</div>--><!--Delete this div for the final-->
+            <!--srp implementation-->
+            <br><br>
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h2 class="panel-title">
+                    Sequence Read Archive Information
+                </h2>
+            </div>
+            <div style="margin-left: 1em;">
+                <br>
+                <p>
+                    If this GeneSet has an associated sequence read archive study identification (SRP ID), it will be show below, otherwise you may attempt to retrieve it by clicking the button.
+                    If an SRP ID exists, it will be retrieved, and the GeneSet will be updated.
+                </p>
+                <div class="row">
+                    <div class="col-md-2">
+                        SRA Study ID:
+                        </div>
+                    <div class="col-md-4">
+                        <label id="srp_id" size="10" class="font-weight-normal"> {{ srp.srp_accession }} </label>&nbsp;
+                    </div>
+                </div> <!--Add div here to terminate row-->
+                <br><!--Add br here to give more room-->
+                <div class="row">
+                    <div class="col-md-2">
+                        Last Updated:
+                        </div>
+                    <div class="col-md-4">
+                        <label id="srp_date" size="10" class="font-weight-light"> {{ srp.srp_date | string | truncate(10, True, "") }} </label>&nbsp;
+                        <i id="clickableSRP" class="fa fa-refresh"></i>
+                    </div>
+                </div> <!--Add div here to terminate row-->
+        <br><br><!--<br><br>--><!--Remove 2 breaks to make it more similar to past iterations-->
+
+            </div> <!--Add div here to terminate this margin-->
+
+        {# Annotation Information #}
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Ontology Annotations
+                <span id="ontologyInformation" tabindex="0"
+                      data-trigger="focus">
+                    <i class="fa fa-info-circle"></i>
+                </span>
+            </h2>
+        </div>
+
+        <br>
+
+        <div class="row">
+            <div class="col-md-2 col-md-offset-8">
+                <button type="button" class="btn btn-block btn-warning" id="add-rdf" disabled>
+                    <i class="fa fa-plus" aria-hidden="true"></i> Add RO Term
+                </button>
+            </div>
+
+            <div class="col-md-2">
+                <button type="button" class="btn btn-block btn-warning" id="remove-term" disabled>
+                    <i class="fa fa-times" aria-hidden="true"></i> Remove Term(s)
+                </button>
+            </div>
+
+        </div>
+
+        <br>
+
+        <div style="margin-left: 1em;">
+            <br />
+
+            <div>
+                Add new term:
+                <input id="add-annotation" name="add-annotation"
+                       type="text" />
+                (start typing to search ontologies)
+            </div>
+            <table class="table table-hover" id="annotation-list">
+                <thead>
+                    <tr class="header">
+                        <th></th>
+                        <th>Ontology Term</th>
+                        <th>Term ID</th>
+                        <th>Annotation</th>
+                        <th>Relationship Type</th>
+                        <th>Relationship ID</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:13px">
+                </tbody>
+            </table>
+
+            <br />
+
+            <div class="row">
+                <div class="col-xs-3">
+                    <select name="ontology_db" id="ontology_db"
+                            class="form-control"
+                            style="margin-bottom: 20px;" required>
+                        {% for ont in ont_dbs %}
+                            <option value="{{ ont.ontologydb_id }}">
+                                {{ ont.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="genesetOntologyAlert"
+                     class="alert alert-warning fade in col-xs-3"
+                     style="width:400px; text-align:center;">
+                        <button type="button" class="close"
+                                data-dismiss="alert" aria-hidden="true">
+                            x
+                        </button>
+                        <strong>
+                            Annotation changes persist on (de)selection.
+                        </strong>
+                </div>
+            </div>
+
+            <div style="border: 1px solid #afafaf;">
+                <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+            </div>
+        </div>
+
+
+    </form>
+
+{% endif %}
+
+{% include 'modal/addRDFToGeneset.html' %}
+{% include 'modal/showGenericMessage.html' %}
+
+<script type="text/javascript" src="/static/js/geneweaver/addRDFModal.js"></script>
+<script type="text/javascript" src="/static/js/geneweaver/showErrorModal.js"></script>
+
+<script>
+    var checkedOnts = [];
+
+    var disableActionButtons = function(newState) {
+        $('#add-rdf').prop('disabled', newState);
+        $('#remove-term').prop('disabled', newState);
+    };
+
+    var updateCheckedOnts = function(ont_id, ro_ont_id) {
+        var row_id = ont_id+'-'+ro_ont_id,
+            checkbox_el = $("#addRDF"+row_id),
+            idx = checkedOnts.indexOf(row_id);
+        if (checkbox_el.attr('checked') && idx === -1) {
+            checkedOnts.push(row_id);
+        }
+        else {
+            if (idx !== -1) { checkedOnts.splice(idx, 1) }
+        }
+        if (checkedOnts.length < 1) {
+            disableActionButtons(true);
+        } else {
+            disableActionButtons(false);
+        }
+    };
+
+    var removeOntology = function(row_id) {
+        const [ont_id, ro_ont_id] = row_id.split('-');
+        $.ajax({
+            url: '/updateGenesetOntologyDB',
+            type: 'GET',
+            data: {
+                key: ont_id,
+                flag: false,
+                universe: 'Manual Association',
+                gs_id: gsID,
+                ro_ont_id: ro_ont_id
+            }
+        });
+
+    };
+
+    var removeSelectedOntologies = function() {
+        return function() {
+            checkedOnts.forEach(function(i) { removeOntology(i); });
+            setTimeout(function(){
+                $('#annotation-list').DataTable().ajax.reload();
+                $("#tree").dynatree("getTree").reload();
+                checkedOnts = [];
+            }, 500);
+        };
+    };
+
+    var openRemoveModal = function() {
+        return function() {
+            if (checkedOnts.length > 0) {
+                var genericModal = $('#showGenericModal'),
+                    modalFooter = genericModal.find('.modal-footer');
+                var deleteButton = `<button type="submit" class="btn btn-md btn-warning" data-dismiss="modal" id="submitRemoveTerms">
+                       Remove
+                    </button>`;
+                genericModal.find('.modal-title').html('Remove Ontology Terms');
+                genericModal.find('#genericMessage').html('Are you sure you want to remove these terms?');
+                if (modalFooter.find('#submitRemoveTerms').length < 1) {
+                    modalFooter.append(deleteButton);
+                    modalFooter.find('#submitRemoveTerms').on('click', removeSelectedOntologies());
+                }
+                genericModal.modal('show');
+            } else {
+                showErrorModal('Please select at least one Ontology to delete');
+            }
+        }
+    };
+
+    $(document).ready(function(){
+
+
+        var gsID = {{ geneset.geneset_id | safe }};
+        var ros = {{ relation_onts | safe }};
+
+        // DataTable initialization for the list of gene set annotations
+        var table = $('#annotation-list').DataTable({
+            'paging': false,
+            'searching': false,
+            'info': false,
+            'sAjaxDataProp': 'annotations',
+            'ajax': {
+                type: 'GET',
+                url: '/getGenesetAnnotations.json',
+                data: {gsid: gsID}
+            },
+            'columns': [
+                {data: null, defaultContent: ''},
+                {data: 'name'},
+                {data: 'reference_id'},
+                {data: 'ref_type'},
+                {data: 'ro_name', visible: false},
+                {data: 'ro_ref_id', visible: false},
+                {data: 'ro_id', visible: false}
+            ],
+            'aoColumnDefs': [{
+                'aTargets': [0],
+                'fnCreatedCell': function(nTd, _, oData, _, _) {
+                    var roCheck = $('<div class="ui-checkbox">' +
+                            '<input class="addGene" name="gsoptions[]" ' +
+                            'id="addRDF' +  oData['ont_id'] + '-' + oData['ro_id'] + '" ' +
+                            'value="' +  oData['ont_id'] + '" ' +
+                            'type="checkbox"' +
+                            'onchange="updateCheckedOnts(' + oData['ont_id']+ ', ' + oData['ro_id'] + ');' +
+                            '"></div>');
+                    $(nTd).append(roCheck);
+                }
+            }]
+        });
+
+
+
+        $('#add-rdf').on('click', openRDFModal('#addRDFToGeneset', gsID, checkedOnts, ros));
+        $('#remove-term').on('click', openRemoveModal());
+
+
+        // Change the way the autocomplete menu is rendered
+        $.widget('ui.autocomplete', $.ui.autocomplete, {
+            _renderItem: function(ul, item) {
+                var termlabel = item.ref_id + ': ' + item.name;
+                var ontology = item.ontdb_name;
+                
+                return $('<li style="list-style:none;font-size:11px;"></li>')
+                    //.data( "item.autocomplete", item )
+                    //.append( "<a>" + termlabel + "&nbsp;<span style=\"color:#0000ff;float:right;\">(" + ontology + ")</span></a>" )
+                    .append( "<a>")
+                    .append(termlabel) 
+                    .append("&nbsp;<span style=\"color:#0000ff;float:right;\">(" + ontology + ")</span></a>" )
+                    //.append( "<a>" + termlabel + "&nbsp;<span style=\"color:#0000ff;float:right;\">(" + ontology + ")</span></a>" )
+                    .appendTo( ul );
+
+            //return $('<li>')
+            //    .append(term)
+            //    .append(ontology)
+            //    .appendTo(ul);
+        }
+        });
+
+        $('#add-annotation').on('keyup', function() {
+
+            var value = $(this).val();
+
+            if (value.length < 3)
+                return;
+
+            // Callback hell :(
+            $.ajax({
+                url: '/ontologyTermSearch.json',
+                data: {search: value},
+                dataType: 'json',
+                success: function(result) {
+                    var terms = result.terms;
+
+                    $('#add-annotation').autocomplete({
+                        source: terms,
+                        minLength: 3,
+                        // Custom function for handling selection events
+                        select: function(event, ui) {
+                            event.preventDefault();
+
+                            $.ajax({
+                                url: "/updateGenesetOntologyDB",
+                                data: {
+                                    key: ui.item.ont_id,
+                                    flag: true,
+                                    universe: "Manual Association",
+                                    gs_id: gsID
+                                },
+                                success: function() {
+                                    $('#annotation-list').DataTable()
+                                        .ajax
+                                        .reload();
+
+                                    $("#tree").dynatree("getTree").reload();
+                                }
+                            })
+                        },
+                    });
+                }
+            });
+        });
+    });
+
+    $('#submitRDF').on('click', submitRDFModal("#addRDFToGeneset", '/addRelationsOntology'));
+</script>
+
+<script>
+
+    var gsID = {{ geneset.geneset_id | safe }};
+
+    /*
+     * Toggles an element's enabled/disabled property.
+     *
+     * arguments
+     *      element: HTML element being enabled/disabled
+     */
+    var toggleElementDisabled = function(element) {
+
+        $(element).prop('disabled', function() {
+            return !$(this).prop('disabled')
+        });
+    };
+
+    /*
+     * Retrieves the currently selected annotation reference type.
+     *
+     * returns
+     *      the name of the currently selected reference type
+     */
+    var getSelectedRefType = function() {
+
+        var ref = $('#ontology_db option:selected').val();
+
+        return $.trim(ref);
+    };
+
+    /*
+     * Retrieves and concatenates GS name/description text and publication
+     * title/abstract text so it can be sent to the annotator. Description and
+     * publication text is returned separately because the annotator tool has
+     * specific reference types for each.
+     *
+     * returns
+     *      an object containing text from the GS description and publication
+     */
+    var getGenesetText = function() {
+
+        var gsName = $.trim($('#genesetName').text()),
+            gsDesc = $.trim($('#genesetDescription').text()),
+            pubTitle = $.trim($('#pub_title').text()),
+            pubAbs = $.trim($('#pub_abstract').text());
+
+        return {
+            description: gsName + ' ' + gsDesc,
+            publication: pubTitle + ' ' + pubAbs
+        };
+    };
+
+    /**
+      * Changes the "Run Annotator" button between its disabled, running and
+      * enabled, ready states. The style change is performed so the user knows
+      * the annotator is running (it might take awhile depending on the amount
+      * of text being annotated).
+      */
+    var changeAnnotatorButton = function() {
+
+        if ($('#run-annotator').prop('disabled')) {
+
+            $('#annotator-icon').attr('class', 'fa fa-play');
+            $('#annotator-text').text('Run Annotator');
+
+        } else {
+
+            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
+            $('#annotator-text').text('Running...');
+        }
+
+        toggleElementDisabled('#run-annotator');
+    };
+
+    $(function(){
+        //Initialize dynatree data and functions
+        $("#tree").dynatree({
+            checkbox: true,
+            selectMode: 2,
+            // Prevents the page from focusing and auto scrolling to the tree
+            autoFocus: false,
+            initAjax: {
+                url: "/initOntTree",
+                data: {
+                    gs_id: gsID,
+                    universe: getSelectedRefType()
+                }
+            },
+
+            //Performs lazy ajax call when new nodes need to be viewed
+            onLazyRead: function (node) {
+                node.appendAjax({
+                    url: "/expandOntNode",
+                    data: {
+                        key: node.data.key,
+                        is_db: node.data.db,
+                        universe: getSelectedRefType()
+                    }
+                })
+            },
+
+			// Does nothing but needs to be present for nodes to be unselected.
+            onClick: function (node, event) {
+			},
+
+			/**
+              * Called during node creation. If a node has the "Manual
+              * Rejection" reference type we alter the style. Every node gets
+              * its reference type added to the span title so it can be viewed
+              * when a user hovers over the node.
+              *
+              * arguments
+              *     node:       the node object being initialized
+              *     nodeSpan:   jQuery object representing the node's span
+              *                 element
+              */
+            onCreate: function (node, nodeSpan) {
+
+                if (node.data.ref === undefined)
+                    return;
+
+                if (node.data.ref === 'Manual Rejection') {
+
+                    $(nodeSpan)
+                        .children('.dynatree-title')
+                        .css('text-decoration', 'line-through')
+                        .css('background-color', 'none')
+                        .css('font-weight', 'normal');
+                }
+
+                $(nodeSpan).attr('title', node.data.ref);
+			},
+
+            // Updates the database based on the ontology terms a user selects.
+            onSelect: termSelectionHandler
+        });
+
+        /**
+          * Clicking this button reruns the annotator tool on the geneset's
+          * description and publication text.
+          */
+        $('#run-annotator').on('click', function(event) {
+            event.preventDefault();
+
+            var postData = getGenesetText();
+            postData.gs_id = gsID;
+
+            // Style changes so the user knows something is happening
+            changeAnnotatorButton();
+
+            $.post("{{ url_for('rerun_annotator') }}", postData, function (data) {
+                changeAnnotatorButton();
+                $('#tree').dynatree('getTree').reload();
+            }, "json").fail(function (data) {
+                // failure, log error message returned
+                console.error(data.responseJSON.error);
+                changeAnnotatorButton();
+            });
+
+        });
+
+        /**
+          * Should eventually redirect the user to the edit genes page.
+          */
+        $('#edit-genes').on('click', function(event) {
+            event.preventDefault();
+        });
+    });
+
+    //This refreshes all tree data based on changing gso_ref_type (universe) seen in the gso_ref_type select tag
+    $($("#ontology_db").change(function () {
+        $("#tree").dynatree("option", "initAjax", {
+            url: "/initOntTree",
+            data: {
+                gs_id: gsID,
+                universe: getSelectedRefType()
+            }
+        });
+        $("#tree").dynatree("getTree").reload();
+    }));
+
+    $(window).on("load", function(e) {
+        $(".loader").fadeOut("slow");
+    });
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+    $('#clickableGenes').popover({
+        title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
+                'A full description of the gene set format can be found ' +
+                '<a href="https://thejacksonlaboratory.github.io/geneweaver-docs/web-application/uploading-genesets/">here</a>.',
+        html: 'true'
+    });
+
+    function formFocus($e){
+        $e.style.backgroundColor = "yellow";
+    }
+
+    function noFormFocus($e){
+        $e.style.backgroundColor = '';
+    }
+
+    $('#upload-geneset-form').submit(function(event) {
+        event.preventDefault();
+
+        toggleElementDisabled('#save-updates');
+
+        var data = $("#upload-geneset-form").serialize();
+        var tree = $("#tree").dynatree("getTree");
+        //May be used later on in order to submit ontology tree information with form.
+        //var onts = JSON.stringify(tree.serializeArr());
+        //data = data.concat("&onts=", onts);
+
+        $.ajax({
+            type: "POST",
+            url: "/updategeneset",
+            data: data,
+            success: function(result) {
+
+                result = JSON.parse(result);
+
+                if (result.success === true) {
+
+                    {% if curation_view %}
+                        window.location = '/curategenesetgenes/' + gsID;
+                    {% else %}
+                        window.location = '/editgenesetgenes/' + gsID;
+                    {% endif %}
+
+                } else {
+
+                    $("html, body").animate({ scrollTop: 0 }, "slow");
+                    $("#result").html(
+                        '<div class="alert alert-danger fade in"> ' +
+                        '<button type="button" class="close" ' +
+                        'data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>An error occurred while updating GeneSet ' +
+                        'metacontent: ' + result.error + '</div>');
+                }
+
+                toggleElementDisabled('#save-updates');
+            },
+            error: function(result) {
+
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $("#result").html(
+                    '<div class="alert alert-danger fade in"> ' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                    '</button>An unknown error ocurred. Please try again later or submit an error report.</div>');
+
+                toggleElementDisabled('#save-updates');
+            }
+        });
+    });
+
+        function createReaderHandler(name) {
+            return function(ev) {
+                data[name] = ev.target.result;
+            };
+        }
+
+            $('#edit-genes').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if curation_view == 'curator' %}
+                    window.location.href = '/curategenesetgenes/' +gsid;
+                {% else %}
+                    window.location.href = '../editgenesetgenes/' +gsid;
+                {% endif %}
+            });
+
+        //Get Pubmed Data for ID
+        $('#clickablePubmed').click(function() {
+            var pmid = $("#pub_pubmed").val();
+            if (!$.isNumeric(pmid)) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must enter a valid Pubmed ID.",
+                        'priority': 'warning'
+                    }
+                ]);
+            }
+            else {
+                $.ajax({
+                    type: "GET",
+                    url: "/getPubmed",
+                    data: {"pmid": pmid},
+                    success: function(data)
+                    {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "PubMed ID " + pmid + " successfully loaded",
+                                'priority': 'success'
+                            }
+                        ]);
+                        if ($('#pubmed_manual').is(":hidden")) {
+                            $("#pubmed_manual").toggle();
+                        };
+
+                        if ($('#pubmed_button_div').is(":visible")) {
+                            $('#pubmed_button_div').toggle();
+                        };
+
+                        var parseData = JSON.parse(data);
+                        $('#pub_title').val(parseData[0]);
+                        $('#pub_authors').val(parseData[1]);
+                        $('#pub_journal').val(parseData[2]);
+                        $('#pub_volume').val(parseData[3]);
+                        $('#pub_pages').val(parseData[4]);
+                        $('#pub_year').val(parseData[5]);
+                        $('#pub_month').val(parseData[6]);
+                        $('#pub_abstract').val(parseData[7]);
+
+                    }
+                });
+            };
+        });
+
+        $("#pubmed_manual_button").click(function() {
+            $("#pubmed_manual").toggle();
+
+            //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+            var isHidden = $("#pubmed_manual").is(':hidden');
+
+            if(isHidden) {
+                $("#pubmed_manual :input").attr("disabled", true);
+
+            }
+            else {
+                $("#pubmed_manual :input").attr("disabled", false);
+                $("#pubmed_button_div_minus").show();
+                $("#pubmed_button_div").hide();
+            }
+        });
+
+        $("#pubmed_manual_button_minus").click(function() {
+            $("#pubmed_manual").toggle();
+
+            //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+            var isHidden = $("#pubmed_manual").is(':hidden');
+
+            if(isHidden) {
+                $("#pubmed_manual :input").attr("disabled", true);
+                $("#pubmed_button_div_minus").hide();
+                $("#pubmed_button_div").show();
+            }
+            else {
+                $("#pubmed_manual :input").attr("disabled", false);
+            }
+        });
+
+
+    //toggles between the file or paste uploaders and toggle's enable/disable on inputs
+    function toggle_pasting() {
+
+        $("#file_uploader").toggle();
+        $("#paste_uploader").toggle();
+
+        $('#file_text').prop('disabled',function() { return !$(this).prop('disabled') })
+        $('#file_data').prop('disabled',function() { return !$(this).prop('disabled') })
+    }
+
+    //Popover that gives Geneset Ontology functionality overview for the user
+    //Displayed when ontologies are linked with the geneset
+    $('#ontologyInformation').popover({
+            title: 'GeneSet Annotations',
+            content: 'GeneSet ontology annotations are highlighted below. ' +
+            'The drop down menu above the ontology tree allows for the ' +
+            'selection of GeneSet annotation source, e.g. manual or inferred ' +
+            'from text mining. All selected ontology terms may be viewed ' +
+            'under the All Reference Types category. GeneSet ontology ' +
+            'annotations may be added or removed under any other category. ' +
+            'Contact us to suggest additional ontologies that you would ' +
+            'like to use to annotate your GeneSets.'
+    });
+    //Displayed when NO ontologies are linked with the geneset
+    $('#noAnotologyInformation').popover({
+            title: 'GeneSet Annotations',
+            content: 'GeneSet ontology annotations are highlighted below. ' +
+            'The drop down menu above the ontology tree allows for the ' +
+            'selection of GeneSet annotation source, e.g. manual or inferred ' +
+            'from text mining. All selected ontology terms may be viewed ' +
+            'under the All Reference Types category. GeneSet ontology ' +
+            'annotations may be added or removed under any other category. ' +
+            'Contact us to suggest additional ontologies that you would ' +
+            'like to use to annotate your GeneSets.'
+    });
+
+    // Handles dynatree term selection
+    function termSelectionHandler(flag, node) {
+        var tree = $("#tree").dynatree("getTree"); // tree
+        var rootNode = $("#tree").dynatree("getRoot"); // root
+        var indexNode = node;
+
+        // Term selected
+        if (flag) {
+
+            // Select parent terms
+            while (rootNode != indexNode) {
+                indexNode.select(true);
+                indexNode = indexNode.getParent();
+            }
+
+            $.ajax({
+                    url: "/updateGenesetOntologyDB",
+                    data: {
+                        key: node.data.key,
+                        flag: flag,
+                        universe: "Manual Association",
+                        gs_id: $(location).attr("href").split('/').pop()
+                    },
+                    success: function(data){}
+                })
+
+        // Term deselected
+        } else {
+
+            // Deselect all descendant terms
+            recursiveDeselect(indexNode);
+        }
+    }
+
+    // Deselects all descending nodes
+    function recursiveDeselect(node) {
+        $.ajax({
+                    url: "/updateGenesetOntologyDB",
+                    data: {
+                        key: node.data.key,
+                        flag: false,
+                        universe: "Manual Association",
+                        gs_id: $(location).attr("href").split('/').pop()
+                    },
+                    success: function(data){}
+                })
+
+        // Get all descendants
+        var descendant = node.getChildren();
+
+        // Return when descendant is leaf
+        if (descendant == null) {
+            return
+        }
+
+        // Deselect each descendant of the current node, recurse
+        for (let i = 0; i < descendant.length; i++) {
+            descendant[i].select(false);
+            recursiveDeselect(descendant[i])
+        }
+    }
+</script>
+
+<script>
+
+        $('#clickableSRP').click(function() {
+        if ('{{ srp.srp_accession }}' !== '') {
+        document.getElementById("srp_id").innerHTML='{{ srp.srp_accession }}';
+        document.getElementById("srp_date").innerHTML='{{ gs_update | string | truncate(10,True,"") }}';
+            }
+        else if ('{{ srp.srp_accession }}' == '') {
+        document.getElementById("srp_id").innerHTML='No SRP ID associated with this study at this time.';
+        document.getElementById("srp_date").innerHTML='{{ gs_update | string |truncate(10,True,"") }}';
+            }
+        }
+        );
+
+</script>
+
+{% include 'footer.html' %}

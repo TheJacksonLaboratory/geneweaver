@@ -1,0 +1,727 @@
+{% set title="Edit GeneSet" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+
+    #clickablePubmed {
+        cursor: pointer;
+    }
+
+    #clickableGenes {
+        cursor: pointer;
+    }
+
+    #clickableSpecies, #clickableIdentifier {
+        cursor: pointer;
+        color: #ff0000;
+      }
+
+    #editSpecies, #editIdentifier {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=60);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
+    }
+
+    .ui-autocomplete {
+        height: 200px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+
+</style>
+
+{% if geneset.geneset_id is not defined or view != 'True' %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+{% else %}
+
+	{% if geneset.status == 'delayed' %}
+		<div class="alert alert-warning fade in" style="text-align:center">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+				&times;
+			</button>
+			<strong>
+				<u>
+					This GeneSet requires your approval.
+				</u>
+			</strong>
+			<br />
+			<br />
+			<p>
+				<strong>
+				Please ensure all the GeneSet MetaContent on this page is correct.
+				<br />
+				If any information is incorrect make the appropriate changes.
+				Once you are finished, scroll to the bottom of the page and click
+				the "Save Updates" button. This GeneSet will only be available for
+				analysis and searching (if it is public) after updates are
+				saved.
+				</strong>
+			</p>
+		</div>
+
+	{% endif %}
+
+    {% if geneset.status == 'delayed:processing'%}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet is still processing. Please be patient while we finish things up.
+        </div>
+    {% endif %}
+
+    <div class="loader"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Edit GeneSet Gene Information</strong></h2>
+    </div>
+
+    <div class="col-md-4 pull-right">
+        {% if curation_view %}
+            <a href="/curategeneset/{{ geneset.geneset_id }}">
+        {% else %}
+            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
+        {% endif %}
+        <b>Go to GeneSet Details <i class="fa fa-step-forward"></i></b></a>
+
+    </div>
+
+    {# Geneset MetaContent #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h2 class="panel-title">
+            GeneSet MetaContent &bull; GS{{ geneset.geneset_id }}
+        </h2>
+    </div>
+    {% include 'genesetMeta.html' %}
+
+    {#
+    {% include 'ontologyTree.html' %}
+    #}
+
+    {# Right Side List of Buttons #}
+
+    <div class="col-xs-6 col-md-3">
+
+        <button type="button" class="btn btn-block btn-warning" id="editGeneset">
+            <i class="fa fa-edit pull-left"></i> Edit MetaContent
+        </button>
+        <button type="button" class="btn btn-block btn-warning" id="viewGenesetDetails">
+            <i class="fa fa-eye pull-left"></i> GeneSet Details
+        </button>
+        <button type="button" class="btn btn-block btn-danger" id="cancelEdit1">
+            <i class="fa fa-times pull-left"></i> Cancel Edit
+        </button>
+    </div>
+
+    </div>
+
+    </div>
+
+    {# Gene List Information #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">
+            Gene List &bull; {{ geneset.geneset_values|length }} Genes
+			<span id="clickableGenes" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span>
+        </h3>
+    </div>
+
+    <div class="row" id="result"></div>
+
+    <div class="row">
+    <div class="col-xs-12 col-md-9">
+    <br>
+
+    <div class="row">
+        <div class="col-md-2">
+            <p class="text-right"><span id="clickableSpecies"><i class="fa fa-exclamation-circle"></i></span>
+                <strong>SPECIES:</strong></p>
+        </div>
+        <div class="col-md-10" id="altSpecies">
+            <span id="editSpecies"><p><b>
+				{% for sp_id, sp_name in species if geneset.sp_id == sp_id %}
+                    {{ sp_name }}
+				{% endfor %}
+				{#
+                {% if meta[0] != 0 %}
+                    {{ species[meta[0]] }}
+                {% else %}
+                    {{ species[geneset.sp_id] }}
+                {% endif %}
+				#}
+                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="Species"
+                      title="Edit Species" style="margin: 2px; padding: 0px 2px;">
+                    <i class="fa fa-edit"></i>
+                </span></b></p>
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <div class="row" id="result"></div>
+
+        <div class="col-md-2">
+            <p class="text-right"><span id="clickableIdentifier"><i class="fa fa-exclamation-circle"></i></span>
+                <strong>IDENTIFIER:</strong></p>
+        </div>
+        <div class="col-md-10">
+                    <span id="editIdentifier"><p><b>
+
+                        {% if meta[1] != 0 %}
+
+                            {% if meta[1] < 0 %}
+                                {{ gidts[-1 * meta[1]]|title }}
+                            {% else %}
+                                {{ pidts[meta[1]] }}
+                            {% endif %}
+
+                        {% else %}
+
+                            {% if geneset.gene_id_type < 0 %}
+                                {{ gidts[-1 * geneset.gene_id_type]|title }}
+                            {% else %}
+                                {{ pidts[geneset.gene_id_type] }}
+                            {% endif %}
+
+                        {% endif %}
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Identifier" title="Edit Identifier"
+                              style="margin: 2px; padding: 0px 2px;"><i class="fa fa-edit"></i></span></b></p></span>
+        </div>
+    </div>
+
+        <div class="row" id="allgenesetgenes">
+            {% if geneset.temp_geneset_values|length > 0 %}
+
+                <div class="col-md-2">
+                    <p class="text-right"><strong>GENE LIST:</strong></p>
+                </div>
+                <div class="col-md-10" id="genesetgenes">
+                    <table class="table table-hover">
+                        <tbody>
+                        <tr>
+                            <th>Your Identifier</th>
+                            <th>GeneWeaver ID</th>
+                            <th>Value</th>
+                            <th>&nbsp;</th>
+                        </tr>
+
+
+                        {% for geneset_value in geneset.temp_geneset_values %}
+                            <tr>
+                                <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
+                                <td>{{ geneset_value.ode_gene_id }}</td>
+                                {#
+                                <td>{{ id_map[geneset_value.ode_gene_id] }}</td>
+								#}
+                                <td>{{ geneset_value.value_list[0] | trim }}</td>
+                                <td><span data-placement="top" data-toggle="tooltip"
+                                          data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
+                                          style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+                                            <span href="#editGenesetValueByID" data-toggle="modal"
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}"
+                                                  data-gene-value="{{ geneset_value.value_list[0] | trim }}"
+                                                  data-gene-gsid="{{ geneset.geneset_id }}">
+										            <i class="fa fa-edit"></i>
+                                            </span>
+                                        </span>
+                                        <span data-placement="top" data-toggle="tooltip"
+                                              data-rel="tooltip" data-original-title="Delete" title="Delete Identifier"
+                                              style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+                                            <span href="#deleteGenesetValueByID" data-toggle="modal"
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}"
+                                                  data-gene-value="{{ geneset_value.value_list[0] | trim }}"
+                                                  data-gene-gsid="{{ geneset.geneset_id }}">
+                                                    <i class="fa fa-trash-o"></i>
+                                            </span>
+                                        </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if genesnotfound[0]|length > 1 %}
+                            {% for genes in genesnotfound %}
+                                <tr>
+                                    <td>{{ genes }}</td>
+                                    <td><span class="badge badge-danger">Gene Not Found</span></td>
+                                    {#
+                                    <td>{{ id_map[geneset_value.ode_gene_id] }}</td>
+                                    #}
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+
+
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="row">
+                    <div class="alert bg-gray-light">No Genes are Associated with this GeneSet</div>
+                </div>
+            {% endif %}
+        </div>
+
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
+
+    <br>
+    </div>
+
+    <div class="col-xs-6 col-md-3">
+
+        <br>
+
+        <button type="button" class="btn btn-block btn-warning" id="addGenesetGeneValue">
+            <i class="fa fa-plus pull-left"></i> Add Genes
+        </button>
+        <button type="button" class="btn btn-block btn-warning" id="saveGenesetGenes">
+            <i class="fa fa-save pull-left"></i> Save Updates
+        </button>
+        <button type="button" class="btn btn-block btn-danger" id="cancelEdit2">
+            <i class="fa fa-times pull-left"></i> Cancel Edit
+        </button>
+
+    <div class="alert alert-warning" style="display: inline-block; width: 100%">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+        <strong>Warning:</strong> Please Note: Edits to this page <i>(other than  Species and Identifier)</i>
+        will not persist to your GeneSet unless you click 'Save Updates'. Also, If you click 'Cancel Edit',
+        any changes on this page will be reverted.
+    </div>
+
+    </div>
+
+
+{% endif %}
+
+<script type="text/javascript">
+
+    var user_id = {{ user_id }}
+
+    $(window).on("load", function (e) {
+        $(".loader").fadeOut("slow");
+    });
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+    $('#clickableGenes').popover({
+        title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
+        'A full description of the gene set format can be found ' +
+        '<a href="https://thejacksonlaboratory.github.io/geneweaver-docs/web-application/uploading-genesets/">here</a>.',
+        html: 'true'
+    });
+
+    $('#clickableSpecies').popover({
+       title: 'Warning', content: 'Changing species will effect latest saved changes only.'
+    });
+
+    $('#clickableIdentifier').popover({
+       title: 'Warning', content: 'Changing id type will effect latest saved changes only.'
+    });
+    
+    $(document).ready(function () {
+
+        /**
+         * Executed when the user clicks the "select tab-delimited plain text
+         * file" button. This function reads the file in, appends the contents
+         * to a hidden input element, and informs the user that the file has
+         * been loaded.
+         */
+        $('#file_data').on('change', function(e) {
+
+            var fileDisplayArea = $('#fileDisplayArea');
+            var file = this.files[0];
+            var textType = /text.*/;
+
+            if (file.type.match(textType)) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
+
+                    fileDisplayArea.text(
+                            "Loaded '" + file.name + "' (" + size + ")"
+                    );
+                    $('#fileContents').val(reader.result);
+                };
+
+                reader.readAsText(file);
+            } else {
+                fileDisplayArea.innerText = "File not supported!";
+            }
+        });
+
+        //triggered when modal is about to be shown
+        $('#deleteGenesetValueByID').on('shown.bs.modal', function (e) {
+            var geneID = $(e.relatedTarget).data('gene-id');
+            var value = $(e.relatedTarget).data('gene-value');
+            var gsid = $(e.relatedTarget).data('gene-gsid');
+            $(e.currentTarget).find('input[name=gene-id]').val(geneID);
+            $(e.currentTarget).find('input[name=gene-value]').val(value);
+            $(e.currentTarget).find('input[name=gene-gsid]').val(gsid);
+            $(e.currentTarget).find('span.gene-element').text(geneID);
+        });
+
+        $('#editGenesetValueByID').on('shown.bs.modal', function (e) {
+            var geneID = $(e.relatedTarget).data('gene-id');
+            var value = $(e.relatedTarget).data('gene-value');
+            var gsid = $(e.relatedTarget).data('gene-gsid');
+            $(e.currentTarget).find('input[name=gene-refid]').val(geneID);
+            $(e.currentTarget).find('input[name=gene-value]').val(value);
+            $(e.currentTarget).find('input[name=gene-refgsid]').val(gsid);
+            $(e.currentTarget).find('input[name=gene-refid-old]').val(geneID);
+        });
+
+        $('#addGenesetGene').on('shown.bs.modal', function (e) {
+            var gsid = {{ geneset.geneset_id }}
+            $(e.currentTarget).find('input[name=add-genes-gsid]').val(gsid);
+        });
+
+        $('#processDeleteGenesetValueByID').on('click', function (e) {
+            var id = $("#gene-id").val();
+            var gsid = $("#gene-gsid").val();
+            $.ajax({
+                type: "GET",
+                url: "/deleteGenesetValueByID",
+                data: {"gsid": gsid, "user_id": {{ user_id }}, "id": id},
+                success: function (data) {
+                    $('#allgenesetgenes').load(location.href+" #allgenesetgenes>*","");
+                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>GeneSet Identifier and Value successfully deleted</div>');
+                }
+            });
+        });
+
+        $('#processIdentifierValue').on('click', function (e) {
+            var id = $("#gene-refid").val();
+            var gsid = $("#gene-refgsid").val();
+            var value = $("#gene-value").val();
+            var idold = $("#gene-refid-old").val();
+            $.ajax({
+                type: "GET",
+                url: "/editGenesetIdValue",
+                data: {"gsid": gsid, "id": id, "value": value, "idold": idold},
+                success: function (data) {
+                    $('#allgenesetgenes').load(location.href+" #allgenesetgenes>*","");
+                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>GeneSet Identifier and Value successfully updated</div>');
+                }
+            });
+        });
+
+        $('#processAddGenesetGene').on('click', function (e) {
+            var gsid = $("#add-genes-gsid").val();
+
+            var single_id = $("#gene-newid");
+            var single_value = $("#gene-newvalue");
+
+            var file_data = $('#fileContents');
+            var text_data = $("#file_text");
+            var overwrite = $("#upload-overwrite");
+
+            $.ajax({
+                type: "POST",
+                url: "/addGenesetGene",
+                data: {
+                    "gsid": gsid,
+                    "single_id": single_id.val(),
+                    "single_value": single_value.val(),
+                    "text_data": text_data.val(),
+                    "file_contents": file_data.val(),
+                    "overwrite": overwrite.is(":checked")
+                },
+                success: function (data) {
+                    var v = JSON.parse(data),
+                        num_errors = v["errors"].length,
+                        num_warnings = v["warnings"].length,
+                        results_selector = $("#result");
+                    if (num_errors === 0 && num_warnings === 0) {
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        results_selector.html('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>All gene identifier(s) and value(s) successfully added</div>');
+                    }
+                    else if (num_errors === 0 && num_warnings > 0) {
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        results_selector.append('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Partially uploaded your geneset. See warnings for details.</div>');
+                    }
+                    else {
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        var error_html = '<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert"' +
+                                'aria-hidden="true">x</button>We were unable to upload your genes: <br><br>';
+                        v["errors"].forEach(function(item) {
+                            error_html += item["error"] + '<br>';
+                        });
+                        error_html += '</div>';
+                        results_selector.append(error_html);
+                    }
+                    if (num_warnings > 0){
+                        var warning_html = '<div class="alert alert-warning fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert"' +
+                                'aria-hidden="true">x</button>The gene upload generated the following warnings: <br><br>';
+                        v["warnings"].forEach(function(item) {
+                            warning_html += item["warning"] + '<br>';
+                        });
+                        warning_html += '</div>';
+                        results_selector.append(warning_html);
+                    }
+
+                },
+                error: function (data) {
+                    $("#result").html('<div class="alert alert-danger fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>An error occured while adding your genes. <br>' +
+                            'Please check your gene data and try again. <div>');
+                },
+                complete: function() {
+                    single_id.val('');
+                    single_value.val('');
+                    text_data.val('');
+                    file_data.val('');
+                    $('#fileDisplayArea').text('');
+                }
+            });
+        });
+
+        $('#editSubmitSpecies').on('click', function(e){
+            var val = $('#species').children('#selectedSpecies').text();
+            $.trim(val);
+            //update genset_value for the sp_id
+            $.ajax({
+                    type: "GET",
+                    url: "../updateGenesetSpecies",
+                    data: {"altSpecies": val, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                    success: function (data) {
+                        var v = JSON.parse(data);
+                        if (v["error"] == 'None') {
+                            //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                            $("#result").html('<div class="alert alert-success fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>Species successfully changed to ' + val + '</div>');
+                            location.reload();
+                        }
+                        else {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An ERROR occured. ' + v["error"] + '</div>');
+                        }
+                        },
+                        error: function(){
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An error occured while updating the Species</div>');
+                        }
+                });
+            });
+
+
+        $('#processGenesetGenes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "../updateGenesetGenes",
+                data: {"user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        $("#result").html('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Genes Successfully Updated</div>');
+                    }
+                    else {
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An ERROR occured. ' + v["error"] + '</div>');
+                    }
+                },
+                error: function () {
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An error occured while updating genes.</div>');
+                    }
+            });
+        });
+
+        /**
+         * A simple function that prevents the exectution of a callback function until the timer has run down
+         */
+        var delay = (function(){
+            var timer = 0;
+            return function(callback, ms){
+                clearTimeout (timer);
+                timer = setTimeout(callback, ms);
+            };
+        })();
+
+        function typeAhead(value) {
+            var checkVal = value.toLowerCase();
+            if (checkVal !== "mg" && checkVal !== "mgi" && checkVal !== "mgi:" && checkVal.length > 1) {
+
+                $.ajax({
+                    url: "/get_gene_ref_ID.json",
+                    data: {
+                      'search': value,
+                        'sp_id': {{ geneset.sp_id }}
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        var list = data.list;
+                        $('#gene-newid').autocomplete({
+                            source: list,
+                            appendTo: $("#addGenesetGene")
+                        });
+                    }
+                });
+            }
+        }
+
+        $('#gene-newid').on('keyup', function(){
+            delay(function(){
+                let value = $('#gene-newid').val();
+                typeAhead( value );
+            }, 250);
+        });
+
+        $('#editSubmitIdentifier').on('click', function(e){
+            var val = $('#identifier').select2('data')[0].id;
+            $.trim(val);
+            //update genset_value for the sp_id
+            $.ajax({
+                    type: "GET",
+                    url: "../updateGenesetIdentifier",
+                    data: {"altId": val, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                    success: function (data) {
+                        var v = JSON.parse(data);
+                        if (v["error"] == 'None') {
+                            //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                            $("#result").html('<div class="alert alert-success fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>Identifier successfully changed to ' + val + '</div>');
+                            location.reload();
+                        }
+                        else {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An ERROR occured. ' + v["error"] + '</div>');
+                        }
+                        },
+                        error: function(){
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An error occured while updating the Identifier</div>');
+                        }
+                });
+            });
+
+        $('#editSpecies').on('click', function (e) {
+                $("#editSpeciesByGSID").modal('show');
+        });
+
+        $('#editIdentifier').on('click', function (e) {
+                $("#editIdentifierByGSID").modal('show');
+        });
+
+        $('#addGenesetGeneValue').on('click', function (e) {
+                $("#addGenesetGene").modal('show');
+        });
+
+        $('#editGeneset').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if curation_view %}
+                   window.location.href = '/curategeneset/edit/'+gsid;
+                {% else %}
+                    window.location.href = '../editgeneset/'+gsid;
+                {% endif %}
+        });
+
+        $('#viewGenesetDetails').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if curation_view %}
+                    window.location.href = '/curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
+        });
+
+        $('#cancelEdit1').on('click', function (e) {
+                $("#cancelEditByGSID").modal('show');
+        });
+
+        $('#cancelEdit2').on('click', function (e) {
+                $("#cancelEditByGSID").modal('show');
+        });
+
+        $('#saveGenesetGenes').on('click', function (e) {
+                $("#verifyGenesetGenes").modal('show');
+        });
+
+        $('#processCancelEdit').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "/cancelEditByID",
+                data: {"gsid": {{ geneset.geneset_id }}, "user_id": {{ user_id }}},
+                success: function (data) {
+                    {% if curation_view %}
+                        window.location.href = '/curategeneset/'+{{ geneset.geneset_id }};
+                    {% else %}
+                        window.location.href = '../viewgenesetdetails/'+{{ geneset.geneset_id }};
+                    {% endif %}
+                }
+            });
+        });
+
+        $(".dropdown-menu li a").click(function(){
+            $(this).parents(".input-group-btn").find('.btn').text($(this).text());
+            $(this).parents(".input-group-btn").find('.btn').val($(this).text());
+        });
+
+    });
+</script>
+
+{#  Otherwise the species modals will starting complaining and throw exceptions  #}
+{% include 'modal/deleteGenesetValue.html' %}
+
+{% include 'modal/editGenesetValue.html' %}
+
+{% include 'modal/editSpecies.html' %}
+
+{% include 'modal/editGeneIdentifier.html' %}
+
+{% include 'modal/cancelEditGeneset.html' %}
+
+{% include 'modal/addGenesetGene.html' %}
+
+{% include 'modal/verifyGenesetGenesSave.html' %}
+
+{% include 'footer.html' %}
+

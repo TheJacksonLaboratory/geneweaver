@@ -1,0 +1,362 @@
+{# 	This page is injected into analyze.html--really it's included in
+	singleProject.html, which is rendered by flask and then injected. Anyway,
+	it seems like the beginning element on this page MUST be a row (<tr>), 
+	otherwise jQuery will discard all rows and cells when this page is appended
+	to a table in analyze.html.
+#}
+
+<tr class="genesetdetails" id="{{ gs.geneset_id }}">
+
+    {% if proj is defined %}
+        <td width="40px">
+            <div class="ui-checkbox" style="padding: 0; border: 0;" align="center">
+                <label for="geneset_{{ gs.geneset_id }}">
+                    <input type="checkbox" name="geneset_{{ gs.geneset_id }}" data-project="{{ proj.project_id }}"
+                           data-parentproject="{{ proj.project_id }}"
+                           class="proj-{{ proj.project_id }}-check"
+                           id="geneset_{{ gs.geneset_id }}"/>
+                </label>
+            </div>
+            {#
+            <input
+                    data-parentproject="{{ proj.project_id }}"
+                    type="checkbox"
+                    name="geneset_{{ gs.geneset_id }}"
+                    class="table-checkbox proj-{{ proj.project_id }}-check"
+                    style="margin: 2px; padding: 0px 2px;">
+            #}
+
+        </td>
+    {% endif %}
+
+    {# 
+		Used to select genesets from the search results page. Should only <be></be>
+		shown on the search page. render_search_json added to prevent
+		checkboxes disappearing as a user is flipping through paginated results.
+	#}
+    {% if request.endpoint == "render_searchFromHome" or  request.endpoint == "render_search_json" %}
+        <td>
+            <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
+            <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
+        </td>
+	{% endif %}
+
+    <td>
+
+        <!-- Label the tier - which is the curation id, Geneset.cur_id -->
+        {% if gs.cur_id == 1 %}
+            <span class="tier1">Tier I</span>
+        {% endif %}
+        {% if gs.cur_id == 2 %}
+            <span class="tier2">Tier II</span>
+        {% endif %}
+        {% if gs.cur_id == 3 %}
+            <span class="tier3">Tier III</span>
+        {% endif %}
+        {% if gs.cur_id == 4 %}
+            <span class="tier4">Tier IV</span>
+        {% endif %}
+        {% if gs.cur_id == 5 %}
+            <span class="tier5">Tier V</span>
+        {% endif %}
+    </td>
+
+    <td>
+        {#
+        <span id="sp-tag-{{gs.geneset_id}}"></span>
+        #}
+        <span id="sp-tag-{{gs.geneset_id}}" class="sp-tag-{{gs.sp_id}}">
+        </span>
+    </td>
+
+    <td>
+        <!-- Show the geneset size -->
+        <span data-toggle="tooltip" data-rel="tooltip"
+              data-original-title="{% if geneset_threshold_counts is defined %}Gene count (In threshold count){% else %}Gene count{% endif %}">
+            {% if geneset_threshold_counts is defined %}
+                <strong>{{ gs.count }} ({{ geneset_threshold_counts[gs.geneset_id] }})</strong>
+            {% else %}
+                <strong>{{ gs.count }} </strong>
+            {% endif %}
+        </span>
+    </td>
+
+    <td>
+		<!-- Label the attribution -->
+		{% if not gs.attribution or gs.attribution == 1 or not attribs %}
+			{# nothing! #}
+		{% else %}
+			<span class="att-{{ attribs[gs.attribution] }}">
+			</span>
+		{% endif %}
+
+    </td>
+
+
+
+
+    <td width="60%">
+
+        <a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }} </a>
+        <!-- need status for if not normal -->
+        {% if gs.status != "normal" %}
+            <span class="gs_status gs_{{ gs.status }}"
+                  title="This GeneSet has been marked as {{ gs.status }}">{{ gs.status }}</span>
+
+            <script>
+                // This fixes the deprecated tags which weren't rendering properly
+                // due to the gs_ids attached at the end.
+                $('.gs_status').each(function (index) {
+
+                    var dep = '{{gs.status}}';
+
+                    if (dep.slice(0, 3) === 'dep') {
+
+                        $(this).attr('class', 'gs_deprecated');
+                        $(this).attr('title', 
+                            'This GeneSet has been marked as deprecated.'
+                        );
+                        $(this).html('Deprecated');
+
+                    } else if (dep.slice(0, 3) === 'del') {
+
+                        $(this).attr('class', 'gs_deleted');
+                        $(this).attr(
+                            'title', 
+                            'This GeneSet has been permanently deleted.'
+                        );
+                        $(this).html('Deleted');
+                    }
+                });
+            </script>
+        {% endif %}
+    </td>
+
+
+    {% if g.user is defined %}
+        {% if proj is defined %}
+            <td>
+                <span id="add-{{ gs.geneset_id }}-button" data-toggle="tooltip"
+                      data-rel="tooltip" data-original-title="Add Gene Set to Projects"
+                      data-target="#addModal_{{ gs.geneset_id }}"
+                      data-proj-id="{{ proj.project_id }}" data-gs-id="{{ gs.geneset_id }}"
+                      class="addgs-to-project">
+                    <i class="fa fa-folder-o"></i>
+                </span>
+            </td>
+        {% endif %}
+    {% endif %}
+
+    {# only want to display this from the projects page. This is not the correct way...#}
+    {% if request.endpoint == "render_project_genesets" %}
+
+        {% if g.user is defined %}
+            {% if proj is defined %}
+                <td>
+                    <span id="remove-geneset-{{ gs.geneset_id }}" data-toggle="tooltip"
+                          data-rel="tooltip" data-original-title="Remove Gene Set From Project"
+                          data-target="#removeModal_{{ gs.geneset_id }}"
+                          data-proj-id="{{ proj.project_id }}" data-gs-id="{{ gs.geneset_id }}"
+                          class="remove-from-project">
+                        <i class="fa fa-trash-o"></i>
+                    </span>
+
+                    {% include 'modal/removeGenesetFromProject.html' %}
+                </td>
+            {% endif %}
+        {% endif %}
+
+    {% endif %}
+
+    <td>
+
+            <span class="rowExpand" 
+            {% if proj is defined %}
+                  data-placement="top" data-toggle="tooltip"
+				  data-rel="tooltip" 
+                  data-original-title="View More Information"
+				  title="More Information" 
+            {% endif %}
+                  style="margin: 2px; padding: 0px 2px;">
+                <span id="onGenesetMinus_{{ gs.geneset_id }}" 
+                      style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i>
+                </span>
+				<span id="offGenesetPlus_{{ gs.geneset_id }}" 
+                      style="color: #808080;">
+                    <i class="fa fa-plus"></i>
+                </span>
+			</span>
+
+    </td>
+
+</tr>
+
+<!-- ##################### Geneset MetaContent #################3-->
+<tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
+    <td colspan="100%">
+
+        <table class="table table-hover table-striped">
+
+            <tr>
+                <th style="width: 25%;">Figure Label:</th>
+                <td style="width: 75%;">{{ gs.abbreviation }}</td>
+            </tr>
+
+            <tr>
+                <th>Description:</th>
+                <td id="desc_{{gs.geneset_id}}">
+                    {{ gs.description }}
+                </td>
+            </tr>
+
+            <!-- TODO account for null authors, get Publication info -->
+            <tr>
+                <th>Authors:</th>
+                <td><i>
+                    {% if gs.publication is defined and gs.publication.authors is defined %} 
+                        {{ gs.publication.authors }} 
+                    {% else %}None{% endif %}
+                </i></td>
+            </tr>
+             <tr>
+                <th>Geneset Count:</th>
+                <td>{{ gs.count }}</td>
+            </tr>
+
+            {% if geneset_threshold_counts is defined %}
+                <tr>
+                    <th>Threshold Count:</th>
+                    <td>{{ geneset_threshold_counts[gs.geneset_id]}}</td>
+                </tr>
+            {% endif %}
+
+        </table>
+    </td>
+</tr>
+<!-- ###################### End ##########################-->
+
+<style type="text/css">
+
+    .rowExpand, .rExpand {
+        cursor: pointer;
+    }
+
+    .addgs-to-project, .remove-from-project {
+        cursor: pointer;
+        color: #808080;
+        margin: 2px;
+        padding: 0px 2px;"
+    }
+
+</style>
+
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+<script type="text/javascript">
+
+    $(function() {
+        // The alist returned by the server should already be sorted
+        var splist = {{ species|safe }};
+        makeSpeciesTags(splist);
+    });
+
+
+    function toggleDetails(id) {
+        var element = document.getElementById(id);
+
+        if (element.style.display == "none")
+            element.style.display = "block";
+
+        else if (element.style.display == "")
+            element.style.display = "block";
+
+        else
+            element.style.display = "none";
+    }
+
+    $('.remove-from-project').on('click', function() {
+        var projID = $(this).attr('data-proj-id');
+        var gsID = $(this).attr('data-gs-id');
+        $("#projID").html(projID);
+        $("#gsID").html(gsID);
+        $("#removeModal-" + projID + "-" + gsID).modal('show');
+    });
+
+    $('.addgs-to-project').on('click', function (event) {
+        event.stopPropagation();
+        var gsid = $(this).attr('data-gs-id');
+
+        // The 'Add GeneSet(s) to Project' button
+        openGSModal('#addToProjectModal', [gsid])();
+        //openGSModal('#addToProjectModal', gschecked);
+    });
+
+
+    //pass remove modal values to function
+    function removeSelected(geneset_id, proj_id) {
+        $.ajax({
+            type: "GET",
+            url: "../removeGenesetFromProject",
+            data: {"gs_id": geneset_id, "proj_id": proj_id},
+            success: function (data) {
+                location.reload();
+                $(document).trigger("add-alerts", [{
+                    'message': "Gene set successfully removed from project.",
+                    'priority': 'success'
+                }]);
+            }
+        });
+    }
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+    /**
+      * Handles the expansion of the element containing GeneSet
+      * metacontent on the search, projects, and analyze pages.
+      * When the '+' icon next to a set is clicked, this function is called
+      * and reveals the metacontent and updates the +/- icons.
+      */
+    $(".rowExpand").on('click', function (event) {
+
+        event.stopImmediatePropagation();
+
+        var childId = $(this).parents("tr").prop("id");
+
+        // So for some reason this class is added to the
+        // <td colspan="100%"> element that's part of the GS metacontent
+        // row. BUT, this only happens on the search page. It's what is
+        // causing the text/content to overflow out of the search results
+        // borders. Idk why it's getting added so this doesn't solve the
+        // root of the problem but fixes the overflow bug.
+        $("#genesetdetails_" + childId)
+            .children('td')
+            .removeClass('force-table-responsive');
+
+        var visible = $("#genesetdetails_" + childId).is(":visible");
+
+        $("#genesetdetails_" + childId).toggle();
+        $("#offGenesetPlus_" + childId).toggle();
+        $("#onGenesetMinus_" + childId).toggle();
+
+        if (!visible) {
+            $('#offGenesetPlus_' + childId)
+                .parent()
+                .attr('data-original-title', 'Less Information');
+        } else {
+            $('#offGenesetPlus_' + childId)
+                .parent()
+                .attr('data-original-title', 'More Information');
+        }
+    });
+
+    //Wanted to display the number of checked boxes. Not playing nicely with select all from project
+    //$("input:checkbox").change(function() {
+    //        var num_checked = $("*[id^=geneset_]:checked").length;
+    //        alert(num_checked);
+    //});
+
+</script>
+
+

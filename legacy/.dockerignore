@@ -1,0 +1,6 @@
+deploy/
+.github/
+docs/
+skaffold.yaml
+.gitignore
+.git

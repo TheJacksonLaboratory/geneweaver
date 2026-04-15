@@ -1,0 +1,41 @@
+{# This modal allows you to edit the geneset species #}
+
+{% if species is defined %}
+
+<div class="modal fade" id="editSpeciesByGSID">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editSpeciesName" name="editSpeciesName" method="post" action="#" class="form-horizontal"
+                  novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Species</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group-btn select">
+                        <div id="species" class="btn-group bootstrap-select form-control">
+                                <button id='selectedSpecies' type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown" aria-expanded="false">
+									{% for sp_id, sp_name in species if geneset.sp_id == sp_id %}
+										<span class="selected">{{ sp_name }}</span>
+									{% endfor %}
+                                    <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu option" role="menu">
+                                {% for sp_id, sp_name in species %}
+                                    <li id="{{ sp_id }}"><a href="#">{{ sp_name }}</a></li>
+                                {% endfor %}
+                                </ul>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmitSpecies">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endif %}

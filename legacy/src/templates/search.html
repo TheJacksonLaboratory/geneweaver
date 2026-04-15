@@ -1,0 +1,16 @@
+<!--
+This page is a wrapper for the search page contents. Actual search page results are defined in the /search folder partials
+-->
+{% set title="Search Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<!-- Define a div whos contents will be replaced every time a new search is performed. So, when say the number of genes slider is 
+changed, an ajax request that recreates the contents of this div will be sent to the browser, and it's contents updated, including all search options. -->
+<div id="replaceConentsOnUpdatedSeach">
+
+{% include 'search/search_wrapper_contents.html' %}
+
+</div>
+
+
+{% include 'footer.html' %}

@@ -1,0 +1,1352 @@
+<style type="text/css">
+
+    .plus:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    .minus .plus:before {
+        content: "\f068";
+    }
+
+    .openstar:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f006";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+        color: #006400;
+    }
+
+    .closedstar:before {
+        content: "\f005";
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+        color: #006400;
+    }
+
+    .clickableEdit {
+        cursor: pointer;
+        color: #d3d3d3;
+    }
+    .clickableDelete {
+        cursor: pointer;
+    }
+
+    .clickableShare {
+        cursor: pointer;
+    }
+
+    /* CSS added to change chevrons on accordion select. */
+    .panel-heading a.collapsed:before {
+        padding-left: 10px;
+        font-family: FontAwesome;
+        content: "\f0da";
+    }
+
+    .panel-heading a:before {
+        padding-left: 10px;
+        font-family: FontAwesome;
+        content: "\f0d7";
+    }
+
+    .panel-heading {
+        max-height: 60px;
+        border: none;
+    }
+
+    table#favProjects td {
+        vertical-align: middle;
+    }
+
+</style>
+
+{% if "user" in g %}
+    <div class="col-md-8">
+        <div class="page-header"><h2>Favorite Projects</h2></div>
+
+        <div class="panel-body">
+            <form id="manageFavProjects" name="manageFavProject" method="post" action="#"
+                  class="form-horizontal form-inline" novalidate="novalidate">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover" id="favProjects" cellpadding="0" cellspacing="0">
+                    <thead>
+                    <tr style="background: #ececec;">
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>Project Name</th>
+                        <th style="text-align: center;">Size</th>
+                        <th style="text-align: center;">Date</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                    </tr>
+                    </thead>
+
+                </table>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="page-header"><h2>Projects</h2></div>
+
+        <div class="panel-body">
+            <form id="manageProjects" name="manageProject" method="post" action="#"
+                  class="form-horizontal form-inline" novalidate="novalidate">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover" id="allProjects" cellpadding="0" cellspacing="0">
+                    <thead>
+                    <tr style="background: #ececec;">
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>Project Name</th>
+                        <th style="text-align: center;">Size</th>
+                        <th style="text-align: center;">Date</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                    </tr>
+                    </thead>
+
+                </table>
+            </form>
+        </div>
+    </div>
+
+{% else %}
+
+    <div class="alert alert-warning fade in">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+        You do not have any projects.
+    </div>
+
+{% endif %}
+
+
+{% include 'modal/editProjectName.html' %}
+
+<script type="text/javascript">
+
+    /**
+      * Renders the star cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
+    var drawStarCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Star',
+            type: 'button',
+            title: 'Star Project'
+        });
+
+        var inner = $('<span/>', {
+            class: 'starToggler',
+            id: 'projstar-' + rowData.project_id,
+            'data-proj-id': rowData.project_id,
+            'data-prod': rowData.project_id,
+            'data-proj-name': rowData.name
+        });
+
+        var openStar = $('<span/>', {
+            class: 'openstar'
+        });
+
+        var closedStar = $('<span/>', {
+            class: 'closedstar'
+        });
+
+        if (!rowData.star || rowData.star === 'f')
+            closedStar.css('display', 'none');
+        else
+            openStar.css('display', 'none');
+
+        inner.append(openStar);
+        inner.append(closedStar);
+
+        $(ntd).append(wrap.append(inner));
+    };
+
+    /**
+      * Renders the delete cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
+    var drawDeleteCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Delete',
+            type: 'button',
+            title: 'Delete Project'
+        });
+        var inner = $('<span/>', {
+            class: 'clickableDelete',
+            id: 'delete-' + rowData.project_id,
+            'data-proj-id': rowData.project_id,
+            'data-proj-name': rowData.name
+        });
+        var icon = $('<i/>', {
+            class: 'fa fa-trash-o'
+        });
+
+        $(ntd).append(wrap.append(inner.append(icon)));
+    };
+
+    /**
+      * Renders the sharing cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
+    var drawShareCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Share',
+            type: 'button',
+            title: 'Share Project'
+        });
+        var inner = $('<span/>', {
+            class: 'clickableShare',
+            id: 'share-' + rowData.project_id,
+            'data-proj-id': rowData.project_id,
+            'data-proj-grp': rowData.group_id
+        });
+        var icon = $('<i/>', {
+            class: 'fa fa-share-alt'
+        });
+
+        $(ntd).append(wrap.append(inner.append(icon)));
+    };
+
+    /**
+      * Renders the group cell for a row in the data table if the project has
+      * been shared with > 1 groups.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
+    var drawGroupCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        if (rowData.group_id == -1)
+            return;
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Shared',
+            type: 'button',
+            title: 'Shared'
+        });
+        var inner = $('<span/>', {
+            class: 'showProjectGroups',
+            'data-proj-id': rowData.project_id
+        });
+        var icon = $('<i/>', {
+            class: 'fa fa-group'
+        });
+
+        $(ntd).append(wrap.append(inner.append(icon)));
+    };
+
+    /**
+      * Renders the checkbox cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
+    var drawCheckboxCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<div/>', {
+            class: 'ui-checkbox proj-checkbox'
+        });
+        var label = $('<label/>', {
+            for: 'proj-' + rowData.project_id + '-allcheck'
+        });
+        var input = $('<input/>', {
+            type: 'checkbox',
+            'data-project': rowData.project_id,
+            'data-project-name': rowData.name,
+            id: 'proj-' + rowData.project_id + '-allcheck'
+        });
+
+        $(ntd).append(wrap.append(label.append(input)));
+        //return ''
+    };
+
+    var drawExpandCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+        var span = $('<span/>', {
+            id: 'proj-' + rowData.project_id,
+            class: 'toggler',
+            'data-prod': rowData.project_id
+        });
+        var plus = $('<span/>', {
+            class: 'plus'
+        });
+        var minus = $('<span/>', {
+            class: 'minus'
+        });
+
+        span.append(plus);
+        span.append(minus);
+
+        $(ntd).append(span);
+    };
+
+    /**
+      * Renders the project name cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
+    var drawNameCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var nameWrap = $('<strong/>').text(cellData);
+        var editButton = $('<span/>', {
+            class: 'clickableEdit',
+            'data-original-title': 'edit',
+            'data-placement': 'top',
+            'data-proj-name': rowData.name,
+            'data-proj-id': rowData.project_id,
+            'data-rel': 'tooltip',
+            'data-toggle': 'tooltip',
+            id: 'edit-' + rowData.project_id,
+            title: 'Edit Name',
+            type: 'button'
+        });
+        var editIcon = $('<i/>', {
+            class: 'fa fa-pencil',
+            style: 'margin: 0 0 0 5px'
+        });
+
+        $(ntd).append(nameWrap);
+        $(ntd).append(editButton.append(editIcon));
+    };
+
+    var drawDateCell = function(ntd, _, _, _, _) {
+        $(ntd).css('text-align', 'center');
+    };
+
+    {#favProjectTable;#}
+    var favIndexes;
+
+    $(function() {
+
+        var setCache = {};
+
+        var rowData;
+        var favData;
+
+        var favProjectTable = $('#favProjects').DataTable({
+            processing: false,
+            serverside: false,
+            pageLength: -1,
+            paginate: false,
+            sort: false,
+            displayLength: 100,
+            language: { emptyTable: "You haven't created any favorite projects! Click the star to add/remove a project."  },
+            columnDefs: [
+                {
+                    targets: 0,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawCheckboxCell
+                },
+                {
+                    targets: 1,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawExpandCell
+                },
+                {
+                    targets: 2,
+                    data: 'name',
+                    defaultContent: ' ',
+                    createdCell: drawNameCell
+                },
+                {
+                    targets: 3,
+                    data: 'count',
+                    defaultContent: ' '
+				},
+                {
+                    targets: 4,
+                    data: 'created',
+                    defaultContent: ' ',
+                    createdCell: drawDateCell
+				},
+                {
+                    targets: 5,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawGroupCell
+				},
+                {
+                    targets: 6,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawShareCell
+				},
+                {
+                    targets: 7,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawDeleteCell
+				},
+                {
+                    targets: 8,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawStarCell
+				},
+            ],
+            // Attach the project ID to each row
+            createdRow: function(row, data, dex) {
+                $(row).attr('id', data.project_id);
+            }
+        });
+
+        var redrawFavProjectTable = function () {
+            var indexes = projectTable.rows().indexes().filter(function (value, index) {
+                var faved = projectTable.row(value).data().star;
+                return !(!faved || faved === 'f');
+            });
+            favData = projectTable.rows(indexes).data();
+            favProjectTable.clear().draw();
+            favProjectTable.rows.add(favData);
+            favProjectTable.columns.adjust().draw();
+        }
+
+        var projectTable = $('#allProjects').DataTable({
+            processing: false,
+            serverside: false,
+            pageLength: -1,
+            paginate: false,
+            sort: false,
+            displayLength: 100,
+            language: { emptyTable: "You haven't created any projects!" },
+            ajax: {
+                dataSrc: '',
+                url: '/get_user_projects.json',
+                type: 'GET'
+            },
+            initComplete: function(settings, json) {
+                redrawFavProjectTable();
+            },
+            columnDefs: [
+                {
+                    targets: 0,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawCheckboxCell
+                },
+                {
+                    targets: 1,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawExpandCell
+                },
+                {
+                    targets: 2,
+                    data: 'name',
+                    defaultContent: ' ',
+                    createdCell: drawNameCell
+                },
+                {
+                    targets: 3,
+                    data: 'count',
+                    defaultContent: ' '
+				},
+                {
+                    targets: 4,
+                    data: 'created',
+                    defaultContent: ' ',
+                    createdCell: drawDateCell
+				},
+                {
+                    targets: 5,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawGroupCell
+				},
+                {
+                    targets: 6,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawShareCell
+				},
+                {
+                    targets: 7,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawDeleteCell
+				},
+                {
+                    targets: 8,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawStarCell
+				},
+            ],
+            // Attach the project ID to each row
+            createdRow: function(row, data, dex) {
+                $(row).attr('id', data.project_id);
+            }
+        });
+
+
+        // We have to maintain a list of gene sets that are checked because we
+        // can no longer act (delete sets, add them to projects) on them when they
+        // are not displayed. DataTables removes sets from the DOM when we
+        // hide the sets associated with a project.
+        var checkedGenesets = {};
+
+        var parseGenesetID = function(gs) {
+
+            return gs.split('_').pop();
+        }
+
+        /** Checks to see when the project added successfully alert fires
+          * then refreshes the data table with the newly added project.
+          */
+        var newProjectCallback = function(mutationList) {
+
+            for (var i = 0; i < mutationList.length; i++) {
+
+                var mutation = mutationList[i];
+                var node = $(mutation.target);
+
+                // gross
+                if (node.text().search('Project name added successfully') != -1)
+                    projectTable.ajax.reload();
+            }
+        };
+
+        var newProjectObserver = new MutationObserver(newProjectCallback);
+
+        newProjectObserver.observe(
+            document.getElementById('project-alert'),
+            {childList: true, subtree: true}
+        );
+
+        // Call modal to remove genesets from projects
+        $('#callRemoveGenesets').on('click', function () {
+
+            var gsids = Object.keys(checkedGenesets);
+
+            if (gsids.length == 0) {
+
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+
+                $(document).trigger("add-alerts", [{
+                    'message': "You must select at least one GeneSet.",
+                    'priority': 'danger'
+                }]);
+
+            } else {
+
+                var p = gsids.join(",");
+
+                window.location.href = '../removegenesetsfromproject/' + p;
+            }
+        });
+
+        // Call modal for combine all gene sets
+        $('#callCombineGeneSets').on('click', function () {
+
+            var gsids = Object.keys(checkedGenesets);
+
+            openGSModal('#addToProjectModal', gsids)();
+        });
+
+        // Call function to export genesets as OmicsSoft
+        $('#callExportOmicsSoft').on('click', function () {
+
+            var gsids = Object.keys(checkedGenesets);
+
+            // display error if no genesets are selected
+            if (gsids.length == 0) {
+				$(document).trigger("add-alerts", [{
+					'message': "No GeneSets were selected for export.",
+					'priority': 'danger'
+				}]);
+
+            } else{
+
+                var i = gsids.join(",");
+                window.location = '/exportOmicsSoft/' + i;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
+            }
+        });
+
+        /**
+          * Called when a user wants to view the gene sets associated with a
+          * project. Retrieves gene set metadata using an AJAX call and stores it
+          * in a cache. The cache is used whenever a user wishes to view the sets
+          * again.
+          *
+          * arguments
+          *     tr:       the jquery object for the current project row
+          *     callback: must be the jquery child object for this row, see the
+          *               span.toggler handler below
+          */
+        var viewProjectGenesets = function(tr, callback, noshow) {
+
+            // Grabs the project ID which is attached to this row
+            var pid = $(tr).attr('id');
+
+            // Check to see if we've already made an AJAX call for this
+            // project. If we have, the gene set HTML is cached.
+            if (pid in setCache) {
+
+                // Change expansion icon to a minus symbol
+                //$('#proj-'+pid).toggleClass('minus');
+
+                if (callback && noshow)
+                    callback(setCache[pid]);
+                else
+                    callback(setCache[pid]).show();
+
+                // This is the checkbox ID for the project
+                var allclass = '#proj-' + pid + '-allcheck';
+                // This is the checkbox class for each gene set associated
+                // with the project
+                var chkclass = '.proj-' + pid + '-check';
+
+                // If this project's checkbox is checked, we should check
+                // all of the gene set checkboxes associated with it too
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+
+                    $(chkclass, setCache[pid]).each(function (index) {
+
+                        // Store the selected GSID so we can do stuff with it
+                        checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
+                        $(this).attr('checked', true);
+                    });
+
+                } else {
+
+
+                    $(chkclass, setCache[pid]).each(function (index) {
+
+                        // We no longer need this ID
+                        delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
+                        $(this).attr('checked', false);
+                    });
+                }
+
+                return;
+            }
+
+            // We haven't retrieved the gene sets associated with this project
+            // yet, so we do it now
+            $.ajax({
+                type: 'GET',
+                url: 'projectGenesets.json',
+                data: {project: pid},
+                success: function(data) {
+
+                    // This is the table element that will store gene set names
+                    // and metadata
+                    var genesetTable = $('<table/>').append(data);
+
+                    // Clicking the expansion icon should change the plus to
+                    // minus
+                    //$('#proj-'+pid).toggleClass("minus");
+
+                    // This is the checkbox ID for the project
+                    var allclass = '#proj-' + pid + '-allcheck';
+                    // This is the checkbox class for each gene set associated
+                    // with the project
+                    var chkclass = '.proj-' + pid + '-check';
+
+                    // If this project's checkbox is checked, we should check
+                    // all of the gene set checkboxes associated with it too
+                    // under this particular project
+                    if ($(allclass).attr('checked')) {
+
+                        $(chkclass, genesetTable).each(function (index) {
+
+                            checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
+                            $(this).attr('checked', true);
+                        });
+                    }
+
+                    // Add this project's gene sets to the cache
+                    setCache[pid] = genesetTable;
+
+                    if (callback && noshow)
+                        callback(genesetTable);
+                    else
+                        callback(genesetTable).show();
+                }
+            });
+        };
+
+        var checkboxCallback = function(tr) {
+
+            var pid = $(this).parents('tr').attr('id');
+            var allcheck = '#proj-' + pid + '-allcheck';
+            var gscheck = '.proj-' + pid + '-check';
+
+            // The checked check is reversed because by the time we query the
+            // checkbox, it's already marked as checked
+            if ($(allcheck).attr('checked')) {
+
+                $(gscheck).each(function (index) {
+
+                    checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
+                    $(this).attr('checked', true);
+                });
+
+            } else {
+
+                $(gscheck).each(function (index) {
+
+                    delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
+                    $(this).attr('checked', false);
+                });
+            }
+        };
+
+        /**
+          * Called when a geneset checkbox is selected. We use this to add
+          * GSIDs to the checkedGenesets object so we can keep track of all the
+          * selected sets. This must be done because when gene set metadata is
+          * hidden by datatables, we can no longer find those objects via jquery
+          * and we can't remove the sets or add them to projects.
+          */
+        $('#favProjects tbody').on('click', 'td input[type=checkbox]:checked', function() {
+
+            // Only handle gene set checkboxes
+            if ($(this).attr('id').search('geneset') == -1)
+                return;
+
+            checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+        });
+
+        /**
+          * Called when a geneset checkbox is unselected. Removes the set from
+          * the checkedGenesets object.
+          */
+        $('#favProjects tbody').on('click', 'td input[type=checkbox]:not(:checked)', function() {
+
+            // Only handle gene set checkboxes
+            if ($(this).attr('id').search('geneset') == -1)
+                return;
+
+            delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+        });
+
+        /**
+          * Triggered when a user clicks a project's checkbox. This will
+          * attempt to load all the gene sets associated with a project (if
+          * they haven't been loaded already) and select the checkboxes of
+          * all those sets.
+          */
+        $('#favProjects tbody').on('click', 'td div.proj-checkbox', function() {
+
+            // The row contains the project ID
+            var pid = $(this).parents('tr').attr('id');
+
+            var checkbox = $(this).find('input[type=checkbox]');
+            var gscheck = '.proj-' + pid + '-check';
+            var allcheck = '#proj-' + pid + '-allcheck';
+
+            // If this project hasn't been loaded before, we call the function
+            // to do so
+            if (!(pid in setCache)) {
+                viewProjectGenesets($(this).parents('tr'), checkboxCallback, true);
+                return;
+            }
+
+            // The checked check is reversed because by the time we query the
+            // checkbox, it's already marked as checked
+            if ($(allcheck).attr('checked')) {
+
+                $(gscheck, setCache[pid]).each(function (index) {
+
+                    checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
+                    $(this).attr('checked', true);
+                });
+
+            } else {
+
+                $(gscheck, setCache[pid]).each(function (index) {
+
+                    delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
+                    $(this).attr('checked', false);
+                });
+            }
+        });
+
+        /**
+          * This handler is triggered when a user clicks the '+' icon to expand
+          * a project and display the gene sets associated with the project.
+          * When the plus icon is clicked, this function calls
+          * viewProjectGenesets which uses AJAX to retrieve the gene set
+          * metadata and embeds the data as HTML under the project.
+          */
+        $('#favProjects tbody').on('click', 'td span.toggler', function() {
+
+            var tr = $(this).parents('tr');
+
+            if (favProjectTable.row(tr).child.isShown()) {
+
+                favProjectTable.row(tr).child.hide();
+
+                tr.removeClass('shown');
+
+                // We're hiding the gene set metadata, so remove the minus
+                // symbol for the project and change it back to a plus
+                tr.find('.toggler').toggleClass('minus');
+
+            } else {
+
+                viewProjectGenesets(tr, favProjectTable.row(tr).child);
+
+                tr.addClass('shown');
+                tr.find('.toggler').toggleClass("minus");
+            }
+        });
+
+        /**
+          * This handler is triggered when a user clicks the pencil icon next
+          * to a project name. A modal is activated allowing the user to change
+          * the name of their project.
+          */
+        $('#favProjects tbody').on('click', 'td span.clickableEdit', function() {
+
+           var projId = $(this).attr('data-proj-id');
+           var projName = $(this).attr('data-proj-name');
+           var editComment = $(this).attr('data-proj-notes');
+
+            $("#projName").val(projName);
+            $("#projId").val(projId);
+            $("#editComment").val(editComment);
+            $("#editModal").modal('show');
+        });
+
+        /**
+          * This handler is triggered when a user clicks the share icon.
+          */
+        $('#favProjects tbody').on('click', 'td span.clickableShare', function() {
+
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            var projGrp = $(this).attr('data-proj-grp');
+
+            $.ajax({
+                type: "GET",
+                url: "get_add_project_group_modal",
+                data: {"project": projId},
+                success: function(data) {
+
+                    var addProjectModal = $(data);
+
+                    $('body').append(addProjectModal);
+                    $("#myProjName").html(projName);
+                    $("#myProjId").val(projId);
+                    $("#myProjGrp").html(projGrp);
+                    $("#addProjToGroup-" + projId).modal('show');
+                }
+            });
+        });
+
+        /**
+          * This handler is triggered when a user clicks the groups icon.
+          * To prevent the template engine from slowing page loading to a
+          * crawl, we no longer let it render modals for every single shared
+          * project. Instead, we have flask render the shared group modal,
+          * retrieve it through AJAX, then embed it into the page.
+          */
+        $('#favProjects tbody').on('click', 'td span.showProjectGroups', function() {
+           var projId = $(this).attr('data-proj-id');
+            // Retrieve rendered groups modal
+            $.ajax({
+                type: "GET",
+                url: "get_project_groups_modal",
+                data: {"project": projId},
+                success: function(data) {
+
+                    var projectModal = $(data);
+
+                    $.ajax({
+                        type: "GET",
+                        url: "../getProjectGroups.json",
+                        data: {"proj_id": projId},
+                        success: function (data) {
+                            var v = JSON.parse(data);
+                            text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
+                            for (var i in v) {
+                                text += '<tr>';
+                                text += "<td>" + v[i]['grp_name'] + "</td>";
+                                text += "<td>" + v[i]['usr_email'] + "</td>";
+                                if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
+                                    text += "<td><span class=\"label label-danger\">Private</span></td>";
+                                } else {
+                                    text += "<td><span class=\"label label-info\">Public</span></td>";
+                                }
+                                text += "</tr>";
+                            }
+                            text += "</table>";
+                            // Append the flask rendered modal to the
+                            // body so it can be shown
+                            $('body').append(projectModal);
+                            $("#groups-"+projId).html(text);
+                            $("#groupsModal-"+projId).modal('show');
+                        }
+                    });
+                }
+            });
+        });
+
+        /**
+          * Activated when the user clicks the trash icon. Allows the user to
+          * delete the project.
+          */
+        $('#favProjects tbody').on('click', 'td span.clickableDelete', function() {
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+
+            $("#myModalLabel").html(projName);
+            $("#myModalValue").val(projId);
+            $("#delProjects").modal('show');
+        });
+
+        /**
+          * Activated when the user clicks the star icon.
+          */
+        $('#favProjects tbody').on('click', 'td span.starToggler', function() {
+
+            var pid = ($(this).attr('data-proj-id'));
+            var starElement = '#projstar-' + pid;
+
+            $.ajax({
+                type: "GET",
+                url: "/updateStaredProject",
+                data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
+                success: function (data) {
+                    projectTable.ajax.reload(function ( json ) {
+                        redrawFavProjectTable();
+                    });
+                    if ($(starElement).find('.openstar').is(":hidden")) {
+
+                        $(starElement).find('.openstar').show();
+                        $(starElement).find('.closedstar').hide();
+                    } else {
+
+                        $(starElement).find('.openstar').hide();
+                        $(starElement).find('.closedstar').show();
+                    }
+                }
+            });
+        });
+
+        /**
+         * Called when a geneset checkbox is selected. We use this to add
+         * GSIDs to the checkedGenesets object so we can keep track of all the
+         * selected sets. This must be done because when gene set metadata is
+         * hidden by datatables, we can no longer find those objects via jquery
+         * and we can't remove the sets or add them to projects.
+         */
+        $('#allProjects tbody').on('click', 'td input[type=checkbox]:checked', function () {
+
+            // Only handle gene set checkboxes
+            if ($(this).attr('id').search('geneset') == -1)
+                return;
+
+            checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+        });
+
+        /**
+         * Called when a geneset checkbox is unselected. Removes the set from
+         * the checkedGenesets object.
+         */
+        $('#allProjects tbody').on('click', 'td input[type=checkbox]:not(:checked)', function () {
+
+            // Only handle gene set checkboxes
+            if ($(this).attr('id').search('geneset') == -1)
+                return;
+
+            delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+        });
+
+        /**
+         * Triggered when a user clicks a project's checkbox. This will
+         * attempt to load all the gene sets associated with a project (if
+         * they haven't been loaded already) and select the checkboxes of
+         * all those sets.
+         */
+        $('#allProjects tbody').on('click', 'td div.proj-checkbox', function () {
+
+            // The row contains the project ID
+            var pid = $(this).parents('tr').attr('id');
+
+            var checkbox = $(this).find('input[type=checkbox]');
+            var gscheck = '.proj-' + pid + '-check';
+            var allcheck = '#proj-' + pid + '-allcheck';
+
+            // If this project hasn't been loaded before, we call the function
+            // to do so
+            if (!(pid in setCache)) {
+                viewProjectGenesets($(this).parents('tr'), checkboxCallback, true);
+                return;
+            }
+
+            // The checked check is reversed because by the time we query the
+            // checkbox, it's already marked as checked
+            if ($(allcheck).attr('checked')) {
+
+                $(gscheck, setCache[pid]).each(function (index) {
+
+                    checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
+                    $(this).attr('checked', true);
+                });
+
+            } else {
+
+                $(gscheck, setCache[pid]).each(function (index) {
+
+                    delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
+                    $(this).attr('checked', false);
+                });
+            }
+        });
+
+        /**
+         * This handler is triggered when a user clicks the '+' icon to expand
+         * a project and display the gene sets associated with the project.
+         * When the plus icon is clicked, this function calls
+         * viewProjectGenesets which uses AJAX to retrieve the gene set
+         * metadata and embeds the data as HTML under the project.
+         */
+        $('#allProjects tbody').on('click', 'td span.toggler', function () {
+
+            var tr = $(this).parents('tr');
+
+            if (projectTable.row(tr).child.isShown()) {
+
+                projectTable.row(tr).child.hide();
+
+                tr.removeClass('shown');
+
+                // We're hiding the gene set metadata, so remove the minus
+                // symbol for the project and change it back to a plus
+                tr.find('.toggler').toggleClass('minus');
+
+            } else {
+
+                viewProjectGenesets(tr, projectTable.row(tr).child);
+
+                tr.addClass('shown');
+                tr.find('.toggler').toggleClass("minus");
+            }
+        });
+
+        /**
+         * This handler is triggered when a user clicks the pencil icon next
+         * to a project name. A modal is activated allowing the user to change
+         * the name of their project.
+         */
+        $('#allProjects tbody').on('click', 'td span.clickableEdit', function () {
+
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            var editComment = $(this).attr('data-proj-notes');
+
+            $("#projName").val(projName);
+            $("#projId").val(projId);
+            $("#editComment").val(editComment);
+            $("#editModal").modal('show');
+        });
+
+        /**
+         * This handler is triggered when a user clicks the share icon.
+         */
+        $('#allProjects tbody').on('click', 'td span.clickableShare', function () {
+
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            var projGrp = $(this).attr('data-proj-grp');
+
+            $.ajax({
+                type: "GET",
+                url: "get_add_project_group_modal",
+                data: {"project": projId},
+                success: function (data) {
+
+                    var addProjectModal = $(data);
+
+                    $('body').append(addProjectModal);
+                    $("#myProjName").html(projName);
+                    $("#myProjId").val(projId);
+                    $("#myProjGrp").html(projGrp);
+                    $("#addProjToGroup-" + projId).modal('show');
+                }
+            });
+        });
+
+        /**
+         * This handler is triggered when a user clicks the groups icon.
+         * To prevent the template engine from slowing page loading to a
+         * crawl, we no longer let it render modals for every single shared
+         * project. Instead, we have flask render the shared group modal,
+         * retrieve it through AJAX, then embed it into the page.
+         */
+        $('#allProjects tbody').on('click', 'td span.showProjectGroups', function () {
+            var projId = $(this).attr('data-proj-id');
+            // Retrieve rendered groups modal
+            $.ajax({
+                type: "GET",
+                url: "get_project_groups_modal",
+                data: {"project": projId},
+                success: function (data) {
+
+                    var projectModal = $(data);
+
+                    $.ajax({
+                        type: "GET",
+                        url: "../getProjectGroups.json",
+                        data: {"proj_id": projId},
+                        success: function (data) {
+                            var v = JSON.parse(data);
+                            text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
+                            for (var i in v) {
+                                text += '<tr>';
+                                text += "<td>" + v[i]['grp_name'] + "</td>";
+                                text += "<td>" + v[i]['usr_email'] + "</td>";
+                                if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
+                                    text += "<td><span class=\"label label-danger\">Private</span></td>";
+                                } else {
+                                    text += "<td><span class=\"label label-info\">Public</span></td>";
+                                }
+                                text += "</tr>";
+                            }
+                            text += "</table>";
+                            // Append the flask rendered modal to the
+                            // body so it can be shown
+                            $('body').append(projectModal);
+                            $("#groups-" + projId).html(text);
+                            $("#groupsModal-" + projId).modal('show');
+                        }
+                    });
+                }
+            });
+        });
+
+        /**
+         * Activated when the user clicks the trash icon. Allows the user to
+         * delete the project.
+         */
+        $('#allProjects tbody').on('click', 'td span.clickableDelete', function () {
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+
+            $("#myModalLabel").html(projName);
+            $("#myModalValue").val(projId);
+            $("#delProjects").modal('show');
+        });
+
+        /**
+         * Activated when the user clicks the star icon.
+         */
+        $('#allProjects tbody').on('click', 'td span.starToggler', function () {
+
+            var pid = ($(this).attr('data-proj-id'));
+            var starElement = '#projstar-' + pid;
+
+            $.ajax({
+                type: "GET",
+                url: "/updateStaredProject",
+                data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
+                success: function (data) {
+                    projectTable.ajax.reload(function ( json ) {
+                        redrawFavProjectTable();
+                    });
+                    // redrawFavProjectTable();
+                    if ($(starElement).find('.openstar').is(":hidden")) {
+
+                        $(starElement).find('.openstar').show();
+                        $(starElement).find('.closedstar').hide();
+                    } else {
+
+                        $(starElement).find('.openstar').hide();
+                        $(starElement).find('.closedstar').show();
+                    }
+                }
+            });
+        });
+
+
+    // Process the project name change
+        $('#editSubmit').on('click', function () {
+           var n = $('#projName').val();
+            var i = $('#projId').val();
+            var c = $('#editComment').val();
+            $.ajax({
+                type: "GET",
+                url: "/changeProjectNameById",
+                data: {"projid": i, "projname": n, "comments": c},
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project name changed successfully.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        location.reload()
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                },
+                error: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while changing project name.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+
+        //Process usr to group
+        //$('.addProjToGroup').on('click', function () {
+        //$('#addProjectsToGroups').on('click', function () {
+
+        /**
+          * This handler is triggered after a user clicks the share icon,
+          * selects a group to share with, and hits the "Update Groups" Button.
+          * To prevent the template engine from slowing page loading to a
+          * crawl, we no longer let it render this modal for every single
+          * project. Instead, we have flask render the share with group modal,
+          * retrieve it through AJAX, then embed it into the page.
+          * Because we inject this modal into the DOM, we have to delegate
+          * button click handling to the parent element this modal is appended
+          * to.
+          */
+        $('body').delegate('#addProjectsToGroups', 'click', function () {
+            var checked = [];
+            var projId = $(this).attr('data-proj-id');
+            $("#addProjToGroup-" + projId + " input[name='grpOptions[]']:checked").each(function () {
+               checked.push($(this).val());
+            });
+            var i = checked.join(",");
+            $.ajax({
+                type: "GET",
+                url: "../updateProjectGroups",
+                data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": JSON.stringify(i) },
+                success: function (data) {
+
+                    if (data.success) {
+
+                        $(document).trigger("add-alerts", [{
+                            'message': "Project Group permissions successfully updated.",
+                            'priority': 'success'
+                        }]);
+
+                        window.location.reload();
+
+                    } else {
+
+                        $(document).trigger("add-alerts", [{
+                            'message': data.message,
+                            'priority': 'error'
+                        }]);
+                    }
+                }
+            });
+        });
+
+
+    });
+
+
+    </script>

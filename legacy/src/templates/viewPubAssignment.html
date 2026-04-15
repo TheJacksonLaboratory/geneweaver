@@ -1,0 +1,579 @@
+{% set title="Publication Assignment" %}
+{% include 'header.html' %}
+
+<style>
+    .clickable_delete {
+        cursor: pointer;
+    }
+</style>
+
+{% if g.user.user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% elif view == 'no_access' %}
+    {% include 'htmlfragments/genericPermissionError.html' %}
+{% else %}
+
+    {% if view == 'group_admin' or view == 'assigner' %}
+        {% include 'modal/assignPublicationToCurator.html' %}
+    {% elif view == 'assignee' %}
+        {% include 'modal/addGenesetStub.html' %}
+    {% endif %}
+
+
+    <div class="panel panel-default">
+        <div class="panel panel-default panel-heading bg-gray-light">
+            <h3 class="panel-title">Publication Curation Assignment</h3>
+        </div>
+
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+        <div class="panel-heading"
+             style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title" style="width:100%">Pubmed ID: {{ pub.pubmed_id }}</h3>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
+                        <div class="col-xs-12 col-md-9">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <p class="text-right">
+                                        <strong>Title:</strong></p>
+                                </div>
+                                <div class="col-md-10">
+                                    <p><strong>{{ pub.title }}</strong></p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <p class="text-right">
+                                        <strong>Authors:</strong></p>
+                                </div>
+                                <div class="col-md-10">
+                                    <p>{{ pub.authors }}</p>
+                                </div>
+                            </div>
+                            {% if pub.month %}
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <p class="text-right">
+                                            <strong>Month:</strong></p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        {{ pub.month }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if pub.year %}
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <p class="text-right">
+                                            <strong>Year:</strong></p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        {{ pub.year }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <p class="text-right">
+                                        <strong>Abstract:</strong>
+                                    </p>
+                                </div>
+                                <div class="col-md-10">
+                                    <!-- no idea why I need to pad the bottom of
+                                         this,  but the following row (URL) was
+                                         squished up against the abstract -->
+                                    <div style="padding-bottom: 10px">{{ pub.abstract }}</div>
+                                </div>
+                            </div>
+                            {% if pub.pubmed_id %}
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <p class="text-right">
+                                            <strong>URL:</strong>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        <a target="_blank" href="http://www.ncbi.nlm.nih.gov/pubmed/{{ pub.pubmed_id }}">PUBMED: {{ pub.pubmed_id }}</a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-3">
+                    <div class="row">
+                        <p><strong>Curation Group:</strong> <span id="groupName">{{ group_name }}</span></p>
+                        {% if assignment.state == assignment.UNASSIGNED %}
+                            <p><strong>Curator:</strong> <span id="curatorName">Unassigned</span></p>
+                        {% else %}
+                            <p>
+                                <strong>Curator:</strong> <span id="curatorName">{{ curator.first_name }} {{ curator.last_name }}</span>
+                            </p>
+                            <p>
+                                <strong>State:</strong> <span id="state">{{ assignment.state_as_string }}</span>
+                            </p>
+                        {% endif %}
+                        <div class="form-group">
+                            <label for="notes"><h4>Notes:</h4></label>
+                                <textarea class="form-control" rows="10"
+                                          id="notes" {% if view == 'group_member' or assignment.state == assignment.REVIEWED %}readonly{% endif %}>{{ assignment.notes }}</textarea>
+
+                            {% if view != 'group_member' %}
+                                &nbsp;
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="saveNotes">
+                                    <i class="fa fa-save pull-left"></i> Save Notes
+                                </button>
+                            {% endif %}
+                        </div>
+                        {% if view == 'group_admin' %}
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="assignCurator">
+                                <i class="fa fa-user pull-left"></i> Assign To
+                                Curator
+                            </button>
+                        {% elif view == 'assigner' %}
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="assignCurator">
+                                <i class="fa fa-user pull-left"></i> Reassign
+                            </button>
+                            {% if assignment.state == assignment.READY_FOR_REVIEW %}
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="sendBack">
+                                    Send Back to Reviewer
+                                </button>
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="closePubAssignment">
+                                    Approve and Close
+                                </button>
+                            {% endif %}
+
+                        {% elif view == 'assignee' %}
+                            {% if assignment.state == assignment.ASSIGNED %}
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="newGeneset">
+                                    <i class="fa fa-plus pull-left"></i> Create New Geneset
+                                </button>
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="markAsComplete">
+                                    Mark as Complete
+                                </button>
+                            {% elif assignment.state == assignment.READY_FOR_REVIEW %}
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="markAsComplete"
+                                        disabled="true">
+                                    <i class="fa fa-check pull-left"></i>Pending Review
+                                </button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-heading"
+             style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title" style="width:100%">GeneSets Created For This Assignment:</h3>
+        </div>
+        <div class="panel-body" id="geneset_panel">
+            {% for gs in genesets %}
+                <p>
+                    <span id="curation-status" class="status-{{ assignment_map[gs.geneset_id].state }}">{{ assignment_map[gs.geneset_id].status_to_string() }}</span>
+                    <a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}
+                </p>
+                <p style="padding-left: 10px">{{ gs.description }}</p>
+            {% endfor %}
+        </div>
+        <div class="panel-heading"
+             style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title" style="width:100%">Other Visible GeneSets Associated With This Publication:</h3>
+        </div>
+        <div class="panel-body">
+            {% for gs in other_genesets %}
+                <p><a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }}</a></p>
+                <p style="padding-left: 10px">{{ gs.description }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            var stub_placeholder_index = 0;
+            var modal_stub_index = 0;
+            var original_fields = ['#name_0', '#figureLabel_0', '#description_0', '#sp_id'];
+            var fields_to_validate = [];
+            var deleted_rows = [];
+
+            function validate_form () {
+                var okay = true;
+
+                for (var i = 0; i < fields_to_validate.length; i++) {
+                    if (!$(fields_to_validate[i]).val()) {
+                        // if any required fields are blank, set status and break
+                        okay = false;
+                        break;
+                    }
+                }
+
+                if (okay) {
+                    $('#stubSubmit').attr('disabled', false).button('refresh');
+                }
+                else {
+                    $('#stubSubmit').attr('disabled', true).button('refresh');
+                }
+            }
+
+            $('#sp_id').change(validate_form);
+            $('#name_0, #figureLabel_0, #description_0').keyup(validate_form);
+
+            function reset_stub_modal() {
+
+                /*
+                  reset the genset stub modal to virgin state
+                  : only one row of empty fields
+                  : removes existing even handlers bound to rows we are about to
+                  delete
+                  :
+                 */
+
+
+                for (var i = 0; i < fields_to_validate.length; i++) {
+                    if ($.inArray(fields_to_validate[i], original_fields) == -1) {
+                        $(fields_to_validate[i]).unbind('keyup');
+                    }
+                }
+
+                fields_to_validate = original_fields.slice();
+
+                $('#stubSubmit').attr('disabled', true).button('refresh');
+
+                $('#name_0').val("");
+                $('#figureLabel_0').val("");
+                $('#description_0').val("");
+                $('#sp_id').val([]);
+
+
+
+                // unbind all of the on click handlers for any delete row
+                // buttons left on the form. loop starts at 1 because the
+                // first row does not have a delete button
+                for (var i = 1; i <= modal_stub_index; i++) {
+                    if ($.inArray(i, deleted_rows) == -1) {
+                        $('#deleteRow_' + i).unbind('click');
+                    }
+                }
+
+                $('#newRowContainer').html("");
+
+                modal_stub_index = 0;
+                deleted_rows = [];
+            }
+
+            {% if view != 'group_member' %}
+                // no idea why this was needed, but the "Save Notes" button was
+                // disabled when the page was first rendered
+                $('#saveNotes').prop("disabled", false).button("refresh");
+            {% endif %}
+
+            $('#assignCurator').on('click', function () {
+
+                // when we show the modal window, we don't want a curator selected.
+                $('#selectCurator').val("").trigger('change.select2');
+
+                // submit button will be disabled until the user selects a group radio button
+                $('#assignToCurator').prop("disabled", true).button("refresh");
+                $('#assignPubToCuratorModal').modal('show');
+            });
+
+            $('#selectCurator').change(function() {
+                // submit button will be disabled until the user selects a curator
+                // radio button
+                $('#assignToCurator').prop('disabled', false).button('refresh');
+            });
+
+            function handlePostJsonError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+            /*
+            event handler for row delete button click
+             */
+            function delete_click() {
+
+                var row = ($(this).attr("data-row"));
+                deleted_rows.push(parseInt(row));
+                $('#deleteRow_' + row).unbind('click');
+
+                var fields = ['#name_', '#figureLabel_', '#description_'];
+
+                for (var i = 0; i < fields.length; i++) {
+                    var id_string = fields[i] + row;
+                    $(id_string).unbind('keyup');
+
+                    /* remove the id string from the list of modal fields
+                       to validate
+                    */
+                    var index = fields_to_validate.indexOf(id_string);
+                    if (index > -1) {
+                        fields_to_validate.splice(index, 1);
+                    }
+                }
+
+                $("#stubRow_" + row).remove();
+
+                // force the validate form function to run, if we deleted
+                // the only invalid row we want to enable to submit button
+                validate_form();
+
+            }
+
+            $('#assignToCurator').on('click', function() {
+
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }},
+                    "curator": $('#selectCurator').val()
+                };
+
+                $.post("{{ url_for('assign_publication_to_curator') }}", params, function (data) {
+
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Publication Assigned",
+                            'priority': 'success'
+                        }
+                    ]);
+
+                    var curatorName  = data.curator_name;
+                    var curatorEmail = data.curator_email;
+
+
+                    // update the modal window to include a warning that
+                    // the GeneSet is now assigned to this curator
+                    var html =      "<strong>" +
+                                    "This publication is currently assigned To " +
+                                    curatorName + "(" + curatorEmail + "). " +
+                                    "Are you sure you want to reassign it?" +
+                                    "</strong>";
+
+                    $('#alreadyAssignedWarning').html(html);
+                    $('#notes').val($('#modalNotes').val());
+                    $('#assignCurator').html("Reassign");
+                    $('#curatorName').html(curatorName);
+                }, 'json').fail(handlePostJsonError);
+
+                // After POSTing the update, refresh the page
+                location.reload();
+
+            });
+
+            $('#saveNotes').on('click', function() {
+
+                var params = {
+                    "notes": $('#notes').val(),
+                     "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('save_pub_assignment_note') }}", params, function (data) {
+                    $('#modalNotes').val($('#notes').val());
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Notes Saved",
+                            'priority': 'success'
+                        }
+                    ]);
+                }, 'json').fail(handlePostJsonError);
+            });
+
+            $('#newGeneset').on('click', function() {
+                reset_stub_modal();
+                $('#addStubModal').modal('show');
+            });
+
+            $('#markAsComplete').on('click', function() {
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('mark_pub_assignment_as_complete') }}", params, function (data) {
+
+                    if ( data.success === true ) {
+                        $('#markAsComplete').html('<i class="fa fa-check pull-left"></i>Pending Review');
+                        $('#markAsComplete').prop('disabled', true).button('refresh');
+                        $('#notes').prop('readonly', true);
+                        $('#newGeneset').remove();
+                        $('#state').html('Under Review');
+                    }
+                }, 'json').fail(handlePostJsonError);
+            });
+
+
+            $('#closePubAssignment').on('click', function() {
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('close_pub_assignment') }}", params, function (data) {
+
+                    // once the assignment is closed, remove these buttons
+                    // (should we have a button to reopen?)
+                    $('#saveNotes').remove();
+                    $('#sendBack').remove();
+                    $('#assignCurator').remove();
+                    $('#closePubAssignment').remove();
+
+                    $('#state').html('Closed');
+
+                    $('#notes').prop('readonly', true);
+
+                }, 'json').fail(handlePostJsonError);
+            });
+
+
+            $('#sendBack').on('click', function() {
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('pub_assignment_rejection') }}", params, function (data) {
+                    $('#sendBack').remove();
+                    $('#assignCurator').html('Reassign');
+                    $('#closePubAssignment').remove();
+
+                    $('#state').html('Assigned (in progress)');
+
+                }, 'json').fail(handlePostJsonError);
+            });
+
+
+            $('#addStubRow').on('click', function () {
+
+                $('#stubSubmit').attr('disabled', true).button('refresh');
+
+                // need to increment index (current value is index of last row
+                // added to window)
+                modal_stub_index++;
+
+                html = '<div class="row" style="padding-top: 10px" id="stubRow_' + modal_stub_index + '">' +
+                       '    <div class="col-md-3"><input' +
+                       '             class="form-control" name="name_' + modal_stub_index + '"' +
+                       '             id="name_' + modal_stub_index +'" type="text" required></div>' +
+                       '     <div class="col-md-3"><input' +
+                       '            class="form-control"' +
+                       '            name="figureLabel_' + modal_stub_index + '" id="figureLabel_' + modal_stub_index + '"' +
+                       '             type="text" required></div>' +
+                       '     <div class="col-md-5"><textarea' +
+                       '             class="form-control" name="description_'+ modal_stub_index + '"' +
+                       '             id="description_' + modal_stub_index + '"' +
+                       '             form="addStub" rows="1" cols="40"' +
+                       '             required></textarea></div>' +
+                       '     <div class="col-md-1">' +
+                       '          <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"' +
+                       '                data-original-title="Delete" type="button" title="Delete Row">' +
+                       '               <span class="clickable_delete" id="deleteRow_' + modal_stub_index +'"' +
+                       '                     data-row="' + modal_stub_index + '">' +
+                       '                    <i class="fa fa-trash-o"></i></span>' +
+                       '               </span></div>' +
+                       ' </div>';
+
+                $('#newRowContainer').append(html);
+                fields_to_validate.push('#name_' + modal_stub_index);
+                fields_to_validate.push('#figureLabel_' + modal_stub_index);
+                fields_to_validate.push('#description_' + modal_stub_index);
+
+                $('#name_' + modal_stub_index).keyup(validate_form);
+                $('#figureLabel_' + modal_stub_index).keyup(validate_form);
+                $('#description_' + modal_stub_index).keyup(validate_form);
+
+                $('#deleteRow_' + modal_stub_index).on('click', delete_click);
+
+            });
+
+            $('#stubSubmit').on('click', function () {
+                var params = {
+                    pub_assign_id: {{ assignment.id }},
+                    species_id: $('#sp_id').val(),
+                    stubs: []
+                };
+
+                var stubs = [];
+
+                for (var i = 0; i <= modal_stub_index; i++) {
+                    if ($.inArray(i, deleted_rows) == -1) {
+                        stubs.push({
+                            gs_name: $('#name_' + i).val(),
+                            gs_label: $('#figureLabel_' + i).val(),
+                            gs_description: $('#description_' + i).val()
+                        })
+                    }
+                }
+
+                params.stubs = JSON.stringify(stubs);
+
+                {#
+                    create a placeholder in the list of genesets. Creating the
+                    stub can take a few seconds because of the annotation.  This
+                    lets the user know something is actually happening after
+                    they click the button.
+
+                    This will be updated with a link to the GeneSet curation
+                    page once the server responds with the new genest ID
+                #}
+                var stub_index = stub_placeholder_index++;
+                $('#geneset_panel').append('<div id="stub_' + stub_index + '">loading...</div>')
+
+                $.post("{{ url_for('create_geneset_stub') }}", params, function (data) {
+
+                    let html = "";
+
+                    for (var i = 0; i < data.gs_ids.length; i++) {
+
+                        let gs_id = data.gs_ids[i];
+                        let status_id = data.assignment_map[gs_id].status_id;
+                        let status_name = data.assignment_map[gs_id].status_name;
+
+                        html = [
+                            html,
+                            '<p>',
+                                '<span id="curation-status" class="status-' + status_id + '">' + status_name + '</span>',
+                                '<a href="/curategeneset/' + gs_id + '">GS' + gs_id + '</a>: ' + stubs[i].gs_name,
+                            '</p>',
+                            '<p style="padding-left: 10px">' + stubs[i].gs_description + '</p>'
+                            ].join('');
+
+                    }
+                    reset_stub_modal();
+
+                    $('#stub_' + stub_index).html(html);
+                }, 'json').fail(handlePostJsonError);
+
+            });
+        });
+    </script>
+{% endif %}
+
+{% include 'footer.html' %}

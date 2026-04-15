@@ -1,0 +1,33 @@
+## Example batch geneset file
+#
+
+! Binary
+@ Mus musculus
+% Gene Symbol
+A Private
+
+#
+## The following lines give the label, name, and description of 
+## this set, respectively.
+#
+: EXAMPLE BGF 4
+= Batch Geneset Upload Example
++ This is a test of how the batch geneset upload system deals with empty lines, this is only a test.
+    
+     
+            
+
+#
+## The following lines give the label, name, and description of 
+## this set, respectively.
+#
+: EXAMPLE BGF 5
+= Batch Geneset Upload Example
++ This is a test of how the batch geneset upload system deals with empty lines, this is only a test.
+
+Mobp	1
+
+Mapt	1
+Mm.100974	1
+
+               

@@ -1,0 +1,69 @@
+<script>
+/*
+This script will make an ajax call to update the search page anytime a pagination page is clicked.
+*/
+
+function goToPage(pageNum) {
+	// Send the data using post
+	//Get the URL of the action from the filter form
+	var url = $( "#filterForm" ).attr( "action" );
+	//Set the value of the hidden field in the search form that indicates pagination
+	$("#searchbar_pagination_page").val(pageNum);
+    //The data to send is both the parameters from the filters and the search bar
+    var data = $( "#filterForm" ).serialize() +"&"+$( "#searchBarForm" ).serialize();
+	var posting = $.post( url, data );
+	// Put the results in a div
+	posting.done(function( data ) {
+		//Update the searchwrapper with the results
+		$( "#replaceConentsOnUpdatedSeach" ).empty().append( data );
+	});
+
+}
+</script>
+
+
+<!-- Show the panel heading with pagination -->
+<div class="panel panel-default">
+<div class="panel-heading bg-blue">
+{% if paginationValues is defined %}
+	<!-- The contents of this h3 tag show the search results panel header. The panel contains the search results.-->
+	<h3 class="panel-title">Geneset Results Found: {{paginationValues.numResults}} results. Viewing page {{paginationValues.currentPage}} of {{paginationValues.numPages}} pages </h3>
+	<!-- 
+	This is a little tricky, but allows server side pagination, based on the paginationValues dict, defined in search.py.
+	A button group is used, with buttons linking to different pages. Pages are defined in the route in the form of /search/<search term>/<pagination page>
+	TODO This is currently hard coded to show at most 5 numbered page button links. Update this to show any number of pages. Maybe use datatables style instead.
+	TODO onClick function should instead do an ajax call of the results (similar to updating the form).
+	-->
+	<div class="btn-group" style="float: right">
+	{% if paginationValues.currentPage - 5 > 0 %}
+	<!--<a href="/search/{{paginationValues.search_term}}/{{paginationValues.currentPage - 5}}">-->
+	<button onclick="goToPage({{paginationValues.currentPage - 5}})" class="btn btn-default" type="button">
+	<i class="fa fa-angle-left"></i>
+	</button>
+	<!--</a>-->
+	{% elif paginationValues.currentPage -1 > 0 %}
+	<!-- TODO If there are less than 5 results, and a result greater than 1 is currently chosen, skip back all the way to 1 -->
+	<!--<a href="/search/{{paginationValues.search_term}}/{{paginationValues.currentPage - 1}}"> -->
+	<button onclick="goToPage({{paginationValues.currentPage - 1}})" class="btn btn-default" type="button">
+	<i class="fa fa-angle-left"></i>
+	</button>
+	<!--</a>-->
+	{% else %}
+	{% endif %}
+
+	{% for i in range(paginationValues.currentPage, paginationValues.end_page_number+1) %}
+	<!-- <a href="/search/{{paginationValues.search_term}}/{{i}}"> -->
+	<button onclick="goToPage({{i}})" class="btn btn-default {% if paginationValues.currentPage == i %} active{% endif %}">{{i}}</button>
+	<!-- </a> -->
+	{% endfor %}
+        
+	{% if paginationValues.end_page_number < paginationValues.numPages %}
+	<!-- <a href="/search/{{paginationValues.search_term}}/{{paginationValues.end_page_number + 1}}"> -->
+	<button onclick="goToPage({{paginationValues.end_page_number + 1}})" class="btn btn-default" type="button">
+	<i class="fa fa-angle-right"></i>
+	</button>
+	<!-- </a> -->
+	{% endif %}
+	</div>
+{% endif %}
+</div>

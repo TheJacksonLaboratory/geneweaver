@@ -1,0 +1,293 @@
+{% set title="Set GeneSet Threshold" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-slider.css') }}"
+      rel="stylesheet">
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-slider.js') }}"></script>
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+<script src="/static/d3/BarChartThreshold.js" charset="utf-8"></script>
+
+<style type="text/css">
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
+    }
+
+    .axis path, .axis line {
+            fill: none;
+            stroke: #777;
+            shape-rendering: crispEdges;
+    }
+
+    .axis text {
+            font-family: 'Arial';
+            font-size: 13px;
+    }
+
+    .tick {
+            stroke-dasharray: 1, 2;
+    }
+
+    .bar {
+            fill: FireBrick;
+    }
+
+    .legend {
+        overflow: hidden;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    #sliderMin, #sliderMax {
+        color: #ff4500;
+    }
+
+    #chart {
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+    }
+
+
+</style>
+
+{% if geneset.geneset_id is not defined or view is not defined %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+{% else %}
+
+    <div class="loader"></div>
+
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Set GeneSet Threshold</strong></h2>
+    </div>
+
+    <div class="panel panel-default">
+    {% include 'htmlfragments/curIDBoxes.html' %}
+
+    <div class="panel-body">
+        <div class="row">
+            {# left side stuff #}
+            <div class="col-xs-12 col-md-9">
+
+                {% if is_bimodal == 'True' %}
+
+                    <div class="row">
+                        <div class="alert bg-gray-light">This GeneSet only contains one uniform value.
+                            Set threshold cannot be performed.
+                        </div>
+                    </div>
+
+                {% else %}
+
+                    <div class="row" id="result"></div>
+
+                    <div class="row">
+                        <div>
+                            <p>
+                                <strong>
+                                    <i class="fa fa-info-circle"></i> GeneSet Threshold Values
+                                </strong>
+                                allow you to select a portion of a GeneSet to include for analysis.
+                                The BarChart has been omitted due to the large nature of this GeneSet.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <div class="row">
+                        <div><p><strong>Current Threshold Values:</strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
+                                {% if threshold[1] == '0' %}
+                                    {{ maxVal }}
+                                {% else %}
+                                    {{ threshold[1] }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- TODO: Fix me to use a numeric input!! -->
+                        <p>
+                        <form><strong><label for="slider">Set New Threshold Values: </label>
+
+                            <span id="threshMinDisp">
+                                <input id="threshMin" type="number" value="{{ minVal }}"
+                                       min="{{ minVal }}" max="{{ maxVal }}" step="any"/>
+                            </span>
+                            <i class="fa fa-arrows-h"></i>
+                            <span id="threshMaxDisp">
+                                <input id="threshMax" type="number" value="{{ maxVal }}"
+                                       min="{{ minVal }}" max="{{ maxVal }}" step="any"/>
+                            </span></strong>
+                        </form>
+                        <button type="button" class="btn btn-block btn-warning" id="resetThreshold">
+                            <i class="fa fa-refresh pull-left"></i> Reset
+                        </button>
+                        </p>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+            {#  right side menu #}
+            <div class="col-xs-6 col-md-3">
+
+                <button type="button" class="btn btn-block btn-warning" id="viewGenesetDetails">
+                    <i class="fa fa-arrow-left pull-left"></i> Back to GeneSet
+                </button>
+                {% if view is defined %}
+                    <button type="button" class="btn btn-block btn-warning" id="saveThreshold">
+                        <i class="fa fa-save pull-left"></i> Save Threshold
+                    </button>
+                    <button type="button" class="btn btn-block btn-danger" id="cancelThreshold">
+                        <i class="fa fa-times pull-left"></i> Cancel Threshold
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- <body onload="myFunction()"> -->
+
+    <script type="text/javascript">
+        var b = {{ d3BarChart | safe }};
+        var t = {{ threshold[0] | string | safe }};
+        var m = {{ threshold[1] | string | safe }};
+        var amts = {{ valArray | safe }};
+
+        var minVal = {{ minVal }};
+
+        var origMinVal = {{ minVal }};
+        var origMaxVal = {{ maxVal }};
+
+        $('#threshMin').on('input', function(s) {
+            var val = $('#threshMin').val();
+            if (val < origMinVal) {
+                val = origMinVal;
+                $('#threshMin').attr({value: val});
+            }
+            $('#threshMax').attr({min: val});
+
+        });
+        $('#threshMax').on('input', function(s) {
+            var val = $('#threshMax').val();
+            if (val > origMaxVal) {
+                val = origMaxVal;
+                $('#threshMax').attr({value: val});
+            }
+            $('#threshMin').attr({max: val});
+        });
+
+        $('#resetThreshold').on('click', function(s) {
+            $('#threshMin').attr({max: origMaxVal, value: origMinVal})
+            $('#threshMax').attr({min: origMinVal, value: origMaxVal})
+        })
+
+        $("[name='g_id[]']").bootstrapSwitch();
+
+        $(window).on("load",function (e) {
+            $(".loader").fadeOut("slow");
+        });
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableHomology').popover({
+            title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
+            'within GeneWeaver. Mouseover the boxes to reveal species names.'
+        });
+
+
+        $(document).ready(function () {
+            $('#viewGenesetDetails').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if view == 'curator' %}
+                    window.location.href = '../curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
+            });
+            $('#cancelThreshold').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if view == 'curator' %}
+                    window.location.href = '../curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
+            });
+            $('#saveThreshold').on('click', function (e) {
+                var min = $('#threshMin').val();
+                var max = $('#threshMax').val();
+                $.trim(min);
+                $.trim(max);
+                //update geneset_value for the sp_id
+                $.ajax({
+                        type: "GET",
+                        url: "../saveThresholdValues",
+                        data: {"min": min, "max": max, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                        success: function (data) {
+                            var v = JSON.parse(data);
+                            if (v["error"] == 'None') {
+                                location.reload();
+                                //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                                $("#result").html('<div class="alert alert-success fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>GeneSet Thresholds Successfully Reset</div>');
+                            }
+                            else {
+                                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>An ERROR occured. ' + v["error"] + '</div>');
+                            }
+                            },
+                            error: function(){
+                                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An error occured while updating thresholds.</div>');
+                            }
+                    });
+
+            });
+
+        });
+
+
+    </script>
+
+{% endif %}
+
+
+
+{% include 'footer.html' %}

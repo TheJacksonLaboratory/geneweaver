@@ -1,0 +1,330 @@
+<script type="text/javascript">
+
+    //// serializeForms
+    //
+    //// Serializes all of the search form related data. If the user requests
+    //// sorting then the sortby argument is filled with the sort parameter
+    //// (e.g. tier, size, species, etc.).
+    //
+    var serializeForms = function (sortby) {
+
+        var data = $('#filterForm').serialize() + '&';
+        data += $('#searchBarForm').serialize();
+
+        //if (sortby !== undefined)
+        //	data += '&sortBy=' + sortby;
+
+        return data;
+    };
+
+    // Loading spinner because some search filters/options take a few seconds
+    jQuery.ajaxSetup({
+        beforeSend: function() {
+            $('#loader').show();
+        },
+        complete: function(){
+            $('#loader').hide();
+        },
+        success: function() {}
+    });
+
+
+    $(document).ready(function () {
+
+        var url = '/searchFilter.json';
+
+        // Sort by...
+        $('.fa-sort').on('click', function (event) {
+
+            event.preventDefault();
+
+            // Sort arrow ID; this tells us how to sort
+            var sortby = $(this).attr('id');
+            var direction = !$(this).data('sort-ascending');
+            $('#sortBy').val(sortby);
+            $('#sortAscending').val(direction);
+            // Gotta grab filter and search data prior to sending our sort data
+            var data = serializeForms(sortby);
+            $.post(url, data).done(function (data) {
+
+                $('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
+                // Hidden form value has to be changed too so when other
+                // filters are applied, we don't lose our ordering
+                //$('#sortBy').val(sortby);
+            });
+        });
+    });
+
+</script>
+
+<div class="loader" style="display:none"></div>
+
+{% if paginationValues == None %}
+
+    <form action="/search/" method="GET" id="searchBarForm">
+        {% include'search/search_bar.html' %}
+    </form>
+
+	{% if noResults is defined and noResults == True %}
+
+		<div class="row">
+			<div class="alert alert-warning fade in">
+				<button type="button" class="close" data-dismiss="alert" 
+					aria-hidden="true">x</button>
+				<strong>Your search returned 0 results.</strong>
+			</div>
+		</div>
+
+	{% endif %}
+
+{% endif %}
+
+{% if sort_ascending == None %}
+    {% set sort_ascending = true %}
+{% endif %}
+
+{% if paginationValues != None %}
+
+    <div class="row">
+    <div class="col-md-4">
+        {% include 'search/search_filters_panel.html' %}
+    </div>
+
+    <div class="col-md-8">
+        <!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
+        <!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
+        <form action="/search/" method="GET" id="searchBarForm">
+            {% include'search/search_bar.html' %}
+        </form>
+
+
+        <br/>
+
+        {% if paginationValues.totalFound == 0 %}
+            <div class="row">
+                <div class="alert alert-warning fade in">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                    Your search returned 0 results.
+                </div>
+            </div>
+        {% else %}
+
+
+            {% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
+
+                <div class="row">
+                    <div class="alert alert-danger fade in">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                        Search results are limited to 1000 results out of {{ paginationValues.totalFound }}. Try
+                        refining your
+                        search.
+                    </div>
+                </div>
+
+            {% endif %}
+
+
+            {# Used for any success/error messages from the add to project button #}
+            <div class="row" id="result"></div>
+            <div class="row" id="guest_warning"></div>
+
+            <div class="row">
+                <div class="col-md-4"></div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-md btn-block btn-warning" id="shareWithGroup" style="margin-bottom: 10px">
+                        <i class="fa fa-share-alt pull-left" style="padding-top: 1px;"></i> Share Selected w/ Group
+                    </button>
+		</div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-md btn-block btn-warning" id="addToProject" style="margin-bottom: 10px">
+                        <i class="fa fa-folder-o pull-left" style="padding-top: 1px;"></i> Add Selected to Project
+                    </button>
+                </div>
+            </div>
+
+            <!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
+            <!-- Show the panel heading with pagination -->
+            <div class="panel panel-default">
+                {% include 'search/search_results_header.html' %}
+                <!-- Show the geneset table with geneset results -->
+                <div class="panel-body">
+
+                    <table id="results" class="table table-hover">
+                        <tbody>
+                        <tr>
+                            <th align="center" style="text-align:center;">
+                                <nobr>
+                                    <a id="geneset-checkbox" class="fa fa-check"></a>
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="tier" href="#">
+                                        <i id="tier" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
+                                    </a>
+                                    Tier
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="species" href="#">
+                                        <i id="species" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
+                                    </a>
+                                    Species
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="size" href="#">
+                                        <i id="size" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
+                                    </a>
+                                    Size
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    Attr.
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="geneset" href="#">
+                                        <i id="geneset" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
+                                    </a>
+                                    GeneSet
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="gs-expand" href="#">
+                                        <i id="gs-expand" class="fa"></i>
+                                    </a>
+                                </nobr>
+                            </th>
+                        </tr>
+                        {% for gs in genesets %}
+                            <!--<tr>-->
+                            <!--<td> -->
+                            {% include 'viewGenesetSummaryPartial.html' %}
+                            <!--</td> -->
+                            <!--</tr> -->
+                            <!-- TODO create a selector for adding genesets to projects, link will go here -->
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
+</div>
+
+{% include 'modal/addGenesetsToProjects_multiselect.html' %}
+{% include 'modal/shareGenesetWithGroup.html' %}
+{% include 'modal/showGenericMessage.html' %}
+
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+<script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
+<script type="text/javascript">
+
+	/**
+	  * Although attribution and species tags are part of the
+	  * viewGenesetSummaryPartial template, we generate the tags out here in
+	  * the wrapper section otherwise this bit of javascript will be injected
+	  * into every single search result (50 per page).
+	  */
+    $(document).ready(function () {
+
+		{% if attribs %}
+			makeAttributionTags({{ attribs | safe }});
+		{% else %}
+			makeAttributionTags();
+		{% endif %}
+
+		{% if species %}
+			makeSpeciesTags({{ species | safe }});
+		{% else %}
+			makeSpeciesTags();
+		{% endif %}
+	});
+
+    //var user_id = {{ user_id }};
+    // gs_ids in the results that are checked and ready to add to a project
+    var gschecked = {};
+
+    // Called every time a checkbox is clicked and updates the list of
+    // checked search results.
+    $('input[type=checkbox]').on('click', function(event) {
+
+        // The element object this event is referring to
+        var box = event.target;
+
+        // All search result checkboxes can be distinguished with this class
+        if (box.className == 'search-check') {
+
+            var idlen = 'gs-check-'.length;
+            var gsid = box.id.slice(idlen);
+
+            if (box.checked)
+                gschecked[gsid] = gsid;
+            else
+                delete gschecked[gsid];
+        }
+    });
+
+    $('#geneset-checkbox').on('click', function(event) {
+        // Click or Un-Click all geneset detail elements on the current page.
+        var details = document.getElementsByClassName('genesetdetails')
+        // console.log("Set clicked for " + details.length + " elements");
+
+        for (let item of details) {
+            var gsid = item.id;
+            // console.log(item.id);
+            var checkbox = item.querySelector('.checkbox');
+            var searchCheck = item.querySelector('.search-check');
+
+            if (checkbox.classList.contains('ui-checkbox-off')) {
+                checkbox.classList.remove('ui-checkbox-off');
+                checkbox.classList.add('ui-checkbox-on');
+
+                searchCheck.setAttribute("data-cacheval", false)
+                gschecked[gsid] = gsid;
+            } else {
+                checkbox.classList.remove('ui-checkbox-on');
+                checkbox.classList.add('ui-checkbox-off');
+
+                searchCheck.setAttribute("data-cacheval", true)
+                delete gschecked[gsid];
+            }
+        }
+        console.log("gschecked list: " + Object.keys(gschecked).length);
+        console.log(gschecked);
+    });
+
+    // When a user is adding genesets to a new project, this allows them 
+    // to hit enter to execute that addition without the page throwing
+    // an http error
+    $(document).on('keypress', function(e) {
+        // 13 == ENTER
+        if (e.keyCode && e.keyCode === 13 && $('#addToProjectModal').is(':visible'))
+            e.preventDefault();
+    });
+
+    // The 'Share Geneset(s) w/ Group' button
+    $('#shareWithGroup').on('click', openGSModal('#shareWithGroupsModal', gschecked));
+
+    // The 'Share with selected groups' button in the modal above 
+    $('#shareGenesetsWithGroups').on('click', submitGSModal("#shareWithGroupsModal", "../shareGenesetsWithGroups"));
+
+    // The 'Add GeneSet(s) to Project' button
+    $('#addToProject').on('click', openGSModal('#addToProjectModal', gschecked));
+
+    // The 'add to selected projects' button in the modal above
+    $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
+
+    // This chunk of code always needs to go with the addGenesetsToProjects
+    // click handler
+    $('#addNewProject').on('click', function () {
+        $('#reveal-if-active').toggle();
+    });
+</script>

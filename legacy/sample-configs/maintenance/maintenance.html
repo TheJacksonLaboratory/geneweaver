@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Down for Maintenance</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: rgb(204, 235, 197); /* light blue background */
+        }
+
+        .container {
+            background-color:  #fff;
+            border: 1px solid #ddd;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #f57c00;
+        }
+
+        p {
+            color: #5d4037;
+        }
+
+        .notice {
+            color: #006400;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        /* Logo animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .logo {
+            width: 50px;
+            height: auto; /* This will maintain the aspect ratio */
+            margin: 20px auto;
+            animation: spin 5s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Logo Image -->
+        <img src="GW2-logo.png" alt="GeneWeaver Logo" class="logo">
+        <h1>We'll Be Back Soon!</h1>
+        <p>We're currently performing scheduled maintenance and updates on GeneWeaver.org. We will be back online shortly!</p>
+        <p>This work is scheduled for January 20th - 21st, 2024.</p>
+        <p>We expect to complete this process before Monday, January 22nd, 2024.</p>
+        <p class="notice">Thank you for your patience.</p>
+    </div>
+</body>
+</html>

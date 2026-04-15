@@ -1,0 +1,615 @@
+{% set title="Batch GeneSet Upload" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<body onload="myFunction('{{ gidts }}');">
+
+
+<style type="text/css">
+
+    #clickablePubmed {
+        cursor: pointer;
+    }
+
+    #clickableGenes {
+        cursor: pointer;
+    }
+
+    #clickableUpload, #clickableManual {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    #pubmed_button_div, #pubmed_button_div_minus {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    .panel-underline {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .btn-file {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-file input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        background: white;
+        cursor: inherit;
+        display: block;
+    }
+
+    .required {
+        color: #ee0000;
+        font-weight: bold;
+    }
+
+    .optional {
+        color: #5Cb85C;
+        font-weight: bold;
+    }
+
+</style>
+
+
+{% if user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    <div class="row" id="result">
+    </div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h3 class="panel-title"><strong>Batch GeneSet Upload</strong>
+        <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
+    </div>
+
+    <div class="row" id="upload-error" style="display: none;">
+        <div class="alert alert-danger fade in" id="upload-error-alert">
+        </div>
+    </div>
+    <div class="row" id="upload-warn" style="display: none;">
+        <div class="alert alert-warning fade in" id="upload-warn-alert">
+        </div>
+    </div>
+    <div class="row" id="upload-success" style="display: none;">
+        <div class="alert alert-success fade in" id="upload-success-alert">
+        </div>
+    </div>
+
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+
+    <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST" class="form-horizontal">
+        <div class="row">
+            <div class="col-xs-6 col-sm-4">
+                <label for="selectGroup">Select a group to curate these genesets.</label>
+                {% include 'htmlfragments/groups_multiselect_w_create_or_join.html' %}
+            </div>
+            <div class="col-xs-6 col-sm-8">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <small id="fileHelp" class="form-text text-muted"><a href="static/text/batch_example.txt" target="_blank"><i class="fa fa-file-text-o"></i> Sample File</a></small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="btn btn-warning btn-file">Batch Upload File
+                            <input id="file_data" type="file" name="selected_file" required="" accept=".bgf,.gw,text/plain"/>
+                            <input id="fileContents" name="fileContents" type="hidden" />
+                        </div>
+                        <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">No file selected</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 btn-group">
+                        <div class='help-block'></div>
+                        <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
+                               value="Review GeneSet Upload &raquo;" disabled="true">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-12 btn-group">
+                        <div class='help-block'></div>
+                        <form action="{{url_for('HBA_batch_converter')}}">
+                            <input class="btn btn-warning btn-file" type="submit" value="Convert from HBA-DEALS Format"/>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+        <div style="">
+            <br>
+            {# Keep this indentation since <pre> preserves whitespace. #}
+            <pre style="border-radius: 10px; border: 1px solid #337700; border-left: 11px solid #337700;">
+    MetaContent (header) format is as follows:
+        # comments start with '#'
+        : GeneSet Abbreviation starts with ':' <span class="required">(required)</span>
+        = GeneSet Name starts with '=' <span class="required">(required)</span>
+        + GeneSet Description <span class="required">(required)</span>
+        +   starts with '+' and can span multiple lines
+        P PubmedID (optional)
+        A Public or Private (optional, default private)
+
+        ! score type starts with '!' <span class="required">(required)</span>
+        ! Binary
+        ! P-Value < 0.05
+        ! Q-Value < 0.05
+        ! 0.40 < Correlation < 0.90
+        ! 6.0 < Effect < 22.50
+
+        @ Species Scientific Name <span class="required">(required)</span>
+        @
+        @ Mus musculus
+        @ Homo sapiens
+        @ Rattus norvegicus
+        @ Danio rerio
+        @ Drosophila melanogaster
+        @ Macaca mulatta
+        @ Caenorhabditis elegans
+        @ Saccharomyces cerevisiae
+        @ Gallus gallus
+        @ Canis familiaris
+
+        % Gene ID Type <span class="required">(required)</span>
+        % Entrez
+        % Ensembl Gene
+        % Ensembl Protein
+        % Ensembl Transcript
+        % Unigene
+        % Gene Symbol
+        % Unannotated
+        % MGI
+        % HGNC
+        % RGD
+        % ZFIN
+        % FlyBase
+        % Wormbase
+        % SGD
+        % miRBase
+        % CGNC
+        % microarray Affymetrix C. elegans Genome Array
+        % microarray Affymetrix Drosophila Genome 2.0
+        % microarray Affymetrix HT Human Genome U133A
+        % microarray Affymetrix Human 35K Set
+        % microarray Affymetrix Human 35K SubA
+        % microarray Affymetrix Human 35K SubB
+        % microarray Affymetrix Human 35K SubC
+        % microarray Affymetrix Human 35K SubD
+        % microarray Affymetrix Human Genome U133A
+        % microarray Affymetrix Human Genome U133A 2.0
+        % microarray Affymetrix Human Genome U133B
+        % microarray Affymetrix Human Genome U133 Plus 2.0
+        % microarray Affymetrix Human Genome U133 Set
+        % microarray Affymetrix Human HG-Focus Target
+        % microarray Affymetrix Mouse Exon 1.0 ST
+        % microarray Affymetrix Mouse Expression 430A
+        % microarray Affymetrix Mouse Expression 430B
+        % microarray Affymetrix Mouse Expression 430 Set
+        % microarray Affymetrix Mouse Gene 1.0 ST Array
+        % microarray Affymetrix Mouse Genome 430 2.0
+        % microarray Affymetrix Mouse Genome 430A 2.0
+        % microarray Affymetrix Murine 11K Set
+        % microarray Affymetrix Murine 11K SubA
+        % microarray Affymetrix Murine 11K SubB
+        % microarray Affymetrix Murine Genome U74A
+        % microarray Affymetrix Murine Genome U74B
+        % microarray Affymetrix Murine Genome U74C
+        % microarray Affymetrix Murine Genome U74 Set
+        % microarray Affymetrix Murine Genome U74 Version 2
+        % microarray Affymetrix Murine Genome U74 Version 2
+        % microarray Affymetrix Murine Genome U74 Version 2
+        % microarray Affymetrix Murine Genome U74 Version 2 Set
+        % microarray Affymetrix Rat Exon 1.0 ST
+        % microarray Affymetrix Rat Expression 230A
+        % microarray Affymetrix Rat Expression 230B
+        % microarray Affymetrix Rat Expression 230 Set
+        % microarray Affymetrix Rat Genome 230 2.0
+        % microarray Affymetrix Rhesus Macaque Genome
+        % microarray Affymetrix Yeast Genome 2.0 Array
+        % microarray Affymetrix Yeast Genome S98 Array
+        % microarray Affymetrix Zebrafish Genome
+        % microarray Agilent Mouse G4121A (Toxicogenomics)
+        % microarray Agilent Mouse Whole Genome G4122F
+        % microarray Illumina Human-6 v2.0
+        % microarray Illumina MouseRef-8 v2.0
+        % microarray Illumina MouseWG-6 v1.1
+        % microarray Illumina MouseWG-6 v2.0
+
+    After the MetaContent, leave a blank line. Then list all data points in
+    the following format: gene id [tab] data value [enter].
+
+    At the end of the data points leave another blank line.  Then you may start
+    another MetaContent section and keep repeating for all datasets in the same file.
+    The 'P', 'A', '!', '@', and '%' sections may be ommitted in later sections if
+    they do not differ from the first, they will default to the last seen value.
+    The ':', '=', and '+' sections are required for all datasets.
+
+        </pre>
+            {#  </code> #}
+
+    </div>
+
+
+
+
+    </form>
+
+
+{% endif %}
+
+<script>
+    $(document).ready(function () {
+        $('#selectGroup').click(function(){
+            var groups_selected = $('#selectGroup option:selected').length;
+            var file_selected = $('input:file').val().length;
+    
+            $('#upload-geneset-button').prop('disabled', ((groups_selected < 1) || (file_selected < 1)));
+        });
+
+        $('input:file').on("change", function() {
+            var groups_selected = $('#selectGroup option:selected').length;
+            var file_selected = $('input:file').val().length;
+            $('input:submit').prop('disabled', ((groups_selected < 1) || (file_selected < 1))); 
+        });
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableFontAwesome').popover({
+            title: 'When to Use Batch Upload?', content: 'Use this page when you have many gene sets to ' +
+            'upload. The proper file format and examples are listed below.'
+        });
+
+        // Function to allow tabs in the textarea
+        $("textarea").keydown(function (e) {
+            if (e.keyCode === 9) { // tab was pressed
+                // get caret position/selection
+                var start = this.selectionStart;
+                end = this.selectionEnd;
+
+                var $this = $(this);
+
+                // set textarea value to: text before caret + tab + text after caret
+                $this.val($this.val().substring(0, start)
+                        + "\t"
+                        + $this.val().substring(end));
+
+                // put caret at right position again
+                this.selectionStart = this.selectionEnd = start + 1;
+
+                // prevent the focus lose
+                return false;
+            }
+        });
+
+        // Display uploaded file to page
+        var fileInput = document.getElementById('file_data');
+        var fileDisplayArea = $('#fileDisplayArea');
+        var fileContents = $('#fileContents');
+
+		fileInput.addEventListener('change', function(e) {
+			var file = fileInput.files[0];
+
+            // After reading the file, the filename and size are displayed
+            // to the user. The contents goes under a hidden input for
+            // submission later.
+
+            //check for valid file extension
+            //extra work as the file upload dialog prevents all but these extensions
+            var valid_types = [".txt", ".bgf", ".gw"];
+            var fname = file.name;
+            var valid = 0;
+
+            for (var i=0; i < valid_types.length; i++) {
+			   var ext = valid_types[i];
+			   var fext = fname.substr(fname.length - ext.length, ext.length);
+			   if(fext == ext) { valid = 1; }
+            }
+
+			if (valid == 1) {
+				var reader = new FileReader();
+
+				reader.onload = function(e) {
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' kB';
+
+                    fileDisplayArea.text(file.name + ' (' + size + ')');
+                    fileContents.val(reader.result);
+				};
+
+				reader.readAsText(file);
+
+			} else {
+				// Not a valid file extension
+				fileDisplayArea.innerText = "File not supported!";
+			}
+		});
+
+		/*
+		 * Creates a link to the edit geneset genes page for the given gs_id.
+		 *
+		 * arguments
+		 * 		gsid: a string or int geneset ID
+		 * 		display: a string of text to display for the link
+		 *
+		 * returns
+		 * 		a string of HTML, the link to that set's edit genes page
+		 * 	
+		 */
+		var generateEditLink = function(gsid, display) {
+
+			
+			var url = location.protocol + '//' + location.host + 
+				'/editgenesetgenes/' + gsid;
+
+			return '<a href="' + url + '">' + display + '</a>';
+		};
+
+        $('#upload-geneset-form').on('submit', function (event) {
+            event.preventDefault();
+
+            var batchFile = $('#fileContents').val();
+            // Encodes spaces, quotes, and other crap prior to sending
+            batchFile = encodeURIComponent(batchFile);
+
+            var curation_group = $("#my_groups select").val();
+
+            if ($.isEmptyObject(curation_group)) {
+                $(document).trigger("add-alerts", [{
+                    'message': "No groups were selected.",
+                    'priority': 'warning'
+                }]);
+            } else {
+                curation_group = JSON.stringify(curation_group);
+
+                // Let the user know we're in the process of uploading their
+                // geneset. Otherwise they might click the submit button 10 times.
+                $('#confirmUpload').modal('show');
+
+                $.ajax({
+                    type: 'POST',
+                    url: '../createBatchGeneset',
+                    dataType: 'text',
+                    data: {'batchFile': batchFile, 'curation_group': curation_group},
+                    success: function (data) {
+
+                        data = JSON.parse(data);
+
+                        // Hides confirmation after any kind of result (success or
+                        // error) is returned.
+                        $('#confirmUpload').modal('hide');
+
+                        // The data is returned already parsed out of JSON
+                        if ('error' in data && data.error.length > 0) {
+
+                            var errors = data.error.join('<br />');
+                            errors = '<strong>There were some errors with your ' +
+                                    'batch file.</strong><br />' + errors;
+
+                            var closeButton = '<button type="button" ' +
+                                'class="close" data-dismiss="alert" ' +
+                                'aria-hidden="true">x</button>';
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#upload-error-alert').html(closeButton + errors);
+                            $('#upload-error').toggle(true);
+                        }
+
+                        if ('warn' in data && data.warn.length > 0) {
+
+                            var warns = data.warn.join('<br />')
+                            warns = '<strong>There were some non-critical issues ' +
+                                    'with your batch file.</strong><br />' + warns;
+
+                            var closeButton = '<button type="button" ' +
+                                    'class="close" data-dismiss="alert" ' +
+                                    'aria-hidden="true">x</button>';
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#upload-warn-alert').html(closeButton + warns);
+                            $('#upload-warn').toggle(true);
+                        }
+
+                        if ('genesets' in data && data.genesets.length > 0) {
+
+                            var genesets = data['genesets'];
+                            var success = '<strong>Success! Your GeneSets ' +
+                                    'were uploaded: </strong><br />';
+
+                            for (var i = 0; i < genesets.length; i++)
+                                                            success += generateEditLink(genesets[i], 'GS' + genesets[i]) + '<br />'
+
+                            success = success + '<br /> <strong>You will be ' +
+                                    'redirected to the edit GeneSet page shortly.' +
+                                    '<br /> If you aren\'t redirected, check and ' +
+                                    'reconfigure your pop-up blocker settings ' +
+                                    'or click the GS links above.' +
+                                    '</strong>';
+
+                            var closeButton = '<button type="button" ' +
+                                    'class="close" data-dismiss="alert" ' +
+                                    'aria-hidden="true">x</button>';
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#upload-success-alert').html(closeButton + success);
+                            $('#upload-success').toggle(true);
+
+                            // Redirect to the edit geneset page for each geneset,
+                            // wait a bit though so the user can read our message
+                            setTimeout(function() {
+
+                                for (var i = 0; i < genesets.length; i++) {
+
+                                    var url = '../editgenesetgenes/' + genesets[i];
+
+                                    window.open(url, '_blank');
+                                }
+
+                            }, 3000);
+                        }
+                    },
+                    error: function(){
+                        // Hides confirmation after any kind of result (success or
+                        // error) is returned.
+                        $('#confirmUpload').modal('hide');
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                });
+            }
+        });
+
+    });
+
+
+    var user_id = {{ user_id }}
+
+            function myFunction(genes) {
+                genes1 = genes.split("_");
+                genes1 = genes1.join("\t1\n");
+                genes1 = genes1.concat("\t1");
+                document.getElementById("file_text").value = genes1;
+            };
+
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+    $('#clickableGenes').popover({
+        title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
+        'A full description of the gene set format can be found ' +
+        '<a href="https://thejacksonlaboratory.github.io/geneweaver-docs/web-application/uploading-genesets/" target="_blank">' +
+        '       <strong>here</strong></a>.',
+        html: 'true'
+    });
+
+    function formFocus($e) {
+        $e.style.backgroundColor = "yellow";
+    }
+
+    function noFormFocus($e) {
+        $e.style.backgroundColor = '';
+    }
+
+
+    //Get Pubmed Data for ID
+    //TODO: is this function duplicated across pages?
+    $('#clickablePubmed').click(function () {
+        var pmid = $("#pub_pubmed").val();
+        if (!$.isNumeric(pmid)) {
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "You must enter a valid Pubmed ID.",
+                    'priority': 'warning'
+                }
+            ]);
+        }
+        else {
+            $.ajax({
+                type: "GET",
+                url: "../getPubmed",
+                data: {"pmid": pmid},
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "PubMed ID " + pmid + " successfully loaded",
+                            'priority': 'success'
+                        }
+                    ]);
+                    if ($('#pubmed_manual').is(":hidden")) {
+                        $("#pubmed_manual").toggle();
+                    }
+                    ;
+
+                    if ($('#pubmed_button_div').is(":visible")) {
+                        $('#pubmed_button_div').toggle();
+                    }
+                    ;
+
+                    var parseData = JSON.parse(data);
+                    $('#pub_title').val(parseData[0]);
+                    $('#pub_authors').val(parseData[1]);
+                    $('#pub_journal').val(parseData[2]);
+                    $('#pub_volume').val(parseData[3]);
+                    $('#pub_pages').val(parseData[4]);
+                    $('#pub_year').val(parseData[5]);
+                    $('#pub_month').val(parseData[6]);
+                    $('#pub_abstract').val(parseData[7]);
+
+                }
+            });
+        }
+        ;
+
+    });
+
+    $("#pubmed_manual_button").click(function () {
+        $("#pubmed_manual").toggle();
+
+        //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+        var isHidden = $("#pubmed_manual").is(':hidden');
+
+        if (isHidden) {
+            $("#pubmed_manual :input").attr("disabled", true);
+
+        }
+        else {
+            $("#pubmed_manual :input").attr("disabled", false);
+            $("#pubmed_button_div_minus").show();
+            $("#pubmed_button_div").hide();
+        }
+    });
+
+    $("#pubmed_manual_button_minus").click(function () {
+        $("#pubmed_manual").toggle();
+
+        //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+        var isHidden = $("#pubmed_manual").is(':hidden');
+
+        if (isHidden) {
+            $("#pubmed_manual :input").attr("disabled", true);
+            $("#pubmed_button_div_minus").hide();
+            $("#pubmed_button_div").show();
+        }
+        else {
+            $("#pubmed_manual :input").attr("disabled", false);
+        }
+    });
+
+</script>
+
+{% include 'modal/confirmUpload.html' %}
+
+{% include 'footer.html' %}

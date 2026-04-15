@@ -1,0 +1,29 @@
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div style="text-align:center; margin-top:130px;">
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-heading">
+                <div class="container">
+                    <h1>403 - Login Error</h1>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="container">
+                    <div class="row">
+                        <h2>It looks like there is more than one legacy account with that email.</h2>
+                        <p>Migrating to Single Sign On mandated that each account have a unique
+                        email address. Approximately twenty legacy accounts do not have a unique
+                        email address, and yours appears to be one. Unfortunately, you cannot
+                        correct this error on your own (it would be a security risk). Please contact
+                        Geneweaver support to regain access to your account. </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}

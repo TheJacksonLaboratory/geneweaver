@@ -1,0 +1,743 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style>
+    .venntooltip {
+        position: absolute;
+        text-align: center;
+        vertical-align: middle;
+        width: 128px;
+        height: 26px;
+        background: #333;
+        color: #ddd;
+        padding: 3px;
+        border: 0px;
+        border-radius: 8px;
+        opacity: 0;
+    }
+
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    #circles {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    th, td {
+        text-align: center;
+        max-width: 33%;
+    }
+
+  .row {
+    position: relative;
+  }
+
+  .bottom-align-text {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+
+  h2::before { 
+    display: block; 
+    content: " "; 
+    margin-top: -65px; 
+    height: 65px; 
+    visibility: hidden; 
+    pointer-events: none;
+  }
+
+    .right {
+        float: right;
+    }
+
+    .left {
+        float: left;
+        width: 100%;
+    }
+
+    .popover {
+        text-transform: none;
+    }
+
+</style>
+
+<script type="text/javascript">
+
+    function create_data_table(selector, ajax_data) {
+        var task_id = "{{ task_id  | safe }}",
+            res = {{ json_results | tojson | safe}};
+        var borders = res.borders,
+            sp_names = res.all_species,
+            bg = res.bg;
+        $(selector).DataTable({
+            "iDisplayLength": 25,
+            "bLengthChange": true,
+            "processing": true,
+            "serverSide": true,
+            "ordering": false,
+            "oLanguage": {
+                "sProcessing": "Fetching Values"
+            },
+            "tableTools": {
+                "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                "sRowSelect": "multi",
+                "aButtons": [
+                    "select_all",
+                    "select_none",
+                    "copy",
+                    "print",
+                    "pdf",
+                    "xls",
+                    "csv"
+                ]
+            },
+            "dom": '<"clear"l><"left"ip><"bottom"rtip>',
+            "ajax": {
+                "url": "/BooleanAlgebra-result/" + task_id + "/output.json",
+                "type": "GET",
+                "data": ajax_data
+            },
+            "columns": [
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        data = data['data'];
+                        if (data.length > 0) {
+                            var first = data.shift();
+                            var sp = first.sp;
+                            var sp_color = bg[sp - 1],
+                                border_color = borders[sp - 1];
+                            var html = "<span style='margin-left: 5px;'>" +
+                                "<span class='group_name' style='font: italic 10px/14px Georgia, serif;" +
+                                "background-color: " + sp_color + "; border:1px solid " + border_color + "'>" + sp_names[sp.toString()] +
+                                "</span></span><strong>" +
+                                " <a href='/search/?searchbar=" + first.name + "&pagination_page=1&searchGenes=yes'>" +
+                                first.name +
+                                "</a></strong>";
+                            data.forEach(function (it, idx, arr) {
+                                if (it['sp'] !== sp) {
+                                    html += "<i class='fa fa-arrows-h'></i>";
+                                    sp = it['sp'];
+                                    var sp_color = bg[sp - 1],
+                                        border_color = borders[sp - 1];
+                                    html += "<span style='margin-left: 5px;'>" +
+                                        "<span class='group_name' style='font: italic 10px/14px Georgia, serif;" +
+                                        "background-color: " + sp_color + "; border:1px solid " + border_color + "'>" + sp_names[sp] +
+                                        "</span></span><strong>" +
+                                        "<a href='/search/?searchbar=" + it.name + "&pagination_page=1&searchGenes=yes'>" +
+                                        it.name +
+                                        "</a></strong>";
+                                }
+                            });
+                            return (html);
+                        } else {
+                            return ("");
+                        }
+                    },
+                    createdCell: function (td, cellData, rowData, row, col) {
+                        $(td).attr('style', 'text-align: left;');
+                    }
+                },
+                {
+                    data: "homology",
+                    render: function (data, type, row) {
+                        var html = "<span class=\"label label-default\">No Mapping</span>\n";
+                        if (data === true) {
+                            html = "<span class=\"label label-info\">Homologene</span>\n"
+                        }
+                        return html;
+                    }
+                },
+                {
+                    data: "genesets",
+                    render: function (data, type, row) {
+                        var html = "";
+                        data.forEach(function (it, idx, arr) {
+                            html += "<span id=" + it + ">" +
+                                "<span data-placement='top' data-toggle='tooltip' data-rel='tooltip'>" +
+                                "<a href='/viewgenesetdetails/" + it + "'>" +
+                                "<strong>GS" + it + "</strong></a>";
+                            if (idx !== arr.length - 1 && arr.length > 1) {
+                                html += ", ";
+                            }
+                            html += "</span></span>";
+                        });
+                        return html;
+                    }
+                },
+                {
+                    data: "row_genes",
+                    render: function (data, type, row) {
+                        var html = "<input type='checkbox' name='g_id[]a' id='" + data.ids.join('_') + "'" +
+                            "onchange='emphasize([" + data.ids + "],\""+data.ids.join('_')+"\")';" +
+                            "class='switch' data-size='mini'" +
+                            " style='padding: 0px; vertical-align: middle;'>";
+                        return (html)
+                    },
+                    createdCell: function(td, cellData, rowData, row, col) {
+                        $(td).find('input').bootstrapSwitch();
+                    }
+                }
+            ]
+        });
+    }
+</script>
+
+<div class="loader"></div>
+
+<div class="row" id="result"></div>
+
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h2 class="panel-title"><strong>Boolean Algebra</strong></h2>
+</div>
+
+<div class="panel panel-default">
+
+    {# Relation type and Number of Genesets used Title #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h6 class="panel-title">{{ json_results.type }} of {{ json_results.numGS }} GeneSets</h6>
+    </div>
+
+    {#         {{ json_results | safe }}#}
+    {# div for venn diagram #}
+    {% if json_results.numGS < 11 %}
+        <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
+        <h8>Figure: Homology Overlap of Input Genesets</h8><br>
+        <span id="circles">
+                About this figure <i class="fa fa-caret-down"></i>
+        </span>
+        <div id="circle-explanation" style="display: none;">
+            <div class="row">
+                <blockquote>
+                    <p>This figure is a representation of how the input genesets relate to each other. It uses the same
+                        homology mapping as the Boolean Algebra tool to render an approximate fractional overlap of the
+                        genes shared between each set.
+                    </p>
+                </blockquote>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="alert alert-warning fade in">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <strong>Warning!</strong> Too many GeneSets to display graph representation. Please select 10 or fewer
+                to display overlaps.
+            </div>
+        </div>
+    {% endif %}
+
+    {# Check to see if there are results to display #}
+    {% if json_results.bool_results | length == 0 %}
+        <div class="row">
+            <div class="alert alert-info fade in">
+                No results were found in the {{ json_results.type }} of your GeneSets
+            </div>
+        </div>
+
+    {# Display the results if there are any. #}
+    {% else %}
+
+        {# Display a horizontal stacked graph if there is nore than one speces #}
+        {% if json_results.numSpecies > 1 %}
+            {# div for stacked graph #}
+            <br>
+            <div class="row">
+                <table class="table table-hover table-stripped">
+                    <tbody>
+                        <tr style="border-bottom: 2pt solid grey;">
+                            <th>&nbsp;</th>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.all_species_full[s] }}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">Genes Specific to Species</td>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.bool_cluster[s]['unique'] | length}}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">Genes In Common with at Least One Other Species</td>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.bool_cluster[s]['intersection'] | length}}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">Total Number of Genes</td>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.bool_cluster[s]['species'] | length}}</th>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h6 class="panel-title">&nbsp;</h6>
+            </div>
+        {% endif %}
+
+        {% if json_results.type == 'Union' %}
+            {% set i = 1 %}
+            {% set results = json_results.bool_results %}
+
+            <div class="row">
+                <div class="col-md-10">
+                    <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
+                        of {{ json_results.numGS }} GeneSets</h6>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-xs-6 col-md-4">
+                    <button type="button" class="btn btn-block btn-warning addToNewGeneset"
+                            {#  onclick="newGeneSet()" #} id="addToNewGenesetUnion"
+                            data-genes="{{ json_results['gene_list']['union'] }}"
+                            style="margin-bottom: 10px;">
+                        <i class="fa fa-list-ul pull-left"></i> Create New Geneset From Results
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <table class="table table-hover" id="union">
+                    <tbody>
+                    <thead>
+                    <tr>
+                        <th>
+                            <i class="fa fa-sort"></i> GENES
+                            <span id="defaultIdHelp" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th>
+                            Homology
+                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th></i> IN GENESETS </th>
+                        <th>Emphasis</th>
+                    </tr>
+                    </thead>
+                    </tbody>
+                </table>
+            </div>
+            <script type="text/javascript">
+                create_data_table('#union');
+            </script>
+            {#
+            <div class="row" id="group-{{ json_results.numGS }}">
+            #}
+
+        {% endif %}
+
+        {% if json_results.type == 'Intersect' or json_results.type == 'Symmetric Difference' %}
+            {% if json_results | length > 0 %}
+            {% if json_results.type == 'Intersect' %}
+                {% set results = json_results.intersect_results %}
+                {% set union = 'Intersection' %}
+            {% elif json_results.type == 'Symmetric Difference' %}
+                {% set results = json_results.bool_except %}
+                {% set union = 'Symmetric Difference' %}
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-12">
+                    {% if json_results.type == 'Symmetric Difference' %}
+                        <h6 class="panel-title">Genes that are distinct to the
+                            {{ json_results.numGS }} input GeneSets</h6>
+                    {% else %}
+                        <h6 class="panel-title">{{ results | length }} Distinct Sets found in the
+                            {{ union }}
+                            of {{ json_results.numGS }} GeneSets where each gene is found in a minimum
+                            of {{ json_results.at_least }} Gene Sets</h6>
+                    {% endif %}
+                </div>
+            </div>
+
+            {#
+            #############################################################
+            # This little section will place a box to link results
+            #}
+            {% if results | length > 1 %}
+                <div class="row">
+                    <div class="alert bg-gray-light">
+                        <h4>Quick Links to Results below...</h4>
+                        <ul class="fa-ul" style="margin-left: 5%; padding-left: 1em;
+                        text-indent: -2em;">
+                        {% for gs_groups in results | sort(reverse=True) %}
+                            {% for g in results[gs_groups] %}
+                                {% if loop.last %}
+                                    <li style="padding-left: 1em;"><i class="fa-li fa fa-check"></i>
+                                        {% if json_results.type == 'Intersect' %}
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in
+                                            {% for gene in results[gs_groups][g] %}
+                                                {% if loop.last %}<strong>{{ loop.length }}</strong>{% endif %}
+                                            {% endfor %}
+                                            Gene Set(s)
+                                        {% elif json_results.type == 'Symmetric Difference' %}
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
+                                            GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
+                                        {% endif %}
+                                        <span style="position: relative; left: 25px;"><a href="#{{ results[gs_groups] }}">
+                                            <i class="fa fa-level-down"></i></a></span>
+                                    </li>
+                                {% endif %}
+                            {%  endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+
+
+                {% set i = 1 %}
+                {% for gs_group in results | sort(reverse = True) %}
+                    <div class="row"><h1></h1></div>
+                    <div class="row">
+                        {% if json_results.type == 'Symmetric Difference' %}
+                            <div class="col-md-6">
+                                {% set gs_id = results[gs_group].values()[0][0][3] %}
+                                {% set gs_name = results[gs_group].values()[0][0][4] %}
+                                <h2 id="{{ results[gs_group] }}">Distinct Genes in <b>GS{{ gs_id }}</b>: {{ gs_name }}
+                                </h2>
+                            </div>
+                        {% elif json_results.type == 'Intersect' %}
+                            <div class="col-md-6">
+                                <h2 id="{{ results[gs_group] }}">
+                                    {% for g in results[gs_group] %}
+                                        {% if loop.last %}
+                                            {{ loop.length }} Distinct Genes found in
+                                            {% for gene in results[gs_group][g] %}
+                                                {% if loop.last %}{{ loop.length }}{% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    Gene Set(s)</h2>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-6 col-md-4">
+                            <button type="button" class="btn btn-block btn-warning addToNewGeneset"
+                                    {#  onclick="newGeneSet()" #} id="addToNewGeneset_{{ gs_group }}"
+                                    data-genes="{{ json_results['gene_list'][gs_group] }}"
+                                    style="margin-bottom: 10px;">
+                                <i class="fa fa-list-ul pull-left"></i> Create New Geneset From Results
+                            </button>
+                        </div>
+                    </div>
+                    {#
+                <div class="row" id="group-{{ json_results.numGS }}">
+                    #}
+                    <div class="row" id="group-{{ i }}">
+                        <table class="table table-hover" id="table-{{ gs_group }}-blah">
+                            <thead>
+                            <tr>
+                                <th>Genes</th>
+                                <th>Homology</th>
+                                <th>In GeneSets</th>
+                                <th>Emphasis</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                    <script type="text/javascript">
+                        create_data_table('#table-{{ gs_group }}-blah', {'table': {{ gs_group }}});
+                    </script>
+                    {% set i = i + 1 %}
+                {% endfor %}
+        {% endif %}
+        {% endif %}
+
+    {% endif %}
+
+</div>
+
+
+{# Grab the list of emphgeneids. It is an environment variable set in the blueprint. #}
+{% for gene in emphgeneids %}
+    <script>
+        document.getElementById("{{gene}}").checked = true;
+    </script>
+{% endfor %}
+
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+        //update model
+        $('.dropdown-menu a').click(function(){
+            $('#selected').text($(this).text());
+            $('#selected').attr('data-value', $(this).closest('li').prop('id'));
+        });
+
+        // open div for circle explanation
+        $("#circles").on('click', function () {
+            $("#circle-explanation").slideToggle();
+        });
+
+        $('.group-checkbox').on('click', function (event) {
+
+            // Grabs the group ID for this checkbox. Format: group-#-checkbox
+            var groupId = $(this).attr('id').split('-')[1];
+            var groupCheck = $(this).find('input[type=checkbox]');
+            // Id for checkbox grouping
+            var groupCheckboxes = '#group-' + groupId;
+            var checks = $(groupCheckboxes).find('input[type=checkbox]');
+            // Even when we mark the checkbox as checked the stupid UI doesn't
+            // get updated because of these weird ui button things
+            var btns = $(groupCheckboxes).find('.ui-btn');
+
+            // Opposite because by the time this code executes, the box is
+            // already checked
+            if (!groupCheck.attr('checked')) {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', false);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+
+            } else {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', true);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+        });
+
+        /**
+         * Ever since we added the select all checkbox, we now have to hook
+         * into these stupid ui-checkbox clicks otherwise the actual checkbox
+         * which lies underneath all the ui crap doesn't get (de)selected.
+         */
+        $('.ui-checkbox').on('click', function (event) {
+
+            var check = $(this).find('input[type=checkbox]');
+
+            if (check.attr('checked'))
+                check.attr('checked', false);
+            else
+                check.attr('checked', true);
+        });
+    });
+</script>
+
+{# To update the ephasize genes. #}
+<script type="text/javascript">
+    // $("[name='g_id[]']").bootstrapSwitch();
+
+    //$(function () {
+    //    $("[data-toggle='tooltip']").tooltip();
+    //});
+
+
+    function emphasize(ids, selector, test) {
+        if (document.getElementById(selector).checked) {
+            ids.forEach(function (it) {
+                $.get("/emphasize/" + it + ".html", function (data, status) {
+                });
+            });
+
+        } else {
+            ids.forEach(function (it) {
+
+                $.get("/deemphasize/" + it + ".html", function (data, status) {
+                });
+            });
+        }
+    }
+
+    var genes_to_add = [];
+
+    $('.addToNewGeneset').on('click', function (e) {
+        genes_to_add = $(this).data('genes');
+        $('#selectSpeciesForUpload').modal('show');
+    });
+
+    /**
+     * Need to get genes from the other species
+
+
+    /**
+      * Creates a ne gene set from the bool alg. page. Symmetric Differenceetermines the genes
+      * the user has selected then packages everything in a POST request to the
+      * upload gene set page.
+      */
+    function newGeneSet() {
+
+        $('#selectSpeciesForUpload').hide();
+
+        var checkedArray = genes_to_add;
+
+        if (typeof checkedArray != "undefined" && 
+            checkedArray != null && 
+            checkedArray.length > 0) {
+
+            // Bool alg. tool data
+            var as = {{ json_results | tojson | safe}};
+            // List of GS IDs used for tool input
+            var gsids = as['gsids'];
+            var numGS = gsids.length;
+            // Type of boolean operation performed (except, intersect, union)
+            var boolType = as['type'];
+            // New gene set name
+            var name = 'The ' + boolType + ' of ' + numGS + ' GeneSets.';
+            // New gene set description
+            var description = 'The Boolean Algebra tool was used to find ' +
+                'the ' + boolType + ' of ' + numGS + ' sets: ' + 
+                gsids.join(', ');
+            var genes = checkedArray;
+
+            // Species
+            var species = 'sp-' + $('#selected').attr('data-value');
+            var spid = $('#selected').attr('data-value');
+
+            // Generates a hidden form that is used to submit data to the
+            // upload page
+            var form = $('<form></form>', {
+                id: 'uploadform',
+                name: 'uploadform',
+                method: 'post',
+                action: '/uploadgeneset',
+                target: '_blank',
+                type: 'hidden'
+            });
+
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'name', 
+                value: name
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'species',
+                value: species
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'description', 
+                value: description
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'genes', 
+                value: genes
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'sp',
+                value: spid
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'gene-id-type',
+                value: 'ode_gene_id'
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'tool',
+                value: 'boolean'
+            }));
+
+            form.appendTo('body').submit();
+
+            genes_to_add = [];
+        }
+    };
+
+</script>
+
+{# script for d3 Eularean diagrams #}
+<script type="text/javascript" src="../../static/d3/d3.v4.min.js"></script>
+{# <script type="text/javascript" src="../../static/d3/numeric-1.2.4.js"></script>  #}
+<script type="text/javascript" src="../../static/d3/venn.js"></script>
+
+<script type="text/javascript">
+    var results = {{ json_results | tojson | safe }};
+
+    if (results['numGS'] < 11) {
+
+        var venn_dict = {};
+        for (var key in results['groups']) {
+            var gs_id = results['groups'][key];
+            if (!(gs_id in venn_dict)) {
+                venn_dict[gs_id] = 1
+            } else {
+                venn_dict[gs_id] += 1
+            }
+        }
+
+        var venn_list = [];
+        for (var key in venn_dict) {
+            venn_list.push({sets: key.split(','), size: venn_dict[key]});
+        }
+
+        // draw venn diagram
+        var div = d3.select(".vis");
+        div.datum(venn_list).call(venn.VennDiagram());
+
+        // add a tooltip
+        var tooltip = d3.select("body").append("div")
+            .attr("class", "venntooltip");
+
+        // add listeners to all the groups to display tooltip on mouseover
+        div.selectAll("g")
+            .on("mouseover", function (d, i) {
+                // sort all the areas relative to the current item
+                venn.sortAreas(div, d);
+
+                // Display a tooltip with the current size
+                tooltip.transition().duration(400).style("opacity", .9);
+                tooltip.text(d.size + " genes.");
+
+                // highlight the current path
+                var selection = d3.select(this).transition("tooltip").duration(400);
+                selection.select("path")
+                    .style("stroke-width", 3)
+                    .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
+                    .style("stroke-opacity", 1);
+            })
+
+            .on("mousemove", function () {
+                tooltip.style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+
+            .on("mouseout", function (d, i) {
+                tooltip.transition().duration(400).style("opacity", 0);
+                var selection = d3.select(this).transition("tooltip").duration(400);
+                selection.select("path")
+                    .style("stroke-width", 0)
+                    .style("fill-opacity", d.sets.length == 1 ? .25 : .0)
+                    .style("stroke-opacity", 0);
+            });
+
+
+    }
+
+</script>
+
+{% include 'modal/selectSpeciesForUpload.html' %}
+
+{% include 'footer.html' %}

@@ -1,0 +1,300 @@
+{% set title="Projects" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<style>
+
+    a:link {
+        #color: darkgreen;
+    }
+
+    a:hover {
+        #color: green;
+        text-decoration: none;
+    }
+
+    a:visited {
+        text-decoration: none;
+    }
+
+    .panel .panel-header .panel-info .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    img {
+        border-style: none;
+    }
+
+    #help {
+        cursor: pointer;
+        color: #808080;
+    }
+
+    #help-text {
+        color: #808080;
+    }
+
+</style>
+
+
+
+{% if not g.user or g.user.user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    {% block body %}
+
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+            <p>
+
+            <div class="row" id="result"></div>
+            <div id="project-alert" class="alert alert-dismissible" data-alerts="alerts" 
+                 data-titles="{'warning': '<em>Warning!</em>'}" 
+                 data-ids="myid">
+            </div>
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>My Projects</strong></h3>
+            </div>
+
+            <div class="row">
+
+                <!-- the projects column -->
+                <form id="todo-id" class="form-horizontal" role="form" method="post">
+
+                    {% include 'htmlfragments/favoriteProjectsList.html' %}
+
+                </form>
+
+                <!-- the Analysis tools column -->
+                <div class="col-xs-6 col-md-3">
+                    <div class="page-header">
+                        <h2>Actions</h2>
+                    </div>
+                    <div class="panel-group">
+                        <button type="button" class="btn btn-block btn-danger" id="callDeleteProjects">
+                            <span><i class="fa fa-times pull-left"></i></span> Delete Projects
+                        </button>
+                        <button type="button" class="btn btn-block btn-danger" id="callRemoveGenesets">
+                            <i class="fa fa-trash-o pull-left"></i> Remove GeneSets
+                        </button>
+                        <button type="button" class="btn btn-block btn-warning" id="newProject">
+                            <i class="fa fa-folder-o pull-left"></i> New Project
+                        </button>
+                        <button type="button" class="btn btn-block btn-warning" id="callCombineGeneSets">
+                            <i class="fa fa-folder-o pull-left"></i> Add
+                            Selected to Project
+                        </button>
+                        <button type="button" class="btn btn-block btn-warning" id="callExportOmicsSoft">
+                            <i class="fa fa-download pull-left"></i> Export OmicsSoft
+                        </button>
+                    </div>
+                    <div class="panel-group pull-right" id="selectedGenesets">
+
+                    </div>
+                    <div class="panel-group pull-right">
+                        <span id="help"><i class="fa fa-caret-left"></i> help</span>
+                    </div>
+                    <div id="help-text" class="panel-group" style="display: none;">
+                        <p><i class="fa fa-arrow-right"></i> Select Projects and GeneSets from the left and appropriate
+                            actions from the list on the right. Deleting projects will permanently remove them from your
+                            account.</p>
+                        <p><i class="fa fa-arrow-right"></i> Removing GeneSets will only remove them from the Project,
+                            not delete them from GeneWeaver.</p>
+                        <p><i class="fa fa-arrow-right"></i> Actions on GeneSets, such as Combine or Remove, work only
+                            on individual GeneSets and not at the project level.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    {% endblock %}
+
+
+{% if g.user is defined %}
+
+{#
+    AddBlankProject is included in the addGenesetsToProjects_multiselect
+    modal, so if we try to include it here for the New Project button, projects
+    will get added twice...
+
+    {% include 'modal/addBlankProject.html' %}
+#}
+    {% include 'modal/deleteProject.html' %}
+    {% include 'modal/combineGenesets.html' %}
+    {% include 'modal/addGenesetsToProjects_multiselect.html' %}
+    {% include 'modal/showGenericMessage.html' %}
+
+{% endif %}
+
+<!-- Script for adding geneset to selected projects-->
+<script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
+<script type="text/javascript">
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+    $(document).ready(function () {
+
+        // The 'Add GeneSet(s) to Project' button
+        // The 'add to selected projects' button in the modal above
+        $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
+
+        // Call New Blank Project
+        $('#newProject').on('click', function () {
+           $("#addProjectModal").modal('show');
+        });
+
+        // Call modal for delete of all projects
+        $('#callDeleteProjects').on('click', function () {
+            var projid = [];
+            var projname = [];
+
+			// These selections also grab things other that projects and
+			// should be filtered
+            $('input[type=checkbox]:checked').each(function () {
+                var thisName = $(this).attr('data-project-name');
+
+				if (thisName !== undefined)
+					projname.push(thisName);
+            });
+
+            $('input[type=checkbox]:checked').each(function () {
+                var thisId = $(this).attr('data-project');
+
+				if (thisId !== undefined)
+					projid.push(thisId);
+            });
+
+            if (projid.length === 0) {
+
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+
+				$(document).trigger("add-alerts", [{
+					'message': "You must select at least one project.",
+					'priority': 'danger'
+				}]);
+
+            } else{
+
+                var p = projid.join(",");
+                var q = projname.join(", ");
+
+                $("#myModalLabel").html(q);
+                $("#myModalValue").val(p);
+                $("#delProjects").modal('show');
+            }
+        });
+
+		// When a user is adding genesets to a new project, this allows them
+        // to hit enter to execute that addition without the page throwing
+        // an http error
+        $(document).on('keypress', function(e) {
+            // 13 == ENTER
+            if (e.keyCode && e.keyCode === 13)
+                e.preventDefault();
+        });
+
+
+        //Process the deletion of the projects
+        $('#confirmDelete').on('click', function (e) {
+           var projids = $('#myModalValue').val();
+            $.ajax({
+                type: "GET",
+                url: "/deleteProjectByID",
+                data: {"projids": projids},
+                success: function (data) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "Projects successfully deleted.",
+                        'priority': 'success'
+                    }
+                ]);
+                    location.reload()
+                },
+                error: function (data) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while deleting projects.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+
+
+        //function to add row for a new project name for combine genesets
+        $('#addNewProjectCombineGeneset').on('click', function () {
+            $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+        });
+
+
+        // Add genesets to projects
+        $('#addCombineGenesets').on('click', function (e) {
+            var checked = [];
+            $("input[name='options[]']:checked").each(function () {
+                checked.push(parseInt($(this).val()));
+            });
+            var option = JSON.stringify(checked);
+            var g = $('#myCombineGSValue').val();
+            var npn = $('#newProjName').val();
+            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Projects were selected.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else {
+                $.ajax({
+                    type: "GET",
+                    url: "../addGenesetsToProjects",
+                    data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Genesets Successfully Added to Selected Projects.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                });
+            }
+        });
+
+
+
+        //help checkbox
+        $( "#help" ).click(function() {
+            if($('#help-text:visible').length)
+                $('#help-text').hide("slide", { direction: "right" }, 1000);
+            else
+                $('#help-text').show("slide", { direction: "right" }, 1000);
+        });
+    });
+
+</script>
+
+{% endif %}
+
+{% include 'footer.html' %}

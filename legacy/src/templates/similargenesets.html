@@ -1,0 +1,844 @@
+{% set title="Similar GeneSets" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+<script src="/static/d3/radar.js" charset="utf-8"></script>
+<script src="/static/d3/BarChart.js" charset="utf-8"></script>
+
+
+<style type="text/css">
+    legend {
+        overflow: hidden;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    #chart {
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    #genesetExpand {
+        cursor: pointer;
+    }
+
+    .plus:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    .minus .plus:before {
+        content: "\f068";
+    }
+
+    table#similarGenesets {
+        border-collapse: collapse;
+        border-spacing: 0;
+        padding: 0;
+    }
+
+    .ui-checkbox {
+        border: none;
+        text-shadow: none;
+    }
+
+    fieldset .ui-checkbox {
+        margin: 0;
+    }
+
+    .axis path, .axis line {
+            fill: none;
+            stroke: #777;
+            shape-rendering: crispEdges;
+    }
+
+    .axis text {
+            font-family: 'Arial';
+            font-size: 13px;
+    }
+
+    .tick {
+            stroke-dasharray: 1, 2;
+    }
+
+    .bar {
+            fill: FireBrick;
+    }
+
+</style>
+
+{% if user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% else %}
+
+
+    <div class="row" id="result"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>View Similar Genesets</strong></h2>
+    </div>
+    
+    {# 
+        sim_status indicates whether or not similarity analysis has been run for
+        the currently viewed gene set.
+
+        status == 1 indicates no analysis has been run and the jaccard cache
+        has not been built.
+        status == 2 indicates the analysis is running.
+        status == 0 indicates the analysis is complete.
+    #}
+
+
+    {# This section is depricted due to the addition of dynamic jaccard #}
+    {# I also hyjacked the sim_status value to indicate if null results were returned #}
+     {% if sim_status == 0 %}
+        <div class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                x
+            </button>
+            <strong>
+                The Geneset does not contain any genes. Please update the genes associated with the set and re-run.
+            </strong>
+        </div>
+
+    {% endif %}
+
+    {#
+    {% if sim_status == 1 %}
+        <div class="alert alert-warning fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                x
+            </button>
+            <strong>
+                We have not run a similarity analysis on this GeneSet yet.
+                <a class="run-similarity" href="#">Click here to start now.</a>
+                Depending on the database load and GeneSet size, this may take
+                up to 15 minutes. Once you start the process you may navigate
+                away from this page and return at a later time.
+            </strong>
+        </div>
+
+    {% elif sim_status == 2 %}
+
+        <div class="alert alert-warning fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                x
+            </button>
+            <strong>
+                The similarity analysis is currently running. This may take
+                some time depending on the complexity of the data.
+            </strong>
+        </div>
+
+    {% endif %}
+    #}
+
+
+    <div class="panel panel-default">
+
+        {%include 'htmlfragments/curIDBoxes.html' %}
+
+        <div class="panel-body">
+            <div class="row">
+
+                <div class="col-xs-12 col-md-9">
+
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>DESCRIPTION:</strong></p>
+                        </div>
+                        <div class="col-md-10">
+                            <p>{{ geneset.description }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>LABEL:</strong></p>
+                        </div>
+                        <div class="col-md-10">
+                            <p>{{ geneset.abbreviation }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>SPECIES:</strong></p>
+                        </div>
+                        <div id="sp-tag" class="col-md-10">
+                        </div>
+                    </div>
+
+                    {# Right Side List of Buttons #}
+                    <div class="row">
+                        <div class="col-md-4 pull-left">
+                            <br><a href="/viewgenesetdetails/{{ gs_id }}">
+                            <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="col-xs-6 col-md-3">
+                    <button type="button" class="btn btn-block btn-warning" id="exportData">
+                        <i class="fa fa-download pull-left"></i> Export GeneSets
+                    </button>
+                    <button type="button" class="btn btn-block btn-warning" id="distribution">
+                        <i class="fa fa-bar-chart-o pull-left"></i> Distribution
+                    </button>
+                    <button type="button" class="btn btn-block btn-warning" id="addToProject">
+                        <i class="fa fa-folder-o pull-left"></i> Add to Projects
+                    </button >
+                    <button type="button" class="btn btn-block btn-warning run-similarity">
+                        <i class="fa fa-refresh pull-left"></i> Refresh Similar GeneSets
+                    </button>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+        <!-- Bar Chart for frequency -->
+        <div id="barChart" hidden="" style="padding-bottom: 20pt">
+            <center>
+                {# This is where the bar chart goes #}
+                <svg id="visualisation" width="1000" height="300"></svg>
+            </center>
+        </div>
+
+        <!-- Radar Chart -->
+        <div class="row">
+            <div id="legend">
+                <center>
+                    <div id="chart">
+                        {# This is where the chart goes #}
+                    </div>
+                </center>
+            </div>
+        </div>
+
+
+        <!-- Show the Geneset List -->
+        <div class="panel panel-default">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Top 1000 Similar GeneSets
+                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
+            </div>
+
+            <div class="similargenesets">
+                <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
+                      class="form-horizontal form-inline" novalidate="novalidate">
+                    <!-- TODO make the table sortable, show more gene details -->
+                    <table class="table table-hover" id="similarGenesets" cellpadding="0" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>&nbsp;</th>
+                                <th>Tier</th>
+                                <th>Species</th>
+                                <th>Attr.</th>
+                                <th>Genes</th>
+                                <th>GeneSet Title</th>
+                                <th>Jaccard</th>
+                                <th>hidden_geneset_id</th>
+                                <th>hidden_abbreviation</th>
+                                <th>hidden_description</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th class="filterable"></th>
+                                <th class="filterable"></th>
+                                <th class="filterable"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+
+                        </tfoot>
+                        <tbody>
+                        {% for i in simgs %}
+                            <!--<a name="gsid{{ i.geneset_id }}"></a>-->
+
+                            <tr>
+                                <td width="15" style="vertical-align: middle">
+                                    <span id="genesetExpand" class="toggler" data-prod="{{ i.geneset_id }}">
+                                        <span class="plus"></span>
+                                        <span class="minus"></span>
+                                    </span>
+                                </td>
+                                <!-- Label the tier - which is the curation id, Geneset.cur_id -->
+                                <td style="vertical-align: middle" nowrap>
+                                    {% if i.cur_id == 1 %}
+                                        Tier I
+                                    {% endif %}
+                                    {% if i.cur_id == 2 %}
+                                        Tier II
+                                    {% endif %}
+                                    {% if i.cur_id == 3 %}
+                                        Tier III
+                                    {% endif %}
+                                    {% if i.cur_id == 4 %}
+                                        Tier IV
+                                    {% endif %}
+                                    {% if i.cur_id == 5 %}
+                                        Tier V
+                                    {% endif %}
+                                </td>
+                                <!-- Label the species -->
+                                <td style="vertical-align: middle" nowrap>
+                                    {% if i.sp_id == 1 %}
+                                        Mouse
+                                    {% endif %}
+                                    {% if i.sp_id == 2 %}
+                                        Human
+                                    {% endif %}
+                                    {% if i.sp_id == 3 %}
+                                        Rat
+                                    {% endif %}
+                                    {% if i.sp_id == 4 %}
+                                        Zebrafish
+                                    {% endif %}
+                                    {% if i.sp_id == 5 %}
+                                        Fly
+                                    {% endif %}
+                                    {% if i.sp_id == 6 %}
+                                        Monkey
+                                    {% endif %}
+                                </td>
+                                <!-- Label the attribution -->
+                                <td style="vertical-align: middle" nowrap>
+                                    {% if i.attribution == 2 %}
+                                        CTD
+                                    {% endif %}
+                                    {% if i.attribution == 3 %}
+                                        NIF
+                                    {% endif %}
+                                    {% if i.attribution == 4 %}
+                                        ABA
+                                    {% endif %}
+                                    {% if i.attribution == 5 %}
+                                        ABA
+                                    {% endif %}
+                                    {% if i.attribution == 6 %}
+                                        GWAS
+                                    {% endif %}
+                                    {% if i.attribution == 7 %}
+                                        DRG
+                                    {% endif %}
+                                    {% if i.attribution == 8 %}
+                                        GO
+                                    {% endif %}
+                                    {% if i.attribution == 9 %}
+                                        MP
+                                    {% endif %}
+                                    {% if i.attribution == 10 %}
+                                        HP
+                                    {% endif %}
+                                    {% if i.attribution == 11 %}
+                                        MESH
+                                    {% endif %}
+                                    {% if i.attribution == 12 %}
+                                        KEGG
+                                    {% endif %}
+                                    {% if i.attribution == 13 %}
+                                        MSigDB
+                                    {% endif %}
+                                    {% if i.attribution == 14 %}
+                                        PC
+                                    {% endif %}
+                                    {% if i.attribution == 15 %}
+                                        OMIM
+                                    {% endif %}
+                                </td>
+                                <!-- Show the geneset size -->
+                                <td style="vertical-align: middle" nowrap>
+                                    <span class="gs_size">{{ i.count }} Genes</span>
+
+                                </td>
+                                <td style="vertical-align: middle">
+                                    <a href="/viewgenesetdetails/{{ i.geneset_id }}"><strong>GS{{ i.geneset_id }}</strong>
+                                        <i class="fa fa-caret-right"></i> {{ i.name }}</a>
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    <strong>{{ '%0.4f' % i.jac_value|float }}</strong>
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    {{ i.geneset_id }}
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    {{ i.abbreviation }}
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    {{ i.description }}
+                                </td>
+                                <td width="10px" style="vertical-align: middle">
+                                    <div class="ui-checkbox gsoptionsCheckBox" style="padding: 0; border: 0;">
+                                        <label for="addGeneset{{ i.geneset_id }}">
+                                            <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i.geneset_id }}"
+                                                   value="{{ i.geneset_id }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+                </form>
+            </div>
+        </div>
+
+        {% for gene in emphgeneids %}
+            <script>
+                document.getElementById("{{gene}}").checked = true;
+            </script>
+        {% endfor %}
+
+        {% if g.user is defined %}
+
+            {% include 'modal/addGenesetsToProjects_multiselect.html' %}
+
+        {% endif %}
+        {% include 'modal/showGenericMessage.html' %}
+
+
+        <script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
+        <script type="text/javascript">
+
+
+            // variables for Radar Chart
+            var w = 500, h = 500;
+            var colorscale = d3.scale.category10();
+            var LegendOptions = ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
+
+            //Data
+
+            var d = {{ d3Data | safe }};
+            var b = {{ d3BarChart | safe }};
+
+            //Call the barchart
+            InitChart.draw(b);
+
+            var mycfg = {
+                w: w,
+                h: h,
+                maxValue: {{ max }},
+                levels: 10,
+                ExtraWidthX: 300
+            };
+
+            RadarChart.draw("#chart", d, mycfg);
+
+            ////////////////////////////////////////////
+            /////////// Initiate legend ////////////////
+            ////////////////////////////////////////////
+
+            var svg = d3.select('#legend')
+                    .selectAll('svg')
+                    .append('svg')
+                    .attr("width", w + 300)
+                    .attr("height", h);
+
+            //Create the title for the legend
+            var text = svg.append("text")
+                    .attr("class", "title")
+                    .attr('transform', 'translate(150,0)')
+                    .attr("x", w - 70)
+                    .attr("y", 10)
+                    .attr("font-size", "14px")
+                    .attr("fill", "#404040")
+                    .text("Legend");
+
+            //Initiate Legend
+            var legend = svg.append("g")
+                            .attr("class", "legend")
+                            .attr("height", 100)
+                            .attr("width", 200)
+                            .attr('transform', 'translate(150,20)');
+
+            //Create colour squares
+            legend.selectAll('rect')
+                    .data(LegendOptions)
+                    .enter()
+                    .append("rect")
+                    .attr("x", w - 65)
+                    .attr("y", function (d, i) {
+                        return i * 20;
+                    })
+                    .attr("width", 10)
+                    .attr("height", 10)
+                    .style("fill", function (d, i) {
+                        return colorscale(i);
+                    })
+            ;
+            //Create text next to squares
+            legend.selectAll('text')
+                    .data(LegendOptions)
+                    .enter()
+                    .append("text")
+                    .attr("x", w - 52)
+                    .attr("y", function (d, i) {
+                        return i * 20 + 9;
+                    })
+                    .attr("font-size", "11px")
+                    .attr("fill", "#737373")
+                    .text(function (d) {
+                        return d;
+                    })
+            ;
+
+            function emphasize(id) {
+                if (document.getElementById(id).checked) {
+                    $.get("/emphasize/" + id + ".html", function (data, status) {
+                    });
+                }
+                else {
+                    $.get("/deemphasize/" + id + ".html", function (data, status) {
+                    });
+                }
+            }
+
+            (function($) {
+                /**
+                 * Function: fnGetColumnData
+                 * Purpose:  Return an array of table values from a particular column.
+                 * Returns:  array string: 1d data array
+                 * Inputs:   object:oSettings - dataTable settings object. This is always the last argument past to the function
+                 *           int:iColumn - the id of the column to extract the data from
+                 *           bool:bUnique - optional - if set to false duplicated values are not filtered out
+                 *           bool:bFiltered - optional - if set to false all the table data is used (not only the filtered)
+                 *           bool:bIgnoreEmpty - optional - if set to false empty values are not filtered from the result array
+                 * Author:   Benedikt Forchhammer <b.forchhammer /AT\ mind2.de>
+                 */
+                $.fn.dataTableExt.oApi.fnGetColumnData = function ( oSettings, iColumn, bUnique, bFiltered, bIgnoreEmpty ) {
+                    // check that we have a column id
+                    if ( typeof iColumn == "undefined" ) return new Array();
+
+                    // by default we only want unique data
+                    if ( typeof bUnique == "undefined" ) bUnique = true;
+
+                    // by default we do want to only look at filtered data
+                    if ( typeof bFiltered == "undefined" ) bFiltered = true;
+
+                    // by default we do not want to include empty values
+                    if ( typeof bIgnoreEmpty == "undefined" ) bIgnoreEmpty = true;
+
+                    // list of rows which we're going to loop through
+                    var aiRows;
+
+                    // use only filtered rows
+                    if (bFiltered == true) aiRows = oSettings.aiDisplay;
+                    // use all rows
+                    else aiRows = oSettings.aiDisplayMaster; // all row numbers
+
+                    // set up data array
+                    var asResultData = new Array();
+
+                    for (var i=0,c=aiRows.length; i<c; i++) {
+                        iRow = aiRows[i];
+                        var aData = this.fnGetData(iRow);
+                        var sValue = aData[iColumn];
+
+                        // ignore empty values?
+                        if (bIgnoreEmpty == true && sValue.length == 0) continue;
+
+                        // ignore unique values?
+                        else if (bUnique == true && jQuery.inArray(sValue, asResultData) > -1) continue;
+
+                        // else push the value onto the result data array
+                        else asResultData.push(sValue);
+                    }
+
+                    return asResultData;
+                }}(jQuery));
+
+            function fnCreateSelect( aData )
+            {
+                var r='<select><option value=".*" label="--filter--"></option>', i, iLen=aData.length;
+                for ( i=0 ; i<iLen ; i++ )
+                {
+                    r += '<option value="'+aData[i]+'">'+aData[i]+'</option>';
+                }
+                return r+'</select>';
+            }
+
+            // Function to create the html that is placed in a detail row
+            function fnFormatDetails ( oTable, nTr ) {
+                var aData = oTable.fnGetData( nTr );
+                var sOut = '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">';
+                sOut += '<tr class="gsid'+aData[7]+'">';
+                sOut += '<td colspan="5">&nbsp;</td>';
+                sOut += '<td><strong>LABEL:</strong>'+aData[8]+'<br>';
+                sOut += '<strong>DESCRIPTION:</strong>'+aData[9];
+                sOut += '</td></tr>';
+                sOut += '</table>';
+                return sOut
+            }
+
+            $(document).ready(function () {
+                /* Similar Genesets DataTables */
+
+                /*
+                 * Initialse DataTables, with no sorting on the 'details' column
+                 */
+                var oTable = $('#similarGenesets').dataTable( {
+                    "bSortCellsTop": true,
+                    "aoColumnDefs": [
+                        { "bSortable": false, "aTargets": [ 0 ] },
+                        { "aTargets":[1], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
+                            $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
+                            switch(sData) {
+                                case 'Tier I':
+                                    $(nTd).find("span").addClass('tier1');
+                                    break;
+                                case 'Tier II':
+                                    $(nTd).find("span").addClass('tier2');
+                                    break;
+                                case 'Tier III':
+                                    $(nTd).find("span").addClass('tier3');
+                                    break;
+                                case 'Tier IV':
+                                    $(nTd).find("span").addClass('tier4');
+                                    break;
+                                case 'Tier V':
+                                    $(nTd).find("span").addClass('tier5');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }},
+                        { "aTargets":[2], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
+                            $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
+                            switch(sData) {
+                                case 'Mouse':
+                                    $(nTd).find("span").addClass('mouse');
+                                    break;
+                                case 'Human':
+                                    $(nTd).find("span").addClass('human');
+                                    break;
+                                case 'Rat':
+                                    $(nTd).find("span").addClass('rat');
+                                    break;
+                                case 'Zebrafish':
+                                    $(nTd).find("span").addClass('zebrafish');
+                                    break;
+                                case 'Fly':
+                                    $(nTd).find("span").addClass('fly');
+                                    break;
+                                case 'Monkey':
+                                    $(nTd).find("span").addClass('monkey');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }},
+                        { "aTargets":[3], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
+                            $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
+                            switch(sData) {
+                                case 'NIF':
+                                    $(nTd).find("span").addClass('nif');
+                                    break;
+                                case 'CTD':
+                                    $(nTd).find("span").addClass('ctd');
+                                    break;
+                                case 'DRG':
+                                    $(nTd).find("span").addClass('drg');
+                                    break;
+                                case 'GO':
+                                    $(nTd).find("span").addClass('go');
+                                    break;
+                                case 'MP':
+                                    $(nTd).find("span").addClass('mp');
+                                    break;
+                                case 'GWAS':
+                                    $(nTd).find("span").addClass('gwas');
+                                    break;
+                                case 'ABA':
+                                    $(nTd).find("span").addClass('aba');
+                                    break;
+                                case 'KEGG':
+                                    $(nTd).find("span").addClass('kegg');
+                                    break;
+                                case 'HP':
+                                    $(nTd).find("span").addClass('hp');
+                                    break;
+                                case 'MESH':
+                                    $(nTd).find("span").addClass('mesh');
+                                    break;
+                                case 'MSIGDB':
+                                    $(nTd).find("span").addClass('msigdb');
+                                    break;
+                                case 'PC':
+                                    $(nTd).find("span").addClass('pc');
+                                    break;
+                                case 'OMIM':
+                                    $(nTd).find("span").addClass('omim');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }},
+                        { "bSortable": false, "bVisible": false, "aTargets": [ 7 ] },
+                        { "bSortable": false, "bVisible": false, "aTargets": [ 8 ] },
+                        { "bSortable": false, "bVisible": false, "aTargets": [ 9 ] },
+                        { "bSortable": false, "aTargets": [ 10 ] }
+                    ],
+                    "aaSorting": [[6, 'desc']]
+                });
+
+                /* Add a select menu for each element with class filterable */
+                $(".filterable").each( function ( i ) {
+                    this.innerHTML = fnCreateSelect( oTable.fnGetColumnData(i+1) );
+                    $('select', this).change( function () {
+                        oTable.fnFilter("^" + $(this).val() + "$", i+1, true, false );
+                    } );
+                } );
+
+                // An event listener to open and close the detail row
+                $('.toggler').live('click', function (e) {
+                    e.preventDefault();
+                    var nTr = $(this).parents('tr')[0];
+                    if ( oTable.fnIsOpen(nTr) ) {
+                        /* This row is already open - close it */
+                        oTable.fnClose( nTr );
+                    } else {
+                        /* Open this row */
+                        oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
+                    }
+                    $(this).parent().find("span").toggleClass("plus");
+                    $(this).toggleClass("plus");
+                    $(this).toggleClass("minus");
+                } );
+
+                var gs_id = {{ geneset.geneset_id }};
+
+                $('#exportData').on('click', function (e) {
+                    window.open('/exportJacGeneList/' + gs_id);
+                });
+
+                $('#distribution').on('click', function (e) {
+                    $("#barChart").toggle();
+                });
+
+                $('.dropdown-menu li').click( function () {
+                    var rel = $(this).attr("rel");
+                    var gs_id = {{ geneset.geneset_id }};
+                    window.open('../' + gs_id + '/' + rel, "_self");
+                });
+
+                // gs_ids in the results that are checked and ready to add to a project
+                var gschecked = {};
+
+                // Called every time a checkbox is clicked
+                $(document).on('change', '.gsoptionsCheckBox input[type="checkbox"]', function () {
+                    const gsid = $(this).val();
+                    if ($(this).is(':checked')) {
+                        gschecked[gsid] = gsid;
+                    } else {
+                        delete gschecked[gsid];
+                    }
+                });
+
+                // The 'Add GeneSet(s) to Project' button
+                $('#addToProject').on('click', openGSModal('#addToProjectModal', gschecked, 'Add GeneSet to Project(s)'));
+
+                // The 'add to selected projects' button in the modal above
+                $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../../addGenesetsToProjects"));
+
+                // The button for this is found on the addGenesetsToProjects modal
+                $('#addNewProject').on('click', function () {
+                    $('#reveal-if-active').toggle();
+                });
+
+                $('.run-similarity').on('click', function (e) {
+
+                    // Prevents the link from redirecting
+                    e.preventDefault();
+
+                    console.log('wut');
+                    var gs_id = {{ geneset.geneset_id }};
+                    console.log(gs_id);
+
+                    $.ajax({
+                        type: 'GET',
+                        url: '/runSimilarGenesets.json',
+                        data: {'gs_id': gs_id},
+                        success: function (data) {
+                            //$("#result").html('<div class="alert alert-success fade in"> ' +
+                            //'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            //'</button>Genesets Successfully Added to Selected Projects</div>');
+                            window.location.reload();
+                        }
+                    });
+                });
+            });
+
+            $('#clickableFontAwesome').popover({
+                title: 'Caution', content: 'Some recently added genesets may ' +
+                'not be on this list due to a lag time in calculating global Jaccard scores between all genesets in our database.'
+            });
+
+            //});
+
+			// Dynamically generates a colored species tag using an sp_id/sp_name
+			// association list from the DB. The function normalizes sp_id just in
+			// case species have been removed and gaps exist between IDs. The original
+			// colors for GW's first six species are still used, the rest are based off
+			// ColorBrewer scale combinations.
+			$(function() {
+
+				var spid = {{ geneset.sp_id }};
+				// The alist returned by the server should already be sorted
+				var splist = {{ species|tojson|safe }};
+				var spname = '';
+				// Extra element padding since sp_ids are not zero indexed
+				var colors = ['', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', '#f4dfff',
+					'#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'];
+				var borders = ['', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a', '#b4d1fb',
+					'#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'];
+
+				for (var i = 0; i < splist.length; i++) {
+					if (spid === splist[i][0]) {
+						spid = i;
+						spname = splist[i][1];
+
+						break;
+					}
+				}
+
+				var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+						'; border:1px solid ' + borders[spid] + '">' +
+						spname + '</span>';
+
+				$('#sp-tag').html(tag);
+			});
+
+        </script>
+
+    </div>
+
+{% endif %}
+
+{% include 'footer.html' %}

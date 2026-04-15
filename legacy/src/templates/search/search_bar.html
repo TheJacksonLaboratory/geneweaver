@@ -1,0 +1,153 @@
+<!-- This partial defines a search bar with basic options that can be used to perform basic searches -->
+<!-- NOTE this must be enclosed in a <form> tag with the appropriate method/action that the search routes are expecting.
+The purpose of this partial is to 
+    1. Define the layout, style, and elements.
+    2. Define and enforce use of the appropriate name/value pairs expected by the search route for search options
+
+This is designed to be used throughout the site, but must be in appropriate form tags.
+An example form tag that works with current routes is below:
+
+<form action="/search/" method="GET" id="searchBarForm">
+ Include the template -> include'search/search_bar.html'
+</form>
+
+-->
+<!-- TODO Make this CSS not inline, move it, or something. -->
+<style>
+    /* Make the label text show and not overflow */
+    .ui-btn {
+        overflow: visible;
+    }
+</style>
+
+<!-- TODO make this JS not inline-->
+<script>
+    /*
+     This script will dynamically add and remove up to three search bars 
+     and options
+     */
+    $(document).ready(function () {
+
+        // Delegate is used instead of a selector + click, otherwise 
+        // dynamically added DOM elements won't register and call js functions
+        $('#searchFormContainer').delegate('#addSearchBar1', 'click', function() {
+            // Only three search bars are allowed
+            if ($("#searchFormContainer").children().length < 3)
+                $("#searchFormGroup").clone().appendTo("#searchFormContainer");
+        });
+
+        $('#searchFormContainer').delegate('#removeSearchBar', 'click', function() {
+            // Must always be at least one search bar
+            if ($("#searchFormContainer").children().length > 1)
+                $("#searchFormContainer").children().last().remove();
+        });
+    });
+</script>
+<div class="form-group">
+    <div class="row" style="" align="center">
+        <div class="col-md-7">
+            <label class="form-label">
+                <h3>Search GeneSets</h3>
+            </label>
+            <span class="tips"> like "mouse, Ap3m2, alcohol"</span>
+        </div>
+    </div>
+    <div class="controls">
+        <!-- THis is a container that will hold duplicated search bars, up to three -->
+        <div id="searchFormContainer" align="center">
+            <!-- This is a single search form group that will be duplicated on the add search bar button click -->
+            <div id="searchFormGroup">
+                <div class="row" style="width:95%; display: inline-block">
+                    <div class="col-md-12" style="display: inline-block">
+                        <!-- Search bar -->
+                        <input id="searchbar" name="searchbar" class="input-lg" style="width:65%" type="text"
+                               value="{% if paginationValues
+							   %}{{paginationValues.search_term[0]}}{% endif %}">
+
+                        <!-- Submit button to perform search -->
+                        <input type="submit" class="btn btn-primary" value="Search" align="right"
+                               style="vertical-align:15%">
+                        <!-- Button for removing a search bar -->
+                        <button id="removeSearchBar" class="btn btn-sm" type="button" style="vertical-align: 15%">
+                            <i class="fa fa-minus"></i>
+                        </button>
+                        <!-- Button for adding a search bar -->
+                        <button id="addSearchBar1" class="btn btn-sm" type="button" style="vertical-align: 15%">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                    <!-- TODO make buttons add query bars to the search-->
+                    <!-- A hidden field, necessary as an argument for search. It tells search to start at page 1.-->
+                    <input id="searchbar_pagination_page" name="pagination_page" type="hidden" value="1">
+                </div>
+                <div class="row" align="center" style="width:90%">
+					{#
+                    <div class="col-md-12" style="display: inline-block">
+						#}
+                        <!-- Search in checkboxes -->
+                        <div class="col-md-2"><input type="checkbox" value="yes"
+                                                     {% if field_list %}
+                                                     {% if field_list.searchGenesets== True %}
+                                                     checked="checked"
+                                                     {% else %}
+
+                                                     {% endif %}
+                                                     {% else %}
+                                                     checked="checked"
+                                                     {% endif %}
+                                                     name="searchGenesets" id="searchGenesets"> <label
+                                for="searchGenesets">
+                            GeneSets </label></div>
+
+                        <div class="col-md-2"><input type="checkbox" value="yes"
+                                                     {% if field_list %}
+                                                     {% if field_list.searchGenes== True %}
+                                                     checked="checked"
+                                                     {% else %}
+
+                                                     {% endif %}
+                                                     {% else %}
+                                                     checked="checked"
+                                                     {% endif %}
+                                                     name="searchGenes" id="searchGenes"> <label for="searchGenes">
+                            Genes </label></div>
+                        <div class="col-md-2"><input type="checkbox" value="yes"
+
+                                                     {% if field_list %}
+                                                     {% if field_list.searchAbstracts== True %}
+                                                     checked="checked"
+                                                     {% else %}
+
+                                                     {% endif %}
+                                                     {% else %}
+                                                     checked="checked"
+                                                     {% endif %}
+
+                                                     name="searchAbstracts" id="searchAbstracts"> <label
+                                for="searchAbstracts"> Abstracts </label></div>
+                        <div class="col-md-2"><input type="checkbox" value="yes"
+
+                                                     {% if field_list %}
+                                                     {% if field_list.searchOntologies== True %}
+                                                     checked="checked"
+                                                     {% else %}
+
+                                                     {% endif %}
+                                                     {% else %}
+                                                     checked="checked"
+                                                     {% endif %}
+
+                                                     name="searchOntologies" id="searchOntologies"> <label
+                                for="searchOntologies"> Annotations </label></div>
+
+
+						{#
+                    </div>
+					#}
+
+
+                </div>
+			</div> <!-- end of searchFormGroup? -->
+        </div>
+    </div>
+</div>

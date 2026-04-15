@@ -1,0 +1,895 @@
+{% set title="GeneSet Details" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    #clickableHomology {
+        cursor: pointer;
+    }
+
+    #clickablePriority {
+        cursor: pointer;
+    }
+
+    #clickableGeneSymbol {
+        cursor: pointer;
+    }
+
+    .right {
+        float: right;
+    }
+
+    .left {
+        float: left;
+        width: 100%;
+    }
+
+    .popover {
+        text-transform: none;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
+        /* IE 5-7 */
+        filter: alpha(opacity=70);
+        /* Netscape */
+        -moz-opacity: 0.7;
+        /* Safari 1.x */
+        -khtml-opacity: 0.7;
+        /* Good browsers */
+        opacity: 0.7;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+    }
+
+</style>
+
+{% if no_access is defined %}
+
+    {% include 'htmlfragments/genesetPermissionError.html' %}
+
+{% elif deleted is defined %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+
+{% else %}
+
+    <div class="loader"></div>
+
+    <div class="row" id="result"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
+    </div>
+
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+    {% if 'deprecated' in geneset.status %}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet has been deprecated. An updated version can be found 
+            <strong>
+                <a id="deprecated-link" href="">here.</a>
+            </strong>
+        </div>
+    {% endif %}
+
+    {% if 'delayed:processing' in geneset.status %}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet is still processing. Please be patient while we finish things up.
+        </div>
+    {% endif %}
+
+    <div class="panel panel-default">
+        {% include 'htmlfragments/curIDBoxes.html' %}
+
+    <!-- View GeneSet MetaContent -->
+    {% include 'viewGenesetMeta.html' %}
+
+    <!-- Show the Geneset List -->
+    {% if show_geneset_list is not none %}
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">Gene List &bull; {{ totalGenes }} Genes</h3>
+        </div>
+        <div class="panel-body" style="padding-top:10px;">
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    {% if geneset.threshold_type != 3 %}
+                        <div class="row">
+                            <p>Genes in threshold: {{ num_genes_in_threshold }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+					{% if g.user is defined and not curation_view %}
+					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+					</button>
+					{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover" id="genes">
+                    <tbody>
+                    <thead>
+                    <tr>
+                        <th>
+                            <i class="fa fa-sort"></i> Uploaded As
+                            <span id="defaultIdHelp" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th>
+							    <span class="dropdown">
+								<span id="clickableGeneSymbol"
+									  data-toggle="dropdown" 
+									  aria-haspopup="true"
+									  aria-expanded="true">
+
+									<span id="altSymbolHeader">
+										{{ altGeneSymbol }}
+									</span>
+									<i id="type-loading" class="fa fa-caret-down"></i>
+								</span>
+								{# 
+									TODO: Should be rewritten to dynamically
+									load gene types from the DB
+								#}
+								<ul class="dropdown-menu"
+									aria-labelledby="clickableGeneSymbol">
+									<li class="gene-type" rel="0"><a tabindex="0" class="" style="">
+										<span class="text">Gene Symbol</span>
+									</a></li>
+									<li class="gene-type" rel="1"><a tabindex="0" class="" style="">
+										<span class="text">Entrez</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">Ensembl Gene</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">UniGene</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">MGI</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">FlyBase</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">WormBase</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">RGD</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">ZFIN</span>
+									</a></li>
+								</ul>
+							</span>
+                        </th>
+                        <th>
+                            Homology 
+                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th><i class="fa fa-sort"></i> Score</th>
+                        <th>
+                            <i class="fa fa-sort"></i> Priority
+                            <span id="clickablePriority" data-trigger="focus" tabindex="0">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
+                        <th>LinkOuts</th>
+                        <th>Emphasis
+                        <span id="Emphasis" data-trigger="focus" tabindex="0">
+                            </span>
+                        </th>
+                        <th>&nbsp;</th>
+                    </tr>
+                    </thead>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <div class="panel panel-default">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
+            </div>
+            <div class="panel-body" style="padding-top:10px;">
+                <div class="row">
+                    <div class="alert bg-gray-light">No Genes are Associated with this GeneSet</div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+
+	<iframe id="ie-export" style="display:none;">
+	</iframe>
+
+    <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+    <script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            {% if species %}
+                makeSpeciesTags({{ species | tojson | safe }}, true);
+            {% else %}
+                makeSpeciesTags();
+            {% endif %}
+
+            makeOntologyTags({{ ontology | tojson | safe }});
+        });
+        
+        $('#clickableHomology').popover({
+                title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
+                'within GeneWeaver. Mouseover the boxes to reveal species names.'
+        });
+
+        $('#clickablePriority').popover({
+                title: 'Percentile Priority Rank', content: 'All genes within GeneWeaver are ranked according to global ' +
+                'graph centrality. A full description can be found <a href="http://www.geneweaver.org/wiki">here</a>.',
+                html: 'true'
+        });
+
+        $('#defaultIdHelp').popover({
+                title: 'Original Gene Identifiers', 
+                content: 'The symbols in this column represent the original ' +
+                         'identifiers used when uploading this GeneSet. ' +
+                         'This set was uploaded using "{{uploaded_as}}" ' +
+                         'identifiers.'
+        });
+
+        // Stops the column from sorting when a user clicks the info icon.
+        $('#defaultIdHelp').on('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
+        $('#export').on('click', function (e) {
+           $('#selectExportType').modal('show');
+        });
+
+        function emphasize(id) {
+            if (document.getElementById(id).checked) {
+                $.get("/emphasize/" + id + ".html", function (data, status) {
+                });
+            }
+            else {
+                $.get("/deemphasize/" + id + ".html", function (data, status) {
+                });
+            }
+        }
+
+        $(document).ready(function () {
+
+                var gs_id = {{ gs_id }};
+                $('#genes').DataTable( {
+                    "iDisplayLength": 25,
+                    "searchDelay": 1500,
+                    "bLengthChange": true,
+                    "processing": true,
+                    "serverSide": true,
+                    "oLanguage": {
+                    "sSearch": "Filter Gene Symbol: ",
+                    "sProcessing": ""
+                    },
+                    "tableTools": {
+                    "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                    "sRowSelect": "multi",
+                    "aButtons": [
+                    "select_all",
+                    "select_none",
+                    "copy",
+                    "print",
+                    "pdf",
+                    "xls",
+                    "csv"
+                    ]
+                    },
+                    "dom": '<"clear"l><"right"f><"left"ip><"bottom"rtip>',
+                    "ajax": {
+                        "beforeSend": function() {
+                            $('.loader').show();
+                        },
+                        "url": "/get_geneset_values",
+                        "type": "GET",
+                        "data": {"gs_id": gs_id, "gs_len": {{ totalGenes }}},
+                    },
+                    "drawCallback" : function(settings) {
+                        /* once each page is done rendering, check for items in checkedArray object for
+                        'add genes to geneset selections, if it is populated, iterate through it
+                        and select checkboxes for the particular page you are on
+                         */
+                        var len = Object.keys(checkedArray).length;
+                        if (len > 0) {
+                            for (var key in checkedArray)  {
+                                if($('#addGeneset'+key).length != 0) {
+                                    $('#addGeneset'+key).prop('checked', true);
+                                }
+                            }
+                        }
+                        //register homology tooltips
+                        $("[data-toggle='tooltip']").tooltip();
+                        //override the processing indicator
+                        $('#gene_processing').hide();
+                        //dont show pagination if only one page
+                        var totalGenes = {{ totalGenes }};
+                        if ((totalGenes / this.fnSettings()._iDisplayLength) > 1) {
+                            $('.pagination').css("display", "block");
+                        } else { $('.pagination').css("display", "none"); }
+                        $(".loader").fadeOut("slow");
+                        //register the empahsis checkboxes as bootstrap switches
+                        $("[name='g_id[]']").bootstrapSwitch();
+                    },
+                    "createdRow": function(row, data, index) {
+                        $(row).addClass("gene-list-row");
+                    },
+                    "aoColumns": [
+                    {"mData": 0, "fnCreatedCell": gen_gene_name, className: "defaultSymbol"},
+                    {"mData": 1, "fnCreatedCell": gen_symbol, "orderable": false, "searchable": false},
+                    {"mData": 2, "fnCreatedCell": gen_homology, "orderable": false, "searchable": false},
+                    {"mData": 3, "fnCreatedCell": gen_score, "searchable": false, className: "gene-value"},
+                    {"mData": 4, "fnCreatedCell": gen_priority, "searchable": false},
+                    {"mData": 5, "fnCreatedCell": gen_linkouts, "orderable": false, "searchable": false, "width":"140px"},
+                    {"mData": 6, "fnCreatedCell": gen_emphasis, "orderable": false, "searchable": false},
+                    {"mData": 7, "fnCreatedCell": gen_checkboxes, "orderable": false, "searchable": false}
+                    ]
+                });
+
+            //TODO: should get loaded from db
+            var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6'];
+            var species = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
+                 'Macaca mulatta', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus', 'Canis familiaris'];
+
+            function gen_gene_name(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong><a href="/search/?searchbar=' + oData[1] + '&pagination_page=1&searchGenes=yes">' + oData[1] + '</a></strong>');
+            }
+
+            function gen_symbol(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong>' + oData[2] + '</strong>');
+                $(nTd).attr('id', 'altSymbol');
+                $(nTd).attr('class', 'gene-symbol');
+                $(nTd).attr('ode-gene-id', oData[0])
+            }
+
+            function gen_homology(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                var span = '<span data-placement="top" data-toggle="tooltip" data-rel="tooltip"';
+                var div = '<div class="geneBox"';
+                var homs = oData[3];
+                for (i = 1; i < 11; i++) {
+                    var color = "";
+                    if (homs.indexOf(i) > -1) {
+                        color = ' style="background-color: ' + hom_colors[i-1] +'"';
+                    }
+                    $(nTd).append(span + 'data-original-title="' + species[i-1] + '" title="' + species[i-1] + '">' + div + color + '></div>&nbsp;</span>');
+                }
+
+            }
+
+            function gen_score(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong>' + oData[4] + '</strong>');
+            }
+
+            function gen_priority(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<div class="progress">' + oData[5] + '</div>');
+            }
+
+            function gen_linkouts(nTd, sData, oData, iRow, iCol) {
+                        $(nTd).empty();
+                        $(nTd).append('<a target="_blank" href="http://www.ncbi.nlm.nih.gov/gene/?term=' + oData[9] + '"> \
+                        <img src="/static/images/linkouts/entrez.png" title="Entrez"></a> \
+                        <a target="_blank" href="http://www.ensembl.org/Gene/Summary?g=' + oData[9] + '"> \
+                        <img src="/static/images/linkouts/ensembl.png" title="Ensembl"></a> &nbsp; \
+                        <a target="_blank" href="http://www.genenetwork.org/webqtl/WebQTL.py?cmd=search&amp;gene=' + oData[9] + '"> \
+                        <img src="/static/images/linkouts/genenetwork.png" title="Gene Network"></a> &nbsp; \
+                        <a target="_blank" href="http://string.embl.de/newstring_cgi/show_network_section.pl? \
+                        input_query_species=auto_detect&amp;network_flavor=confidence&amp;identifier=' + oData[9] + '"> \
+                        <img src="/static/images/linkouts/string.png" title="String"></a> &nbsp; \
+                        <a target="_blank" href="http://mouse.brain-map.org/search/show?search_term=' + oData[9] + '"> \
+                        <img src="/static/images/linkouts/allen brain atlas.png" title="Allen Brain Atlas"></a> &nbsp; \
+                        <a target="_blank" href="http://ctdbase.org/basicQuery.go?bqCat=gene&amp;bq=' + oData[9] + '"> \
+                        <img src="/static/images/linkouts/comparative toxicogenomics database.png" \
+                        title="Comparative Toxicogenomics Database"></a> &nbsp;');
+                    }
+
+            function gen_emphasis(nTd, sData, oData, iRow, iCol) {
+                        var checked = ""
+                        if(oData[7] == 'On') { checked = "checked"}
+                        $(nTd).empty();
+                        $(nTd).append('<input type="checkbox" name="g_id[]" id="' + oData[0] + '"' + checked +'\
+                        onchange="emphasize(\'' + oData[0] + '\');" data-size="mini" style="padding: 0px; vertical-align: middle;">');
+                    }
+
+            function gen_checkboxes(nTd, sData, oData, iRow, iCol) {
+                        $(nTd).empty();
+                        $(nTd).append('<div class="ui-checkbox"><input class="addGene" name="gsoptions[]" \
+                        id="addGeneset' + oData[0] + '" value="' + oData[0] + '" \
+                        type="checkbox" onchange="updateCheckedArray(\'addGeneset' + oData[0] + '\');"></div>');
+                }
+
+            $('#submitCurationRequest').attr('disabled', true).button('refresh');
+
+            var has_active_curation_assignment = {% if curation_assignment and curation_assignment.state != curation_assignment.REVIEWED %} true {% else %} false {% endif %};
+            var gs_id = {{ geneset.geneset_id }};
+            var user_id = {{ user_id }};
+
+            {% if 'deprecated' in geneset.status %}
+
+                var status = '{{ geneset.status | safe }}';
+                var gsid = status.split(':')[1];
+
+                if (!gsid)
+                    $('#deprecated-message').hide();
+                else
+                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsid);
+
+            {% endif %}
+
+
+            function handleError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+            // The 'Share Geneset(s) w/ Group' button
+            $('#shareWithGroup').on('click', openGSModal('#shareWithGroupsModal', [gs_id], 'Share GeneSet with Group(s)'));
+
+            // The 'Share with selected groups' button in the modal above
+            $('#shareGenesetsWithGroups').on('click', submitGSModal("#shareWithGroupsModal", "../shareGenesetsWithGroups"));
+
+            // The 'Add GeneSet(s) to Project' button
+            $('#addToProject').on('click', openGSModal('#addToProjectModal', [gs_id], 'Add GeneSet to Project(s)'));
+
+            // The 'add to selected projects' button in the modal above
+            $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
+
+            // The button for this is found on the addGenesetsToProjects modal
+            $('#addNewProject').on('click', function () {
+                    $('#reveal-if-active').toggle();
+            });
+
+            // Export OmicSoft version
+            $('#exportOmicsSoft').on('click', function() {
+                $("#selectExportType").modal('hide');
+                var gs_id = {{ geneset.geneset_id }};
+                window.location = '/exportOmicsSoft/' + gs_id;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
+            });
+
+            // Export all gene values as a tab-delimited data set
+            $('#exportData').on('click', function (){
+                $("#selectExportType").modal('hide');
+                var gs_id = {{ geneset.geneset_id }};
+                window.location = '/exportgsid/' + gs_id;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded Genes Completed</div>');
+            });
+
+            // Export all geneset information in a batch upload format
+            $('#exportComplete').on('click', function (){
+                $("#selectExportType").modal('hide');
+                var gs_id = {{ geneset.geneset_id }};
+                window.location = '/exportBatch/' + gs_id;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded GeneSet in GeneWeaver Batch Upload Format Completed</div>');
+            });
+
+            $('#viewSimilarGenesets').on('click', function (e) {
+                window.open('../viewSimilarGenesets/' + gs_id + '/0', "_self");
+            });
+
+            $('#deleteGeneset').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                $("#myGenesetDeleteLabel").html(gsid);
+                $("#delModal").modal('show');
+            });
+
+            function validate_form () {
+                if ($('#curationNotes').val()) {
+                    $('#submitCurationRequest').attr('disabled', false).button('refresh');
+                }
+                else {
+                    $('#submitCurationRequest').attr('disabled', true).button('refresh');
+                }
+            }
+
+            $('#curationNotes').keyup(validate_form);
+
+            $('#requestCuration').on('click', function () {
+                if (has_active_curation_assignment) {
+                    $('#genericLabel').html("Geneset Already Assigned for Curation");
+                    $('#genericMessage').html("An active curation assignment was found for this geneset");
+                    $('#showGenericModal').modal('show');
+                }
+                else {
+                    $("#curationRequestModalLabel").html({{ geneset.geneset_id }});
+                    $('#curationNotes').val('');
+                    $("#requestCurationModal").modal('show');
+                }
+            });
+
+            $('#submitCurationRequest').on('click', function() {
+                var params = {
+                    "notes": $('#curationNotes').val(),
+                    "gs_id": {{ geneset.geneset_id }}
+                };
+
+
+                // since params["gs_ids"] is a list the server needs to use
+                // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                $.post("{{ url_for('nominate_public_geneset_for_curation') }}", params, function (data) {
+                    has_active_curation_assignment = true;
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "GeneSet submitted for curation: {{ geneset.geneset_id }}",
+                            'priority': 'success'
+                        }
+                    ]);
+
+                }, "json").fail(handleError);
+
+            });
+
+            $('#editGeneset').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if curation_view == 'curator' %}
+                    window.location.href = '/curategeneset/edit/' +gsid;
+                {% else %}
+                    window.location.href = '../editgeneset/'+gsid;
+                {% endif %}
+
+            });
+
+            $('#editGenesetGenes').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if curation_view == 'curator' %}
+                    window.location.href = '/curategenesetgenes/' +gsid;
+                {% else %}
+                    window.location.href = '../editgenesetgenes/' +gsid;
+                {% endif %}
+            });
+
+            $('#setThreshold').on('click', function (e) {
+               var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../setthreshold/' + gsid;
+            });
+
+            $('#confirmDelete').on('click', function (e) {
+                $.ajax({
+                    type: "GET",
+                    url: "../deleteGeneset",
+                    data: {"gs_id": {{ geneset.geneset_id }}, "user_id": {{ user_id }} },
+                    success: function (data) {
+                        window.setTimeout($("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>GeneSet successfully deleted</div>'), 5000);
+                        window.location.href = '../mygenesets';
+                    }
+                });
+            });
+
+            //$('#selectGeneType').on('click', function (e) {
+            $('.gene-type').on('click', function (e) {
+
+				var geneType = $.trim($(this).text());
+				$('#altSymbolHeader').html(geneType);
+
+				$('#type-loading').attr('class', 'fa fa-cog fa-spin');
+
+                $.ajax({
+                    type: "GET",
+                    url: "../updateAltGeneSymbol",
+                    data: {"altSymbol": geneType, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
+                    success: function (genesetValues) {
+                        genesetValues = JSON.parse(genesetValues);
+
+                        for (var i = 0; i < genesetValues.length; i++) {
+                            var gsv = genesetValues[i];
+                            var odeId = gsv['ode_gene_id'];
+                            var gdbId = gsv['gdb_id'];
+                            var refId = gsv['ode_ref_id'];
+                            var altId = gsv['alt_gene_id'];
+                            // Should check if this is null and handle
+                            var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
+                            // Indicates an alternate ID type does exist for
+                            // this particular gene
+                            if (gdbId == altId)
+                                $(altElement).html('<strong>' + refId + '</strong>');
+                            else
+                                $(altElement).html('<strong>None</strong>');
+
+							$('#type-loading').attr('class', 'fa fa-caret-down');
+                        }
+                    }
+                })
+
+            });
+
+
+            {% if curation_view == 'reviewer' %}
+                $("input:radio[name='review']:checked").prop('checked', false).checkboxradio("refresh");
+            {% endif %}
+
+            {% if curation_view in ['curation_leader', 'reviewer'] %}
+
+                // this block contains functions only required for the
+                // curation_leader or reviewer views. don't bother including
+                // them in the final page otherwise
+
+                $('#assignCurator').on('click', function () {
+
+                    // when we show the modal window, we don't want a group selected.
+                    $("input:radio[name='curator']:checked").prop('checked', false).checkboxradio("refresh");
+
+                    // submit button will be disabled until the user selects a group radio button
+                    $('#assignToCurator').prop("disabled", true).button("refresh");
+                    $('#assignGenesetToCuratorModal').modal('show');
+                });
+
+                $("input:radio[name='curator']").on('click', function () {
+                    // submit button will be disabled until the user selects a curator
+                    // radio button
+                    $('#assignToCurator').prop("disabled", false).button("refresh");
+                });
+
+                $("input:radio[name='review']").on('click', function () {
+                        // button will be disabled until the user selects a review
+                        // decision
+                        $('#reviewed').prop("disabled", false).button("refresh");
+                    });
+
+                $('#assignToCurator').on('click', function () {
+
+                    var selectedUserId = $('input[name=curator]:checked').val();
+
+                    var params = {
+                        "note": $('#modalCurationNotes').val(),
+                        "gs_id": {{geneset.geneset_id}},
+                        "curator": selectedUserId,
+                    };
+
+                    $.post("{{ url_for('assign_geneset_to_curator') }}", params ,function(data) {
+
+                        var curatorName  = data.curator_name;
+                        var curatorEmail = data.curator_email;
+
+
+                        // update the modal window to include a warning that
+                        // the GeneSet is now assigned to this curator
+                        var html =      "<strong>" +
+                                        "This Geneset is currently assigned To " +
+                                        curatorName + "(" + curatorEmail + "). " +
+                                        "Are you sure you want to reassign it?" +
+                                        "</strong>";
+
+
+                        $('#alreadyAssignedWarning').html(html);
+                        $('#curationNotes').val($('#modalCurationNotes').val());
+
+
+                        {% if curation_view == 'reviewer' %}
+                            // reassigning a GeneSet that was ready for review
+                            // that puts the state back to 'assigned'
+
+                            // if we were in the review view we need to remove the
+                            // form controls specific to the review process. This
+                            // basically turns the view back to the curation_leader
+                            // view
+                            $('#review_div').hide();
+
+                            // also make the curation notes read only because in
+                            // this view they can only be changed by clicking on the
+                            // "Reassign Curator" button
+                            $('#curationNotes').prop('readonly', true);
+
+
+                        {% endif %}
+
+                    }, "json").fail(handleError);
+
+                    // After POSTing the update, refresh the page
+                    location.reload();
+
+                });
+
+                $('#reviewed').on('click', function () {
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_id": {{geneset.geneset_id}},
+                        "tier": $('#tier').val(),
+                        "review_ok": false
+                    };
+
+                    var buttonTxt = "Rejected";
+
+                    if ($("input[name='review']:checked").val() == 'accept') {
+                        params.review_ok = true;
+                        buttonTxt = "Completed";
+                    }
+
+
+                    $.post("{{ url_for('mark_geneset_reviewed') }}", params, function(data) {
+
+                        $('#reviewed').html(buttonTxt);
+                        $('#reviewed').prop('disabled', true).button('refresh');
+                        $('#review_div').remove();
+                        $('#assignCurator').remove();
+                        $('#tier').prop('disabled', true).button('refresh');
+
+                    }, 'json').fail(handleError);
+
+                });
+
+            {% elif curation_view == 'curator' %}
+
+                // this block contains functions only required for the
+                // curator view. don't bother including them in the
+                // final page otherwise
+
+                $('#readyForReview').on('click', function() {
+
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_id": {{geneset.geneset_id}},
+                    };
+
+                    $.post("{{ url_for('geneset_ready_for_review') }}", params ,function(data) {
+                        $('#readyForReview').html('<i class="fa fa-check pull-left"></i>Pending Review');
+                        $('#readyForReview').prop('disabled', true).button('refresh');
+                        $('#curationNotes').prop('readonly', true);
+                        $('#setThreshold').remove();
+                        $('#editGeneset').remove();
+                        $('#editGenesetGenes').remove();
+
+                    }, 'json').fail(handleError);
+                });
+
+            {% endif %}
+        });
+
+        $( document.body ).on( 'click', '#geneSymbol li', function( event ) {
+        //WARNING: This function previously interfered with the dropdown menu
+        //at the top of the page. I added IDs instead of classes. Seems to
+        // work now
+        $(this).parents('#geneSymbol').find( '.newName').text($(this).text())
+                .end()
+                .children( '.dropdown-toggle').dropdown( 'toggle');
+        return false;
+    });
+
+
+
+    /*
+     * Extracts geneset metacontent and a user selected subset of the gene 
+     * list to create a new geneset. 
+     */
+
+    var checkedArray = {};
+
+    function updateCheckedArray(id) {
+        /* add too or remove from checkedArray object when
+        add to geneset checkboxes are clicked */
+        var gID = $('#'+id).val();
+        if ($('#'+id).attr('checked')) {
+            var row = $('#'+id).parents('.gene-list-row');
+            checkedArray[gID] = row;
+        }
+        else {
+            delete checkedArray[gID];
+        }
+    }
+
+
+    $('#addNewGeneset').on('click', function () {
+        /* Grabs rows in the gene list that a user has selected */
+        var len = Object.keys(checkedArray).length;
+
+		if (len > 0) {
+
+			// Genesets with newlines cause js to shit the bed and get stuck
+			// in an infinite loading loop. Any variable replaced by jinja
+			// should be safe'd and trimmed.
+			var gsData = 'Genes dervied from the GeneSet: ' + 
+                         {{ geneset.name | safe | trim | tojson }};
+            var species = '{{ geneset.sp_id | safe }}';
+            var geneType = {{ geneset.gene_id_type | safe }};
+
+            // GS Description
+            gsData += '?' + gsData;
+            gsData += '?' + species;
+
+            // Negative types indicate a symbolic gene representation while
+            // positive types are expression platforms
+            if (geneType < 0)
+                gsData += '?' + 'gene_' + (geneType * -1);
+            else
+                gsData += '?' + 'ma_' + geneType;
+
+			// Gene names and scores
+			for (var key in checkedArray)  {
+                    item = checkedArray[key];
+                    var geneSymbol = $.trim($(item).children('.defaultSymbol').text());
+                    var geneValue = $.trim($(item).children('.gene-value').text());
+                    gsData += "?";
+                    gsData += geneSymbol;
+                    gsData += "?";
+                    gsData += geneValue
+			}
+
+            // 'gsdata?' is needed otherwise the first section of the data
+            // string is eaten by something (js?)
+            var uploadUrl = window.location.origin + '/uploadgeneset/' + 
+                            'gsdata?' + gsData;
+
+            window.open(uploadUrl, '_blank');
+            
+		} else {
+			window.alert("No genes selected.")
+		}
+	});
+
+
+    </script>
+
+{% endif %}
+
+{% include 'modal/addGenesetsToProjects_multiselect.html' %}
+{% include 'modal/shareGenesetWithGroup.html' %}
+
+{% include 'modal/deleteGeneset.html' %}
+
+{% include 'modal/requestCuration.html' %}
+
+{% include 'modal/showGenericMessage.html' %}
+
+{% include 'modal/selectExportGenes.html' %}
+
+{% if curation_view == 'curation_leader' or curation_view == 'reviewer' %}
+    <!-- only used by the curation_leader or reviewer view, don't
+         bother including otherwise -->
+    {% include 'modal/assignGenesetToCurator.html' %}
+{% endif  %}
+
+{% include 'footer.html' %}

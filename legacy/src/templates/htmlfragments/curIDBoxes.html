@@ -1,0 +1,32 @@
+{# curation tier boxes #}
+
+    <div class="panel-heading" id="curIDBoxes" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title" style="width:100%">
+            {% if geneset.cur_id == 1 %}
+                <span class="tier1" style="vertical-align: middle">Tier I</span>
+            {% endif %}
+            {% if geneset.cur_id == 2 %}
+                <span class="tier2" style="vertical-align: middle">Tier II</span>
+            {% endif %}
+            {% if geneset.cur_id == 3 %}
+                <span class="tier3" style="vertical-align: middle">Tier III</span>
+            {% endif %}
+            {% if geneset.cur_id == 4 %}
+                <span class="tier4" style="vertical-align: middle">Tier IV</span>
+            {% endif %}
+            {% if geneset.cur_id == 5 %}
+                <span class="tier5" style="vertical-align: middle">Tier V</span>
+            {% endif %}
+            {% if 'deprecated' in geneset.status %}
+                <span class="gs_deprecated" style="vertical-align: middle">Deprecated</span>
+            {% elif 'deleted' == geneset.status %}
+                <span class="gs_deleted" style="vertical-align: middle">Deleted</span>
+            {% endif %}
+            GS{{ geneset.geneset_id }} &bull; {{ geneset.name }}
+		</h3>
+		<h4>
+	    {% if geneset.pub_assign_id %}
+	    	from Publication Assignment: <a href="{{ url_for('render_pub_assignment', assignment_id=geneset.pub_assign_id) }}"> {{ geneset.pub_assign_id }} </a>
+	    {% endif %}
+		</h4>
+    </div>

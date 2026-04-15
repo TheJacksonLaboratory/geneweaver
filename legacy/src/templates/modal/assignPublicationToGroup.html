@@ -1,0 +1,74 @@
+<div class="modal fade" id="assignPubToGroupModal">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="assignPubForCuration" name="assignPubForCuration" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Assign Publication To Group</h3>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="loader" style="display: none" id="modalLoader"></div>
+
+                    <div data-alerts="alerts"
+                         data-titles="{'warning': '<em>Warning!</em>'}"
+                         data-ids="modal-alert"
+                         data-fade="5000"></div>
+
+                    <div class="row" style="text-align:center;">
+                        <label class="col-sm-3 col-form-label" align="right"><strong>Pubmed ID:</strong></label>
+                        <span class="col-sm-9" id="pmid" align="left"></span>
+                    </div>
+
+                    <div class="form-group">
+                    <label for="selectGroup" class="col-sm-3 col-form-label" align="right"><strong>Curation Group:</strong></label>
+                         <div class="col-sm-9 updatable-my-groups" id="my_groups">
+                            {% with groups=myGroups %}
+                                {% include 'htmlfragments/groupSelect.html' %}
+                            {% endwith %}
+                        </div>
+                    </div>
+
+                    {% if myGroups|length < 1 %}
+
+                    <div class="join-or-create-groups-options alert alert-info">
+                        <h4><strong>You don't belong to any groups. Please join/create a group before continuing:</strong></h4>
+                        <div class="row">
+                            <div class="col-md-8 col-md-offset-2">
+                                <button type="button" class="btn btn-success btn-transparent btn-block" data-toggle="modal" data-target="#createNewGroupModal" style="margin-left:0">
+                                    <i class="fa fa-group"></i> Create New Group
+                                </button>
+                            </div>
+                        </div>
+                        <div class="help-block"></div>
+                        <div class="row">
+                            <div class="col-md-8 col-md-offset-2">
+                                <button type="button" class="btn btn-success btn-block" data-toggle="modal" data-target="#joinPublicGroupModal">
+                                    <i class="fa fa-group"></i>  Join Public Group
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% endif %}
+
+
+                    <div class="form-group" style="padding: 10px">
+                        <label for="publicationNotes" class="col-form-label"><strong>Notes:</strong></label>
+                        <textarea class="form-control" rows="5" id="publicationNotes"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" id="assignPubConfirm"  >
+							Assign
+						</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+							Cancel
+						</button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

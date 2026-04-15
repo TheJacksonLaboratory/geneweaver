@@ -1,0 +1,112 @@
+</div> <!-- end container div -->
+<div class="push"></div>
+</div> <!-- end wrapper div -->
+
+<div class="footer">
+    <div class="panel bd-0 bd-t-info">
+        <div class="panel-footer">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-2">
+                        <h4>Manage GeneSets</h4>
+                        <hr>
+                        <ul class="manageGenesetLinks">
+                            <li><a href="/projects">Manage Projects</a></li>
+                            <li><a href="/mygenesets">View My GeneSets</a></li>
+                            <li><a href="/search">Search GeneSets</a></li>
+                            <li><a href="/uploadgeneset">Upload GeneSets</a></li>
+                            <li><a href="/batchupload">Batch Upload GeneSets</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-2">
+                        <h4>Analyze GeneSets</h4>
+                        <hr style="size: 40px;">
+                        <ul class="analyzeGenesetLinks" role="menu">
+                            <li><a href="/analyze">Analyze GeneSets</a></li>
+                            <li><a href="/results">View Results</a></li>
+                            <li><a href="/emphasis">Emphasize Genes</a></li>
+                        </ul>
+                    </div>
+                    {% if "user" in g and g.user and not g.user.is_guest %}
+                        <div class="col-md-2">
+                            <h4>Manage Accounts</h4>
+                            <hr>
+                            <ul class="loggedInLinks">
+                            {% if g.user.is_admin == true %}
+                                <li><a href="/admin">Admin Page</a></li>
+                            {% endif %}
+                                <li><a href="/accountsettings">Account Settings</a></li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                    {% if "user" not in g or not g.user or g.user.is_guest == True %}
+                        <div class="col-md-2">
+                            <h4>Manage Accounts</h4>
+                            <hr>
+                            <ul class="loggedOutLinks">
+                                <li><a href="/login">Sign In</a></li>
+                                <li><a href="/reset">Forgot Password</a></li>
+                                <li><a href="/register">Create Account</a></li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                    <div class="col-md-2">
+                        <h4>GeneWeaver Links</h4>
+                        <hr>
+                        <ul class="geneWeaverLinks">
+                            <li><a href="/">Home Page</a></li>
+                            <li><a href="https://thejacksonlaboratory.github.io/geneweaver-docs/">Help</a></li>
+                            <li><a href="/data">Data</a></li>
+                            <li><a href="/about">About</a></li>
+                            <li><a href="/funding">Funding</a></li>
+
+                        </ul>
+                    </div>
+
+                    <div class="col-md-2">
+                        <h4>Policies</h4>
+                        <hr>
+                        <ul class="geneWeaverLinks">
+                            <li><a href="/datasharing">Data Sharing</a></li>
+                            <li><a href="/privacy">Privacy</a></li>
+                            <li><a href="/usage">Usage</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="col-md-2">
+                        <a href="#top" style="margin-top: 10px;margin-bottom: 10px;margin-left: 55px;">
+                            <i class="glyphicon glyphicon-chevron-up"></i></a>
+                    </div>
+
+                </div>
+                <div>
+
+
+                </div>
+                {% if usr_id %}
+                    <script type="text/javascript">ODE.help_init();</script>
+                {% endif %}
+                <br/>
+                <div><p style="font-size:10px">Supported by NIH R01 AA18776 jointly funded by NIAAA and NIDA, and JAX Center for Precision Genetics NIH U54 OD 020351</p></div>
+                <div><p style="font-size:10px">Application Version {{ application_package_version }}</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script type="text/javascript">
+        jQuery("#report-bug").click(function (e) {
+            e.preventDefault();
+            const _window = window.open('https://github.com/TheJacksonLaboratory/geneweaver-legacy/issues/new', '_blank');
+            if (_window) {
+                _window.focus();
+            } else {
+                alert('Please allow popups for this site');
+            }
+            {#$("#submitBugReportModal").modal('show');#}
+        });
+    </script>
+
+
+</body>
+</html>

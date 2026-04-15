@@ -1,0 +1,1203 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+{% import 'htmlfragments/projectsList.html' as projectList %}
+
+
+<style>
+
+    [class*='col-'] {
+        float: left;
+        padding-right: 20px;
+    }
+
+    [class*='col-']:last-of-type {
+        padding-right: 0;
+    }
+
+    .col-1-8 {
+        width: 12.5%;
+        min-width: 120px;
+        border-radius: 5px;
+        margin: 10px;
+        padding: 15px;
+        font-size: 150%;
+        background-color: #fff;
+        color: #606060;
+    }
+
+    .col-1-9 {
+        width: 12.5%;
+        min-width: 120px;
+        border-radius: 5px;
+        margin: 10px;
+        padding: 5px;
+        background-color: #fff;
+        color: #606060;
+    }
+
+    .grid:after{
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    *, *:after, *:before {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+    }
+
+    .grid-pad {
+        padding: 0;
+    }
+
+    .clickable-genes {
+        cursor: pointer;
+    }
+
+    .clickable-genesets {
+        cursor: pointer;
+    }
+
+    .clickable-info {
+        cursor: pointer;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    #clickableFontAwesomeGenes {
+        cursor: pointer;
+    }
+
+    .plus:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    .minus .plus:before {
+        content: "\f068";
+    }
+
+    .jqstooltip { box-sizing: content-box;}
+
+    .progress span {
+        position: absolute;
+        display: block;
+        width: 100%;
+        color: white;
+
+    }
+
+
+</style>
+
+{#{{ json_result }}#}
+
+<div class="container">
+
+<div class="page-header" >
+    <h1>ABBA Gene-Centered Search Results</h1>
+</div>
+
+    {# re-run options #}
+    <div class="row">
+        <div class="col-md-12 title-col">
+            <div class="pull-right" id="show-tool-options"
+                 style="color:#006400; cursor:pointer; font-weight:600; text-decoration:underline;">
+                <span id="updateBtn">Tool Options<i id="tool-options-caret" class="fa fa-caret-left"></i></span>
+            </div>
+            <div id="update_form_wrapper" style="display: none;">
+                <form target="_blank" id="todo-id" class="form-horizontal" role="form" method="post">
+                    {% if json_result.GenesOfInterestCount %}
+                        {% set genesOfInterestCnt=json_result.GenesOfInterestCount %}
+                    {% else %}
+                        {% set genesOfInterestCnt=0 %}
+                    {% endif %}
+                    {% for gene in json_result.InputGenes %}
+                        <input type="text" id="genesOfInterestInputHidden" class="fieldname" name="ABBA_InputGenes"
+                               value="{{ gene }}" data-count="{{ genesOfInterestCnt }}" hidden/>
+                    {% endfor %}
+                    <div class="panel-body">
+
+                        <br>
+
+                        <div class="form-group">
+                            <label>
+                                Ignore Homology
+                                <input type="checkbox" name="ABBA_IgnHom" value="yes">
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Genes:</label>
+                            <select id="genes-select" name="ABBA_MinGenes" class="form-control">
+                                <option selected="selected">Auto</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="width:50%;">
+                                Minimum GeneSets:
+                            </label>
+                            <select name="ABBA_MinGenesets" class="form-control">
+                                <option selected="selected">Auto</option>
+                                {% for i in range(50) %}
+                                    <option>{{ loop.index0+1}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="width:50%;">
+                                Tierset:
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="1" checked/>
+                                Public Resources (Tier I)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="2" checked/>
+                                Auto-curated (Tier II)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="3" checked/>
+                                Curated (Tier III)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="4"/>
+                                Provisional (Tier IV)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="5"/>
+                                Private (Tier V)
+                            </label>
+                        </div>
+                        <!-- Restrict Species Options-->
+                        <div class="form-group">
+                            <label>
+                                Restrict Species:
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="ABBA_RestrictOption" value="0"
+                                       onclick="hideSelectSpecies();" checked="checked">All Species<br>
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();">
+                                Restrict<br>
+                            </label>
+                        </div>
+
+                        <div class="form-group" id="select-species" style="display: none;">
+                            <label>
+                                Select Species:
+                            </label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="1"/>Mus musculus</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="2"/>Homo sapiens</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="3"/>Rattus
+                                norvegicus</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="4"/>Danio rerio</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="5"/>Drosophila melanogaster</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="6"/>Macaca mulatta</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="8"/>Caenorhabditis elegans</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="9"/>Saccharomyces
+                                cerevisiae</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="10"/>Gallus Gallus</label>
+                        </div>
+
+                        <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+    {# information about the current tool run #}
+    <div class="row">
+        <div class="clickable-info">
+            <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Run Information</strong></span>
+        </div>
+        <div id="run-info" style="display: none;">
+        <table class="table">
+            <tbody>
+            <tr>
+                <td>
+                    <strong>Include Homology:&nbsp;</strong>{{ json_result.IncludeHomology }}<br>
+                    <strong>Minimum Genes:&nbsp;</strong>{{ json_result.MinGenes }}<br>
+                    <strong>Minimum Genesets:&nbsp;</strong>{{ json_result.MinGenesets }}<br>
+                    <strong>Curation Tiers:</strong>&nbsp;{{ json_result.SelectedTierset }}<br>
+                </td>
+                <td>
+                    <strong>Restricted to Species:&nbsp;</strong>{{ json_result.RestrictSpecies }}<br>
+                    <strong>Date:&nbsp;</strong>
+                    <script>
+                        <!--
+                        var d = new Date();
+                        document.write(d.toLocaleDateString() + " " + d.toLocaleTimeString());
+                        //-->
+                    </script>
+                    <br>
+                    <strong>Available Genes:&nbsp;</strong>{{ json_result.AvailableGenes }}<br>
+                    <strong>Available Genesets:&nbsp;</strong>{{ json_result.AvailableGenesets }}<br>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+    </div><br>
+
+    {# list of seed genes. Colored by species. #}
+    <div class="row">
+        <div class="clickable-genes">
+            <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Seed Genes</strong></span>
+        </div>
+        <div id="seed-genes" style="display: none;">
+
+            {% for all_s in json_result.InputSpecies | sort(attribute=0, reverse=False) | batch(6) -%}
+                <div class="grid grid-pad">
+                {%- for s in all_s -%}
+
+                    <div class="col-1-9" id="{{ s[0][:3] }}" data-attr="{{ s[0] }}">
+                                    <strong>{{ s[0] | truncate(15,true) }}</strong>
+                    </div>
+
+                {%- endfor -%}
+                </div>
+            {%- endfor %}
+
+            <hr style="color: darkgray;"/>
+
+            {% for genes in json_result.GenesOfInterest | sort(attribute=1, reverse=True) | batch(6) -%}
+                <div class="grid grid-pad">
+                {%- for gene in genes -%}
+
+                    <div class="col-1-8" id="{{ gene[0] }}" data-attr="{{ gene[2] }}"
+                        {% if gene[1] | length > 9 %} style="font-size: 100%;" {% endif %}
+                        >
+                                    <strong>{{ gene[1] | truncate(15,true) }}</strong>
+                    </div>
+
+                {%- endfor -%}
+                </div>
+            {%- endfor %}
+        </div>
+    </div><br>
+
+    {# Intermediate GeneSets #}
+    <div class="row">
+        <div class="clickable-genesets">
+            <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Highly Connected GeneSets</strong></span>
+        </div>
+        <div id="geneset-results" style="display: none;">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Top 50 GeneSets of Interest
+                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
+            </div>
+
+            {# Group by filter #}
+            <div class="col-xs-6 col-md-3 pull-right">
+                <div class="btn-group bootstrap-select form-control" style="padding-top: 10px;">
+                    <button type="button" class="btn btn-sm dropdown-toggle selectpicker btn-default" data-toggle="dropdown"
+                            title="Group">
+                        <span class="filter-option pull-left"><i class="fa fa-filter"></i> Sort Results</span>&nbsp;<span
+                            class="caret"></span></button>
+                    <div class="dropdown-menu open">
+                        <ul class="dropdown-menu inner selectpicker" role="menu">
+                            <li rel="0" class="selected"><a tabindex="0" class="" style=""><span class="text">None</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="1"><a tabindex="0" class="" style=""><span class="text">Sort By Tier</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="2"><a tabindex="0" class="" style=""><span class="text">Sort By Species</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="3"><a tabindex="0" class="" style=""><span class="text">Sort By Attribution</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+
+                <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
+                      class="form-horizontal form-inline" novalidate="novalidate">
+                    <!-- TODO make the table sortable, show more gene details -->
+                    <table class="table table-hover" id="similarGenesets" cellpadding="0" cellspacing="0">
+                        <tbody>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>Matches</th>
+                            <th>GeneSet Title</th>
+                            <th>&nbsp;</th>
+                        </tr>
+
+                        {% for i in json_result.GenesetResults %}
+
+                            <tr>
+                                <td width="15" style="vertical-align: middle">
+                                    <span id="genesetExpand" class="toggler" data-prod="{{ i[0] }}">
+                                        <span class="plus"></span>
+                                        <span class="minus"></span>
+                                    </span>
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the tier - which is the curation id, Geneset.cur_id -->
+                                    {% if i[3] == 1 %}
+                                        <span class="tier1">Tier I</span>
+                                    {% endif %}
+                                    {% if i[3] == 2 %}
+                                        <span class="tier2">Tier II</span>
+                                    {% endif %}
+                                    {% if i[3] == 3 %}
+                                        <span class="tier3">Tier III</span>
+                                    {% endif %}
+                                    {% if i[3] == 4 %}
+                                        <span class="tier4">Tier IV</span>
+                                    {% endif %}
+                                    {% if i[3] == 5 %}
+                                        <span class="tier5">Tier V</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the species -->
+                                    {% if i[4] == 1 %}
+                                        <span class="mouse">Mouse</span>
+                                    {% endif %}
+                                    {% if i[4] == 2 %}
+                                        <span class="human">Human</span>
+                                    {% endif %}
+                                    {% if i[4] == 3 %}
+                                        <span class="rat">Rat</span>
+                                    {% endif %}
+                                    {% if i[4] == 4 %}
+                                        <span class="zebrafish">Zebrafish</span>
+                                    {% endif %}
+                                    {% if i[4] == 5 %}
+                                        <span class="fly">Fly</span>
+                                    {% endif %}
+                                    {% if i[4] == 6 %}
+                                        <span class="monkey">Monkey</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the attribution -->
+                                    {% if i[5] == 2 %}
+                                        <span class="ctd">CTD</span>
+                                    {% endif %}
+                                    {% if i[5] == 7 %}
+                                        <span class="drg">DRG</span>
+                                    {% endif %}
+                                    {% if i[5] == 8 %}
+                                        <span class="go">GO</span>
+                                    {% endif %}
+                                    {% if i[5] == 9 %}
+                                        <span class="mp">MP</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Show the geneset size -->
+                                    <span class="gs_size">{{ i[8] }} Genes</span>
+
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    <strong>{{ i[2] }}</strong>
+                                </td>
+                                <td style="vertical-align: middle; word-wrap: break-word;">
+                                    <a href="/viewgenesetdetails/{{ i[0] }}"><strong>GS{{ i[0] }}</strong>
+                                        <i class="fa fa-caret-right"></i> {{ i[1] }}</a>
+                                </td>
+
+                                <td width="10px" style="vertical-align: middle">
+                                    <div class="ui-checkbox" style="padding: 0; border: 0;">
+                                        <label for="addGeneset{{ i[0] }}">
+                                            <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i[0] }}"
+                                                   value="{{ i[0] }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="gsid{{ i[0] }}" style="display: none">
+                                <td colspan="6">&nbsp;</td>
+                                <td style="max-width: 300px; word-wrap: break-word;"><strong>LABEL:</strong> {{ i[6] }}<br>
+                                    <strong>DESCRIPTION:</strong> {{ i[7] }}
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+                    </table>
+                </form>
+        </div>
+    </div>
+
+    <br>
+
+    {# Genes of Interest #}
+
+    {% if json_result.GeneResults | length == 0 %}
+        <div class="row">
+            <div class="alert alert-warning fade in">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <strong>No Results Found!</strong> Check your seed genes to ensure that they were found in GeneWeaver.
+            </div>
+        </div>
+    {% else %}
+
+    <div class="row">
+
+        <div id="gene-results">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Top 50 Genes of Interest
+                    <span id="clickableFontAwesomeGenes" tabindex="0" data-trigger="focus">
+                        <i class="fa fa-info-circle"></i>
+                    </span>
+                </h3>
+                <div class="row">
+                    <div class="col-xs-6 col-md-9">
+                        <div class="row">
+                        </div>
+                    </div>
+                    <div class="col-xs-6 col-md-3">
+                        <button type="button" class="btn btn-block btn-warning" id="addToNewGeneset"
+                                style="margin-bottom: 10px;">
+                            <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <form id="addGenesToNewGeneset" name="addGenesToNewGeneset" method="post" action="#"
+                  class="form-horizontal form-inline" novalidate="novalidate">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover" id="genesOfInterest" cellpadding="0" cellspacing="0">
+                    <tbody>
+                    <tr>
+                        <th class="text-center" style="vertical-align: middle;">Gene Symbol</th>
+                        <th class="text-center" style="vertical-align: middle;">Species</th>
+                        <th class="text-center">Number of<br>Represented GeneSets</th>
+                        <th class="text-center">GeneSets by<br>Curation Tier</th>
+                        <th class="text-center">GeneSets by<br>Species</th>
+                        <th>
+                            <div class="ui-checkbox group-checkbox" id="group-allcheck"
+                                 style="padding:0; border:0; margin:0">
+                                    Select All
+                                <label for="group-{{ i }}" 
+                                    style="padding:0 0 0 40px; margin:0">
+                                    &nbsp;
+                                    <input type="checkbox"
+                                           name="group-{{ i }}"
+                                    />
+                                </label>
+                            </div>
+                        </th>
+                    </tr>
+
+                    {% for i in json_result.GeneResults %}
+
+                        <tr>
+                            <td class="text-center" style="vertical-align: middle" width="20%">
+                                <small>
+                                   {% for ode_name in json_result.OdeMapping[i[0]|string] %}
+                                       <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">
+                                        <strong>{{ ode_name }}</strong>
+                                       </a>
+                                    {% endfor %}
+                                </small>
+{#                                <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">#}
+{#                                    <strong>{{ i[1] }}</strong>#}
+{#                                </a>#}
+                            </td>
+                            <td class="text-center" style="vertical-align: middle" nowrap>
+                                <!-- Label the species -->
+                                {% if i[3] == 1 %}
+                                    <span class="mouse">Mouse</span>
+                                {% endif %}
+                                {% if i[3] == 2 %}
+                                    <span class="human">Human</span>
+                                {% endif %}
+                                {% if i[3] == 3 %}
+                                    <span class="rat">Rat</span>
+                                {% endif %}
+                                {% if i[3] == 4 %}
+                                    <span class="zebrafish">Zebrafish</span>
+                                {% endif %}
+                                {% if i[3] == 5 %}
+                                    <span class="fly">Fly</span>
+                                {% endif %}
+                                {% if i[3] == 6 %}
+                                    <span class="monkey">Monkey</span>
+                                {% endif %}
+                            </td>
+                            <td style="vertical-align: middle" nowrap>
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-success"
+                                         style="width: {{ (i[4] / json_result.Max[0][0])*100 }}%;">{{ i[4] }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center" style="vertical-align: middle !important;">
+                                <div class="sparkline" data-sparkline-color="#006644"
+                                     data-sparkline-value="{{ json_result.TierCounts[i[0]|string()] }}">
+{#                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;#}
+{#                                        height: 10px; vertical-align: bottom;"></canvas>#}
+                                </div>
+                            </td>
+{#                            <td style="vertical-align: middle" nowrap>#}
+{#                                <srong>{{ i[0] }}</srong>#}
+{#                            </td>#}
+
+                            <td class="text-center" style="vertical-align: middle !important;">
+                                <div class="sparkline-2" data-sparkline-color="#7BB2B4"
+                                     data-sparkline-value="{{ json_result.SpeciesCounts[i[0]|string()] }}">
+                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;
+                                        height: 10px; vertical-align: bottom;"></canvas>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="ui-checkbox ui-gene-check" style="padding: 0; border: 0;">
+                                    <label for="addGeneset-{{ i[0] }}">
+                                        <input type="checkbox" name="gsoptions[]" id="addGeneset-{{ i[0] }}"
+                                            class="gene-check"
+                                                   value="{{ json_result.PrefMapping[i[0] | string] }}"/>
+                                    </label>
+                                </div>
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </form>
+        </div>
+    </div>
+
+    {% endif %}
+
+
+
+
+
+
+</div><!-- end container -->
+
+<script type="text/javascript" src="/static/pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Loading spinner because some search filters/options take a few seconds
+        jQuery.ajaxSetup({
+            beforeSend: function () {
+                $('#loader').show();
+            },
+            complete: function () {
+                $('#loader').hide();
+            },
+            success: function () {
+            }
+        });
+
+        $('#updateBtn').click(function () {
+            $('#update_form_wrapper').toggle();
+        });
+        // Loading spinner because some search filters/options take a few seconds
+        jQuery.ajaxSetup({
+            beforeSend: function () {
+                $('#loader').show();
+            },
+            complete: function () {
+                $('#loader').hide();
+            },
+            success: function () {
+            }
+        });
+
+        $('html').on('mouseup', function (e) {
+            if (!$(e.target).closest('.popover').length) {
+                $('.popover').each(function () {
+                    $(this.previousSibling).popover('hide');
+                });
+            }
+        });
+
+        $(function () {
+            $('[data-toggle="popover"]').popover({
+                html: true,
+                placement: "bottom",
+                content: function () {
+                    return $('#update_form_wrapper').html();
+                }
+            });
+        });
+
+        var colors = [
+            '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc',
+            '#e5d8bd', '#fddaec', '#f2f2f2'
+        ];
+
+        // these are taken from application.py
+        var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6'];
+
+        var borders = [
+            '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
+            '#7f7257', '#977486', '#8C8C8C'
+        ];
+
+        var species = [
+            '', 'Drosophila melanogaster', 'Rattus norvegicus', 'Homo sapiens', 'Mus musculus', 'Macaca mulatta',
+            'Gallus gallus', 'Canis familiaris', 'Danio rerio'
+        ];
+
+        $(".col-1-8").each(function (n, m) {
+            var s = species.indexOf($(this).data('attr'));
+            $("#" + m.id).css('background-color', colors[s]);
+            $("#" + m.id).css('border', '1px solid');
+            $("#" + m.id).css('border-color', borders[s]);
+        });
+
+        $(".col-1-9").each(function (n, m) {
+            var s = species.indexOf($(this).data('attr'));
+            $("#" + m.id).css('background-color', colors[s]);
+            $("#" + m.id).css('border', '1px solid');
+            $("#" + m.id).css('border-color', borders[s]);
+        });
+
+        $('.clickable-genes').click(function () {
+            $('#seed-genes').toggle('1000');
+            $("i", this).toggleClass("fa-plus fa-minus");
+        });
+
+        $('.clickable-info').click(function () {
+            $('#run-info').toggle('1000');
+            $("i", this).toggleClass("fa-plus fa-minus");
+        });
+
+        $('.clickable-genesets').click(function () {
+            $('#geneset-results').toggle('1000');
+            $("i", this).toggleClass("fa-plus fa-minus");
+        });
+
+        $('#clickableFontAwesome').popover({
+            title: 'GeneSets', content: 'These GeneSets share the most genes in common with your seeded search.'
+        });
+
+        $('#clickableFontAwesomeGenes').popover({
+            title: 'Genes', content: 'These Genes are the most highly connected genes to your seed genes with shared ' +
+            'gene sets.'
+        });
+
+        $(".toggler").click(function (e) {
+            e.preventDefault();
+            //the data stored in the data-prod
+            var gid = ($(this).attr("data-prod"));
+            //toggle the link clicked on
+            $(".gsid" + gid).toggle();
+            //select the parent and find the span so you can
+            //toggle the "plus" class
+            $(this).parent().find("span").toggleClass("plus");
+            //$(this).parent().find("span").toggleClass("minus");
+            //toggle the minus class
+            $(this).toggleClass("plus");
+            $(this).toggleClass("minus");
+        });
+
+
+        $('.sparkline').each(function () {
+            $(this).sparkline(
+                $(this).data("sparkline-value"), {
+                    type: $(this).data("sparkline-type") ? $(this).data("sparkline-type") : 'bar',
+                    barWidth: $(this).data("sparkline-bar-width") ? $(this).data("sparkline-bar-width") : 8,
+                    barSpacing: $(this).data("sparkline-bar-spacing") ? $(this).data("sparkline-bar-spacing") : 4,
+                    height: $(this).data("sparkline-height") ? $(this).data("sparkline-height") : '30px',
+                    barColor: $(this).data("sparkline-color") ? $(this).data("sparkline-color") : '#006644',
+                    enableTagOptions: true,
+                    tooltipFormat: '<span style="font-size: 150%;">\{\{offset:offset\}\}\n(\{\{value\}\} GeneSets)</span>',
+                    tooltipValueLookups: {
+                        'offset': {
+                            0: 'Tier I',
+                            1: 'Tier II',
+                            2: 'Tier III',
+                            3: 'Tier IV',
+                            4: 'Tier V'
+                        }
+                    }
+                });
+        });
+
+        $('.sparkline-2').each(function () {
+                $(this).sparkline(
+                    $(this).data("sparkline-value"), {
+                        type: $(this).data("sparkline-type") ? $(this).data("sparkline-type") : 'bar',
+                        barWidth: $(this).data("sparkline-bar-width") ? $(this).data("sparkline-bar-width") : 8,
+                        barSpacing: $(this).data("sparkline-bar-spacing") ? $(this).data("sparkline-bar-spacing") : 4,
+                        height: $(this).data("sparkline-height") ? $(this).data("sparkline-height") : '30px',
+                        barColor: $(this).data("sparkline-color") ? $(this).data("sparkline-color") : '#006644',
+                        enableTagOptions: true,
+                        tooltipFormat: '<span style="font-size: 150%;">\{\{offset:offset\}\}\n(\{\{value.0\}\} GeneSets)</span>',
+                        tooltipValueLookups: {
+                            'offset': {
+                                0: 'M.m.',
+                                1: 'H.s.',
+                                2: 'R.n.',
+                                3: 'D.r',
+                                4: 'D.m',
+                                5: 'Mul.m',
+                                6: 'C.e.',
+                                7: 'S.c.',
+                                8: 'G.g.',
+                                9: 'C.f.'
+                            }
+                        },
+                        colorMap: hom_colors,
+                        numberFormatter: function(x) { return Math.round(Math.exp(x)); }
+                    });
+        });
+
+
+        function formatGenesetInfo(infoPane, activeRow) {
+            var id = activeRow.data('id');
+            var url = '/viewgenesetdetails/' + id + '/meta';
+            console.log(url);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (data) {
+                    var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
+                    html += $(data).find('#curIDBoxes').html();
+                    html += "</a>"
+                    html += $(data).find('#geneset-meta').html();
+                }
+            });
+        }
+
+        function formatGenesetInfo(infoPane, activeRow) {
+            var id = activeRow.data('id');
+            //var url = '/viewgenesetdetails/' + id + '/meta';
+            var url = '/viewgenesetdetails/' + id;
+            console.log(url);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (data) {
+                    var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
+                    html += $(data).find('#curIDBoxes').html();
+                    html += "</a>"
+                    html += $(data).find('#geneset-meta').html();
+
+                    html += '<br><button type="button" class="btn btn-block btn-warning" id="addToProject" style="width: 30%">';
+                    html += '<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project';
+                    html += '</button>';
+
+                    infoPane.append(html);
+
+                    var species_div = document.getElementById("sp-tag");
+                    var sp_id = species_div.childNodes[1].className.slice(-1); //Extract the species ID
+                    var sp_tag = makeSpeciesTag(sp_id);
+                    species_div.innerHTML = sp_tag;
+
+
+                    /* Add Geneset to Project Modal */
+                    $('#addToProject').click(function (e) {
+                        console.log("CLICK!");
+                        var geneset = 'GS' + id;
+                        $('#addToProjectModal').find('.modal-title').html('Add GeneSet to Project(s)');
+                        $("#myModalValue").val(geneset);
+                        $("#modal-label").html(geneset);
+                        $('#addToProjectModal').modal('show');
+                    });
+
+                    // The 'add to selected projects' button on the modal
+                    $('#addGenesetsToProjects').on('click', function (e) {
+                        var checked = [];
+
+                        $("input[name='options[]']:checked").each(function () {
+                            checked.push(parseInt($(this).val()));
+                        });
+
+                        var option = JSON.stringify(checked);
+                        var g = $('#myModalValue').val();
+                        if ($('#newProjName').val().length > 0) {
+                            var npn = $('#newProjName').val();
+                        }
+
+                        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>No Projects Were Selected</div>');
+                        } else {
+                            $.ajax({
+                                type: "GET",
+                                url: "../addGenesetsToProjects",
+                                data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
+                                success: function (data) {
+                                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
+                                }
+                            });
+                        }
+
+                    });
+
+                    // The button for this is found on the addGenesetsToProjects modal
+                    $('#addNewProject').on('click', function () {
+                        $('#reveal-if-active').toggle();
+                    });
+
+                },
+                error: function (data) {
+                    alert("FAIL"); //TODO Add correct error message in info panel
+                }
+            });
+        }
+
+
+        var makeSpeciesTag = function (spid) {
+            // The alist returned by the server should already be sorted
+            var splist = {{ species|tojson|safe }};
+            var spname = '';
+            // Extra element padding since sp_ids are not zero indexed
+            var colors = [
+                '', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1',
+                '#f4dfff', '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'
+            ];
+            var borders = [
+                '', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a',
+                '#b4d1fb', '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'
+            ];
+
+            for (var i = 0; i < splist.length; i++) {
+                if (splist[i][0] == spid) {
+                    spid = splist[i][0];
+                    spname = splist[i][1];
+                    break;
+                }
+            }
+
+            var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+                '; border:1px solid ' + borders[spid] + '">' +
+                spname + '</span>';
+
+            return tag;
+        };
+    })
+
+</script>
+
+<!-- Add to gene set features -->
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+        $("#addToNewGeneset").click(function (event) {
+
+            var checkedArray = [];
+
+            $("input:checkbox[name='gsoptions[]']:checked").each(function () {
+                checkedArray.push($(this).val());
+            });
+
+            if (checkedArray.length > 0) {
+
+                var inputSpecies = {{ json_result.InputSpecies | tojson | safe }};
+                var inputGenes = {{ json_result.GenesOfInterest | sort(attribute=1, reverse=True) | tojson | safe }};
+                var filtInputGenes = [];
+                var geneSpecies = null;
+
+                for (var i = 0; i < inputGenes.length; i++) {
+
+                    var gene = inputGenes[i];
+
+                    if (geneSpecies === null)
+                        geneSpecies = gene[2];
+
+                    if (gene[2] !== geneSpecies)
+                        continue
+
+                    filtInputGenes.push(gene[1]);
+                }
+
+                var name = 'Genes found during a graph walk of GeneWeaver ' + 
+                    'GeneSets';
+                var description = 'Top ' + checkedArray.length + ' genes ' + 
+                    'from the result of an ABBA gene search. The search was ' +
+                    'performed using ' + inputSpecies.join(', ') + ' as the ' +
+                    'input species and seeded using the following genes: ' + 
+                    filtInputGenes.join(', ');
+                var genes = checkedArray;
+
+                // Generates a hidden form that is used to submit data to the
+                // upload page
+                var form = $('<form></form>', {
+                    id: 'uploadform',
+                    name: 'uploadform',
+                    method: 'post',
+                    action: '/uploadgeneset',
+                    target: '_blank',
+                    type: 'hidden'
+                });
+
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'name', 
+                    value: name
+                }));
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'description', 
+                    value: description
+                }));
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'genes', 
+                    value: genes
+                }));
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'tool', 
+                    value: 'abba'
+                }));
+
+                form.appendTo('body').submit();
+
+            } else {
+                window.alert("No genes were selected selected.")
+            }
+        });
+
+        $('.group-checkbox').click(function (event) {
+
+            // Grabs the group ID for this checkbox. Format: group-#-checkbox
+            var groupCheck = $(this).find('input[type=checkbox]');
+            // Id for checkbox grouping
+            var groupCheckboxes = '.ui-gene-check';
+            var checks = $('.gene-check');
+            // Even when we mark the checkbox as checked the stupid UI doesn't
+            // get updated because of these weird ui button things
+            var btns = $(groupCheckboxes).find('.ui-btn');
+
+            // Opposite because by the time this code executes, the box is
+            // already checked
+            if (!groupCheck.attr('checked')) {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', false);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+
+            } else {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', true);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+        });
+
+        /**
+         * Ever since we added the select all checkbox, we now have to hook
+         * into these stupid ui-checkbox clicks otherwise the actual checkbox
+         * which lies underneath all the ui crap doesn't get (de)selected.
+         */
+        $('.ui-checkbox').on('click', function (event) {
+
+            var check = $(this).find('input[type=checkbox]');
+
+            if (check.attr('checked'))
+                check.attr('checked', false);
+            else
+                check.attr('checked', true);
+        });
+
+
+    });
+
+</script>
+
+<!-- Update Button Script -->
+<script>
+    var goiCount = $("#genesOfInterestInputHidden").data('count');
+    for (var i = 0; i < goiCount; i++) {
+        min_genes_inc();
+    }
+
+    $("#addGeneBtn").click(function () {
+        var intId = $("#inputGeneField div").length + 1;
+        var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
+        var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" required/>');
+        var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
+        removeButton.click(function () {
+            $(this).parent().remove();
+            min_genes_dec(); //Update min_genes option list
+        });
+        fieldWrapper.append(fName);
+        fieldWrapper.append(removeButton);
+        $("#inputGeneField").append(fieldWrapper);
+        min_genes_inc(); //Update min_genes option list
+    });
+
+    /* Dynamically populate min genes list */
+    function min_genes_inc() {
+        var cnt = document.getElementById("genes-select").length;
+        var option = document.createElement("option");
+        option.text = cnt;
+        option.value = cnt;
+        document.getElementById("genes-select").appendChild(option);
+    }
+
+    function min_genes_dec() {
+        var cnt = document.getElementById("genes-select").length - 1;
+        if (document.getElementById("genes-select").selectedIndex == cnt) {
+            document.getElementById("genes-select").selectedIndex = cnt - 1;
+        }
+        document.getElementById("genes-select").options[cnt].remove();
+    }
+
+    /* Select Restricted Species */
+    function hideSelectSpecies() {
+        document.getElementById("select-species").style.display = "none";
+    }
+
+    function showSelectSpecies() {
+        document.getElementById("select-species").style.display = "block";
+    }
+
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        // The ABBA tool doesn't return tool settings like all the other tools,
+        // so we just set some of them up manually like this.
+        // Setup the species options.
+        if (parameters['ABBA_RestrictOption'] === '1') {
+
+            $("[name='ABBA_RestrictOption']").each(function() {
+
+                if ($(this).attr('value') === '1') {
+
+                    $(this).attr('checked', 'checked');
+                    $(this).siblings().removeClass('ui-radio-off');
+                    $(this).siblings().addClass('ui-radio-on');
+                } else {
+
+                    $(this).removeAttr('checked');
+                    $(this).siblings().removeClass('ui-radio-on');
+                    $(this).siblings().addClass('ui-radio-off');
+                }
+            });
+
+            showSelectSpecies();
+
+            $("[name='ABBA_RestrictSpecies']").each(function() {
+
+                var spValue = $(this).attr('value');
+
+                if (parameters['ABBA_RestrictSpecies'].includes(spValue)) {
+
+                    $(this).attr('checked', 'checked');
+                    $(this).siblings().removeClass('ui-checkbox-off');
+                    $(this).siblings().addClass('ui-checkbox-on');
+                } else {
+
+                    $(this).removeAttr('checked');
+                    $(this).siblings().removeClass('ui-checkbox-on');
+                    $(this).siblings().addClass('ui-checkbox-off');
+                }
+            });
+        }
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things. The ABBA tool
+                // doesn't return settings like all the other tools, so we have to
+                // do weird things here.
+                if (elemType == 'INPUT') {
+
+                    if ($(this).attr('type') === 'checkbox' && 
+                        param === 'ABBA_Tierset') {
+
+                        // The tierset paramters are just a list of numbers, so
+                        // we have to match them up with the right input elements
+                        if (parameters[param].includes($(this).attr('value'))) {
+
+                            $(this).attr('checked', 'checked');
+                            $(this).siblings().removeClass('ui-checkbox-off');
+                            $(this).siblings().addClass('ui-checkbox-on');
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            $(this).siblings().removeClass('ui-checkbox-on');
+                            $(this).siblings().addClass('ui-checkbox-off');
+                        }
+
+                    } else if (param === 'ABBA_RestrictOption' || 
+                               param === 'ABBA_RestrictSpecies') {
+                        // do nothing
+
+                    } else if ($(this).attr('type') == 'checkbox'){
+
+                        $(this).removeAttr('checked');
+                        
+                        if ($(this).attr('type') === 'radio') {
+
+                            $(this).siblings().removeClass('ui-radio-on');
+                            $(this).siblings().addClass('ui-radio-off');
+                        } else {
+
+                            $(this).siblings().removeClass('ui-checkbox-on');
+                            $(this).siblings().addClass('ui-checkbox-off');
+                        }
+                    }
+
+                }
+            });
+        }
+    });
+</script>
+
+
+{% include 'footer.html' %}

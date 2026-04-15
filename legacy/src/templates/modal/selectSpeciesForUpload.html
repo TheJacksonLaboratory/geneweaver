@@ -1,0 +1,45 @@
+{# Actual modal that selects which species to Upload genesets as #}
+
+<div class="modal fade" id="selectSpeciesForUpload">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow-y: visible; max-height: 540px;">
+            <form id="selectSpeciesForUpload" name="selectSpeciesForUpload" method="post" action="#"
+                  class="form-horizontal" novalidate="novalidate">
+
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Select Reference Species</h3>
+                </div>
+
+                <div class="modal-body">
+                    <h4>When creating new genesets, GeneWeaver requires each set to be associated with a species.
+                        Please select the reference species for your {{ json_results.type }} results.</h4>
+                    <div class="input-group-btn select">
+                        <div id="species" class="btn-group bootstrap-select form-control">
+
+                                <button id='selectedSpecies' type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                    <span id="selected" data-value=0>Select Species</span>
+                                    <span class="caret"></span>
+                                </button>
+                                <ul id="uploadSpecies" class="dropdown-menu" role="menu">
+                                {% for s in json_results.all_species_full %}
+                                    <li id="{{ s }}"><a href="#">{{ json_results.all_species_full[s] }}</a></li>
+                                {% endfor %}
+                                </ul>
+
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" data-dismiss="modal"
+                            onclick="newGeneSet()" id="selectGeneType">Create Geneset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

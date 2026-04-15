@@ -1,0 +1,456 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+    .background {
+        fill: #ffffff;
+    }
+
+    .d3 {
+        width: 100%;
+    }
+
+    .key > * {
+        margin: 5px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .panel-heading {
+        color: #ffffff !important;
+        background-color: #006400 !important;
+    }
+
+    .visualControl-container {
+        width: 100%;
+    }
+
+    .visualControl-container > * {
+        margin: 5px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    #d3-container {
+        position: relative;
+    }
+
+    #d3-visual {
+        margin: auto;
+        text-align: center;
+    }
+
+    #d3-legend {
+        position: absolute;
+        width: 15%;
+    }
+
+    #order
+    {
+        width: 15%;
+    }
+</style>
+
+<div class="page-header">
+	<h1>{{ title }}</h1>
+</div>
+
+{# Displayed when the image download AJAX code encounters an error #}
+<div id="img-alert" class="alert alert-danger fade in" style="display:none">
+    <button id="img-close" type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <strong>
+        The following error was encountered while rendering and retrieving 
+        your image:
+        <span id="img-error"></span>.
+        If this continues, please contact a GeneWeaver admin or submit an issue
+        to the issue tracker.
+    </strong>
+</div>
+
+<div id="ui-container">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div class="row">
+            <div class="col-md-12">
+                <div id="show-tool-options" 
+                     style="color:#006400; cursor:pointer; font-weight:600; 
+                            text-decoration:underline;">
+                    Tool Options
+                    <i id="tool-options-caret" class="fa fa-caret-left"></i>
+                </div>
+                <div id="tool-options" 
+                     style="display:none; text-align:left; background-color:#efe;
+                            border-radius:5px; padding:15px; width:30%">
+                        <div >{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
+                        <div >{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+                        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+                        <button class="btn btn-primary"
+                            type='submit'
+                            value='run'
+                            onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
+                            Run
+                        </button>
+                </div>
+            </div>
+        </div>
+    </form>
+    <br />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-viz-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Visualization Options
+                <i id="viz-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="viz-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
+				<div class="row">
+					<div class="col-md-4">
+						<p style="font-size:13px; font-weight:400;">
+							<b>Visualization Type:</b>
+						</p>
+					</div>
+					<div class="col-md-8">
+						<form role="form" method="post">
+							<select id="visualizationType" name="visualizationType">
+							</select>
+						</form>
+					</div>
+				</div>
+				<br />
+				<div class="row">
+					<div class="col-md-3">
+						<div class="btn-group">
+							<button type="button" 
+                                    class="btn btn-primary dropdown-toggle" 
+                                    data-toggle="dropdown" aria-haspopup="true" 
+                                    aria-expanded="false">
+								Download as...
+                                <span id="download-icon" class="caret"></span>
+							</button>
+							<ul class="dropdown-menu">
+								<li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
+								<li><a class="download-image" id="dl-png" href="">PNG</a></li>
+								<li><a class="download-image" id="dl-svg" href="">SVG</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-help" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Help
+                <i id="help-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="help" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Graph Visualization
+                    </span>
+                    <p style="padding-left:8px">
+                        <b>Drag</b> nodes to rearrange the graph.
+                        <br />
+                        <b>Hover</b> over GeneSet nodes to display their full
+                        name.
+                        <br />
+                        <b>Hover</b> over cluster nodes to display the
+                        jaccard similarity value between nodes in the cluster.
+                        <br />
+                        <b>Right click</b> on a GeneSet node to open a new
+                        "GeneSet Details" window.
+                        <br />
+                        <b>Right click</b> on a cluster node to view the
+                        overlap between all GeneSets within the cluster.
+                        <br />
+                            
+                        
+                    </p>
+                </div>
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Sunburst Visualization
+                    </span>
+                    <p style="padding-left:8px">
+                        <b>Hover</b> over cluster arcs to highlight members of
+                        the cluster and display the jaccard similarity value 
+                        between nodes in the cluster.
+                        <br />
+                        <b>Right click</b> on a GeneSet node to open a new
+                        "GeneSet Details" window.
+                        <br />
+                        <b>Right click</b> on a cluster node to view the
+                        overlap between all GeneSets within the cluster.
+                    </p>
+                </div>
+                <span style="color:#006400">
+                    Visit our 
+                    <a href="https://thejacksonlaboratory.github.io/geneweaver-docs/analysis-tools/clustering/"
+                       style="color:#006400; font-weight:600;" 
+                       target="_blank">wiki</a>
+                    for more information.
+                </span>
+            </div>
+        </div>
+    </div>
+    <div id="d3-container" class="d3">
+        <div id="d3-legend" class="d3"></div>
+        <div id="d3-visual" class="d3"></div>
+    </div>
+</div>
+	<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
+    <!--
+	<script type="text/javascript" src="../../static/d3/d3.v4.min.js"></script>
+    -->
+	<script type="text/javascript" src="../../static/tools/ClusteringGraph.js"></script>
+	<script type="text/javascript" src="../../static/tools/ClusteringSunburst.js"></script>
+    <script type="text/javascript">
+        $("select#visualizationType")
+            .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
+            .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+            ;
+
+		var jsonPath = '{{ cluster_data | safe }}';
+        var jsonData = null;
+
+        /**
+          * Updates the "Download as..." drop down icon to inform the user that
+          * their click and image download is being processed.
+          * Changes the caret to a spinning wheel when they select a download
+          * option. Changes back to the caret after the image is finished
+          * processing and ready for download.
+          */
+        var changeDownloadIcon = function() {
+
+            if ($('#download-icon').hasClass('caret'))
+                $('#download-icon').attr('class', 'fa fa-cog fa-spin');
+            else
+                $('#download-icon').attr('class', 'caret');
+        };
+
+        //$(document).ready(visualize(jsonPath));
+        $(document).ready(function() {
+
+            d3.json(jsonPath, function(err, json) {
+                jsonData = json;
+
+                var clustering = clusteringGraph()
+                    .jsonData(jsonData)
+                    .draw()
+                    .drawLegend();
+            });
+
+        $("select#visualizationType").change(function(event){
+
+            d3.select('#d3-visual').selectAll('*').remove();
+
+            if (event.target.value === 'sunburst') {
+
+                var clustering = clusteringSunburst()
+                    .jsonData(jsonData)
+                    .draw()
+                    .drawLegend()
+                    ;
+
+            } else {
+
+                // Has to be re-read from the json file otherwise the tree is
+                // generated outside the svg box. It's fucking weird.
+                d3.json(jsonPath, function(err, json) {
+
+                    var clustering = clusteringGraph()
+                        .jsonData(json)
+                        .draw()
+                        .drawLegend()
+                        ;
+                });
+            }
+        });
+
+        });
+    </script>
+<script>
+
+    $(document).ready(function() {
+        $('#show-tool-options').on('click', function() {
+
+            $('#tool-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-viz-options').on('click', function() {
+
+            $('#viz-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-help').on('click', function() {
+
+            $('#help').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+    });
+
+    $('.download-image').on('click', function(event) {
+
+        // Prevent the button from doing anything (i.e. reloading the page)
+        event.preventDefault();
+
+        changeDownloadIcon();
+
+        var dlurl = '/downloadResult';
+        // Removes 'dl-' from the id string
+        var filetype = event.target.id.slice(3);
+
+        // Gives our SVG a white background color prior to conversion.
+        // This actually changes the image the user is seeing, but they
+        // shouldn't be able to notice.
+        d3.select('svg')
+            .insert('rect', 'g')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('fill', 'white');
+
+        var html = d3.select("#d3-visual > svg")
+            .attr("version", 1.1)
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .node().parentNode.innerHTML;
+
+        {% if runhash %}
+            var runhash = '{{runhash | safe}}';
+        {% else %}
+            var runhash = '{{async_result.parameters.output_prefix}}';
+        {% endif %}
+
+        $.ajax({
+            type: 'POST',
+            url: dlurl,
+            data: {svg: html, filetype: filetype, runhash: runhash},
+            success: function(result, status) {
+
+                changeDownloadIcon();
+
+                let win = window.open(location.origin + '/' + result, '_blank');
+                win.focus();
+            },
+            error: function(xml, status, error) {
+                changeDownloadIcon();
+
+                $('#img-error').text(error);
+                $('#img-alert').show();
+            }
+        });
+    });
+
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things.
+                if (elemType == 'INPUT') {
+
+                    // Maybe it's a radio button or checkbox, both of which
+                    // use the same type of default selection attribute
+                    if ($(this).attr('type') === 'radio' || 
+                        $(this).attr('type') === 'checkbox') {
+
+                        if ($(this).attr('value') === parameters[param]) {
+
+                            $(this).attr('checked', 'checked');
+                            // The styling for this stupid element is in a
+                            // neighboring node
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-off');
+                                $(this).siblings().addClass('ui-radio-on');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-off');
+                                $(this).siblings().addClass('ui-checkbox-on');
+                            }
+
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-on');
+                                $(this).siblings().addClass('ui-radio-off');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-on');
+                                $(this).siblings().addClass('ui-checkbox-off');
+                            }
+                        }
+                    }
+                }
+
+            });
+        }
+    });
+</script>
+
+{% include 'footer.html' %}

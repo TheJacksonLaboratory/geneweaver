@@ -1,0 +1,53 @@
+/*------------------------------------------------------------------------------------*/
+/*------------------------------  YOUR CUSTOM CSS STYLE  -----------------------------*/
+
+
+/* Make the elements in the navbar white rather than gray*/
+.navbar-inverse .navbar-nav>li>a {
+	color: #fff;
+}
+#anon-user-span a {
+	color: #fff;
+}
+#valid-user-span, #valid-user-span a{
+	color: #fff;
+}
+
+body {
+	background-color: white;
+}
+
+.panel {
+	border: 0;
+	border-width: 0;
+}
+
+.dropdown-menu {
+	width: auto !important;
+}
+
+.table-checkbox {
+	margin: -6px 0 0 -13px !important;
+}
+
+.genesetDetails {
+	display: none;
+}
+
+/* Make footer 'sticky' */
+* {
+	margin: 0;
+}
+html, body {
+	height: 100%;
+}
+.wrapper {
+	min-height: 100%;
+	height: auto !important; /* This line and the next line are not necessary unless you need IE6 support */
+	height: 100%;
+	margin: 0 auto -155px; /* the bottom margin is the negative value of the footer's height */
+}
+.footer, .push {
+	height: 155px; /* .push must be the same height as .footer */
+}
+

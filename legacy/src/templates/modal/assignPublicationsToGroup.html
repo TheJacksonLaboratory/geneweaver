@@ -1,0 +1,58 @@
+<div class="modal fade" id="assignPublicationsToGroupModal">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="assignPublicationsForCuration" name="assignPublicationsForCuration" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Assign Publications To Group</h3>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="loader" style="display: none" id="modalLoader"></div>
+
+                    <div data-alerts="alerts"
+                         data-titles="{'warning': '<em>Warning!</em>'}"
+                         data-ids="modal-alert"
+                         data-fade="5000"></div>
+
+                    <div class="row" style="text-align:center;">
+						<h4>The following <strong>Pubmed IDs</strong> will be assigned to a <strong>Group</strong> for curation:</h4>
+                    </div>
+
+                    <div class="row" style="text-align:center;">
+                        <strong>
+							<span class="rows" id="publicationsModalLabel" style="color: #006400;"></span>
+						</strong>
+					</div>
+
+                    <div class="form-group">
+                    <label for="selectPubGroup" class="col-sm-3 col-form-label" align="right"><strong>Curation Group:</strong></label>
+                         <div class="col-sm-9">
+                            <select class="input-xlarge" id="selectPubGroup" name="selectPubGroup">
+                                <option value="">- select a group -</option>
+                                {% for group in myGroups %}
+                                    <option value="{{ group.grp_id }}" id="{{ group.grp_name }}">{{ group.grp_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="padding: 10px">
+                        <label for="publicationNotes" class="col-form-label"><strong>Notes:</strong></label>
+                        <textarea class="form-control" rows="5" id="publicationsNotes"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" id="assignPublicationsConfirm"  >
+							Assign
+						</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+							Cancel
+						</button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

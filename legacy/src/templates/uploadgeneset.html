@@ -1,0 +1,953 @@
+{% set title="Upload GeneSet" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+
+    #clickablePubmed {
+        cursor: pointer;
+    }
+
+    #clickableGenes {
+        cursor: pointer;
+    }
+
+    #clickableUpload, #clickableManual {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    #pubmed_button_div, #pubmed_button_div_minus {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    .panel-underline {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .btn-file {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-file input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        background: white;
+        cursor: inherit;
+        display: block;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
+        /* IE 5-7 */
+        filter: alpha(opacity=70);
+        /* Netscape */
+        -moz-opacity: 0.7;
+        /* Safari 1.x */
+        -khtml-opacity: 0.7;
+        /* Good browsers */
+        opacity: 0.7;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+    }
+
+</style>
+
+
+{% if user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    <div class="loader" style="display:none"></div>
+
+    <div class="row" id="result"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Upload GeneSet</strong></h2>
+    </div>
+
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="0"></div>
+
+
+    <div class="row">
+        <div class="col-md-4 pull-left">
+            <p>(<strong>*</strong>) = mandatory</p>
+        </div>
+    </div>
+
+    <form id="upload-geneset-form" enctype="multipart/form-data" method="POST">
+
+        {# Geneset MetaContent #}
+        <div class="panel-heading panel-underline">
+            <h2 class="panel-title">
+                GeneSet MetaContent
+            </h2>
+        </div>
+
+        <div style="margin-left: 1em;">
+            <br>
+
+            <p>
+                Please enter some descriptive info about this GeneSet. please confirm that your GeneSet MetaContent meets the
+                guidelines outlined in our <a href="https://thejacksonlaboratory.github.io/geneweaver-docs/reference/curation/" target="_blank">
+                <strong>Curation Standards <i class="fa fa-mail-forward"></i></strong></a> to ensure rapid acceptance by
+                our curation team, or, in the case of private data, maximum integration into available GeneWeaver datasets.
+
+            </p>
+            <br>
+
+
+            <div class="row">
+                <div class="col-md-2">
+                    GeneSet Name <strong>*</strong>:
+                </div>
+                <div class="col-md-8">
+                    <input id="genesetName" type="text" name="gs_name" size="50"
+                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
+                           required>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="row">
+                <div class="col-md-2">
+                    GeneSet Figure Label <strong>*</strong>:
+                </div>
+                <div class="col-md-8">
+                    <input id="genesetLabel" type="text" name="gs_abbreviation" size="25"
+                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
+                           required>
+                </div>
+            </div>
+
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Score Type <strong>*</strong>:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select id="gs_threshold_type" class="form-control" name="gs_threshold_type" required>
+                        <option disabled selected value> -- select score type -- </option>
+                        <option id="gs-tt-pvalue" label="p-value" value="1" style="font-weight:bold;">P-Value</option>
+                        <option id="gs-tt-qvalue" label="qvalue" value="2" style="font-weight:bold;">Q-Value</option>
+                        <option id="gs-tt-binary" label="binary" value="3" style="font-weight:bold;">Binary</option>
+                        <option id="gs-tt-correlation" label="correlation" value="4" style="font-weight:bold;">Correlation</option>
+                        <option id="gs-tt-effect" label="effect" value="5" style="font-weight:bold;">Effect</option>
+                    </select>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    GeneSet Description <strong>*</strong>:
+                </div>
+                <div class="col-md-8">
+                    <textarea id="genesetDescription" rows="10" cols="50" name="gs_description"
+                              style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
+                              required></textarea>
+                </div>
+            </div>
+
+        </div>
+
+        {# Reference Information #}
+        <div class="panel-heading panel-underline">
+            <h2 class="panel-title">
+                Reference Information
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+            <br>
+
+            <p>
+                If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to
+                automatically fill in the publication info, otherwise you may manually enter publication information.
+                Providing this will allow others to discover and use your data more quickly, provide a means to link
+                here directly from PubMed, and streamline our curation efforts.
+            </p>
+
+
+
+            <div class="row">
+                <div class="col-md-2">
+                    PubMed ID:
+                </div>
+                <div class="col-md-4">
+                    <input id="pub_pubmed" type="text" name="pub_pubmed" size="10">&nbsp;
+                    <i id="clickablePubmed" class="fa fa-refresh"></i>
+                </div>
+                <br><br>
+
+                <div id="pubmed_manual" style="display:none">
+                    <div class="col-md-2">Title:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_title" id="pub_title" size="50"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Authors:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_authors" id="pub_authors" size="50"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Journal:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_journal" id="pub_journal" size="50"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Volume:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_volume" id="pub_volume" size="10" maxlength="10"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Pages:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_pages" id="pub_pages" size="15" maxlength="15"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Month:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_month" id="pub_month" size="3" maxlength="3"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Year:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_year" id="pub_year" size="4" maxlength="4"
+                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                    </div>
+                    <br><br>
+
+                    <div class="col-md-2">Abstract:</div>
+                    <div class="col-md-4">
+                    <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
+                              style="color: #808080;" onmouseover="formFocus(this)"
+                              onmouseout="noFormFocus(this)"></textarea>
+                    </div>
+                    <br><br>
+                </div>
+            </div>
+            <br>
+
+            <div id="pubmed_button_div">
+                <span id="pubmed_manual_button"><b>Manual Entry <i class="fa fa-angle-down"></i></b></span><br>
+            </div>
+            <div id="pubmed_button_div_minus" style="display: none;">
+                <span id="pubmed_manual_button_minus"><b>Less <i class="fa fa-angle-up"></i></b></span><br>
+            </div>
+        </div>
+
+        <br>
+
+        {# Permissions #}
+        <div class="panel-heading panel-underline">
+            <h2 class="panel-title">
+                Access Permissions
+            </h2>
+        </div>
+
+        <div style="margin-left: 1em;">
+            <br>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Access Restrictions <span id="accessRestrictions" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span> <strong>*</strong>:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+
+                    <select id="permissions" name="permissions" class="form-control" required>
+                        <option value="private" selected>Private</option>
+                        <option value="public">Public</option>
+                    </select>
+
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Group(s):
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select class="form-control" id="select_groups" name="select_groups" multiple>
+                        {% for group in myGroups %}
+                            <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <br>
+
+        {# Annotation Information #}
+        {#
+        <div class="panel-heading panel-underline">
+            <h2 class="panel-title">
+                Annotation Information
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+            <br>
+            {% if onts %}
+
+            {% else %}
+
+                <div class="row">
+                    <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
+                </div>
+
+            {% endif %}
+
+        </div>
+		#}
+
+        {# Geneset Gene Information #}
+        <div class="panel-heading panel-underline">
+            <h2 class="panel-title">
+                Gene Information
+            </h2>
+        </div>
+
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="genelist" data-fade="0"></div>
+
+        <div style="margin-left: 1em;">
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Species <strong>*</strong>:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <!-- species and gene identifiers dropdowns are listed as required
+                    but for some reason the js form validation isn't occurring for these dropdowns -->
+                    <select class="form-control" name="sp_id" required>
+                        <option disabled selected value> -- select species -- </option>
+                        {% for spec in all_species %}
+                            <option id="sp-{{spec}}"
+                                    label="{{ all_species[spec] }}"
+                                    value="{{ spec }}"
+                                    style="font-weight:bold;">
+                                {{ all_species[spec] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <br>
+
+            <div class="row">
+                <div class="col-md-2">
+                    Gene Identifiers <strong>*</strong>:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select id="gene_identifier" name="gene_identifier" class="form-control" required>
+                        <option disabled selected value> -- select identifier -- </option>>
+                        {% for id in gidts %}
+                            {% if id[0] != "MicroArrays" %}
+                                <option label="{{ id[1] }}" value="{{ id[0] }}">{{ id[1] }}</option>
+                            {% else %}
+                                <optgroup label="MicroArrays">
+                                    {% for val in id[1] %}
+                                        <option label="{{ val[1] }}" value="{{ val[0] }}">{{ val[1] }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <br>
+
+
+            <div class="row">
+                <div class="col-md-2">
+                    Gene List <span id="clickableGenes" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span>
+                </div>
+                <div id="paste_uploader" class="col-md-4" style="display: block">
+                    <span id="clickableUpload" onclick="toggle_pasting()"><strong> Switch to File Upload <i class="fa fa-upload"></i>
+                    </strong></span>
+                    <br>
+                    {% if genes %}
+                        <textarea id="file_text" rows="15" cols="40" name="file_text" style="color: #808080;"
+                                  onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">{{ genes }}</textarea>
+                    {% else %}
+                        <textarea id="file_text" rows="15" cols="40" name="file_text" style="color: #808080;"
+                                  onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
+                                  placeholder="gene1[tab]value[newline]"
+                                  required></textarea>
+                    {% endif %}
+
+                </div>
+                <div id="file_uploader" class="col-md-8" style="display: none">
+                    <span id="clickableManual" onclick="toggle_pasting()">
+                        <strong>
+                            Switch to Manual Upload
+                            <i class="fa fa-keyboard-o"></i>
+                        </strong>
+                    </span>
+
+                    <br>
+                    <br>
+
+                    <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
+                        <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
+                        <input id="fileContents" name="fileContents" type="hidden" />
+                    </span>
+                    <span id="fileDisplayArea" style="color:#337700;
+                          vertical-align:middle; padding:10px 0 0 10px;">
+                    </span>
+                </div>
+            </div>
+
+        </div>
+        <br>
+
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
+
+        <div class="panel-heading">
+            <div class="pull-right">
+                {# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
+                <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
+                       value="Review GeneSet Upload &raquo;"/>
+            </div>
+        </div>
+
+    </form>
+
+
+
+{% endif %}
+
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+<script>
+    // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
+
+    /**
+     * Auto-populates the upload form with geneset title, description, and
+     * gene list data. This occurs only when creating a new gene set from
+     * the boolean algebra page.
+     */
+    var autoPopulateFromBoolean = function() {
+
+        var uploadData = '{{tool_data | safe}}';
+
+        if (!uploadData)
+            return;
+
+        var json = JSON.parse(uploadData);
+
+        if (!($.inArray(json.tool, ['boolean', 'abba', 'mset']) > -1)) {
+            return;
+        }
+
+        var speciesID = json.species;
+        var spid = json.sp;
+        var genes = json.genes.split(',');
+        var jsonGenes = JSON.stringify(genes);
+        var geneText = '';
+        var v;
+
+        var geneIdTye = '';
+        if ('gene-id-type' in json) {
+            geneIdTye = json['gene-id-type' ];
+        }
+
+        // Need to transpose all gene ids into a type compatible with geneset species
+        // that the user selected.
+        // Add some ajax that will query the DB and return IDs of the type needed
+        // Also, the gif only shows in firefox since we are using async false
+        if (json.tool !== 'mset') {
+            $.ajax({
+                beforeSend: function () {
+                    $('.loader').show();
+                },
+                type: "POST",
+                url: "../transposeGenesetIDs",
+                dataType: 'json',
+                async: false,
+                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7, 'gene_id_type': geneIdTye},
+                success: function (data) {
+                    $('.loader').hide();
+                    v = data;
+                },
+                error: function () {
+                    $('.loader').hide();
+                }
+            });
+        } else {
+            v = genes;
+        }
+
+        for (var i = 0; i < v.length; i++) {
+
+            geneText += v[i];
+            geneText += '\t';
+            geneText += '1';
+            geneText += '\n';
+        }
+
+        $('#genesetName').val(json.name);
+        $('#genesetDescription').val(json.description);
+        $('#file_text').val(geneText);
+        // If score or gene type IDs ever change, these must be changed too
+        // Binary score type
+        $('#gs_threshold_type').val('3');
+        // Gene identifier type
+        $('#gene_identifier').val('gene_7');
+        $('#' + speciesID).prop('selected',true);
+    };
+
+    /*
+     * Auto-populates the upload form with geneset title, description, species,
+     * gene identifier, and gene list data.
+     * This is done using the 'add genes to geneset' function on the view geneset
+     * page. If any required values are missing, auto-population doesn't occur.
+     */
+    var autoPopulateForm = function() {
+        // Potential data can be found in the search property
+        var uploadData = window.location.search;
+
+        if (!uploadData)
+            return;
+
+        // Escaped spaces
+        uploadData = uploadData.replace(/%20/g, ' ');
+        // Skips the first '?'
+        uploadData = uploadData.slice(1).split('?');
+
+        if (uploadData.length < 5)
+            return;
+
+        // New set from the boolean algebra or ABBA tool
+        if (uploadData[0] === 'algebra' || uploadData[0] == 'abba') {
+
+            // Get rid of 'algebra'
+            uploadData.shift();
+
+            var title       = uploadData.shift(),
+                    description = uploadData.shift(),
+                    species     = 0,
+                    geneType    = 0,
+                    genes       = '';
+
+            // New set from the view geneset page
+        } else {
+
+            var title       = uploadData.shift(),
+                    description = uploadData.shift(),
+                    species     = uploadData.shift(),
+                    geneType    = uploadData.shift(),
+                    genes       = '';
+        }
+
+        for (var i = 0; i < uploadData.length; i += 2) {
+
+            genes += uploadData[i];
+            genes += '\t';
+            genes += uploadData[i + 1];
+            genes += '\n';
+        }
+
+        $('#genesetName').val(title);
+        $('#genesetDescription').val(description);
+        $('#file_text').val(genes);
+        $('select option[id=sp-' + species).prop('selected', 'selected');
+        $('select option[value=' + geneType).prop('selected', 'selected');
+    };
+
+    $(document).ready(function () {
+
+        $('.loader').hide();
+        autoPopulateForm();
+        autoPopulateFromBoolean();
+
+        // Color species options
+        colorMap = getSpeciesColors({{ all_species | tojson | safe }});
+
+        for (var spid in colorMap)
+            $('#sp-' + spid).css('background-color', colorMap[spid]);
+
+        // Function to allow tabs in the textarea
+        $("textarea").keydown(function (e) {
+            if (e.keyCode === 9) { // tab was pressed
+                // get caret position/selection
+                var start = this.selectionStart;
+                end = this.selectionEnd;
+
+                var $this = $(this);
+
+                // set textarea value to: text before caret + tab + text after caret
+                $this.val($this.val().substring(0, start)
+                        + "\t"
+                        + $this.val().substring(end));
+
+                // put caret at right position again
+                this.selectionStart = this.selectionEnd = start + 1;
+
+                // prevent the focus lose
+                return false;
+            }
+        });
+
+        /**
+         * Executed when the user clicks the "select tab-delimited plain text
+         * file" button. This function reads the file in, appends the contents
+         * to a hidden input element, and informs the user that the file has
+         * been loaded.
+         */
+        $('#file_data').on('change', function(e) {
+
+            var fileDisplayArea = $('#fileDisplayArea');
+            var file = this.files[0];
+            var textType = /text.*/;
+
+            if (file.type.match(textType)) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
+
+                    fileDisplayArea.text(
+                            "Loaded '" + file.name + "' (" + size + ")"
+                    );
+                    $('#fileContents').val(reader.result);
+                };
+
+                reader.readAsText(file);
+            } else {
+                fileDisplayArea.innerText = "File not supported!";
+            }
+        });
+
+        $('#file_text').keyup(function(e) {
+            var tval = $('#file_text').val(),
+                    tlength = tval.split("\n").length;
+            warnMesg = 'Genesets larger than 5000 genes will be uploaded asynchronously. ' +
+                    'Due to the nature of how we process these sets, we cannot provide immediate feedback ' +
+                    'for common errors. Please take extra care to ensure that you\'ve entered all required ' +
+                    'information correctly.';
+            if (tlength >= 5000){
+                $(document).trigger("clear-alerts");
+                $(document).trigger("set-alert-id-genelist", [{
+                    'message': warnMesg,
+                    'priority': 'warning',
+                    'fade': 0
+                }]);
+            } else {
+                $(document).trigger("clear-alerts");
+            }
+        });
+
+        /**
+         * Function used to submit the contents of the gene set upload form to
+         * the server. Checks to see whether the user used the text box or
+         * file upload forms and adds this content accordingly. Submits the
+         * AJAX upload request and informs the user of failure or success.
+         */
+        $('#upload-geneset-form').submit(function (event) {
+
+            event.preventDefault();
+
+            var fileDisplayArea = $('#fileDisplayArea');
+            var fileSelect = $('#file_data');
+
+            // User selected the file upload option
+            if (!fileSelect.disabled)
+                var fileData = $('#fileContents').val();
+
+            var permissions = $('#permissions')
+
+            // If disabled due to selected groups, the permissions field will
+            // not be submitted with form
+            if (permissions.prop('disabled'))
+                permissions.prop("disabled", false).button("refresh");
+
+            var d = $("#upload-geneset-form").serialize();
+            var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
+            var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
+
+            // Let the user know we're in the process of uploading their
+            // geneset. Otherwise they might click the submit button 10 times.
+            $('#confirmUpload').modal('show');
+
+            var tval = $('#file_text').val(),
+                tlength = tval.split("\n").length,
+                new_gs_url = "../createtempgeneset_original";
+            if (tlength > 5000) {
+                new_gs_url = "../createtempgeneset_large";
+            }
+
+            $.ajax({
+                type: "POST",
+                url: new_gs_url,
+                data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
+                success: function (data) {
+                    // Hides confirmation after any kind of result (success or
+                    // error) is returned.
+                    $('#confirmUpload').modal('hide');
+
+                    var v = JSON.parse(data);
+
+                    if (v["error"] == 'None') {
+                        // Make a URL to the edit geneset page in case the
+                        // user is never redirected. Happens with Jason's
+                        // desktop :(
+                        var editPage = location.protocol + '//' + location.host;
+                        editPage = '<a href="' + editPage + '/editgenesetgenes/' +
+                                v['gs_id'] + '">here.</a>';
+                        var success = '<strong>Success! Your GeneSets ' +
+                                'were uploaded: </strong><br />';
+                        success += 'GS' + v['gs_id'] + '<br />';
+                        success = success + '<br /> <strong>You will be ' +
+                                'redirected to the edit GeneSet page shortly.' +
+                                '<br /> If you aren\'t redirected, check and ' +
+                                'reconfigure your pop-up blocker settings ' +
+                                'or just click ' + editPage + '</strong>';
+                        var closeButton = '<button type="button" ' +
+                                'class="close" data-dismiss="alert" ' +
+                                'aria-hidden="true">x</button>';
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $('#upload-success-alert').html(closeButton + success);
+                        $(document).trigger("add-alerts", [{
+                            'message': success,
+                            'priority': 'success',
+                            'fade': 0
+                        }]);
+
+                        // Redirect to the edit geneset page for each geneset,
+                        // wait a bit though so the user can read our message
+                        setTimeout(function() {
+                            var url = '../editgenesetgenes/' + v['gs_id'];
+                            window.open(url, '_blank');
+                        }, 3000);
+                    }
+                    else {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                    if (v['missing'].length > 0) {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [{
+                            'message': 'The following gene identifiers are ' +
+                                       'not present in GeneWeaver: ' + 
+                                       v['missing'].join(', '),
+                            'priority': 'warning'
+                        }]);
+                    }
+                },
+                error: function(){
+                    // Hides confirmation after any kind of result (success or
+                    // error) is returned.
+                    $('#confirmUpload').modal('hide');
+
+                    $('html, body').animate({ scrollTop: 0 }, 'slow');
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
+                            'priority': 'danger',
+                            'fade': 0
+                        }
+                    ]);
+                }
+            });
+
+        });
+
+        //function createReaderHandler(name) {
+        //    return function (ev) {
+        //        data[name] = ev.target.result;
+        //    };
+        //}
+
+    });
+
+
+    var user_id = {{ user_id }}
+
+            function myFunction(genes) {
+                genes1 = genes.split("_");
+                genes1 = genes1.join("\t1\n");
+                genes1 = genes1.concat("\t1");
+                document.getElementById("file_text").value = genes1;
+            };
+
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+    $('#accessRestrictions').popover({
+        title: 'Access Restrctions',
+        content: 'You can set the GeneSet access restriction to be Public, Private or select a private set of Groups.',
+        html: 'true'
+    });
+
+    $('#clickableGenes').popover({
+        title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
+        'A full description of the gene set format can be found ' +
+        '<a href="https://thejacksonlaboratory.github.io/geneweaver-docs/web-application/uploading-genesets/" target="_blank">' +
+        '       <strong>here</strong></a>.',
+        html: 'true'
+    });
+
+    $('#select_groups').change(function() {
+        if ($('#select_groups').val()) {
+            $('#permissions').val("private");
+            $('#permissions').prop("disabled", true).button("refresh");
+        } else {
+            $('#permissions').prop("disabled", false).button("refresh");
+        }
+    });
+
+
+    function formFocus($e) {
+        $e.style.backgroundColor = "yellow";
+    }
+
+    function noFormFocus($e) {
+        $e.style.backgroundColor = '';
+    }
+
+
+    //Get Pubmed Data for ID
+    $('#clickablePubmed').click(function () {
+        var pmid = $("#pub_pubmed").val();
+        if (!$.isNumeric(pmid)) {
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "You must enter a valid Pubmed ID.",
+                    'priority': 'warning'
+                }
+            ]);
+        }
+        else {
+            $.ajax({
+                type: "GET",
+                url: "../getPubmed",
+                data: {"pmid": pmid},
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "PubMed ID " + pmid + " successfully loaded",
+                            'priority': 'success'
+                        }
+                    ]);
+                    if ($('#pubmed_manual').is(":hidden")) {
+                        $("#pubmed_manual").toggle();
+                    }
+                    ;
+
+                    if ($('#pubmed_button_div').is(":visible")) {
+                        $('#pubmed_button_div').toggle();
+                    }
+                    ;
+
+                    var parseData = JSON.parse(data);
+                    $('#pub_title').val(parseData[0]);
+                    $('#pub_authors').val(parseData[1]);
+                    $('#pub_journal').val(parseData[2]);
+                    $('#pub_volume').val(parseData[3]);
+                    $('#pub_pages').val(parseData[4]);
+                    $('#pub_year').val(parseData[5]);
+                    $('#pub_month').val(parseData[6]);
+                    $('#pub_abstract').val(parseData[7]);
+
+                }
+            });
+        }
+        ;
+
+    });
+
+    $("#pubmed_manual_button").click(function () {
+        $("#pubmed_manual").toggle();
+
+        //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+        var isHidden = $("#pubmed_manual").is(':hidden');
+
+        if (isHidden) {
+            $("#pubmed_manual :input").attr("disabled", true);
+
+        }
+        else {
+            $("#pubmed_manual :input").attr("disabled", false);
+            $("#pubmed_button_div_minus").show();
+            $("#pubmed_button_div").hide();
+        }
+    });
+
+    $("#pubmed_manual_button_minus").click(function () {
+        $("#pubmed_manual").toggle();
+
+        //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+        var isHidden = $("#pubmed_manual").is(':hidden');
+
+        if (isHidden) {
+            $("#pubmed_manual :input").attr("disabled", true);
+            $("#pubmed_button_div_minus").hide();
+            $("#pubmed_button_div").show();
+        }
+        else {
+            $("#pubmed_manual :input").attr("disabled", false);
+        }
+    });
+
+
+    //toggles between the file or paste uploaders and toggle's enable/disable on inputs
+    function toggle_pasting() {
+
+        $("#file_uploader").toggle();
+        $("#paste_uploader").toggle();
+
+        $('#file_text').prop('disabled', function () {
+            return !$(this).prop('disabled')
+        })
+        $('#file_data').prop('disabled', function () {
+            return !$(this).prop('disabled')
+        })
+    }
+
+</script>
+
+{% include 'modal/confirmUpload.html' %}
+
+{% include 'footer.html' %}
