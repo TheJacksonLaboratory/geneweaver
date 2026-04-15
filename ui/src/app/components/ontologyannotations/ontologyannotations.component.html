@@ -1,0 +1,10 @@
+<div class="card flex flex-row justify-between items-center gap-4 mb-4">
+    <app-ontology-tag-key [ontology_terms]="ontology_tags"></app-ontology-tag-key>
+    
+    <div class="flex flex-wrap gap-2">
+        <app-ontology-tag 
+            *ngFor="let ontology of ontology_tags"
+            [ontology]="ontology">
+        </app-ontology-tag>
+    </div>
+</div>

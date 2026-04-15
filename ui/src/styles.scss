@@ -1,0 +1,22 @@
+/* You can add global styles to this file, and also import other style files */
+@import "primeicons/primeicons.css";
+
+@font-face {
+  font-family: "Carrois Gothic";
+  src: url(../public/fonts/CarroisGothic-Regular.ttf) format("opentype");
+}
+
+.carrois-gothic-regular {
+  font-family: "Carrois Gothic", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+a {
+  color: #0090D9;
+  text-decoration: none;
+}
+a:hover {
+  color: steelblue;
+  text-decoration: underline;
+}

@@ -1,0 +1,87 @@
+image: gcr.io/k8s-skaffold/skaffold:v1.39.0
+definitions:
+  yaml-anchors:
+    - &setup-npm-build >-
+      npm install &&
+      cp ./src/environments/environment.default.ts ./src/environments/environment.ts
+    - &activate-deployment-k8s-service-account >-
+      echo $CLUSTER_SA | base64 --decode > /tmp/cred.json &&
+      export GOOGLE_APPLICATION_CREDENTIALS=/tmp/cred.json &&
+      gcloud auth activate-service-account --key-file=/tmp/cred.json
+    - &get-cluster-kubeconfig-using-deployment-vars >-
+      gcloud container clusters get-credentials $CLUSTER_NAME
+      --region $CLUSTER_REGION
+      --project $CLUSTER_PROJECT &&
+      kubectl config use-context gke_${CLUSTER_PROJECT}_${CLUSTER_REGION}_${CLUSTER_NAME}
+    - &skaffold-deploy >-
+      skaffold deploy -f skaffold.yaml
+      --profile=${BITBUCKET_DEPLOYMENT_ENVIRONMENT}
+  steps:
+    - step: &code-integrity
+        name: Code Integrity
+        image: node:22.6-slim
+        script:
+          - *setup-npm-build
+          - npm run lint
+          - npm run test
+        artifacts:
+          - dist/**
+    - step: &build-dev-artifacts
+        name: Artifact Dev Build
+        image: node:22.6-slim
+        script:
+          - *setup-npm-build
+          - npm run build:jax-cluster-dev-10
+        artifacts:
+          - dist/**
+    - step: &build-all-artifacts
+        name: Artifact Builds
+        image: node:22.6-slim
+        script:
+          - *setup-npm-build
+          - npm run build:jax-cluster-dev-10
+          - npm run build:jax-cluster-prod-10
+        artifacts:
+          - dist/**
+    - step: &deploy
+        trigger: manual
+        script:
+          - pipe: atlassian/google-cloud-storage-deploy:1.0.1
+            variables:
+              KEY_FILE: $CLUSTER_SA
+              PROJECT: $CLUSTER_PROJECT
+              BUCKET: $DEPLOYMENT_BUCKET
+              SOURCE: './dist/${BITBUCKET_DEPLOYMENT_ENVIRONMENT}/*'
+          - *activate-deployment-k8s-service-account
+          - *get-cluster-kubeconfig-using-deployment-vars
+          - *skaffold-deploy
+pipelines:
+  pull-requests:
+    '**':
+        - step: *code-integrity
+        - step: *build-dev-artifacts
+        - step:
+            <<: *deploy
+            name: Deploy Dev
+            trigger: automatic
+            deployment: jax-cluster-dev-10--dev
+        - step:
+            <<: *deploy
+            name: Deploy SQA
+            deployment: jax-cluster-dev-10--sqa
+  branches:
+    main:
+        - step: *code-integrity
+        - step: *build-all-artifacts
+        - step:
+            <<: *deploy
+            name: Deploy SQA
+            deployment: jax-cluster-dev-10--sqa
+        - step:
+            <<: *deploy
+            name: Deploy Stage
+            deployment: jax-cluster-prod-10--stage
+        - step:
+            <<: *deploy
+            name: Deploy Prod
+            deployment: jax-cluster-prod-10--prod

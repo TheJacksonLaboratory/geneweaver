@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-ui
+  labels:
+    app: geneweaver-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-ui
+  template:
+    metadata:
+      labels:
+        app: geneweaver-ui
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      volumes:
+        - name: staticfiles
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: geneweaver-ui-nginx-conf
+            items:
+              - key: default.conf
+                path: default.conf
+      initContainers:
+        - name: data-localization
+          image: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /srv
+          env:
+            - name: INIT_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: geneweaver-ui-bucket
+                  key: CLOUD_STORAGE_BUCKET
+          command: [ "bash" ]
+          args:
+            - -c
+            - >-
+              mkdir -p /srv/dist &&
+              gsutil -m cp -r "gs://$INIT_BUCKET/*" /srv/dist
+      containers:
+        - image: nginx:stable-alpine
+          name: nginx-proxy
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /etc/nginx/conf.d/default.conf
+              name: nginx-conf
+              subPath: default.conf
+              readOnly: true
+            - mountPath: /srv
+              name: staticfiles
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 6

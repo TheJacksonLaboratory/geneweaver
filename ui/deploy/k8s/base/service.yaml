@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: geneweaver-ui
+  labels:
+    app: geneweaver-ui
+spec:
+  type: ClusterIP
+  selector:
+    app: geneweaver-ui
+  ports:
+    - protocol: TCP
+      name: angular
+      port: 80
