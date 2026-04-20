@@ -42,9 +42,7 @@ def test_add_ontology_term_to_geneset(ont_id, geneset_id, gso_ref_type, cursor):
 @pytest.mark.parametrize("ont_id", [1])
 @pytest.mark.parametrize("geneset_id", [1])
 @pytest.mark.parametrize("gso_ref_type", ["test"])
-async def test_async_add_ontology_term_to_geneset(
-    ont_id, geneset_id, gso_ref_type, async_cursor
-):
+async def test_async_add_ontology_term_to_geneset(ont_id, geneset_id, gso_ref_type, async_cursor):
     """Test the ontology.add_ontology_to_geneset function."""
     async_cursor.fetchone.return_value = (1, 1)
 

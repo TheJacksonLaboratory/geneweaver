@@ -37,9 +37,7 @@ def test_extract_fields_example(
     mock_extract_date.return_value = {
         k: v for k, v in expected.items() if k in ["year", "month", "day"]
     }
-    mock_extract_authors.return_value = {
-        k: v for k, v in expected.items() if k == "authors"
-    }
+    mock_extract_authors.return_value = {k: v for k, v in expected.items() if k == "authors"}
 
     publication_xml = ElementTree.fromstring(xml_string)
     assert extract_fields(publication_xml) == expected

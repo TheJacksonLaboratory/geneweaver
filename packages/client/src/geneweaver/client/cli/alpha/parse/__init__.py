@@ -1,6 +1,6 @@
 """Root command for the parse cli subcommand."""
 
-from .main import cli  # noqa: F401
+from .main import cli
 
 HELP_MESSAGE = """
 Tools and utilities to parse data files for use in Geneweaver.

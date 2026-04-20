@@ -15,11 +15,9 @@ test_set_geneset_threshold_execute_raises_error = create_execute_raises_error_te
     set_geneset_threshold, 1, 1, GenesetScoreType(score_type="binary", threshold=0.05)
 )
 
-test_async_set_geneset_threshold_execute_raises_error = (
-    async_create_execute_raises_error_test(
-        async_set_geneset_threshold,
-        1,
-        1,
-        GenesetScoreType(score_type="binary", threshold=0.05),
-    )
+test_async_set_geneset_threshold_execute_raises_error = async_create_execute_raises_error_test(
+    async_set_geneset_threshold,
+    1,
+    1,
+    GenesetScoreType(score_type="binary", threshold=0.05),
 )

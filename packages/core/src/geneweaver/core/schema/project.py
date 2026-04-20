@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class Project(BaseModel):
     """Project schema."""
 
-    id: int  # noqa: A003
+    id: int
     name: str
     groups: list
     session_id: str

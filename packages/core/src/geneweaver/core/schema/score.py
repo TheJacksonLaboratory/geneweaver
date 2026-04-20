@@ -1,9 +1,5 @@
 """Pydantic schema for defining score types."""
 
-# ruff: noqa: N805
-
-from typing import Optional
-
 from geneweaver.core.enum import ScoreType
 from pydantic import BaseModel, model_validator
 from typing_extensions import Self
@@ -14,7 +10,7 @@ class GenesetScoreType(BaseModel):
 
     score_type: ScoreType
     threshold: float = 0.05
-    threshold_low: Optional[float] = None
+    threshold_low: float | None = None
 
     def __str__(self: "GenesetScoreType") -> str:
         """Return a string representation of the score type."""
@@ -45,7 +41,6 @@ class GenesetScoreType(BaseModel):
             ScoreType.EFFECT,
         ]:
             raise ValueError(
-                "threshold_low should only be set for "
-                "correlation and effect score types"
+                "threshold_low should only be set for correlation and effect score types"
             )
         return self

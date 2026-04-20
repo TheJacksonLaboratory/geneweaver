@@ -22,13 +22,9 @@ EXAMPLE_PUBLICATION = PublicationInfo(
     year="2021",
 )
 
-test_add_execute_raises_error = create_execute_raises_error_test(
-    add, EXAMPLE_PUBLICATION
-)
+test_add_execute_raises_error = create_execute_raises_error_test(add, EXAMPLE_PUBLICATION)
 
-test_add_fetchone_raises_error = create_fetchone_raises_error_test(
-    add, EXAMPLE_PUBLICATION
-)
+test_add_fetchone_raises_error = create_fetchone_raises_error_test(add, EXAMPLE_PUBLICATION)
 
 test_async_add_execute_raises_error = async_create_execute_raises_error_test(
     async_add, EXAMPLE_PUBLICATION

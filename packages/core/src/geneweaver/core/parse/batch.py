@@ -51,7 +51,6 @@ header.
 """
 
 from enum import Enum
-from typing import List, Tuple
 
 from geneweaver.core.parse.enum import GeneweaverFileType
 from geneweaver.core.parse.exceptions import (
@@ -147,7 +146,7 @@ def is_batch_file(contents: str) -> GeneweaverFileType:
     raise UnsupportedFileTypeError()
 
 
-def process_lines(contents: str) -> List[BatchUploadGeneset]:
+def process_lines(contents: str) -> list[BatchUploadGeneset]:
     """Process each line of content to build and return a list of BatchUploadGeneset.
 
     The function iterates over each line in the provided content. Depending on the
@@ -198,8 +197,8 @@ def read_header(
     header: dict,
     current_geneset_values: list,
     read_mode: ReadMode,
-    genesets: List[BatchUploadGeneset],
-) -> Tuple[list[BatchUploadGeneset], list, dict, ReadMode]:
+    genesets: list[BatchUploadGeneset],
+) -> tuple[list[BatchUploadGeneset], list, dict, ReadMode]:
     """Process a header line and update the corresponding state variables accordingly.
 
     This function takes a line from a batch file, processes it as a header line and
@@ -240,8 +239,8 @@ def read_header(
 
 
 def finalize_processed_geneset(
-    genesets: List[BatchUploadGeneset], header: dict, current_geneset_values: list
-) -> Tuple[List[BatchUploadGeneset], list, dict]:
+    genesets: list[BatchUploadGeneset], header: dict, current_geneset_values: list
+) -> tuple[list[BatchUploadGeneset], list, dict]:
     """Add the current geneset to the list and prepares for processing the next one.
 
     This function first checks that the header contains all required values. Then, it
@@ -292,7 +291,7 @@ def update_header(key: str, value: str, header: dict) -> dict:
 
 def read_values(
     line: str, header: dict, current_geneset_values: list, read_mode: ReadMode
-) -> Tuple[list, ReadMode]:
+) -> tuple[list, ReadMode]:
     r"""Read a line assuming it's a value, and updates the reading mode if necessary.
 
     This function assumes the given line is not a header row. It first uses the
@@ -327,9 +326,7 @@ def read_values(
     return current_geneset_values, read_mode
 
 
-def create_geneset(
-    header: dict, content: List[GenesetValueInput]
-) -> BatchUploadGeneset:
+def create_geneset(header: dict, content: list[GenesetValueInput]) -> BatchUploadGeneset:
     """Create a Geneset object for batch upload.
 
     This function takes a header and content, and constructs a BatchUploadGeneset object
@@ -372,11 +369,11 @@ def check_has_required_header_values(header: dict) -> None:
     :raises MissingRequiredHeaderError: If any of the required keys are missing in the
     header.
     """
-    if not all((HEADER_CHARACTERS[key] in header for key in REQUIRED_HEADERS)):
+    if not all(HEADER_CHARACTERS[key] in header for key in REQUIRED_HEADERS):
         raise MissingRequiredHeaderError()
 
 
-def process_header_line(line: str) -> Tuple[str, str]:
+def process_header_line(line: str) -> tuple[str, str]:
     """Process a header line into a key-value pair.
 
     This function reads a header line, and processes it into a key-value pair based on
@@ -407,7 +404,7 @@ def process_header_line(line: str) -> Tuple[str, str]:
     return key, value
 
 
-def read_single_prefix_header(prefix: str, line: str) -> Tuple[str, str]:
+def read_single_prefix_header(prefix: str, line: str) -> tuple[str, str]:
     """Read a single-prefix header line into a key-value pair.
 
     This function reads a single-prefix header line, and returns it as a key-value pair.
@@ -430,7 +427,7 @@ def read_single_prefix_header(prefix: str, line: str) -> Tuple[str, str]:
     return key, value
 
 
-def read_space_separated_header(prefix: str, line: str) -> Tuple[str, str]:
+def read_space_separated_header(prefix: str, line: str) -> tuple[str, str]:
     """Read a space-separated header line into a key-value pair.
 
     This function reads a space-separated header line, and returns it as a key-value
@@ -457,7 +454,7 @@ def read_space_separated_header(prefix: str, line: str) -> Tuple[str, str]:
     return key, value
 
 
-def process_value_line(line: str) -> Tuple[str, str]:
+def process_value_line(line: str) -> tuple[str, str]:
     """Process a value line into a key-value pair.
 
     This function splits a line into two parts, and returns them as a symbol-value pair.

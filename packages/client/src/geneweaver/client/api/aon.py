@@ -1,7 +1,6 @@
 """Functions that wrap the GeneWeaver API on /genesets endpoints."""
 
 from enum import Enum
-from typing import List, Optional
 
 from geneweaver.client.api.utils import sessionmanager
 from geneweaver.client.core.config import settings
@@ -26,7 +25,7 @@ class OrthologAlgorithms(Enum):
 
 
 def ortholog_mapping(
-    identifiers: List[str], to_species: Species, algorithm_id: Optional[int] = None
+    identifiers: list[str], to_species: Species, algorithm_id: int | None = None
 ) -> dict:
     """Get ortholog mapping for a list of genes.
 
@@ -60,7 +59,7 @@ def algorithm_id_from_name(algorithm_name: str) -> int:
         resp = session.get(settings.AON_API_URL + "/algorithms")
         algorithms = resp.json()
         for algorithm in algorithms:
-            if algorithm["alg_name"].lower().replace(
+            if algorithm["alg_name"].lower().replace(" ", "") == algorithm_name.lower().replace(
                 " ", ""
-            ) == algorithm_name.lower().replace(" ", ""):
+            ):
                 return algorithm["alg_id"]

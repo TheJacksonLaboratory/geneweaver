@@ -1,7 +1,5 @@
 """Query functions related to thresholding and score type."""
 
-from typing import Tuple
-
 from geneweaver.core.schema.score import GenesetScoreType
 from geneweaver.db.query import user
 from psycopg.sql import SQL, Composed
@@ -10,7 +8,7 @@ from psycopg.sql import SQL, Composed
 def set_geneset_threshold(
     geneset_id: int,
     geneset_score_type: GenesetScoreType,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Update the threshold of a geneset.
 
     After calling this query, the query in `update_geneset_value_threshold` should be
@@ -26,8 +24,7 @@ def set_geneset_threshold(
         and geneset_score_type.threshold_low > geneset_score_type.threshold
     ):
         raise ValueError(
-            "geneset_score_type.threshold must be larger than "
-            "geneset_score_type.threshold_low"
+            "geneset_score_type.threshold must be larger than geneset_score_type.threshold_low"
         )
 
     params = {
@@ -50,7 +47,7 @@ def set_geneset_threshold(
 def set_geneset_value_threshold(
     geneset_id: int,
     geneset_score_type: GenesetScoreType,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Update the threshold a geneset values.
 
     :param geneset_id: The ID of the geneset to update.
@@ -79,8 +76,7 @@ def set_geneset_value_threshold(
 
         if geneset_score_type.threshold_low > geneset_score_type.threshold:
             raise ValueError(
-                "geneset_score_type.threshold must be larger than "
-                "geneset_score_type.threshold_low"
+                "geneset_score_type.threshold must be larger than geneset_score_type.threshold_low"
             )
 
     else:
@@ -103,7 +99,7 @@ def set_geneset_value_threshold(
     return query, params
 
 
-def user_can_set_threshold(user_id: int, geneset_id: int) -> Tuple[Composed, dict]:
+def user_can_set_threshold(user_id: int, geneset_id: int) -> tuple[Composed, dict]:
     """Check if a user can set the threshold of a geneset.
 
     A user can set the threshold of a geneset if:

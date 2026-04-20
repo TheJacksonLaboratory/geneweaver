@@ -1,13 +1,11 @@
 """Test the config module."""
 
-from typing import List, Tuple
-
 import pytest
 from geneweaver.core.config_class import CoreSettings
 
 
 @pytest.mark.parametrize("attribute", ["PROJECT_NAME", "LOG_LEVEL"])
-def test_core_settings_schema(attribute: List[str]) -> None:
+def test_core_settings_schema(attribute: list[str]) -> None:
     """Test the CoreSettings class."""
     schema = CoreSettings.model_json_schema()
     assert attribute in schema["properties"]
@@ -18,8 +16,8 @@ def test_core_settings_schema(attribute: List[str]) -> None:
     [("PROJECT_NAME", "jax-geneweaver-core"), ("LOG_LEVEL", "INFO")],
 )
 def test_core_settings_default(
-    attribute: Tuple[str, str],
-    expected: Tuple[str, str],
+    attribute: tuple[str, str],
+    expected: tuple[str, str],
     core_settings_optional_fields: dict,
 ) -> None:
     """Test the CoreSettings class."""

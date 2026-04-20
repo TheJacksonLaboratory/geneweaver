@@ -14,13 +14,9 @@ test_by_id_execute_raises_error = create_execute_raises_error_test(by_id, 1)
 
 test_by_id_fetchone_raises_error = create_fetchone_raises_error_test(by_id, 1)
 
-test_async_by_id_execute_raises_error = async_create_execute_raises_error_test(
-    async_by_id, 1
-)
+test_async_by_id_execute_raises_error = async_create_execute_raises_error_test(async_by_id, 1)
 
-test_async_by_id_fetchone_raises_error = async_create_fetchone_raises_error_test(
-    async_by_id, 1
-)
+test_async_by_id_fetchone_raises_error = async_create_fetchone_raises_error_test(async_by_id, 1)
 
 
 def test_get_publication_by_id(cursor):

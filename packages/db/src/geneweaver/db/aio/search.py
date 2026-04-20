@@ -1,7 +1,6 @@
 """Async database interaction code relating to searching."""
 
 from datetime import date
-from typing import List, Optional
 
 from geneweaver.db.query import search
 from geneweaver.db.utils import (
@@ -16,22 +15,22 @@ from psycopg.rows import Row
 async def genesets(
     cursor: AsyncCursor,
     search_text: str,
-    is_readable_by: Optional[int] = None,
-    publication_id: Optional[int] = None,
-    pubmed_id: Optional[int] = None,
-    species: Optional[SpeciesOrSpeciesSet] = None,
-    curation_tier: Optional[GenesetTierOrTiers] = None,
-    score_type: Optional[GenesetScoreTypeOrScoreTypes] = None,
-    lte_count: Optional[int] = None,
-    gte_count: Optional[int] = None,
-    created_before: Optional[date] = None,
-    created_after: Optional[date] = None,
-    updated_before: Optional[date] = None,
-    updated_after: Optional[date] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    _status: Optional[str] = "normal",
-) -> List[Row]:
+    is_readable_by: int | None = None,
+    publication_id: int | None = None,
+    pubmed_id: int | None = None,
+    species: SpeciesOrSpeciesSet | None = None,
+    curation_tier: GenesetTierOrTiers | None = None,
+    score_type: GenesetScoreTypeOrScoreTypes | None = None,
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_before: date | None = None,
+    created_after: date | None = None,
+    updated_before: date | None = None,
+    updated_after: date | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+    _status: str | None = "normal",
+) -> list[Row]:
     """Search genesets using all relevant metadata fields.
 
     :param cursor: An async database cursor.

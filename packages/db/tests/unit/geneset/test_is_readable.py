@@ -22,9 +22,5 @@ def test_is_readable(user_id, geneset_id, result, cursor):
     assert cursor.fetchall.call_count == 0
 
 
-test_is_readable_execute_raises_error = create_execute_raises_error_test(
-    is_readable, 1, 1
-)
-test_is_readable_fetchone_raises_error = create_fetchone_raises_error_test(
-    is_readable, 1, 1
-)
+test_is_readable_execute_raises_error = create_execute_raises_error_test(is_readable, 1, 1)
+test_is_readable_fetchone_raises_error = create_fetchone_raises_error_test(is_readable, 1, 1)

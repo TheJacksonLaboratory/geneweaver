@@ -6,17 +6,13 @@ from geneweaver.db.query.gene import GENE_FIELDS_MAP, GENE_INFO_FIELDS_MAP, get
 
 
 @pytest.mark.parametrize("gene_id", [None, 1, 12345])
-@pytest.mark.parametrize(
-    "reference_id", [None, "ENSG00000139618", "ENSG00000139618.12"]
-)
+@pytest.mark.parametrize("reference_id", [None, "ENSG00000139618", "ENSG00000139618.12"])
 @pytest.mark.parametrize("gene_database", [None, GeneIdentifier.ENSEMBLE_GENE])
 @pytest.mark.parametrize("species", [None, Species.HOMO_SAPIENS])
 @pytest.mark.parametrize("preferred", [None, True, False])
 @pytest.mark.parametrize("limit", [None, 1, 10])
 @pytest.mark.parametrize("offset", [None, 1, 10])
-def test_all_kwargs(
-    gene_id, reference_id, gene_database, species, preferred, limit, offset
-):
+def test_all_kwargs(gene_id, reference_id, gene_database, species, preferred, limit, offset):
     """Test all the kwarg combinations for query.gene.get."""
     query, params = get(
         gene_id=gene_id,

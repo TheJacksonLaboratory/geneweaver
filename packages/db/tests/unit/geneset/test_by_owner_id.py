@@ -39,9 +39,7 @@ async def async_test_by_owner_id(geneset, user_id, async_cursor):
 
 test_by_owner_id_execute_raises_error = create_execute_raises_error_test(by_owner_id, 1)
 
-test_by_owner_id_fetchall_raises_error = create_fetchall_raises_error_test(
-    by_owner_id, 1
-)
+test_by_owner_id_fetchall_raises_error = create_fetchall_raises_error_test(by_owner_id, 1)
 
 test_async_by_owner_id_execute_raises_error = async_create_execute_raises_error_test(
     async_by_owner_id, 1

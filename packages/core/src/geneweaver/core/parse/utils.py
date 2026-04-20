@@ -1,7 +1,6 @@
 """Utility functions for the parser module."""
 
 from pathlib import Path
-from typing import Dict, List
 
 from geneweaver.core.parse.enum import FileType
 from geneweaver.core.types import StringOrPath
@@ -42,15 +41,13 @@ def read_file_content(file_path: StringOrPath) -> str:
     :raises IsADirectoryError: If the path points to a directory.
     :raises PermissionError: If the file is not readable.
     """
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     return content
 
 
-def replace_keys(
-    data: List[Dict[str, str]], new_keys: List[str]
-) -> List[Dict[str, str]]:
+def replace_keys(data: list[dict[str, str]], new_keys: list[str]) -> list[dict[str, str]]:
     """Replace keys in a list of dictionaries.
 
     :param data: Original list of dictionaries.

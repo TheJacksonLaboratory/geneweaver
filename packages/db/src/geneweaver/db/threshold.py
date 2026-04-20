@@ -36,9 +36,5 @@ def set_geneset_threshold(
     if not user_can_set_threshold(cursor, user_id, geneset_id):
         raise ValueError("User cannot set threshold for geneset")
 
-    cursor.execute(
-        *threshold_query.set_geneset_threshold(geneset_id, geneset_score_type)
-    )
-    cursor.execute(
-        *threshold_query.set_geneset_value_threshold(geneset_id, geneset_score_type)
-    )
+    cursor.execute(*threshold_query.set_geneset_threshold(geneset_id, geneset_score_type))
+    cursor.execute(*threshold_query.set_geneset_value_threshold(geneset_id, geneset_score_type))

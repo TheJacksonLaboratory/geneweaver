@@ -3,7 +3,7 @@
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def add_geneset_by_user_publication_data() -> dict:
     """Return a dict of data for AddGenesetByUserPublication."""
     return {
@@ -18,7 +18,7 @@ def add_geneset_by_user_publication_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def add_geneset_by_user_data() -> dict:
     """Return a dict of data for AddGenesetByUser."""
     return {
@@ -35,7 +35,7 @@ def add_geneset_by_user_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def add_geneset_by_user_file_data() -> dict:
     """Return a dict of data for AddGenesetByUserFile."""
     return {

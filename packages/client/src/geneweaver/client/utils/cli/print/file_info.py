@@ -1,13 +1,12 @@
 """Print information about a file."""
 
 from pathlib import Path
-from typing import List
 
 
 def print_metadata_xlsx(
     file_path: Path,
-    sheet_names: List[str],
-    sheet_metadata: List[List[str]],
+    sheet_names: list[str],
+    sheet_metadata: list[list[str]],
     n_sheets: int,
 ) -> None:
     """Print metadata from an Excel file.
@@ -23,7 +22,7 @@ def print_metadata_xlsx(
         print(f" - {name} - {metadata}")
 
 
-def print_metadata_csv(file_path: Path, metadata: List[str]) -> None:
+def print_metadata_csv(file_path: Path, metadata: list[str]) -> None:
     """Print the metadata from a CSV file.
 
     :param file_path: The file path to the CSV file.

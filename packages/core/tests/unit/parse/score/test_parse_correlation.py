@@ -1,6 +1,5 @@
 """Tests for the parse_correlation function."""
 
-# ruff: noqa: ANN001, ANN201
 from unittest.mock import patch
 
 import pytest
@@ -17,27 +16,19 @@ from geneweaver.core.parse.score import (
     [
         (
             "correlation=0.05",
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=None, threshold=0.05
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=None, threshold=0.05),
         ),
         (
             "correlation=0.1,0.2",
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=0.1, threshold=0.2
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=0.1, threshold=0.2),
         ),
         (
             "cor=1,2",
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=1, threshold=2
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=1, threshold=2),
         ),
         (
             "correlation = 0.5,1",
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=0.5, threshold=1
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=0.5, threshold=1),
         ),
     ],
 )
@@ -70,30 +61,22 @@ def test_parse_correlation_invalid(invalid_input):
         (
             "correlation=0.05",
             [None, 0.05],
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=None, threshold=0.05
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=None, threshold=0.05),
         ),
         (
             "correlation=0.1,0.2",
             [0.1, 0.2],
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=0.1, threshold=0.2
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=0.1, threshold=0.2),
         ),
         (
             "cor=1,2",
             [1, 2],
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=1, threshold=2
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=1, threshold=2),
         ),
         (
             "correlation = 0.5,1",
             [0.5, 1],
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=0.5, threshold=1
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=0.5, threshold=1),
         ),
     ],
 )
@@ -123,9 +106,7 @@ def test_parse_correlation_valid_with_mock(
     ],
 )
 @patch("geneweaver.core.parse.score.extract_one_or_two_numeric_values")
-def test_parse_correlation_invalid_with_mock(
-    mock_extract, invalid_input, mock_exception
-):
+def test_parse_correlation_invalid_with_mock(mock_extract, invalid_input, mock_exception):
     """Tests the parse_correlation function with invalid inputs using a mock."""
     mock_extract.side_effect = mock_exception
     with pytest.raises(InvalidScoreThresholdError):

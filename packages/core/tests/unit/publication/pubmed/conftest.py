@@ -17,7 +17,7 @@ def pubmed_xml_string(request):
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def pubmed_xml(pubmed_xml_string):
     """Load the pubmed xml string into xml element tree."""
     return ElementTree.fromstring(pubmed_xml_string)

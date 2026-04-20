@@ -12,10 +12,7 @@ from tests.unit.testing_utils import (
 
 @pytest.mark.parametrize(
     "hom_ids",
-    [GENESET_HOM_IDS]
-    + [GENESET_HOM_IDS[:5]]
-    + [GENESET_HOM_IDS[5:]]
-    + [GENESET_HOM_IDS[10:20]],
+    [GENESET_HOM_IDS] + [GENESET_HOM_IDS[:5]] + [GENESET_HOM_IDS[5:]] + [GENESET_HOM_IDS[10:20]],
 )
 def test_homology_ids(hom_ids, example_primary_key, cursor):
     """Test the geneset.homology_ids function using a mock cursor."""
@@ -29,10 +26,6 @@ def test_homology_ids(hom_ids, example_primary_key, cursor):
     assert example_primary_key in cursor.execute.call_args[0][1].values()
 
 
-test_homology_ids_execute_raises_error = create_execute_raises_error_test(
-    homology_ids, 1
-)
+test_homology_ids_execute_raises_error = create_execute_raises_error_test(homology_ids, 1)
 
-test_homology_ids_fetchall_raises_error = create_fetchall_raises_error_test(
-    homology_ids, 1
-)
+test_homology_ids_fetchall_raises_error = create_fetchall_raises_error_test(homology_ids, 1)

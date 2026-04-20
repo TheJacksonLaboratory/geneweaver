@@ -13,9 +13,7 @@ def test_insert_geneset_ontology():
         geneset_id=1, ontology_term_id=1, gso_ref_type="test"
     )
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])
 
     assert params == {"geneset_id": 1, "ontology_term_id": 1, "gso_ref_type": "test"}
 
@@ -26,8 +24,6 @@ def test_delete_geneset_ontolog_term_association():
         geneset_id=1, ontology_term_id=1, gso_ref_type="test"
     )
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])
 
     assert params == {"geneset_id": 1, "ontology_term_id": 1, "gso_ref_type": "test"}

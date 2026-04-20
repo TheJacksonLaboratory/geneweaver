@@ -1,6 +1,5 @@
 """Tests for the parse_qvalue function."""
 
-# ruff: noqa: ANN001, ANN201, ANN101
 from unittest.mock import patch
 
 import pytest
@@ -100,6 +99,4 @@ def test_read_values_missing_header_error(
     mock_check_header.side_effect = Exception("MissingRequiredHeaderError")
 
     with pytest.raises(Exception, match="MissingRequiredHeaderError"):
-        values, mode = read_values(
-            line, header, current_geneset_values, ReadMode.HEADER
-        )
+        values, mode = read_values(line, header, current_geneset_values, ReadMode.HEADER)

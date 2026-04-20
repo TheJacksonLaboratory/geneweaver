@@ -1,16 +1,14 @@
 """Query generation functions for ontologies."""
 
-from typing import Optional, Tuple
-
 from geneweaver.db.utils import limit_and_offset
 from psycopg.sql import SQL, Composed
 
 
 def by_geneset(
     geneset_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Create a psycopg query to get genesets ontologies.
 
     :param geneset_id: The geneset identifier to search for.
@@ -45,7 +43,7 @@ def by_geneset(
 
 def insert_geneset_ontology_term_association(
     ontology_term_id: int, geneset_id: int, gso_ref_type: str
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Relate an ontology term with a geneset. Insert association.
 
     :param ontology_term_id: ontology term id to associate with geneset
@@ -71,7 +69,7 @@ def insert_geneset_ontology_term_association(
 
 def delete_geneset_ontology_term_association(
     ontology_term_id: int, geneset_id: int, gso_ref_type: str
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Remove an ontology term from a geneset. Delete association.
 
     :param ontology_term_id: ontology term id to delete from geneset
@@ -99,9 +97,9 @@ def delete_geneset_ontology_term_association(
 
 def by_ontology_db(
     ontology_db_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Create a psycopg query to get ontology terms by ontology id.
 
     :param ontology_db_id: The ontology DB identifier to search for.
@@ -132,10 +130,10 @@ def by_ontology_db(
 
 
 def get_ontology_dbs(
-    ontology_db_id: Optional[int] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    ontology_db_id: int | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Create a psycopg query to get ontology terms by ontology id.
 
     :param ontology_db_id: The ontology DB identifier to search for.
@@ -163,7 +161,7 @@ def get_ontology_dbs(
     return query, params
 
 
-def by_ontology_term(onto_ref_term_id: str) -> Tuple[Composed, dict]:
+def by_ontology_term(onto_ref_term_id: str) -> tuple[Composed, dict]:
     """Create a psycopg query to get ontology term by ontology reference id.
 
     :param onto_ref_term_id: The ontology term reference identifier to search for.

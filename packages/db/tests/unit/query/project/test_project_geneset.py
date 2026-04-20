@@ -14,9 +14,7 @@ def test_insert_project_geneset():
         geneset_id=1,
     )
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])
 
 
 def test_remove_project_geneset():
@@ -26,6 +24,4 @@ def test_remove_project_geneset():
         geneset_id=1,
     )
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])

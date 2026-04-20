@@ -8,11 +8,10 @@ from geneweaver.core.render.csv import format_csv_file
 def test_format_csv_file_with_mocks():
     """Test the format_csv_file function with mocks for dependent functions."""
     mock_batch_upload_geneset = MagicMock()
-    with patch(
-        "geneweaver.core.render.csv.format_csv_metadata"
-    ) as mock_metadata, patch(
-        "geneweaver.core.render.csv.gene_list_str"
-    ) as mock_gene_list:
+    with (
+        patch("geneweaver.core.render.csv.format_csv_metadata") as mock_metadata,
+        patch("geneweaver.core.render.csv.gene_list_str") as mock_gene_list,
+    ):
         mock_metadata.return_value = "mocked_metadata\n"
         mock_gene_list.return_value = "gene1,value1\ngene2,value2"
 

@@ -45,12 +45,12 @@ def test_poll_for_flow_completion(
     """Test the _poll_for_flow_completion function using mocks."""
     device_code_data = {"device_code": "device_code_123", "interval": 5}
 
-    with patch("geneweaver.client.auth.requests.post") as mock_post, patch(
-        "geneweaver.client.auth._token_payload", return_value={}
-    ), patch("geneweaver.client.auth.print"), patch(
-        "geneweaver.client.auth.validate_token"
-    ), patch(
-        "geneweaver.client.auth.time.sleep"
+    with (
+        patch("geneweaver.client.auth.requests.post") as mock_post,
+        patch("geneweaver.client.auth._token_payload", return_value={}),
+        patch("geneweaver.client.auth.print"),
+        patch("geneweaver.client.auth.validate_token"),
+        patch("geneweaver.client.auth.time.sleep"),
     ):
         # Configure mock response
         mock_response = MagicMock()
@@ -103,13 +103,13 @@ def test_poll_for_flow_completion_sleep(
         "interval": expected_sleep_arg,
     }
 
-    with patch("geneweaver.client.auth.requests.post") as mock_post, patch(
-        "geneweaver.client.auth._token_payload", return_value={}
-    ), patch("geneweaver.client.auth.print"), patch(
-        "geneweaver.client.auth.validate_token"
-    ), patch(
-        "geneweaver.client.auth.time.sleep"
-    ) as mock_sleep:
+    with (
+        patch("geneweaver.client.auth.requests.post") as mock_post,
+        patch("geneweaver.client.auth._token_payload", return_value={}),
+        patch("geneweaver.client.auth.print"),
+        patch("geneweaver.client.auth.validate_token"),
+        patch("geneweaver.client.auth.time.sleep") as mock_sleep,
+    ):
         # Configure mock response for the first and second call
         first_response = MagicMock()
         first_response.status_code = status_code

@@ -18,15 +18,13 @@ Utility functions:
 - `two_sided_threshold`: Check if a value falls within a two-sided threshold.
 """
 
-from typing import List
-
 from geneweaver.core.schema.batch import GenesetValueInput
 from geneweaver.core.schema.score import GenesetScoreType, ScoreType
 
 
 def check_threshold(
-    geneset_values: List[GenesetValueInput], score: GenesetScoreType
-) -> List[bool]:
+    geneset_values: list[GenesetValueInput], score: GenesetScoreType
+) -> list[bool]:
     """Check to see if the geneset values fall within the score threshold.
 
     This function checks to see if the geneset values fall within the score threshold.
@@ -42,9 +40,7 @@ def check_threshold(
         return [True] * len(geneset_values)
 
     elif score_type is ScoreType.P_VALUE or score_type is ScoreType.Q_VALUE:
-        return [
-            one_sided_threshold(gsv.value, score.threshold) for gsv in geneset_values
-        ]
+        return [one_sided_threshold(gsv.value, score.threshold) for gsv in geneset_values]
 
     elif score_type is ScoreType.EFFECT or score_type is ScoreType.CORRELATION:
         return [

@@ -1,6 +1,6 @@
 """Utility functions for use with the CLI."""
 
-from typing import Any, Optional, Type
+from typing import Any
 
 import typer
 from geneweaver.client.utils.cli.prompt.bool import is_bool, prompt_for_bool
@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 
-def is_pydantic_base_model(arg: Type[Any]) -> bool:
+def is_pydantic_base_model(arg: type[Any]) -> bool:
     """Check if an argument is a pydantic base model.
 
     :param arg: The argument to check.
@@ -45,16 +45,14 @@ def prompt_to_keep_field(existing_kwargs: dict, field_name: str) -> dict:
     :param field_name: The name of the field to prompt for.
     """
     if field_name in existing_kwargs and not typer.confirm(
-        f"{format_field_name(field_name)} =" f" {existing_kwargs[field_name]}, OK?",
+        f"{format_field_name(field_name)} = {existing_kwargs[field_name]}, OK?",
         default=True,
     ):
         existing_kwargs.pop(field_name)
     return existing_kwargs
 
 
-def prompt_for_field_by_type(
-    field: FieldInfo, field_name: str, existing_kwargs: dict
-) -> dict:
+def prompt_for_field_by_type(field: FieldInfo, field_name: str, existing_kwargs: dict) -> dict:
     """Prompt the user to enter a value for a field based on its type.
 
     :param field: The field to prompt for.
@@ -64,30 +62,22 @@ def prompt_for_field_by_type(
     field_type = field.annotation if field.annotation else str
     field_allow_none = field.default is None
     if is_pydantic_base_model(field_type):
-        existing_kwargs[field_name] = prompt_for_missing_fields(
-            field_type, existing_kwargs
-        )
+        existing_kwargs[field_name] = prompt_for_missing_fields(field_type, existing_kwargs)
     elif is_enum_or_enum_union(field_type):
-        existing_kwargs[field_name] = prompt_for_enum_selection(
-            field_type, field_allow_none
-        )
+        existing_kwargs[field_name] = prompt_for_enum_selection(field_type, field_allow_none)
     elif is_list_of_str_or_int(field_type):
-        existing_kwargs[field_name] = prompt_for_list_selection(
-            field_type, field_allow_none
-        )
+        existing_kwargs[field_name] = prompt_for_list_selection(field_type, field_allow_none)
     elif is_bool(field_type):
         existing_kwargs[field_name] = prompt_for_bool(field_name, field_allow_none)
     else:
-        existing_kwargs[field_name] = prompt_generic(
-            field_name, field_type, field_allow_none
-        )
+        existing_kwargs[field_name] = prompt_generic(field_name, field_type, field_allow_none)
     return existing_kwargs
 
 
 def prompt_for_missing_fields(
-    model: Type[BaseModel],
+    model: type[BaseModel],
     existing_kwargs: dict,
-    exclude: Optional[set] = None,
+    exclude: set | None = None,
     prompt_to_keep_existing: bool = True,
 ) -> dict:
     """Prompt the user to enter values for any missing fields in a pydantic model.

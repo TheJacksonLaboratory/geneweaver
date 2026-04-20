@@ -1,7 +1,5 @@
 """Generate SQL queries to get Species information."""
 
-from typing import Optional, Tuple
-
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db.utils import format_sql_fields
 from psycopg.sql import SQL, Composed
@@ -18,10 +16,10 @@ SPECIES_FIELDS = format_sql_fields(SPECIES_FIELD_MAP, query_table="species")
 
 
 def get(
-    taxonomic_id: Optional[int] = None,
-    reference_gene_db_id: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-) -> Tuple[Composed, dict]:
+    taxonomic_id: int | None = None,
+    reference_gene_db_id: GeneIdentifier | None = None,
+    species: Species | None = None,
+) -> tuple[Composed, dict]:
     """Create a psycopg query to get species information from the database.
 
     :param taxonomic_id: The taxonomic id.

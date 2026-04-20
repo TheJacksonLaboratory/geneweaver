@@ -1,7 +1,5 @@
 """Service functions for Species."""
 
-from typing import Optional
-
 from fastapi.logger import logger
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db import species as db_species
@@ -10,8 +8,8 @@ from psycopg import Cursor
 
 def get_species(
     cursor: Cursor,
-    taxonomy_id: Optional[int] = None,
-    reference_gene_id_type: Optional[GeneIdentifier] = None,
+    taxonomy_id: int | None = None,
+    reference_gene_id_type: GeneIdentifier | None = None,
 ) -> dict:
     """Get species from DB.
 

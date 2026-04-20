@@ -1,7 +1,7 @@
 """Parse Excel files for use by the client library."""
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
 from zipfile import BadZipFile
 
 from geneweaver.core.types import StringOrPath
@@ -10,7 +10,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.worksheet.worksheet import Worksheet
 
 
-def get_sheet_names(file_path: StringOrPath) -> List[str]:
+def get_sheet_names(file_path: StringOrPath) -> list[str]:
     """Retrieve the names of all sheets in an Excel file.
 
     :param file_path: The path to the Excel file.
@@ -47,7 +47,7 @@ def get_sheet(file_path: StringOrPath, sheet_name: str = None) -> Worksheet:
 
 def find_header(
     file_path: StringOrPath, max_rows_to_check: int = 5, sheet_name: str = None
-) -> Tuple[bool, int]:
+) -> tuple[bool, int]:
     """Determine if a given Excel worksheet has a header row.
 
     This function will check up to 'max_rows_to_check' rows from the top to find a
@@ -79,9 +79,7 @@ def find_header(
     return False, -1
 
 
-def has_header(
-    file_path: str, max_rows_to_check: int = 5, sheet_name: str = None
-) -> bool:
+def has_header(file_path: str, max_rows_to_check: int = 5, sheet_name: str = None) -> bool:
     """Summary function to return true/false for if a header is found by `find_header`.
 
     :param file_path: Path to the Excel (.xlsx) file.
@@ -93,9 +91,7 @@ def has_header(
     return find_header(file_path, max_rows_to_check, sheet_name)[0]
 
 
-def get_headers(
-    file_path: StringOrPath, sheet_name: Optional[str] = None
-) -> Tuple[List[str], int]:
+def get_headers(file_path: StringOrPath, sheet_name: str | None = None) -> tuple[list[str], int]:
     """Read the headers of an Excel (.xlsx) file.
 
     Read the first row from an Excel (.xlsx) file and return it as a list of strings.
@@ -116,7 +112,7 @@ def get_headers(
     return headers, header_idx
 
 
-def read_row(file_path: str, row_idx: int = 0, sheet_name: str = None) -> List[str]:
+def read_row(file_path: str, row_idx: int = 0, sheet_name: str = None) -> list[str]:
     """Get the contents of a row from an Exel (.xlsx) file.
 
     :param file_path: The file path to the CSV file.
@@ -139,9 +135,9 @@ def read_row(file_path: str, row_idx: int = 0, sheet_name: str = None) -> List[s
 def read_rows(
     file_path: StringOrPath,
     n_rows: int,
-    sheet_name: Optional[str] = None,
+    sheet_name: str | None = None,
     start_row: int = 0,
-) -> List[List[str]]:
+) -> list[list[str]]:
     """Get the contends of n rows from an Excel (.xlsx) file.
 
     :param file_path: The file path to the CSV file.
@@ -163,8 +159,8 @@ def read_rows(
 
 
 def read_to_dict(
-    file_path: StringOrPath, start_row: int = 0, sheet_name: Optional[str] = None
-) -> List[Dict[str, Union[str, int]]]:
+    file_path: StringOrPath, start_row: int = 0, sheet_name: str | None = None
+) -> list[dict[str, str | int]]:
     """Parse an Excel file into a list of dictionaries.
 
     Parse an Excel file into a list of dictionaries, with keys as column names and
@@ -191,7 +187,7 @@ def read_to_dict(
 
 def read_to_dict_n_rows(
     file_path: str, n: int, start_row: int = 0, sheet_name: str = None
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Parse n lines of an Excel file into a list of dictionaries.
 
     Parse an Excel file into a list of dictionaries, with keys as column names and
@@ -230,10 +226,10 @@ def default_metadata_cleaner(metadata: str) -> str:
 def read_metadata(
     file_path: StringOrPath,
     n_rows: int,
-    sheet_name: Optional[str] = None,
+    sheet_name: str | None = None,
     start_row: int = 0,
-    metadata_cleaner: Optional[Callable[[str], str]] = default_metadata_cleaner,
-) -> List[str]:
+    metadata_cleaner: Callable[[str], str] | None = default_metadata_cleaner,
+) -> list[str]:
     """Read the metadata from an Excel file.
 
     :param file_path: The file path to the CSV or Excel file.
@@ -254,8 +250,8 @@ def read_metadata(
 
 
 def get_metadata(
-    file_path: Path, sheet: Optional[str] = None
-) -> Tuple[List[str], List[List[str]], List[List[str]], List[int], int]:
+    file_path: Path, sheet: str | None = None
+) -> tuple[list[str], list[list[str]], list[list[str]], list[int], int]:
     """Get the metadata from an Excel file.
 
     :param file_path: The file path to the Excel file.

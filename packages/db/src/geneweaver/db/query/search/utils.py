@@ -1,7 +1,6 @@
 """Functions for generating search queries."""
 
 from enum import Enum
-from typing import Optional, Tuple
 
 from geneweaver.db.query.utils import (
     ParamDict,
@@ -45,7 +44,7 @@ def search_query(
     search_string: str,
     search_config: SearchConfig = SearchConfig.ENGLISH,
     query_type: QueryType = QueryType.WEBSEARCH,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Generate a search query.
 
     Works generically with any table that has a search column.
@@ -63,8 +62,8 @@ def search(
     existing_filters: SQLList,
     existing_params: ParamDict,
     tsvector_col: Composed,
-    search_text: Optional[str] = None,
-) -> Tuple[SQLList, ParamDict]:
+    search_text: str | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Add the search filter to the query.
 
     :param existing_filters: The existing filters.

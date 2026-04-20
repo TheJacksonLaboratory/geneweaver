@@ -1,9 +1,9 @@
 """Pytest fixtures for the API client unit tests."""
 
-# ruff: noqa: ANN001, ANN401
 import json
+from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 import requests
@@ -74,13 +74,11 @@ class MockSession:
         return self._prepare_mock_response(url, **kwargs)
 
 
-@pytest.fixture()
+@pytest.fixture
 def config_sessionmanager_patch(monkeypatch) -> Callable:
     """Patch the sessionmanager."""
 
-    def create_contextmanager(
-        status_code=200, resp_json=None, resp_content=None
-    ) -> Callable:
+    def create_contextmanager(status_code=200, resp_json=None, resp_content=None) -> Callable:
         @contextmanager
         def mocked_contextmanager() -> MockSession:
             mock = MockSession(

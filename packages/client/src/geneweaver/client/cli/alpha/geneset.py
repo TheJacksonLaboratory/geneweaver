@@ -2,7 +2,6 @@
 
 # ruff: noqa: B008
 import json
-from typing import List, Optional
 
 import typer
 from geneweaver.client.api import aon, genesets, mapping
@@ -21,7 +20,7 @@ The geneset commands allow you to authenticate with the GeneWeaver API.
 def get(
     ctx: typer.Context,
     geneset_id: int,
-    gene_id_type: Optional[GeneIdentifier] = typer.Option(None, case_sensitive=False),
+    gene_id_type: GeneIdentifier | None = typer.Option(None, case_sensitive=False),
     as_csv: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ) -> dict:
     """Get a Geneset by ID."""
@@ -38,13 +37,13 @@ def get(
 def get_values_as_ensembl_mouse(
     ctx: typer.Context,
     geneset_id: int,
-    in_threshold: Optional[bool] = None,
-    algorithm: Optional[aon.OrthologAlgorithms] = typer.Option(
+    in_threshold: bool | None = None,
+    algorithm: aon.OrthologAlgorithms | None = typer.Option(
         default=None, help="Ortholog mapping algorithm. Leave empty for all algorithms."
     ),
     as_csv: bool = typer.Option(False, "--csv", help="Output as CSV"),
     csv_headers: bool = typer.Option(True, "--omit-headers", help="Omit CSV headers"),
-) -> List[dict]:
+) -> list[dict]:
     """Get a Geneset's values as Ensembl Mouse Gene IDs.
 
     Optional csv output with or without headers.

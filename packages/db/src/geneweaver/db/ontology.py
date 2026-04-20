@@ -1,7 +1,5 @@
 """Database code for interacting with ontologies."""
 
-from typing import List, Optional
-
 from geneweaver.db.query import ontology as ontology_query
 from psycopg import Cursor
 from psycopg.rows import Row
@@ -10,9 +8,9 @@ from psycopg.rows import Row
 def by_geneset(
     cursor: Cursor,
     geneset_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get geneset ontologies from the database.
 
     :param cursor: A database cursor.
@@ -34,7 +32,7 @@ def by_geneset(
 
 def add_ontology_term_to_geneset(
     cursor: Cursor, ontology_term_id: int, geneset_id: int, gso_ref_type: str
-) -> Optional[Row]:
+) -> Row | None:
     """Relate an ontology term with a geneset. Insert association.
 
     :param cursor: A database cursor
@@ -57,7 +55,7 @@ def add_ontology_term_to_geneset(
 
 def delete_ontology_term_from_geneset(
     cursor: Cursor, ontology_term_id: int, geneset_id: int, gso_ref_type: str
-) -> Optional[Row]:
+) -> Row | None:
     """Remove ontology term from a geneset. Delete association.
 
     :param cursor: A database cursor
@@ -81,9 +79,9 @@ def delete_ontology_term_from_geneset(
 def by_ontology_db(
     cursor: Cursor,
     ontology_db_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get ontology terms by ontology DB id from the database.
 
     :param cursor: An database cursor.
@@ -105,10 +103,10 @@ def by_ontology_db(
 
 def get_ontology_dbs(
     cursor: Cursor,
-    ontology_db_id: Optional[int] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    ontology_db_id: int | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get available ontologies from the database.
 
     :param cursor: A database cursor.
@@ -128,7 +126,7 @@ def get_ontology_dbs(
     return cursor.fetchall()
 
 
-def by_ontology_term(cursor: Cursor, onto_ref_term_id: str) -> List[Row]:
+def by_ontology_term(cursor: Cursor, onto_ref_term_id: str) -> list[Row]:
     """Get ontology term by term ref id from the database.
 
     :param cursor: An database cursor.

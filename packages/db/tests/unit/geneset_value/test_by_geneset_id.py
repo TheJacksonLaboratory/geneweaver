@@ -39,9 +39,7 @@ def test_by_geneset_id(geneset_id, identifier, gsv_in_threshold, geneset_value, 
 
 @patch("geneweaver.db.geneset_value.by_geneset_id_and_identifier")
 @patch("geneweaver.db.geneset_value.by_geneset_id_as_uploaded")
-def test_by_geneset_id_calls_correct_function(
-    mock_as_uploaded, mock_identifier, cursor
-):
+def test_by_geneset_id_calls_correct_function(mock_as_uploaded, mock_identifier, cursor):
     """Test that the by_geneset_id function calls the correct function.
 
     It should call the by_geneset_id_and_identifier function if an identifier is
@@ -59,25 +57,17 @@ def test_by_geneset_id_calls_correct_function(
     assert mock_as_uploaded.call_count == 2
     assert mock_identifier.call_count == 1
 
-    _ = by_geneset_id(
-        cursor, 1, identifier=GeneIdentifier.ENSEMBLE_GENE, gsv_in_threshold=True
-    )
+    _ = by_geneset_id(cursor, 1, identifier=GeneIdentifier.ENSEMBLE_GENE, gsv_in_threshold=True)
     assert mock_as_uploaded.call_count == 2
     assert mock_identifier.call_count == 2
 
 
-test_by_geneset_id_execute_raises_error = create_execute_raises_error_test(
-    by_geneset_id, 1
-)
-test_by_geneset_id_fetchall_raises_error = create_fetchall_raises_error_test(
-    by_geneset_id, 1
-)
+test_by_geneset_id_execute_raises_error = create_execute_raises_error_test(by_geneset_id, 1)
+test_by_geneset_id_fetchall_raises_error = create_fetchall_raises_error_test(by_geneset_id, 1)
 
 test_by_geneset_id_w_identifier_execute_raises_error = create_execute_raises_error_test(
     by_geneset_id, 1, identifier=GeneIdentifier.ENSEMBLE_GENE
 )
-test_by_geneset_id_w_identifier_fetchall_raises_error = (
-    create_fetchall_raises_error_test(
-        by_geneset_id, 1, identifier=GeneIdentifier.ENSEMBLE_GENE
-    )
+test_by_geneset_id_w_identifier_fetchall_raises_error = create_fetchall_raises_error_test(
+    by_geneset_id, 1, identifier=GeneIdentifier.ENSEMBLE_GENE
 )

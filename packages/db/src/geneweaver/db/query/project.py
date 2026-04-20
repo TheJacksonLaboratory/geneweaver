@@ -1,7 +1,5 @@
 """Query generation functions for projects."""
 
-from typing import Optional, Tuple
-
 from geneweaver.db.query.search.utils import search
 from geneweaver.db.query.utils import construct_filters
 from geneweaver.db.utils import format_sql_fields, limit_and_offset
@@ -22,14 +20,14 @@ PROJECT_FIELDS = format_sql_fields(PROJECT_FIELD_MAP, query_table="project")
 
 
 def get(
-    project_id: Optional[int] = None,
-    owner_id: Optional[int] = None,
-    name: Optional[str] = None,
-    starred: Optional[bool] = None,
-    search_text: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    project_id: int | None = None,
+    owner_id: int | None = None,
+    name: str | None = None,
+    starred: bool | None = None,
+    search_text: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Get projects by any filtering criteria.
 
     :param project_id: Show only results for this project identifier id
@@ -66,9 +64,9 @@ def get(
 
 def shared_with_user(
     user_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Get projects shared with the given user id.
 
     :param user_id: Show only results with projects shared with this user id
@@ -78,9 +76,7 @@ def shared_with_user(
     :return: A query (and params) that can be executed on a cursor.
     """
     query_fields = (
-        SQL("COUNT(gs_id),")
-        + SQL(",").join(PROJECT_FIELDS)
-        + SQL(",usr_email AS owner")
+        SQL("COUNT(gs_id),") + SQL(",").join(PROJECT_FIELDS) + SQL(",usr_email AS owner")
     )
     query = SQL("SELECT")
     query = (
@@ -105,7 +101,7 @@ def add(
     name: str,
     notes: str,
     starred: bool = False,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Add a new project.
 
     :param user_id: user id to insert
@@ -128,9 +124,7 @@ def add(
     return query, params
 
 
-def insert_geneset_to_project(
-    project_id: int, geneset_id: int
-) -> Tuple[Composed, dict]:
+def insert_geneset_to_project(project_id: int, geneset_id: int) -> tuple[Composed, dict]:
     """Add a genset to a project. Insert association.
 
     :param project_id: project identifier id to associate with geneset
@@ -149,9 +143,7 @@ def insert_geneset_to_project(
     return query, params
 
 
-def remove_geneset_from_project(
-    project_id: int, geneset_id: int
-) -> Tuple[Composed, dict]:
+def remove_geneset_from_project(project_id: int, geneset_id: int) -> tuple[Composed, dict]:
     """Delete a genset from a project. Remove association.
 
     :param project_id: project identifier id to associate with geneset

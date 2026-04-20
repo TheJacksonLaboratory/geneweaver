@@ -1,16 +1,16 @@
 """A module for common complex types used by Geneweaver."""
 
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Union
 
 from geneweaver.core.schema.gene import GeneValue
 
 StringOrPath = Union[str, Path]
 
-DictRow = Dict[str, Union[str, int]]
+DictRow = dict[str, str | int]
 
-GeneIds = List[str]
+GeneIds = list[str]
 
-GeneIdValues = List[GeneValue]
+GeneIdValues = list[GeneValue]
 
-StrainIds = List[str]
+StrainIds = list[str]

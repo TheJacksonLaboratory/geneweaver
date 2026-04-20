@@ -22,6 +22,6 @@ test_async_get_preferred_execute_raises_error = async_create_execute_raises_erro
     async_get_preferred, "c57bl/6j"
 )
 
-test_async_get_preferred_fetchone_raises_error = (
-    async_create_fetchone_raises_error_test(async_get_preferred, "c57bl/6j")
+test_async_get_preferred_fetchone_raises_error = async_create_fetchone_raises_error_test(
+    async_get_preferred, "c57bl/6j"
 )

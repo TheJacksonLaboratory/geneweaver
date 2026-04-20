@@ -22,9 +22,7 @@ from tests.unit.testing_utils import (
 )
 def test_get_file(example_primary_key, file_contents, cursor):
     """Test the get_file function happy path."""
-    cursor.fetchone.return_value = (
-        file_contents if file_contents is None else (file_contents,)
-    )
+    cursor.fetchone.return_value = file_contents if file_contents is None else (file_contents,)
     result = get_file(cursor, example_primary_key)
 
     expected = "" if file_contents is None else file_contents

@@ -25,9 +25,7 @@ GENESET_FIELDS_MAP = {
 }
 
 GENESET_FIELDS = format_sql_fields(GENESET_FIELDS_MAP, query_table="geneset")
-PUB_FIELDS = format_sql_fields(
-    PUB_FIELD_MAP, query_table="publication", resp_prefix="publication"
-)
+PUB_FIELDS = format_sql_fields(PUB_FIELD_MAP, query_table="publication", resp_prefix="publication")
 GENESET_TSVECTOR = (Identifier("geneset") + Identifier("gs_tsvector")).join(".")
 
 COPY_GENESET_VALUES = SQL(

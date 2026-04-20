@@ -9,9 +9,7 @@ from .const import MOCK_USER_DATA
 
 
 @patch("geneweaver.db.user.User", dict)
-@pytest.mark.parametrize(
-    "email", ["email@email.com", "email@jax.org", "e.mail@jax.org"]
-)
+@pytest.mark.parametrize("email", ["email@email.com", "email@jax.org", "e.mail@jax.org"])
 @pytest.mark.parametrize(
     ("sso_id", "expected_result"),
     [(item["usr_sso_id"], item) for item in MOCK_USER_DATA],

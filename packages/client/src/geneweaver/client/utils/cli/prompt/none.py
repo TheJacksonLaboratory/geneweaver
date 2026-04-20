@@ -1,6 +1,6 @@
 """Utility functions for prompting when allowing None values."""
 
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 import typer
 
@@ -9,7 +9,7 @@ NONE_REPRS = ["--", "NONE"]
 T = TypeVar("T")
 
 
-def value_represents_none(value: Any) -> bool:  # noqa: ANN401
+def value_represents_none(value: Any) -> bool:
     """Check if the value represents None.
 
     A value is considered to represent None if the upper case version of its string
@@ -32,7 +32,7 @@ def allow_none_str() -> str:
     return f" (or {'/'.join(NONE_REPRS)} to leave blank)"
 
 
-def prompt_if_none(field_name: str, value: Optional[T] = None) -> Optional[T]:
+def prompt_if_none(field_name: str, value: T | None = None) -> T | None:
     """Prompt the user to enter a value if the value is None.
 
     :param value: The value to check.
@@ -40,7 +40,5 @@ def prompt_if_none(field_name: str, value: Optional[T] = None) -> Optional[T]:
     :return: The value entered by the user.
     """
     if value is None:
-        value = typer.prompt(
-            f"Please enter a value for {field_name.capitalize()}"
-        ).strip()
+        value = typer.prompt(f"Please enter a value for {field_name.capitalize()}").strip()
     return value

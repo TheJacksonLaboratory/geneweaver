@@ -1,7 +1,5 @@
 """Test the map_ndarray_labels_to_gene_value_attr function."""
 
-from typing import Tuple
-
 import numpy as np
 import pytest
 from geneweaver.core.parse.numpy import map_ndarray_labels_to_gene_value_attr
@@ -64,7 +62,7 @@ test_cases = [
 
 @pytest.mark.parametrize(("geneset_array", "expected"), test_cases)
 def test_map_ndarray_labels_to_gene_value_attr(
-    geneset_array: np.ndarray, expected: Tuple[str, str]
+    geneset_array: np.ndarray, expected: tuple[str, str]
 ):
     """Test that map_ndarray_labels_to_gene_value_attr function works as expected."""
     if isinstance(expected, ValueError):

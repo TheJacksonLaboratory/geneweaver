@@ -1,6 +1,6 @@
 """Generate SQL queries for publications."""
 
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
 
 from geneweaver.db.query.const import (
     PUB_INSERT_COLS,
@@ -20,20 +20,20 @@ from psycopg.sql import SQL, Composed
 
 
 def get(
-    pub_id: Optional[int] = None,
-    authors: Optional[str] = None,
-    title: Optional[str] = None,
-    abstract: Optional[str] = None,
-    journal: Optional[str] = None,
-    volume: Optional[str] = None,
-    pages: Optional[str] = None,
-    month: Optional[str] = None,
-    year: Optional[str] = None,
-    pubmed: Optional[str] = None,
-    search_text: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    pub_id: int | None = None,
+    authors: str | None = None,
+    title: str | None = None,
+    abstract: str | None = None,
+    journal: str | None = None,
+    volume: str | None = None,
+    pages: str | None = None,
+    month: str | None = None,
+    year: str | None = None,
+    pubmed: str | None = None,
+    search_text: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Get publications by some criteria.
 
     :param pub_id: Show only results with this publication id
@@ -83,7 +83,7 @@ def get(
     return query, params
 
 
-def by_id(pub_id: int) -> Optional[rows.Row]:
+def by_id(pub_id: int) -> rows.Row | None:
     """Create a psycopg query to get a publication by ID.
 
     :param pub_id: The publication ID (geneweaver internal) to search for.
@@ -95,7 +95,7 @@ def by_id(pub_id: int) -> Optional[rows.Row]:
     return query, params
 
 
-def by_geneset_id(geneset_id: int) -> Tuple[Composed, dict]:
+def by_geneset_id(geneset_id: int) -> tuple[Composed, dict]:
     """Create a psycopg query to get a publication by geneset ID.
 
     :param geneset_id: The geneset ID to search for.
@@ -112,7 +112,7 @@ def by_geneset_id(geneset_id: int) -> Tuple[Composed, dict]:
     return query, params
 
 
-def by_pubmed_id(pubmed_id: int) -> Tuple[Composed, dict]:
+def by_pubmed_id(pubmed_id: int) -> tuple[Composed, dict]:
     """Create a psycopg query to get a publication by PubMed ID.
 
     :param pubmed_id: The PubMed ID to search for.
@@ -125,7 +125,7 @@ def by_pubmed_id(pubmed_id: int) -> Tuple[Composed, dict]:
     return query, params
 
 
-def by_pubmed_ids(pubmed_ids: Iterable[int]) -> Tuple[Composed, dict]:
+def by_pubmed_ids(pubmed_ids: Iterable[int]) -> tuple[Composed, dict]:
     """Create a psycopg query to get publications by a list of PubMed IDs.
 
     :param pubmed_ids: The PubMed IDs to search for.
@@ -143,11 +143,11 @@ def add(
     abstract: str,
     journal: str,
     pubmed_id: str,
-    volume: Optional[str] = None,
-    pages: Optional[str] = None,
-    month: Optional[str] = None,
-    year: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    volume: str | None = None,
+    pages: str | None = None,
+    month: str | None = None,
+    year: int | None = None,
+) -> tuple[Composed, dict]:
     """Create a psycopg query to add a publication to the database.
 
     :param authors: The authors of the publication.
@@ -192,8 +192,8 @@ def add(
 def search(
     existing_filters: SQLList,
     existing_params: ParamDict,
-    search_text: Optional[str] = None,
-) -> Tuple[SQLList, ParamDict]:
+    search_text: str | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Add the search filter to the query.
 
     :param existing_filters: The existing filters.

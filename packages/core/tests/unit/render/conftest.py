@@ -2,7 +2,6 @@
 
 import random
 import string
-from typing import List, Union
 
 import pytest
 from geneweaver.core.enum import GeneIdentifierInt, MicroarrayInt, ScoreType, SpeciesInt
@@ -25,7 +24,7 @@ ONE_GENE_ID_ONE_MICROARRAY = [
 ]
 
 
-def mock_gene_values(n: int) -> List[GeneValue]:
+def mock_gene_values(n: int) -> list[GeneValue]:
     """Generate N mock gene values instances.
 
     :param n: The number of mock gene values to generate.
@@ -42,9 +41,7 @@ def mock_gene_values(n: int) -> List[GeneValue]:
 
 
 MOCK_GENE_VALUES = mock_gene_values(500)
-MOCK_GENE_VALUE_LISTS = [
-    MOCK_GENE_VALUES[i : i + 10] for i in range(0, len(MOCK_GENE_VALUES), 10)
-]
+MOCK_GENE_VALUE_LISTS = [MOCK_GENE_VALUES[i : i + 10] for i in range(0, len(MOCK_GENE_VALUES), 10)]
 
 
 @pytest.fixture(scope="session", params=MOCK_GENE_VALUE_LISTS)
@@ -78,13 +75,13 @@ def microarray(request) -> MicroarrayInt:
 
 
 @pytest.fixture(params=ALL_GENE_IDS)
-def any_gene_identifier(request) -> Union[GeneIdentifierInt, MicroarrayInt]:
+def any_gene_identifier(request) -> GeneIdentifierInt | MicroarrayInt:
     """Return a gene identifier or microarray enum value."""
     return request.param
 
 
 @pytest.fixture(params=ONE_GENE_ID_ONE_MICROARRAY)
-def one_gene_id_one_microarray(request) -> Union[GeneIdentifierInt, MicroarrayInt]:
+def one_gene_id_one_microarray(request) -> GeneIdentifierInt | MicroarrayInt:
     """Return a gene identifier or microarray enum value."""
     return request.param
 
@@ -101,7 +98,7 @@ def geneset_score_type(score_type, request) -> GenesetScoreType:
     return GenesetScoreType(score_type=score_type, threshold=request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_batch_upload_geneset_all_species_scores(
     species, geneset_score_type
 ) -> BatchUploadGeneset:
@@ -117,7 +114,7 @@ def mock_batch_upload_geneset_all_species_scores(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_batch_upload_geneset_all_combinations(
     geneset_score_type,
     species,
@@ -136,7 +133,7 @@ def mock_batch_upload_geneset_all_combinations(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_batch_upload_geneset_one_gene_id_one_microarray(
     geneset_score_type,
     species,
@@ -154,7 +151,7 @@ def mock_batch_upload_geneset_one_gene_id_one_microarray(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_empty_geneset() -> BatchUploadGeneset:
     """Return a mock batch upload geneset instance without any values."""
     return BatchUploadGeneset(

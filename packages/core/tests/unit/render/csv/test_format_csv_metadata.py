@@ -12,9 +12,7 @@ def test_format_csv_metadata_default_params(mock_batch_upload_geneset_all_combin
     assert "," in formatted_metadata
 
 
-@pytest.mark.parametrize(
-    ("separator", "header_prefix"), [(",", "#"), (";", "##"), ("\t", "")]
-)
+@pytest.mark.parametrize(("separator", "header_prefix"), [(",", "#"), (";", "##"), ("\t", "")])
 def test_format_csv_metadata_varied_params(
     mock_batch_upload_geneset_one_gene_id_one_microarray, separator, header_prefix
 ):

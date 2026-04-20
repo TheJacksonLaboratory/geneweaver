@@ -1,20 +1,19 @@
 """Utilities for the GeneWeaver database functions."""
 
-# ruff: noqa: ANN001, ANN002, ANN003, ANN201, ANN202
 import functools
-from typing import List, Optional, Set, Union
+from typing import Union
 
 from geneweaver.core.enum import GenesetTier, ScoreType, Species
 from geneweaver.db.exceptions import GeneweaverDoesNotExistError, GeneweaverValueError
 from psycopg import sql
 from psycopg.rows import Row
 
-SpeciesOrSpeciesSet = Union[Species, Set[Species]]
-GenesetTierOrTiers = Union[GenesetTier, Set[GenesetTier]]
-GenesetScoreTypeOrScoreTypes = Union[ScoreType, Set[ScoreType]]
+SpeciesOrSpeciesSet = Union[Species, set[Species]]
+GenesetTierOrTiers = Union[GenesetTier, set[GenesetTier]]
+GenesetScoreTypeOrScoreTypes = Union[ScoreType, set[ScoreType]]
 
 
-def unpack_one_item_fetchall_results(results: List[Row]) -> List:
+def unpack_one_item_fetchall_results(results: list[Row]) -> list:
     """Unpack a single column from multiple rows of results.
 
     :param results: The results from a fetchall call.
@@ -55,8 +54,7 @@ def temp_override_row_factory(row_factory):
 
             if cursor is None:
                 raise ValueError(
-                    "Cursor must be provided either as a "
-                    "positional or keyword argument."
+                    "Cursor must be provided either as a positional or keyword argument."
                 )
 
             original_row_factory = cursor.row_factory
@@ -76,9 +74,9 @@ def temp_override_row_factory(row_factory):
 
 def format_sql_fields(
     fields_map: dict,
-    query_table: Optional[str] = None,
-    resp_prefix: Optional[str] = None,
-) -> List[sql.Composed]:
+    query_table: str | None = None,
+    resp_prefix: str | None = None,
+) -> list[sql.Composed]:
     """Format SQL fields for a query."""
     select_prefix = query_table or ""
     resp_prefix = "" if resp_prefix is None else f"{resp_prefix}_"
@@ -95,8 +93,8 @@ def format_sql_fields(
 
 def limit_and_offset(
     query: sql.Composed,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> sql.Composed:
     """Format SQL limit and offset clauses."""
     if limit is not None:

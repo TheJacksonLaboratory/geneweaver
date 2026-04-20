@@ -1,12 +1,9 @@
 """Service functions for dealing with genesets."""
 
+from collections.abc import Iterable
 from datetime import date
-from typing import Iterable, Optional, Set
 
 from fastapi.logger import logger
-from geneweaver.api.controller import message
-from geneweaver.api.core.exceptions import UnauthorizedException
-from geneweaver.api.schemas.auth import AppRoles, User
 from geneweaver.core.enum import GeneIdentifier, GenesetTier, Species
 from geneweaver.core.schema.score import GenesetScoreType, ScoreType
 from geneweaver.db import gene as db_gene
@@ -16,10 +13,14 @@ from geneweaver.db import ontology as db_ontology
 from geneweaver.db import threshold as db_threshold
 from psycopg import Cursor, errors
 
+from geneweaver.api.controller import message
+from geneweaver.api.core.exceptions import UnauthorizedException
+from geneweaver.api.schemas.auth import AppRoles, User
+
 ONTO_GSO_REF_TYPE = "GeneWeaver Primary Annotation"
 
 
-def determine_user_id(user: Optional[User] = None) -> int:
+def determine_user_id(user: User | None = None) -> int:
     """Determine the user ID from the user object.
 
     :param user: The user object.
@@ -31,9 +32,9 @@ def determine_user_id(user: Optional[User] = None) -> int:
 
 
 def determine_geneset_access(
-    user: Optional[User] = None,
-    curation_tier: Optional[Set[GenesetTier]] = None,
-    only_my_genesets: Optional[bool] = None,
+    user: User | None = None,
+    curation_tier: set[GenesetTier] | None = None,
+    only_my_genesets: bool | None = None,
 ) -> tuple:
     """Determine the geneset access based on the user and requested arguments.
 
@@ -64,8 +65,8 @@ def determine_geneset_access(
 
 
 def determine_public_geneset_curation_tier(
-    curation_tier: Optional[Set[GenesetTier]] = None,
-) -> Set[GenesetTier]:
+    curation_tier: set[GenesetTier] | None = None,
+) -> set[GenesetTier]:
     """Determine the curation tier for public geneset requests.
 
     Run this function when the user is None.
@@ -91,28 +92,28 @@ def determine_public_geneset_curation_tier(
 
 def get_visible_genesets(
     cursor: Cursor,
-    user: Optional[User] = None,
-    gs_id: Optional[int] = None,
-    only_my_genesets: Optional[bool] = None,
-    curation_tier: Optional[Set[GenesetTier]] = None,
-    species: Optional[Species] = None,
-    name: Optional[str] = None,
-    abbreviation: Optional[str] = None,
-    publication_id: Optional[int] = None,
-    pubmed_id: Optional[int] = None,
-    gene_id_type: Optional[GeneIdentifier] = None,
-    search_text: Optional[str] = None,
-    ontology_term: Optional[str] = None,
+    user: User | None = None,
+    gs_id: int | None = None,
+    only_my_genesets: bool | None = None,
+    curation_tier: set[GenesetTier] | None = None,
+    species: Species | None = None,
+    name: str | None = None,
+    abbreviation: str | None = None,
+    publication_id: int | None = None,
+    pubmed_id: int | None = None,
+    gene_id_type: GeneIdentifier | None = None,
+    search_text: str | None = None,
+    ontology_term: str | None = None,
     with_publication_info: bool = True,
-    score_type: Optional[Set[ScoreType]] = None,
-    lte_count: Optional[int] = None,
-    gte_count: Optional[int] = None,
-    created_after: Optional[date] = None,
-    created_before: Optional[date] = None,
-    updated_after: Optional[date] = None,
-    updated_before: Optional[date] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    score_type: set[ScoreType] | None = None,
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_after: date | None = None,
+    created_before: date | None = None,
+    updated_after: date | None = None,
+    updated_before: date | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> dict:
     """Get genesets from the database.
 
@@ -208,7 +209,7 @@ def get_geneset_metadata(
 
 
 def get_geneset(
-    cursor: Cursor, geneset_id: int, user: User, in_threshold: Optional[bool] = False
+    cursor: Cursor, geneset_id: int, user: User, in_threshold: bool | None = False
 ) -> dict:
     """Get a geneset by ID.
 
@@ -246,7 +247,7 @@ def get_geneset_gene_values(
     geneset_id: int,
     user: User,
     gene_id_type: GeneIdentifier = None,
-    in_threshold: Optional[bool] = False,
+    in_threshold: bool | None = False,
 ) -> dict:
     """Get a gene values for a given geneset ID.
 
@@ -306,7 +307,7 @@ def get_geneset_w_gene_id_type(
     geneset_id: int,
     user: User,
     gene_id_type: GeneIdentifier,
-    in_threshold: Optional[bool] = False,
+    in_threshold: bool | None = False,
 ) -> dict:
     """Get a geneset by ID and filter with gene identifier type.
 
@@ -339,9 +340,7 @@ def get_geneset_w_gene_id_type(
         return {
             "gene_identifier_type": gene_id_type.name,
             "geneset": geneset,
-            "geneset_values": [
-                gsv for gsv in geneset_values if gsv["ode_ref_id"] is not None
-            ],
+            "geneset_values": [gsv for gsv in geneset_values if gsv["ode_ref_id"] is not None],
         }
 
     except Exception as err:
@@ -353,7 +352,7 @@ def get_gsv_w_gene_homology_update(
     cursor: Cursor,
     geneset: dict,
     gene_id_type: GeneIdentifier,
-    in_threshold: Optional[bool] = False,
+    in_threshold: bool | None = False,
 ) -> Iterable[dict]:
     """Check gene homology mapping and update it.
 
@@ -375,9 +374,7 @@ def get_gsv_w_gene_homology_update(
     )
 
     if mapping_across_species:
-        geneset_values = map_geneset_homology(
-            cursor, geneset_values, original_gene_id_type
-        )
+        geneset_values = map_geneset_homology(cursor, geneset_values, original_gene_id_type)
 
     return geneset_values
 
@@ -395,9 +392,7 @@ def map_geneset_homology(
     try:
         ode_ids = [gene["ode_gene_id"] for gene in geneset_value]
         gene_homologs = db_gene.get_homolog_ids_by_ode_id(cursor, ode_ids, gene_id_type)
-        homolog_mapping = {
-            gene["ode_gene_id"]: gene["ode_ref_id"] for gene in gene_homologs
-        }
+        homolog_mapping = {gene["ode_gene_id"]: gene["ode_ref_id"] for gene in gene_homologs}
 
         for gene in geneset_value:
             gene["gdb_id"] = gene_id_type.value
@@ -442,8 +437,8 @@ def get_geneset_ontology_terms(
     cursor: Cursor,
     geneset_id: int,
     user: User,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> dict:
     """Get geneset ontology terms by geneset id.
 
@@ -502,17 +497,13 @@ def add_geneset_ontology_term(
         if is_gs_readable is False:
             return {"error": True, "message": message.INACCESSIBLE_OR_FORBIDDEN}
 
-        owner = db_geneset.user_is_owner(
-            cursor=cursor, user_id=user.id, geneset_id=geneset_id
-        )
+        owner = db_geneset.user_is_owner(cursor=cursor, user_id=user.id, geneset_id=geneset_id)
         curator = user.role is AppRoles.curator
 
         if not owner and not curator:
             return {"error": True, "message": message.ACCESS_FORBIDDEN}
 
-        onto_term = db_ontology.by_ontology_term(
-            cursor=cursor, onto_ref_term_id=term_ref_id
-        )
+        onto_term = db_ontology.by_ontology_term(cursor=cursor, onto_ref_term_id=term_ref_id)
 
         if onto_term is None:
             return {"error": True, "message": message.RECORD_NOT_FOUND_ERROR}
@@ -560,17 +551,13 @@ def delete_geneset_ontology_term(
         if is_gs_readable is False:
             return {"error": True, "message": message.INACCESSIBLE_OR_FORBIDDEN}
 
-        owner = db_geneset.user_is_owner(
-            cursor=cursor, user_id=user.id, geneset_id=geneset_id
-        )
+        owner = db_geneset.user_is_owner(cursor=cursor, user_id=user.id, geneset_id=geneset_id)
         curator = user.role is AppRoles.curator
 
         if not owner and not curator:
             return {"error": True, "message": message.ACCESS_FORBIDDEN}
 
-        onto_term = db_ontology.by_ontology_term(
-            cursor=cursor, onto_ref_term_id=term_ref_id
-        )
+        onto_term = db_ontology.by_ontology_term(cursor=cursor, onto_ref_term_id=term_ref_id)
 
         if onto_term is None:
             return {"error": True, "message": message.RECORD_NOT_FOUND_ERROR}

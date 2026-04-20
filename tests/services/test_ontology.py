@@ -3,10 +3,10 @@
 from unittest.mock import patch
 
 import pytest
+
 from geneweaver.api.controller import message
 from geneweaver.api.schemas.auth import User
 from geneweaver.api.services import geneset
-
 from tests.data import test_ontology_data
 
 mock_user = User()
@@ -24,9 +24,7 @@ def test_get_geneset_ontology_terms(mock_db_geneset, mock_db_ontology):
 
     response = geneset.get_geneset_ontology_terms(None, 1234, mock_user)
 
-    assert response.get("data") == test_ontology_data.get("geneset_ontology_terms").get(
-        "data"
-    )
+    assert response.get("data") == test_ontology_data.get("geneset_ontology_terms").get("data")
 
 
 @patch("geneweaver.api.services.geneset.db_ontology")

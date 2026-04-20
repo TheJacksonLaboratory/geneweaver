@@ -6,6 +6,7 @@ import psycopg
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 from geneweaver.api.core.config_class import GeneweaverAPIConfig
 
 
@@ -22,7 +23,7 @@ def mock_cursor() -> psycopg.Cursor:
     return m2.AsyncMock()
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_settings(monkeypatch) -> GeneweaverAPIConfig:
     """Patch the settings class to return a test settings instance.
 
@@ -42,7 +43,7 @@ def mock_settings(monkeypatch) -> GeneweaverAPIConfig:
     return test_settings
 
 
-@pytest.fixture()
+@pytest.fixture
 def app(mock_settings) -> FastAPI:
     """Provide a mocked FastAPI application.
 
@@ -56,7 +57,7 @@ def app(mock_settings) -> FastAPI:
     return app
 
 
-@pytest.fixture()
+@pytest.fixture
 def client(mock_settings, app) -> TestClient:
     """Provide a mocked FastAPI application.
 

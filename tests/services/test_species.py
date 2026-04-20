@@ -3,16 +3,14 @@
 from unittest.mock import patch
 
 import pytest
-from geneweaver.api.services import species as species_service
 from geneweaver.core.enum import GeneIdentifier, Species
 
+from geneweaver.api.services import species as species_service
 from tests.data import test_species_data
 
 species_no_params = test_species_data.get("species_no_parameters")
 species_by_taxonomy_id_10090 = test_species_data.get("species_by_taxonomy_id_10090")
-species_by_gene_id_type_flybase = [
-    test_species_data.get("species_by_gene_id_type_flybase")
-]
+species_by_gene_id_type_flybase = [test_species_data.get("species_by_gene_id_type_flybase")]
 
 
 @patch("geneweaver.api.services.species.db_species")
@@ -40,9 +38,7 @@ def test_get_species_by_gene_id_type(mock_db_species):
     """Test speccies by taxonomy id."""
     mock_db_species.get.return_value = species_by_gene_id_type_flybase
 
-    response = species_service.get_species(
-        None, reference_gene_id_type=GeneIdentifier("FlyBase")
-    )
+    response = species_service.get_species(None, reference_gene_id_type=GeneIdentifier("FlyBase"))
 
     assert response == {"data": species_by_gene_id_type_flybase}
 

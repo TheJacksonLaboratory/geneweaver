@@ -19,13 +19,11 @@ from geneweaver.client.datasets.base import BaseDataset
 )
 def test_read_pandas(skiprows, file_extension):
     """Test the read_pandas method in BaseDataset with mocks."""
-    with patch(
-        "geneweaver.client.datasets.base.pd.read_excel"
-    ) as mock_read_excel, patch(
-        "geneweaver.client.datasets.base.pd.read_csv"
-    ) as mock_read_csv, patch(
-        "geneweaver.client.datasets.base.pd.read_json"
-    ) as mock_read_json:
+    with (
+        patch("geneweaver.client.datasets.base.pd.read_excel") as mock_read_excel,
+        patch("geneweaver.client.datasets.base.pd.read_csv") as mock_read_csv,
+        patch("geneweaver.client.datasets.base.pd.read_json") as mock_read_json,
+    ):
         # Set up a mock DataFrame to be returned by the read functions
         mock_df = pd.DataFrame({"col1": [1, 2, 3]})
         if file_extension == "xlsx":

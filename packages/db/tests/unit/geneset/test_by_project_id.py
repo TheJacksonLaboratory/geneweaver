@@ -38,18 +38,14 @@ async def test_async_by_project_id(
     assert async_cursor.fetchall.call_count == 1
 
 
-test_by_project_id_execute_raises_error = create_execute_raises_error_test(
-    by_project_id, 1
-)
+test_by_project_id_execute_raises_error = create_execute_raises_error_test(by_project_id, 1)
 
-test_by_project_id_fetchall_raises_error = create_fetchall_raises_error_test(
-    by_project_id, 1
-)
+test_by_project_id_fetchall_raises_error = create_fetchall_raises_error_test(by_project_id, 1)
 
 test_async_by_project_id_execute_raises_error = async_create_execute_raises_error_test(
     async_by_project_id, 1
 )
 
-test_async_by_project_id_fetchall_raises_error = (
-    async_create_fetchall_raises_error_test(async_by_project_id, 1)
+test_async_by_project_id_fetchall_raises_error = async_create_fetchall_raises_error_test(
+    async_by_project_id, 1
 )

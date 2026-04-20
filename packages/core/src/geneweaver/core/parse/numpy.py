@@ -9,13 +9,11 @@ If you know that your numpy array has the gene symbol in the first column and th
 gene value in the second column, you can use ndarray_to_gene_values_by_idx.
 """
 
-from typing import List, Tuple
-
 import numpy as np
 from geneweaver.core.schema.batch import GenesetValueInput
 
 
-def ndarray_to_gene_values(geneset_array: np.ndarray) -> List[GenesetValueInput]:
+def ndarray_to_gene_values(geneset_array: np.ndarray) -> list[GenesetValueInput]:
     """Convert a numpy array to a list of GeneValueInput objects.
 
     This function will try to map via labels first, then by index.
@@ -31,7 +29,7 @@ def ndarray_to_gene_values(geneset_array: np.ndarray) -> List[GenesetValueInput]
         return ndarray_to_gene_values_by_idx(geneset_array)
 
 
-def ndarray_to_gene_values_by_idx(geneset_array: np.ndarray) -> List[GenesetValueInput]:
+def ndarray_to_gene_values_by_idx(geneset_array: np.ndarray) -> list[GenesetValueInput]:
     """Convert a numpy array to a list of GeneValueInput objects.
 
     The numpy array must be a 2-dimensional array with 2 columns. The first column
@@ -47,7 +45,7 @@ def ndarray_to_gene_values_by_idx(geneset_array: np.ndarray) -> List[GenesetValu
         raise ValueError("Input must be a 2-dimensional array") from e
 
 
-def ndarray_to_gene_values_named(geneset_array: np.ndarray) -> List[GenesetValueInput]:
+def ndarray_to_gene_values_named(geneset_array: np.ndarray) -> list[GenesetValueInput]:
     """Convert a numpy array to a list of GeneValueInput objects using labels.
 
     :param geneset_array: The numpy array to convert.
@@ -60,8 +58,7 @@ def ndarray_to_gene_values_named(geneset_array: np.ndarray) -> List[GenesetValue
     symbol_key, value_key = map_ndarray_labels_to_gene_value_attr(geneset_array)
 
     return [
-        GenesetValueInput(symbol=row[symbol_key], value=row[value_key])
-        for row in geneset_array
+        GenesetValueInput(symbol=row[symbol_key], value=row[value_key]) for row in geneset_array
     ]
 
 
@@ -101,7 +98,7 @@ SYMBOL_KEYS = ("Symbol", "GeneID", "Gene_ID", "Gene ID")
 VALUE_KEYS = ("Value", "Score", "PValue", "QValue", "Effect", "Correlation")
 
 
-def map_ndarray_labels_to_gene_value_attr(geneset_array: np.ndarray) -> Tuple[str, str]:
+def map_ndarray_labels_to_gene_value_attr(geneset_array: np.ndarray) -> tuple[str, str]:
     """Map numpy array labels to GenesetValueInput attributes.
 
     This function is used to check if a numpy array is structured (has names),
@@ -135,8 +132,6 @@ def map_ndarray_labels_to_gene_value_attr(geneset_array: np.ndarray) -> Tuple[st
             break
 
     if symbol_key is None or value_key is None:
-        raise ValueError(
-            "Could not map numpy array labels to GenesetValueInput attributes"
-        )
+        raise ValueError("Could not map numpy array labels to GenesetValueInput attributes")
 
     return symbol_key, value_key

@@ -15,9 +15,7 @@ def test_search_uses_plainto_tsquery_by_default():
     'Shwachman-Diamond syndrome'. plainto_tsquery treats each token
     independently and returns correct results.
     """
-    filters, params = search(
-        [], {}, TSVECTOR_COL, search_text="Shwachman-Diamond syndrome"
-    )
+    filters, params = search([], {}, TSVECTOR_COL, search_text="Shwachman-Diamond syndrome")
     assert len(filters) == 1
     sql_str = str(filters[0])
     assert "plainto_tsquery" in sql_str
@@ -29,9 +27,7 @@ def test_search_no_text_returns_unchanged():
     """search() with no search_text leaves filters and params unchanged."""
     existing_filters = [SQL("gs_status = 0")]
     existing_params = {"status": 0}
-    filters, params = search(
-        existing_filters, existing_params, TSVECTOR_COL, search_text=None
-    )
+    filters, params = search(existing_filters, existing_params, TSVECTOR_COL, search_text=None)
     assert filters == existing_filters
     assert params == existing_params
 

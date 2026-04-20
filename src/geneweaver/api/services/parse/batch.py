@@ -5,12 +5,11 @@ geneweaver.core module. This module contains functions for reading the contents
 of a file and passing those contents to the core module for processing.
 """
 
-from typing import List, Tuple
-
 from fastapi import UploadFile
-from geneweaver.api.services.io import read_file_contents
 from geneweaver.core.parse import batch
 from geneweaver.core.schema.messages import SystemMessage, UserMessage
+
+from geneweaver.api.services.io import read_file_contents
 
 
 async def process_batch_file(
@@ -18,7 +17,7 @@ async def process_batch_file(
     # db: Session,
     batch_file: UploadFile,
     user_id: int,
-) -> Tuple[List[int], List[UserMessage], List[SystemMessage]]:
+) -> tuple[list[int], list[UserMessage], list[SystemMessage]]:
     """Asynchronously processes a batch file for geneset information.
 
     This function reads the contents of a batch file and processes each line to extract

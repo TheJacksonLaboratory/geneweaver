@@ -9,7 +9,7 @@ from tests.services import const
 
 
 # Create a pytest fixture for the mocked UploadFile
-@pytest.fixture()
+@pytest.fixture
 def mock_upload_file():
     """Provide a mocked UploadFile object."""
     mock_file = AsyncMock(spec=UploadFile)

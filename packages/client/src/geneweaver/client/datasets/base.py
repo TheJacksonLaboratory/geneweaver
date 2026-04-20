@@ -47,6 +47,4 @@ class BaseDataset:
 
     def read_pandas(self) -> None:
         """Read the dataset into a Pandas DataFrame."""
-        self._pandas_df = self._pandas_read_f(
-            self.dataset_path, skiprows=self.dataset_skip_rows
-        )
+        self._pandas_df = self._pandas_read_f(self.dataset_path, skiprows=self.dataset_skip_rows)

@@ -3,7 +3,6 @@
 import pytest
 from geneweaver.core.enum import GenesetTier
 from psycopg.sql import SQL
-
 from src.geneweaver.db.query.geneset.utils import restrict_tier
 
 
@@ -61,9 +60,7 @@ def test_restrict_tier(existing_filters, existing_params, curation_tier):
     these_existing_filters = existing_filters.copy()
     these_existing_params = existing_params.copy()
 
-    filters, params = restrict_tier(
-        these_existing_filters, these_existing_params, curation_tier
-    )
+    filters, params = restrict_tier(these_existing_filters, these_existing_params, curation_tier)
 
     assert filters == these_existing_filters
     assert params == these_existing_params

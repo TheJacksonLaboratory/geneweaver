@@ -17,7 +17,7 @@ from geneweaver.client.auth import _token_payload
         "jkl345",
         "mno678",
         "pqr901",
-        "Do-re-mi" "abc-123",
+        "Do-re-miabc-123",
         "you-and-me",
     ],
 )

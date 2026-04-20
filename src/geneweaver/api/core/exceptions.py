@@ -6,7 +6,7 @@ from fastapi import HTTPException
 class Auth0UnauthenticatedException(HTTPException):
     """Exception for unauthenticated requests."""
 
-    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, **kwargs) -> None:
         """Initialize the exception."""
         super().__init__(401, **kwargs)
 
@@ -14,7 +14,7 @@ class Auth0UnauthenticatedException(HTTPException):
 class AuthenticationMismatch(HTTPException):
     """Exception for mismatched authentication."""
 
-    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, **kwargs) -> None:
         """Initialize the exception."""
         super().__init__(401, **kwargs)
 
@@ -22,7 +22,7 @@ class AuthenticationMismatch(HTTPException):
 class Auth0UnauthorizedException(HTTPException):
     """Exception for unauthorized requests."""
 
-    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, **kwargs) -> None:
         """Initialize the exception."""
         super().__init__(403, **kwargs)
 
@@ -30,6 +30,6 @@ class Auth0UnauthorizedException(HTTPException):
 class UnauthorizedException(HTTPException):
     """Exception for unauthorized requests."""
 
-    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, **kwargs) -> None:
         """Initialize the exception."""
         super().__init__(403, **kwargs)

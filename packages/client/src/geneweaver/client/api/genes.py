@@ -1,7 +1,5 @@
 """Functions that warp the Geneweaver /genes endpoint."""
 
-from typing import List
-
 from geneweaver.client.api.utils import format_endpoint, sessionmanager
 from geneweaver.core.enum import GeneIdentifier, Species
 
@@ -10,7 +8,7 @@ ENDPOINT = "genes"
 
 def mappings(
     access_token: str,
-    source_ids: List[str],
+    source_ids: list[str],
     target_id_type: GeneIdentifier,
     species: Species,
 ) -> dict:

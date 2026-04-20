@@ -1,7 +1,6 @@
 """Schemas for geneset."""
 
 import datetime
-from typing import List, Optional, Union
 
 from geneweaver.core.enum import (
     GeneIdentifier,
@@ -18,7 +17,7 @@ from pydantic import BaseModel, Field
 class Geneset(BaseModel):
     """Geneset schema."""
 
-    id: int  # noqa: A003
+    id: int
     user_id: int
     file_id: int
     tier: GenesetTier = Field(..., alias="curation_id")
@@ -43,7 +42,7 @@ class Geneset(BaseModel):
 class GenesetGenes(BaseModel):
     """Geneset genes schema."""
 
-    genes: List[GeneValue]
+    genes: list[GeneValue]
 
 
 class GenesetUpload(BaseModel):
@@ -51,29 +50,29 @@ class GenesetUpload(BaseModel):
 
     score: GenesetScoreType
     species: Species
-    gene_id_type: Union[GeneIdentifier, Microarray]
-    pubmed_id: Optional[str] = None
+    gene_id_type: GeneIdentifier | Microarray
+    pubmed_id: str | None = None
     private: bool = True
     abbreviation: str
     name: str
     description: str = ""
-    values: List[GeneValue]
+    values: list[GeneValue]
 
 
 class BatchUpload(BaseModel):
     """Batch upload schema."""
 
     batch_file: str
-    curation_group: List[str]
+    curation_group: list[str]
 
 
 class GenesetInfo(BaseModel):
     """Geneset info schema."""
 
-    id: int  # noqa: A003
+    id: int
     page_views: int
-    referers: List[str]
-    analyses: List[str]
+    referers: list[str]
+    analyses: list[str]
     resource_id: int
     last_sim: str
     last_ann: str

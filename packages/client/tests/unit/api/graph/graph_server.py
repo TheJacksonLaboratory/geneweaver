@@ -43,14 +43,10 @@ class GraphServer:
         """Start it."""
         user = "-DNEO4J_USER={}".format("neo4j")
         password = "-DNEO4J_PASS={}".format("password")
-        bolt = "-DBOLT_URI={}".format(self.bolt_url)
+        bolt = f"-DBOLT_URI={self.bolt_url}"
 
-        if not os.path.exists("./{}".format(self.server_exec)):
-            url: str = (
-                "https://repo1.maven.org/maven2/org/geneweaver/graph-service/0.4.5/{}".format(
-                    self.server_exec
-                )
-            )
+        if not os.path.exists(f"./{self.server_exec}"):
+            url: str = f"https://repo1.maven.org/maven2/org/geneweaver/graph-service/0.4.5/{self.server_exec}"
             wget.download(url, out=".")
 
         # Start test server in disconnected storage mode. This means that large queries

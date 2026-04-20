@@ -49,16 +49,12 @@ from geneweaver.core.schema.score import GenesetScoreType, ScoreType
                 GenesetValueInput(symbol="gene1", value=0.1),
                 GenesetValueInput(symbol="gene2", value=0.2),
             ],
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold=0.05, threshold_low=-0.05
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold=0.05, threshold_low=-0.05),
             [True, False],
         ),
     ],
 )
-def test_check_threshold(
-    two_sided_mock, one_sided_mock, geneset_values, score, expected_output
-):
+def test_check_threshold(two_sided_mock, one_sided_mock, geneset_values, score, expected_output):
     """Test the cases for non-binary score types."""
     assert check_threshold(geneset_values, score) == expected_output
 

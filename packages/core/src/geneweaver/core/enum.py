@@ -1,14 +1,13 @@
 """Enum classes for the GeneWeaver project."""
 
 from enum import Enum, IntEnum
-from typing import Union
 
 
 class _StrToIntMixin:
     """Mixin for string based enums that have an integer representation."""
 
     @classmethod
-    def _missing_(cls: Enum, key: Union[str, int]) -> Enum:
+    def _missing_(cls: Enum, key: str | int) -> Enum:
         """Return the key if it is not found."""
         try:
             key = int(key)
@@ -33,7 +32,7 @@ class _IntToStrMixin:
     """Mixin for integer based enums that have a string representation."""
 
     @classmethod
-    def _missing_(cls: IntEnum, key: Union[str, int]) -> IntEnum:
+    def _missing_(cls: IntEnum, key: str | int) -> IntEnum:
         """Return the key if it is not found."""
         if isinstance(key, str):
             return cls._str_class()(key).as_int()
@@ -86,7 +85,7 @@ class GenesetStatus(Enum):
     DEPRECATED = "deprecated"
 
     @classmethod
-    def _missing_(cls: Enum, key: Union[str, int]) -> Enum:
+    def _missing_(cls: Enum, key: str | int) -> Enum:
         """Return the key if it is not found."""
         try:
             key = str(key).lower()
@@ -335,9 +334,7 @@ class Microarray(_StrToIntMixin, Enum):
     AFFYMETRIX_MURINE_GENOME_U74C = "Affymetrix Murine Genome U74C"
     AFFYMETRIX_MURINE_GENOME_U74_SET = "Affymetrix Murine Genome U74 Set"
     AFFYMETRIX_MURINE_GENOME_U74_VERSION_2 = "Affymetrix Murine Genome U74 Version 2"
-    AFFYMETRIX_MURINE_GENOME_U74_VERSION_2_SET = (
-        "Affymetrix Murine Genome U74 Version 2 Set"
-    )
+    AFFYMETRIX_MURINE_GENOME_U74_VERSION_2_SET = "Affymetrix Murine Genome U74 Version 2 Set"
     AFFYMETRIX_RAT_EXON_1_0_ST = "Affymetrix Rat Exon 1.0 ST"
     AFFYMETRIX_RAT_EXPRESSION_230A = "ffymetrix Rat Expression 230A"
     AFFYMETRIX_RAT_EXPRESSION_230B = "ffymetrix Rat Expression 230B"

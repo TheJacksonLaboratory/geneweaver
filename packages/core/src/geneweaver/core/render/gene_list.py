@@ -1,6 +1,6 @@
 """Functions for rendering gene lists to strings."""
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from geneweaver.core.schema.gene import GeneValue
 
@@ -15,6 +15,4 @@ def gene_list_str(gene_ids: Iterable[GeneValue], sep: str = "\t") -> str:
     :param sep: Separator to use between symbol and value.
     :return: String representation of the GeneValue objects.
     """
-    return "\n".join(
-        (f"{gene_value.symbol}{sep}{gene_value.value}" for gene_value in gene_ids)
-    )
+    return "\n".join(f"{gene_value.symbol}{sep}{gene_value.value}" for gene_value in gene_ids)

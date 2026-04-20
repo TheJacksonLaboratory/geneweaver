@@ -5,13 +5,13 @@ from unittest.mock import patch
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
+from jose import jwt
+
 from geneweaver.api.core.exceptions import (
     Auth0UnauthenticatedException,
     Auth0UnauthorizedException,
 )
 from geneweaver.api.core.security import Auth0, UserInternal
-from jose import jwt
-
 from tests.data import test_jwt_keys_data
 
 private_key = test_jwt_keys_data.get("test_private_key")
@@ -74,7 +74,7 @@ def create_test_token(mock_requests, claims=None):
     return token
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.requests")
 async def test_get_user_no_creds_http_error(mock_requests, mock_security_scope):
@@ -85,7 +85,7 @@ async def test_get_user_no_creds_http_error(mock_requests, mock_security_scope):
         await auth.get_user_strict(security_scopes=mock_security_scope, creds=None)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.requests")
 async def test_invalid_token_format(mock_requests, mock_security_scope):
@@ -103,13 +103,11 @@ async def test_invalid_token_format(mock_requests, mock_security_scope):
         )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
-async def test_valid_jwt_token(
-    mock_requests, mock_jwt_unverified_header, mock_security_scope
-):
+async def test_valid_jwt_token(mock_requests, mock_jwt_unverified_header, mock_security_scope):
     """Test get user with no credetials in the request."""
     auth = do_auth()
     mock_jwt_unverified_header.return_value = private_key
@@ -131,7 +129,7 @@ async def test_valid_jwt_token(
     assert user.name == test_name
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
@@ -156,7 +154,7 @@ async def test_get_user_strict_valid_jwt_token(
     assert user.name == test_name
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
 async def test_get_user_with_scopes(mock_requests, mock_jwt_unverified_header):
@@ -177,7 +175,7 @@ async def test_get_user_with_scopes(mock_requests, mock_jwt_unverified_header):
     assert user.name == test_name
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
 async def test_authenticated(mock_requests, mock_jwt_unverified_header):
@@ -201,7 +199,7 @@ async def test_authenticated(mock_requests, mock_jwt_unverified_header):
     assert authenticated is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
 async def test_is_user_public(mock_requests, mock_jwt_unverified_header):
@@ -219,13 +217,11 @@ async def test_is_user_public(mock_requests, mock_jwt_unverified_header):
     assert authenticated is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
-async def test_is_user_not_public(
-    mock_requests, mock_jwt_unverified_header, mock_security_scope
-):
+async def test_is_user_not_public(mock_requests, mock_jwt_unverified_header, mock_security_scope):
     """Test user is not public."""
     auth = do_auth()
     is_public = await auth._get_user(
@@ -235,13 +231,11 @@ async def test_is_user_not_public(
     assert is_public is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")
-async def test_invalid_claim(
-    mock_requests, mock_jwt_unverified_header, mock_security_scope
-):
+async def test_invalid_claim(mock_requests, mock_jwt_unverified_header, mock_security_scope):
     """Test get user exception with invalid claim."""
     auth = do_auth()
     mock_jwt_unverified_header.return_value = private_key
@@ -265,7 +259,7 @@ async def test_invalid_claim(
         )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @patch("geneweaver.api.core.security.SecurityScopes")
 @patch("geneweaver.api.core.security.jwt.get_unverified_header")
 @patch("geneweaver.api.core.security.requests")

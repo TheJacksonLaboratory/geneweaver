@@ -1,6 +1,5 @@
 """Tests for the parse_binary function."""
 
-# ruff: noqa: ANN001, ANN201
 import pytest
 from geneweaver.core.parse.score import (
     ScoreType,
@@ -17,7 +16,7 @@ from geneweaver.core.parse.score import (
         "123",
         "1.0",
         "1.0.0",
-        "bin" "\n",
+        "bin\n",
         " ",
         "binary ",
         " binary",

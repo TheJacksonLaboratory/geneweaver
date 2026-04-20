@@ -1,7 +1,5 @@
 """Test the AON symbol map algorithm."""
 
-from typing import Dict, List, Tuple, Union
-
 import pytest
 from geneweaver.client.utils.aon import map_symbols
 
@@ -47,9 +45,9 @@ from geneweaver.client.utils.aon import map_symbols
     ],
 )
 def test_map_symbols(
-    original: Dict[str, Union[int, float]],
-    mappings: List[Tuple[str, str]],
-    expected: Dict[str, Union[int, float]],
+    original: dict[str, int | float],
+    mappings: list[tuple[str, str]],
+    expected: dict[str, int | float],
 ):
     """Test that the function correctly maps gene symbols."""
     result = map_symbols(original, mappings)
@@ -66,7 +64,7 @@ def test_map_symbols(
     ],
 )
 def test_map_symbols_empty_cases(
-    original: Dict[str, Union[int, float]], mappings: List[Tuple[str, str]]
+    original: dict[str, int | float], mappings: list[tuple[str, str]]
 ):
     """Test that the function returns an empty dictionary when given empty input."""
     result = map_symbols(original, mappings)
@@ -95,8 +93,8 @@ def test_map_symbols_empty_cases(
     ],
 )
 def test_map_symbols_exceptions(
-    original: Dict[Union[str, int], Union[int, float]],
-    mappings: List[Tuple[Union[str, int], str]],
+    original: dict[str | int, int | float],
+    mappings: list[tuple[str | int, str]],
     expected_exception,
 ):
     """Test that the function raises the expected exception when given invalid input."""

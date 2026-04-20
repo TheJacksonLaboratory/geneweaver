@@ -1,6 +1,5 @@
 """Tests for the process_header_line function."""
 
-# ruff: noqa: ANN001, ANN201
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,14 +12,14 @@ from geneweaver.core.parse.batch import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_read_single_prefix():
     """Patch the read_single_prefix_header function."""
     with patch("geneweaver.core.parse.batch.read_single_prefix_header") as mock:
         yield mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_read_space_separated():
     """Patch the read_space_separated_header function."""
     with patch("geneweaver.core.parse.batch.read_space_separated_header") as mock:

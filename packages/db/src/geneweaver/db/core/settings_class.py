@@ -9,12 +9,9 @@ GWDB_PASSWORD=your_password
 GWDB_NAME=your_database_name
 """
 
-# ruff: noqa: N805, ANN101, ANN401
-from typing import Optional
-
 from pydantic import PostgresDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Self, Type
+from typing_extensions import Self
 
 
 class Settings(BaseSettings):
@@ -29,11 +26,11 @@ class Settings(BaseSettings):
     PASSWORD: str = ""
     NAME: str = ""
     PORT: int = 5432
-    URI: Optional[str] = None
+    URI: str | None = None
 
     @field_validator("SERVER", mode="after")
     @classmethod
-    def name_must_contain_space(cls: Type["Settings"], v: str) -> str:
+    def name_must_contain_space(cls: type["Settings"], v: str) -> str:
         """Ensure that the server name is not 'localhost'."""
         if v == "localhost":
             return "127.0.0.1"

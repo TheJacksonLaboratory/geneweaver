@@ -1,7 +1,6 @@
 """CLI for manipulating and parsing batch data files."""
 
 from pathlib import Path
-from typing import List, Optional
 
 import requests
 import typer
@@ -15,9 +14,9 @@ cli = typer.Typer()
 @cli.command()
 def to_csv(
     batch_file: Path,
-    output_directory: Optional[Path] = None,
-    prefix: Optional[str] = None,
-    geneset_ids: Optional[List[str]] = None,
+    output_directory: Path | None = None,
+    prefix: str | None = None,
+    geneset_ids: list[str] | None = None,
 ) -> None:
     """Export a batch file as a csv file.
 
@@ -36,7 +35,7 @@ def to_csv(
 
 @cli.command()
 def to_csv_indexed(
-    batch_file: Path, index_file: Path, output_directory: Optional[Path] = None
+    batch_file: Path, index_file: Path, output_directory: Path | None = None
 ) -> list:
     """Export a batch file as a csv file, using the index file to name the csv files.
 
@@ -60,7 +59,7 @@ def to_csv_indexed(
 def download_genesets(
     index_file: Path,
     session: str,
-    output_directory: Optional[Path] = None,
+    output_directory: Path | None = None,
     hash_header: bool = False,
 ) -> None:
     """Download genesets from the Geneweaver API.

@@ -4,7 +4,6 @@
 """
 
 import random
-from typing import List
 
 from neomodel import (
     IntegerProperty,
@@ -20,7 +19,7 @@ from neomodel import (
 class GeneticEntity(StructuredNode):
     """Superclass for entities."""
 
-    geneId = StringProperty(required=False)  # noqa: N815
+    geneId = StringProperty(required=False)
     chr = StringProperty(required=False)
     start = IntegerProperty(required=False)
     end = IntegerProperty(required=False)
@@ -29,7 +28,7 @@ class GeneticEntity(StructuredNode):
 class Gene(GeneticEntity):
     """Test only."""
 
-    geneName = StringProperty(required=False)  # noqa: N815
+    geneName = StringProperty(required=False)
     species = StringProperty(required=False)
     ortholog = RelationshipTo("Gene", "ORTHOLOG")
 
@@ -37,14 +36,14 @@ class Gene(GeneticEntity):
 class Transcript(GeneticEntity):
     """Test only."""
 
-    transcriptId = StringProperty(required=True)  # noqa: N815
+    transcriptId = StringProperty(required=True)
     produces = RelationshipTo("Gene", "PRODUCES")
 
 
 class Variant(GeneticEntity):
     """Test only."""
 
-    rsId = StringProperty(required=True)  # noqa: N815
+    rsId = StringProperty(required=True)
     eqtl = RelationshipTo("Gene", "EQTL")
     variant_effect = RelationshipTo("Transcript", "VARIANT EFFECT")
 
@@ -52,10 +51,10 @@ class Variant(GeneticEntity):
 class Peak(StructuredNode):
     """Test only."""
 
-    peakId = StringProperty(required=True)  # noqa: N815
+    peakId = StringProperty(required=True)
     epigenome = StringProperty(required=False)
-    tissueDescription = StringProperty(required=False)  # noqa: N815
-    featureType = StringProperty(required=False)  # noqa: N815
+    tissueDescription = StringProperty(required=False)
+    featureType = StringProperty(required=False)
     start = IntegerProperty(required=False)
     end = IntegerProperty(required=False)
     overlap = RelationshipTo("Variant", "OVERLAP")
@@ -72,7 +71,7 @@ class GraphManager:
         query = "MATCH (n) WITH n DETACH DELETE n"
         db.cypher_query(query)
 
-    def create_orthologs(self, count) -> List:
+    def create_orthologs(self, count) -> list:
         """Create test orthologs.
 
         @param count: number of ortholog connections to create
@@ -92,8 +91,8 @@ class GraphManager:
 
     def _gene(self, prefix, i, species) -> Gene:
         r = Gene()
-        r.geneId = "{}TEST{}".format(prefix, i)
-        r.geneName = "FOXP2_TEST{}".format(i)
+        r.geneId = f"{prefix}TEST{i}"
+        r.geneName = f"FOXP2_TEST{i}"
         r.species = species
         r.chr = 1
         r.start = random.randint(0, 10000)
@@ -101,7 +100,7 @@ class GraphManager:
         r.save()
         return r
 
-    def create_a_graph(self, count, connect=True) -> List:
+    def create_a_graph(self, count, connect=True) -> list:
         """Create test graph."""
         ret = []
         for i in range(count):
@@ -115,14 +114,14 @@ class GraphManager:
                 h = a.ortholog.connect(b)
                 ret.append(h)
 
-            t = Transcript(transcriptId="TRANSTest{}".format(i)).save()
+            t = Transcript(transcriptId=f"TRANSTest{i}").save()
             ret.append(t)
 
             if connect:
                 p = t.produces.connect(a)
                 ret.append(p)
 
-            v = Variant(rsId="TESTRS{}".format(i)).save()
+            v = Variant(rsId=f"TESTRS{i}").save()
             ret.append(v)
 
             if connect:
@@ -132,7 +131,7 @@ class GraphManager:
                 eqtl = v.eqtl.connect(a)
                 ret.append(eqtl)
 
-            p = Peak(peakId="Peak{}".format(i)).save()
+            p = Peak(peakId=f"Peak{i}").save()
             ret.append(p)
 
             if connect:

@@ -4,7 +4,6 @@ NOTE: These schemas might be duplicates of schemas available in geneweaver.core.
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -23,5 +22,5 @@ class GenesetScoreType(BaseModel):
     """Pydantic schema for geneset score type."""
 
     score_type: ScoreType
-    threshold_low: Optional[float] = None
+    threshold_low: float | None = None
     threshold: float = 0.05

@@ -1,7 +1,5 @@
 """Publication schemas."""
 
-from typing import Optional
-
 from pydantic import BaseModel
 
 
@@ -12,14 +10,14 @@ class PublicationInfo(BaseModel):
     authors: str
     title: str
     abstract: str = ""
-    journal: Optional[str] = None
-    volume: Optional[str] = None
-    pages: Optional[str] = None
-    month: Optional[str] = None
-    year: Optional[str] = None
+    journal: str | None = None
+    volume: str | None = None
+    pages: str | None = None
+    month: str | None = None
+    year: str | None = None
 
 
 class Publication(PublicationInfo):
     """Publication schema (with ID)."""
 
-    id: int  # noqa: A003
+    id: int

@@ -20,10 +20,6 @@ PUB_FIELDS = format_sql_fields(PUB_FIELD_MAP, query_table="publication")
 
 PUB_QUERY = SQL("SELECT") + SQL(",").join(PUB_FIELDS) + SQL("FROM publication")
 
-PUB_INSERT_COLS = SQL(",").join(
-    [Identifier(k) for k in PUB_FIELD_MAP.keys() if k != "pub_id"]
-)
-PUB_INSERT_VALS = SQL(",").join(
-    [Placeholder(k) for k in PUB_FIELD_MAP.keys() if k != "pub_id"]
-)
+PUB_INSERT_COLS = SQL(",").join([Identifier(k) for k in PUB_FIELD_MAP if k != "pub_id"])
+PUB_INSERT_VALS = SQL(",").join([Placeholder(k) for k in PUB_FIELD_MAP if k != "pub_id"])
 PUB_TSVECTOR = (Identifier("publication") + Identifier("pub_tsvector")).join(".")

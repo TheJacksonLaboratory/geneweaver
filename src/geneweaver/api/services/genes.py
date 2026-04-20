@@ -1,6 +1,6 @@
 """Service methods for genes."""
 
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 
 from fastapi.logger import logger
 from geneweaver.core.enum import GeneIdentifier, Species
@@ -10,12 +10,12 @@ from psycopg import Cursor
 
 def get_genes(
     cursor: Cursor,
-    reference_id: Optional[str] = None,
-    gene_database: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-    preferred: Optional[bool] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    reference_id: str | None = None,
+    gene_database: GeneIdentifier | None = None,
+    species: Species | None = None,
+    preferred: bool | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> dict:
     """Get geneweaver genes from DB.
 
@@ -63,9 +63,9 @@ def get_homolog_ids(
     cursor: Cursor,
     gene_id_list: Iterable,
     target_gene_id_type: GeneIdentifier,
-    source_gene_id_type: Optional[GeneIdentifier] = None,
-    target_species: Optional[Species] = None,
-    source_species: Optional[Species] = None,
+    source_gene_id_type: GeneIdentifier | None = None,
+    target_species: Species | None = None,
+    source_species: Species | None = None,
 ) -> dict:
     """Get homologus gene identifier mappings.
 
@@ -100,7 +100,7 @@ def get_homolog_ids(
 
 def get_gene_mapping(
     cursor: Cursor,
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
     target_gene_id_type: GeneIdentifier,
 ) -> dict:
@@ -127,7 +127,7 @@ def get_gene_mapping(
 
 def get_gene_aon_mapping(
     cursor: Cursor,
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
 ) -> dict:
     """Get gene identifier AON mappings.

@@ -1,6 +1,5 @@
 """Tests for the XLSX parser module."""
 
-# ruff: noqa: B905, ANN001, ANN201
 from unittest.mock import patch
 
 import pytest
@@ -61,27 +60,21 @@ def test_get_sheet_invalid_file():
 
 def test_has_header_true():
     """Test that the has_header returns True when the header exists."""
-    with patch(
-        "geneweaver.core.parse.xlsx.find_header", return_value=(True, 0)
-    ) as mock:
+    with patch("geneweaver.core.parse.xlsx.find_header", return_value=(True, 0)) as mock:
         assert xlsx.has_header("fake_path") is True
         mock.assert_called_once_with("fake_path", 5, None)
 
 
 def test_has_header_false():
     """Test that the has_header returns False when the header does not exist."""
-    with patch(
-        "geneweaver.core.parse.xlsx.find_header", return_value=(False, -1)
-    ) as mock:
+    with patch("geneweaver.core.parse.xlsx.find_header", return_value=(False, -1)) as mock:
         assert xlsx.has_header("fake_path") is False
         mock.assert_called_once_with("fake_path", 5, None)
 
 
 def test_has_header_custom_args():
     """Test that the has_header returns the correct value arguments are passed."""
-    with patch(
-        "geneweaver.core.parse.xlsx.find_header", return_value=(True, 0)
-    ) as mock:
+    with patch("geneweaver.core.parse.xlsx.find_header", return_value=(True, 0)) as mock:
         assert xlsx.has_header("fake_path", 7, "Sheet2") is True
         mock.assert_called_once_with("fake_path", 7, "Sheet2")
 
@@ -155,9 +148,7 @@ def test_read_to_dict(multi_sheet_excel_file_w_data_as_dict):
     excel_file, sheets, header_index, data = multi_sheet_excel_file_w_data_as_dict
     if header_index >= 0:
         for sheet in sheets:
-            result = xlsx.read_to_dict(
-                excel_file, start_row=header_index, sheet_name=sheet
-            )
+            result = xlsx.read_to_dict(excel_file, start_row=header_index, sheet_name=sheet)
             assert result == data
     else:
         for sheet in sheets:

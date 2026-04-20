@@ -3,7 +3,7 @@
 from typing import Any
 
 
-def abbreviate_string_param(param: Any) -> str:  # noqa: ANN401
+def abbreviate_string_param(param: Any) -> str:
     """Abbreviate a pytest parameter.
 
     Function to abbreviate a string or dict parameter for pytest parametrization. This

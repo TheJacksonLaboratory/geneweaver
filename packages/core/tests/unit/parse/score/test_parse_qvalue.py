@@ -1,6 +1,5 @@
 """Tests for the parse_qvalue function."""
 
-# ruff: noqa: ANN001, ANN201
 from unittest.mock import patch
 
 import pytest
@@ -61,9 +60,7 @@ def test_parse_qvalue_invalid(invalid_input):
     ],
 )
 @patch("geneweaver.core.parse.score.extract_single_numeric_value")
-def test_parse_qvalue_valid_with_mock(
-    mock_extract, input_string, mock_return, expected_output
-):
+def test_parse_qvalue_valid_with_mock(mock_extract, input_string, mock_return, expected_output):
     """Tests the parse_qvalue function with valid inputs using a mock."""
     mock_extract.return_value = mock_return
     result = parse_qvalue(input_string)

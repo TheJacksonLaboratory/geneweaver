@@ -7,15 +7,13 @@ The functions that return one or more entire user records are:
 - by_email
 """
 
-from typing import Optional
-
 from geneweaver.core.schema.user import User
 from geneweaver.db.query import user
 from geneweaver.db.utils import temp_override_row_factory
 from psycopg import AsyncCursor, rows
 
 
-async def __fetch_and_return_user(cursor: AsyncCursor) -> Optional[User]:
+async def __fetch_and_return_user(cursor: AsyncCursor) -> User | None:
     """Fetch and return a user from the cursor.
 
     :param cursor: The database cursor.
@@ -26,7 +24,7 @@ async def __fetch_and_return_user(cursor: AsyncCursor) -> Optional[User]:
     return User(**result) if result else None
 
 
-async def by_api_key(cursor: AsyncCursor, api_key: str) -> Optional[User]:
+async def by_api_key(cursor: AsyncCursor, api_key: str) -> User | None:
     """Get user info by api key.
 
     :param cursor: The database cursor.
@@ -38,7 +36,7 @@ async def by_api_key(cursor: AsyncCursor, api_key: str) -> Optional[User]:
     return await __fetch_and_return_user(cursor)
 
 
-async def by_sso_id(cursor: AsyncCursor, sso_id: str) -> Optional[User]:
+async def by_sso_id(cursor: AsyncCursor, sso_id: str) -> User | None:
     """Get user info by sso id.
 
     :param cursor: The database cursor.
@@ -50,9 +48,7 @@ async def by_sso_id(cursor: AsyncCursor, sso_id: str) -> Optional[User]:
     return await __fetch_and_return_user(cursor)
 
 
-async def by_sso_id_and_email(
-    cursor: AsyncCursor, sso_id: str, email: str
-) -> Optional[User]:
+async def by_sso_id_and_email(cursor: AsyncCursor, sso_id: str, email: str) -> User | None:
     """Get user info by sso id and email.
 
     :param cursor: The database cursor.
@@ -65,7 +61,7 @@ async def by_sso_id_and_email(
     return await __fetch_and_return_user(cursor)
 
 
-async def by_user_id(cursor: AsyncCursor, user_id: int) -> Optional[User]:
+async def by_user_id(cursor: AsyncCursor, user_id: int) -> User | None:
     """Get user info by user id.
 
     :param cursor: The database cursor.
@@ -77,7 +73,7 @@ async def by_user_id(cursor: AsyncCursor, user_id: int) -> Optional[User]:
     return await __fetch_and_return_user(cursor)
 
 
-async def by_email(cursor: AsyncCursor, email: str) -> Optional[User]:
+async def by_email(cursor: AsyncCursor, email: str) -> User | None:
     """Get user info by email.
 
     :param cursor: The database cursor.
@@ -132,9 +128,7 @@ async def is_curator_or_higher(cursor: AsyncCursor, user_id: int) -> bool:
 
 
 @temp_override_row_factory(rows.tuple_row)
-async def is_assigned_curation(
-    cursor: AsyncCursor, user_id: int, geneset_id: int
-) -> bool:
+async def is_assigned_curation(cursor: AsyncCursor, user_id: int, geneset_id: int) -> bool:
     """Check if a user is assigned curation.
 
     :param cursor: The database cursor.

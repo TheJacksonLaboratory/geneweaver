@@ -1,7 +1,6 @@
 """Geneweaver API CLI for Gene endpoints."""
 
 import json
-from typing import List, Optional
 
 import typer
 from geneweaver.client.api import genes
@@ -17,11 +16,11 @@ Tools and utilities for interacting with the Geneweaver API.
 @cli.command()
 def map_ids(
     ctx: typer.Context,
-    source_ids: List[str],
+    source_ids: list[str],
     target_id_type: genes.GeneIdentifier,
-    source_id_type: Optional[genes.GeneIdentifier] = None,
-    target_species: Optional[genes.Species] = None,
-    source_species: Optional[genes.Species] = None,
+    source_id_type: genes.GeneIdentifier | None = None,
+    target_species: genes.Species | None = None,
+    source_species: genes.Species | None = None,
 ) -> dict:
     """Map homologs between species."""
     result = genes.map_homologs(

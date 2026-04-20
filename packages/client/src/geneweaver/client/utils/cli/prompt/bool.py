@@ -1,6 +1,6 @@
 """Utility functions for prompting boolean values."""
 
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import typer
 
@@ -15,7 +15,7 @@ def is_bool(field_type: T) -> bool:
     return field_type is bool
 
 
-def prompt_for_bool(field_name: Optional[str] = None, allow_none: bool = False) -> bool:
+def prompt_for_bool(field_name: str | None = None, allow_none: bool = False) -> bool:
     """Prompt the user to enter a boolean value.
 
     :return: The boolean value entered by the user.

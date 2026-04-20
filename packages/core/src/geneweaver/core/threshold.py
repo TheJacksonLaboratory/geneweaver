@@ -1,7 +1,5 @@
 """A module for functions dealing with thresholding."""
 
-from typing import List
-
 from geneweaver.core.schema.score import GenesetScoreType
 
 
@@ -29,9 +27,7 @@ def check_threshold(geneset_score: GenesetScoreType, value: float) -> bool:
         return value >= geneset_score.threshold
 
 
-def check_threshold_list(
-    geneset_score: GenesetScoreType, values: List[float]
-) -> List[bool]:
+def check_threshold_list(geneset_score: GenesetScoreType, values: list[float]) -> list[bool]:
     """Check to see if a list of values falls within the score threshold.
 
     :param geneset_score: The geneset score type and threshold arguments.

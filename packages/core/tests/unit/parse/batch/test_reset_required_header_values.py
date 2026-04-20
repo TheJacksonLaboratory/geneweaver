@@ -1,6 +1,5 @@
 """Tests for the reset_required_header_values function."""
 
-# ruff: noqa: ANN001, ANN201
 import pytest
 from geneweaver.core.parse.batch import (
     HEADER_CHARACTERS,
@@ -43,9 +42,7 @@ from geneweaver.core.parse.batch import (
                 # See above for explanation of this usage of the upack operator
                 **{
                     header_name: f"value{index}"
-                    for index, header_name in enumerate(
-                        list(HEADER_CHARACTERS.values())
-                    )
+                    for index, header_name in enumerate(list(HEADER_CHARACTERS.values()))
                 },
                 "extra_key": "extra_value",
             },
@@ -53,11 +50,8 @@ from geneweaver.core.parse.batch import (
                 # See above for explanation of this usage of the upack operator
                 **{
                     header_name: f"value{index}"
-                    for index, header_name in enumerate(
-                        list(HEADER_CHARACTERS.values())
-                    )
-                    if header_name
-                    not in (HEADER_CHARACTERS[k] for k in REQUIRED_HEADERS)
+                    for index, header_name in enumerate(list(HEADER_CHARACTERS.values()))
+                    if header_name not in (HEADER_CHARACTERS[k] for k in REQUIRED_HEADERS)
                 },
                 "extra_key": "extra_value",
             },
@@ -83,8 +77,7 @@ from geneweaver.core.parse.batch import (
                         list(HEADER_CHARACTERS.values())
                         + list(SPACE_SEPARATED_HEADER_CHARACTERS.values())
                     )
-                    if header_name
-                    not in (HEADER_CHARACTERS[k] for k in REQUIRED_HEADERS)
+                    if header_name not in (HEADER_CHARACTERS[k] for k in REQUIRED_HEADERS)
                 },
                 "extra_key": "extra_value",
             },

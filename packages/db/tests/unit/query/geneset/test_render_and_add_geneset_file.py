@@ -35,14 +35,12 @@ from geneweaver.db.query.geneset import add_geneset_file
             19,
         ),
         (
-            [GeneValue(symbol="gene7", value=7.0), GeneValue(symbol="gene8", value=8.0)]
-            * 100,
+            [GeneValue(symbol="gene7", value=7.0), GeneValue(symbol="gene8", value=8.0)] * 100,
             "\n".join("gene7\t7.0\ngene8\t8.0" for _ in range(100)),
             1999,
         ),
         (
-            [GeneValue(symbol="gene7", value=7.0), GeneValue(symbol="gene8", value=8.0)]
-            * 1000,
+            [GeneValue(symbol="gene7", value=7.0), GeneValue(symbol="gene8", value=8.0)] * 1000,
             "\n".join("gene7\t7.0\ngene8\t8.0" for _ in range(1000)),
             19999,
         ),
@@ -59,13 +57,9 @@ from geneweaver.db.query.geneset import add_geneset_file
         "A \t comment \r\n with \n special \t characters \r\n",
     ],
 )
-def test_render_and_add_geneset_file(
-    gene_values, expected_contents, expected_size, comments
-):
+def test_render_and_add_geneset_file(gene_values, expected_contents, expected_size, comments):
     """Test the render_and_add_geneset_file query generation function."""
-    with patch(
-        "geneweaver.db.query.geneset.write.add_geneset_file_raw"
-    ) as mock_add_geneset_file:
+    with patch("geneweaver.db.query.geneset.write.add_geneset_file_raw") as mock_add_geneset_file:
         print(mock_add_geneset_file)
         result = add_geneset_file(gene_values, comments)
         print(result)

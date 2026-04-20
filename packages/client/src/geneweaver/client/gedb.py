@@ -1,4 +1,3 @@
-# noqa: E501
 """Gene expression service.
 
 The search operations on the db
@@ -6,12 +5,13 @@ are supported using a json object. This intentionally
 wraps the underlying BigQuery database for the reasons
 of security and scalability.
 """
+
 import io
 from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from enum import Enum
 from io import StringIO
-from typing import List, Mapping, Set
 
 import numpy
 import pandas
@@ -46,11 +46,11 @@ class DataRequest:
     These are a subset of the fields. TODO (low priority): Add all.
     """
 
-    geneIds: List[str] = None  # noqa: N815
-    strains: List[str] = None  # noqa: N815
-    tissue: str = None  # noqa: N815
-    sourceType: SourceType = None  # noqa: N815
-    sexes: List[str] = None  # noqa: N815
+    geneIds: list[str] = None
+    strains: list[str] = None
+    tissue: str = None
+    sourceType: SourceType = None
+    sexes: list[str] = None
 
 
 # TODO Should data access objects go in api?
@@ -64,33 +64,33 @@ class DataResult:
     These are a subset of the fields. TODO (low priority): Add all.
     """
 
-    values: List[float] = None  # noqa: N815
-    names: List[str] = None  # noqa: N815
-    weights: List[float] = None  # noqa: N815
-    geneIds: List[str] = None  # noqa: N815
-    strains: List[str] = None  # noqa: N815
-    strain: str = None  # noqa: N815
-    tissue: str = None  # noqa: N815
-    sexes: List[str] = None  # noqa: N815
+    values: list[float] = None
+    names: list[str] = None
+    weights: list[float] = None
+    geneIds: list[str] = None
+    strains: list[str] = None
+    strain: str = None
+    tissue: str = None
+    sexes: list[str] = None
 
 
 @dataclass
 class StrainResult:
     """Object which contains results for strain search."""
 
-    gene_ids: List[str] = None  # noqa: N815
-    gene_names: List[str] = None  # noqa: N815
-    strain: str = None  # noqa: N815
-    strain_expressions: Mapping[str, List[float]] = None  # noqa: N815
+    gene_ids: list[str] = None
+    gene_names: list[str] = None
+    strain: str = None
+    strain_expressions: Mapping[str, list[float]] = None
 
 
 @dataclass
 class NullVarianceRequest:
     """Simple object for getting spearmanrho variance."""
 
-    id: str = None  # noqa: N815
-    scores: List[float] = None  # noqa: N815
-    rSz: int = 1000  # noqa: N815
+    id: str = None
+    scores: list[float] = None
+    rSz: int = 1000
 
 
 # TODO Should data access objects go in api?
@@ -119,29 +119,29 @@ class Metadata:
 
     """
 
-    ingestid: str = None  # noqa: N815
-    modelversion: str = None  # noqa: N815
-    population: str = None  # noqa: N815
-    tissue: str = None  # noqa: N815
-    sourcetype: SourceType = None  # noqa: N815
-    species: str = None  # noqa: N815
-    uberon: str = None  # noqa: N815
-    bucketname: str = None  # noqa: N815
-    dataobject: str = None  # noqa: N815
-    weightobject: str = None  # noqa: N815
-    metaobject: str = None  # noqa: N815
+    ingestid: str = None
+    modelversion: str = None
+    population: str = None
+    tissue: str = None
+    sourcetype: SourceType = None
+    species: str = None
+    uberon: str = None
+    bucketname: str = None
+    dataobject: str = None
+    weightobject: str = None
+    metaobject: str = None
 
 
 @dataclass
 class Bulk:
     """Object to contain Bulk expression data."""
 
-    genename: str = None  # noqa: N815
-    geneid: str = None  # noqa: N815
-    exprnames: List[str] = None  # noqa: N815
-    exprvalues: List[float] = None  # noqa: N815
-    weightvalues: List[float] = None  # noqa: N815
-    ingestid: str = None  # noqa: N815
+    genename: str = None
+    geneid: str = None
+    exprnames: list[str] = None
+    exprvalues: list[float] = None
+    weightvalues: list[float] = None
+    ingestid: str = None
 
 
 class GeneExpressionDatabaseClient:
@@ -168,7 +168,7 @@ class GeneExpressionDatabaseClient:
         self.url = url
         self.auth_proxy = auth_proxy
 
-    def search(self, drequest: DataRequest) -> List[DataResult]:
+    def search(self, drequest: DataRequest) -> list[DataResult]:
         """Do a gene expression search on the Gene Expression Database.
 
         using fields available in the DataRequest object.
@@ -183,7 +183,7 @@ class GeneExpressionDatabaseClient:
         # Need to write test to check.
         return [self._class_from_args(DataResult, item) for item in response.json()]
 
-    def search_expression(self, drequest: DataRequest) -> List[StrainResult]:
+    def search_expression(self, drequest: DataRequest) -> list[StrainResult]:
         """Do a gene expression search on the Gene Expression Database.
 
         using fields available in the DataRequest object.
@@ -202,7 +202,7 @@ class GeneExpressionDatabaseClient:
         # Need to write test to check.
         return [self._class_from_args(StrainResult, item) for item in response.json()]
 
-    def distinct(self, field: str) -> Set[str]:
+    def distinct(self, field: str) -> set[str]:
         """Get list of unique fields from metadata.
 
         @param field: For instance to get the
@@ -211,15 +211,15 @@ class GeneExpressionDatabaseClient:
         e.g. https://geneweaver-dev.jax.org/gedb/ under
         meta/distinct/strain.
         """
-        url = "{}/{}".format(self._get_distinct_url(), field)
+        url = f"{self._get_distinct_url()}/{field}"
 
         response = self._get(url)
 
         return response.json()
 
-    def get_meta(self, tissue: str) -> List[Metadata]:
+    def get_meta(self, tissue: str) -> list[Metadata]:
         """Get metadata from database."""
-        url = "{}/{}".format(self._get_meta_url(), tissue)
+        url = f"{self._get_meta_url()}/{tissue}"
         response = self._get(url)
         return [self._class_from_args(Metadata, item) for item in response.json()]
 
@@ -234,7 +234,7 @@ class GeneExpressionDatabaseClient:
         Reads full data for a given ingest_id, inefficient and slow.
         Do not use, too slow, use search and
         """
-        url = "{}/{}".format(self._get_bulk_url(), ingest_id)
+        url = f"{self._get_bulk_url()}/{ingest_id}"
 
         with requests.Session() as s:
             download = s.get(url)
@@ -243,8 +243,8 @@ class GeneExpressionDatabaseClient:
             return frame
 
     def sort_by_field(
-        self, prop: str, expressions: List[DataResult]
-    ) -> Mapping[str, List[DataResult]]:
+        self, prop: str, expressions: list[DataResult]
+    ) -> Mapping[str, list[DataResult]]:
         """Sort the data results by any of their properties.
 
         @param property: String e.g. "strain" to sort by strain
@@ -254,7 +254,7 @@ class GeneExpressionDatabaseClient:
         for dr in expressions:
             pvalue = getattr(dr, prop)
 
-            collection = ret.get(pvalue, None)
+            collection = ret.get(pvalue)
             if collection is None:
                 collection = []
                 ret[pvalue] = collection
@@ -268,37 +268,33 @@ class GeneExpressionDatabaseClient:
         """Convert a dictionary of gene expression to frame."""
         res: StrainResult = data[strain]
 
-        ids: List[str] = res.gene_ids
-        exprs: List[float] = res.strain_expressions[
-            "{}@{}".format(indiv_name, sex.name)
-        ]
+        ids: list[str] = res.gene_ids
+        exprs: list[float] = res.strain_expressions[f"{indiv_name}@{sex.name}"]
         ret: DataFrame = pandas.DataFrame(
             {"gene_id": numpy.array(ids), "expr": numpy.array(exprs)}
         )
         return ret
 
-    def random(self, ingest_id: str, size: int, count: int = 1) -> List[DataFrame]:
+    def random(self, ingest_id: str, size: int, count: int = 1) -> list[DataFrame]:
         """Get a random gene expression frame.
 
         @param ingest_id: from which we ingested data
         @param size: size of the geneset
         """
-        url = "{}/{}?gsize={}&random_size={}".format(
-            self._get_random_url(), ingest_id, size, count
-        )
+        url = f"{self._get_random_url()}/{ingest_id}?gsize={size}&random_size={count}"
         response = self._get(url)
 
-        csv_data: List[str] = list(response.text.split("\n"))
+        csv_data: list[str] = list(response.text.split("\n"))
 
         # We return them as one long array which should be faster on the BQ side.
         # Then we split them into sections of size count
-        ret: List[List[str]] = self._split_list(csv_data, size)
+        ret: list[list[str]] = self._split_list(csv_data, size)
 
         return [self._frame(r) for r in ret]
 
     def random_spearmanrho(
-        self, ingest_id: str, scores: List[float], r_size: int = 1, timeout: int = 3600
-    ) -> List[float]:
+        self, ingest_id: str, scores: list[float], r_size: int = 1, timeout: int = 3600
+    ) -> list[float]:
         """Get a random gene expression frame and process random rhos.
 
         @param ingest_id: from which we ingested data
@@ -310,14 +306,14 @@ class GeneExpressionDatabaseClient:
         )
         response = self._post(url, nvr.__dict__, timeout=timeout)
 
-        rhos: List[float] = response.json()
+        rhos: list[float] = response.json()
 
         return rhos
 
-    def _split_list(self, lst: List, chunk_size: int) -> List[List]:
+    def _split_list(self, lst: list, chunk_size: int) -> list[list]:
         return list(zip(*[iter(lst)] * chunk_size))
 
-    def _frame(self, randoms: List[str]) -> DataFrame:
+    def _frame(self, randoms: list[str]) -> DataFrame:
         # Make them into a frame.
         csv_content = "\n".join(randoms) + "\n"
         csv_content = "{}{}".format("indiv_name,score\n", csv_content)
@@ -352,9 +348,7 @@ class GeneExpressionDatabaseClient:
             cookies = {"_oauth2_proxy": self.auth_proxy}
 
         with requests.Session() as s:
-            response = s.post(
-                url, None, postable_object, cookies=cookies, timeout=timeout
-            )
+            response = s.post(url, None, postable_object, cookies=cookies, timeout=timeout)
 
             if not response.ok:
                 response.raise_for_status()
@@ -385,7 +379,7 @@ class GeneExpressionDatabaseClient:
         # it is easier to use the debugger and
         # check the dict
         gene_values = OrderedDict()
-        with open(path, "r") as file:
+        with open(path) as file:
             # reading each line from original text file
             for line in file.readlines():
                 line = line.strip()

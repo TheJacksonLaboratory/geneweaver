@@ -1,13 +1,13 @@
 """Utility functions for prompting the user to enter a list of values."""
 
-from typing import List, Optional, TypeVar, get_args, get_origin
+from typing import TypeVar, get_args, get_origin
 
 import typer
 
 T = TypeVar("T")
 
 
-def prompt_for_list_selection(field_type: T, allow_none: bool = False) -> List[T]:
+def prompt_for_list_selection(field_type: T, allow_none: bool = False) -> list[T]:
     """Prompt the user to enter a list of values.
 
     :param field_type: A list of strings or integers, treated as strings if not
@@ -27,8 +27,7 @@ def prompt_for_list_selection(field_type: T, allow_none: bool = False) -> List[T
     items = []
     while True:
         item = typer.prompt(
-            f"Enter a {'number' if is_int_type else 'string'} "
-            "(or just enter to finish): ",
+            f"Enter a {'number' if is_int_type else 'string'} (or just enter to finish): ",
             type=element_type,
             default="",
         )
@@ -53,9 +52,7 @@ def is_list_of_str_or_int(field_type: T) -> bool:
     return False
 
 
-def prompt_if_list_contains_duplicates(
-    list_to_check: list, message: Optional[str]
-) -> None:
+def prompt_if_list_contains_duplicates(list_to_check: list, message: str | None) -> None:
     """Prompt the user if the given list contains duplicates.
 
     :param list_to_check: The list to check for duplicates.

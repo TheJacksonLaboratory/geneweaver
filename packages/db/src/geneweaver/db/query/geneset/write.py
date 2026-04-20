@@ -1,7 +1,5 @@
 """SQL query generation code for writing genesets."""
 
-from typing import List, Optional, Tuple
-
 from geneweaver.core.enum import GeneIdentifier, GenesetTier, Species
 from geneweaver.core.schema.gene import GeneValue
 from geneweaver.core.schema.score import GenesetScoreType
@@ -19,9 +17,9 @@ def add(
     score: GenesetScoreType,
     gene_id_type: GeneIdentifier,
     description: str = "",
-    publication_id: Optional[int] = None,
-    attribution: Optional[str] = None,
-) -> Tuple[Composed, dict]:
+    publication_id: int | None = None,
+    attribution: str | None = None,
+) -> tuple[Composed, dict]:
     """Add a geneset to the database.
 
     :param user_id: The user ID of the geneset owner.
@@ -58,9 +56,9 @@ def add(
     """
     )
 
-    query = (
-        SQL("INSERT INTO geneset") + query_cols + query_vals + SQL("RETURNING gs_id")
-    ).join(" ")
+    query = (SQL("INSERT INTO geneset") + query_cols + query_vals + SQL("RETURNING gs_id")).join(
+        " "
+    )
 
     params = {
         "usr_id": user_id,
@@ -84,9 +82,9 @@ def add(
 
 
 def add_geneset_file(
-    values: List[GeneValue],
+    values: list[GeneValue],
     comments: str = "",
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Render and add a geneset file to the database.
 
     This function takes a list of gene values and renders them into a string
@@ -105,7 +103,7 @@ def add_geneset_file_raw(
     size: int,
     contents: str,
     comments: str,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Add a geneset file to the database.
 
     :param size: The size of the file.
@@ -123,7 +121,7 @@ def add_geneset_file_raw(
     return query, params
 
 
-def reparse_geneset_file(geneset_id: int) -> Tuple[Composed, dict]:
+def reparse_geneset_file(geneset_id: int) -> tuple[Composed, dict]:
     """Call the `reparse_geneset_file` function in the database.
 
     :param geneset_id: The ID of the geneset to reparse.
@@ -137,15 +135,14 @@ def reparse_geneset_file(geneset_id: int) -> Tuple[Composed, dict]:
     return query, params
 
 
-def process_thresholds(geneset_id: int) -> Tuple[Composed, dict]:
+def process_thresholds(geneset_id: int) -> tuple[Composed, dict]:
     """Call the `process_thresholds` function in the database.
 
     :param geneset_id: The ID of the geneset to process.
     :return: A query (and params) that can be executed on a cursor.
     """
     query = (
-        SQL("SELECT")
-        + SQL("production.process_thresholds($(process_thresholds__geneset_id));")
+        SQL("SELECT") + SQL("production.process_thresholds($(process_thresholds__geneset_id));")
     ).join(" ")
     params = {"process_thresholds__geneset_id": geneset_id}
     return query, params

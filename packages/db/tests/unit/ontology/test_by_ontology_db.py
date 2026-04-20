@@ -25,9 +25,7 @@ from tests.unit.testing_utils import (
         ["g", "h", "i"],
     ],
 )
-def test_get_ontology_by_ontology_db(
-    ontology_db_id, limit, offset, ontologies_resp, cursor
-):
+def test_get_ontology_by_ontology_db(ontology_db_id, limit, offset, ontologies_resp, cursor):
     """Test the ontology.by_ontology_db function."""
     cursor.fetchall.return_value = ontologies_resp
 
@@ -80,9 +78,7 @@ test_get_execute_raises_error = create_execute_raises_error_test(by_ontology_db,
 
 test_get_fetchall_raises_error = create_fetchall_raises_error_test(by_ontology_db, 1)
 
-test_get_execute_raises_error = async_create_execute_raises_error_test(
-    async_by_ontology_db, 1
-)
+test_get_execute_raises_error = async_create_execute_raises_error_test(async_by_ontology_db, 1)
 
 test_async_get_fetchall_raises_error = async_create_fetchall_raises_error_test(
     async_by_ontology_db, 1

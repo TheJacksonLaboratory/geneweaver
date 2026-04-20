@@ -1,15 +1,11 @@
 """A module that marshals access to specific file type parsing."""
 
-from typing import List, Optional, Tuple
-
 from geneweaver.core.parse import csv, utils, xlsx
 from geneweaver.core.parse.exceptions import UnsupportedFileTypeError
 from geneweaver.core.types import DictRow, StringOrPath
 
 
-def get_headers(
-    file_path: StringOrPath, sheet_name: Optional[str] = None
-) -> Tuple[List[str], int]:
+def get_headers(file_path: StringOrPath, sheet_name: str | None = None) -> tuple[list[str], int]:
     """Retrieve the header row from a CSV or Excel file.
 
     This function first determines the file type (CSV or Excel) and then uses
@@ -41,9 +37,9 @@ def get_headers(
 def read_rows(
     file_path: StringOrPath,
     n_rows: int,
-    sheet_name: Optional[str] = None,
+    sheet_name: str | None = None,
     start_row: int = 0,
-) -> List[List[str]]:
+) -> list[list[str]]:
     """Read n rows of data from a CSV or Excel file."""
     data = []
     file_type = utils.get_file_type(file_path)
@@ -65,9 +61,9 @@ def read_rows(
 def read_metadata(
     file_path: StringOrPath,
     n_rows: int,
-    sheet_name: Optional[str] = None,
+    sheet_name: str | None = None,
     start_row: int = 0,
-) -> List[str]:
+) -> list[str]:
     """Read the metadata from a CSV or Excel file.
 
     :param file_path: The file path to the CSV or Excel file.
@@ -80,20 +76,12 @@ def read_metadata(
     """
     rows = read_rows(file_path, n_rows, sheet_name, start_row)
     return [
-        ",".join(
-            [
-                str(r).replace("\ufeff", "").strip()
-                for r in row
-                if r != "" and r is not None
-            ]
-        )
+        ",".join([str(r).replace("\ufeff", "").strip() for r in row if r != "" and r is not None])
         for row in rows
     ]
 
 
-def data_file_to_dict(
-    file_path: StringOrPath, sheet_name: Optional[str] = None
-) -> List[DictRow]:
+def data_file_to_dict(file_path: StringOrPath, sheet_name: str | None = None) -> list[DictRow]:
     """Parse a CSV or Excel file into a list of dictionaries.
 
     Parse a CSV or Excel file into a list of dictionaries, with keys as column names and
@@ -124,8 +112,8 @@ def data_file_to_dict_n_rows(
     file_path: StringOrPath,
     n: int,
     start_row: int = 0,
-    sheet_name: Optional[str] = None,
-) -> List[DictRow]:
+    sheet_name: str | None = None,
+) -> list[DictRow]:
     """Parse n lines of a CSV or Excel file into a list of dictionaries.
 
     Parse a CSV or Excel file into a list of dictionaries, with keys as column names and

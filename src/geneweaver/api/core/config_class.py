@@ -1,7 +1,5 @@
 """Namespace for the config class for the Geneweaver API."""
 
-from typing import List, Optional
-
 from geneweaver.db.core.settings_class import Settings as DBSettings
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,7 +18,7 @@ class GeneweaverAPIConfig(BaseSettings):
     DB_PASSWORD: str
     DB_NAME: str
     DB_PORT: int = 5432
-    DB: Optional[DBSettings] = None
+    DB: DBSettings | None = None
 
     @model_validator(mode="after")
     def assemble_db_settings(self) -> Self:
@@ -42,7 +40,7 @@ class GeneweaverAPIConfig(BaseSettings):
 
     AUTH_DOMAIN: str = "thejacksonlaboratory.auth0.com"
     AUTH_AUDIENCE: str = "https://cube.jax.org"
-    AUTH_ALGORITHMS: List[str] = ["RS256"]
+    AUTH_ALGORITHMS: list[str] = ["RS256"]
     AUTH_EMAIL_CLAIM: str = "email"
     AUTH_SCOPES: dict = {
         "openid profile email": "read",

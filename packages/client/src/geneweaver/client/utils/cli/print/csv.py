@@ -2,10 +2,10 @@
 
 import csv
 import io
-from typing import Any, Dict, List
+from typing import Any
 
 
-def format_csv(data: List[Dict[str, Any]], with_header: bool = False) -> str:
+def format_csv(data: list[dict[str, Any]], with_header: bool = False) -> str:
     """Format a list of dictionaries as a csv file.
 
     :param data: A list of dictionaries to format as a csv file.

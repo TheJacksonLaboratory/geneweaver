@@ -1,16 +1,12 @@
 """Functions that wrap the GeneWeaver API on /genesets endpoints."""
 
-from typing import Optional
-
 from geneweaver.client.api.utils import format_endpoint, sessionmanager
 from geneweaver.core.enum import GeneIdentifier
 
 ENDPOINT = "genesets"
 
 
-def get(
-    access_token: str, geneset_id: int, gene_id_type: Optional[GeneIdentifier] = None
-) -> dict:
+def get(access_token: str, geneset_id: int, gene_id_type: GeneIdentifier | None = None) -> dict:
     """Get a Geneset by ID.
 
     :param access_token: User access token
@@ -31,8 +27,8 @@ def get(
 def get_values(
     access_token: str,
     geneset_id: int,
-    gene_id_type: Optional[GeneIdentifier] = None,
-    in_threshold: Optional[bool] = None,
+    gene_id_type: GeneIdentifier | None = None,
+    in_threshold: bool | None = None,
 ) -> dict:
     """Get a Geneset's values by the Geneset ID.
 

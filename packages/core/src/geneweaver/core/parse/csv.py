@@ -2,15 +2,13 @@
 
 import csv
 import itertools
-from typing import Dict, List, TextIO, Tuple, Union
+from typing import TextIO
 
 from geneweaver.core.parse.exceptions import EmptyFileError
 from geneweaver.core.types import StringOrPath
 
 
-def find_header(
-    file_path: StringOrPath, max_rows_to_check: int = 5
-) -> Tuple[bool, int]:
+def find_header(file_path: StringOrPath, max_rows_to_check: int = 5) -> tuple[bool, int]:
     """Determine if a CSV (.csv) file has a header row.
 
     This function will check up to 'max_rows_to_check' rows from the top to find a
@@ -27,7 +25,7 @@ def find_header(
     :returns: First index - True if a header row is found, False otherwise.
               Second index - The index of the header row if found, otherwise -1.
     """
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         reader = csv.reader(f)
         for i, row in enumerate(reader):
             if i >= max_rows_to_check:
@@ -55,7 +53,7 @@ def has_header(file_path: StringOrPath, max_rows_to_check: int = 5) -> bool:
     return find_header(file_path, max_rows_to_check)[0]
 
 
-def get_headers(file_path: StringOrPath) -> Tuple[List[str], int]:
+def get_headers(file_path: StringOrPath) -> tuple[list[str], int]:
     """Read the first row from a CSV file and return it as a list of strings.
 
     Assumes that the first row of the CSV file is the header row.
@@ -72,7 +70,7 @@ def get_headers(file_path: StringOrPath) -> Tuple[List[str], int]:
     return headers, header_idx
 
 
-def read_row(file_path: StringOrPath, row_idx: int = 0) -> List[str]:
+def read_row(file_path: StringOrPath, row_idx: int = 0) -> list[str]:
     """Get the contents of a row from a CSV file.
 
     :param file_path: The file path to the CSV file.
@@ -114,9 +112,7 @@ def get_csv_dict_reader(file: TextIO, start_row: int) -> csv.DictReader:
     return csv.DictReader(file, fieldnames=header)
 
 
-def read_to_dict(
-    file_path: StringOrPath, start_row: int = 0
-) -> List[Dict[str, Union[str, int]]]:
+def read_to_dict(file_path: StringOrPath, start_row: int = 0) -> list[dict[str, str | int]]:
     """Read a CSV file and return its contents as a list of dictionaries.
 
     Each dictionary in the list corresponds to a row in the CSV file, and the keys
@@ -129,7 +125,7 @@ def read_to_dict(
 
     :returns: List of dictionaries representing the CSV file.
     """
-    with open(file_path, mode="r") as infile:
+    with open(file_path) as infile:
         dict_reader = get_csv_dict_reader(infile, start_row)
         data = [dict(row) for row in dict_reader]
     return data
@@ -137,7 +133,7 @@ def read_to_dict(
 
 def read_to_dict_n_rows(
     file_path: StringOrPath, n: int, start_row: int = 0
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Parse n lines of a CSV file into a dictionary.
 
     Parse a CSV file into a dictionary, with keys as column names and values as column
@@ -152,7 +148,7 @@ def read_to_dict_n_rows(
     :returns: A list of dictionaries, where each dictionary represents a row from the
     CSV file.
     """
-    with open(file_path, mode="r") as infile:
+    with open(file_path) as infile:
         dict_reader = get_csv_dict_reader(infile, start_row)
         data = list(itertools.islice(dict_reader, n))
         if len(data) == 0:

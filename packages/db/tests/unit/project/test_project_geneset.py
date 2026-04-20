@@ -23,9 +23,7 @@ def test_add_geneset_to_project(project_id, geneset_id, cursor):
     """Test the project.add_geneset_to_project function."""
     cursor.fetchone.return_value = (1, 1)
 
-    result = add_geneset_to_project(
-        cursor=cursor, project_id=project_id, geneset_id=geneset_id
-    )
+    result = add_geneset_to_project(cursor=cursor, project_id=project_id, geneset_id=geneset_id)
     assert result == (1, 1)
     assert cursor.execute.call_count == 1
     assert cursor.fetchone.call_count == 1
@@ -77,13 +75,9 @@ async def test_async_delete_geneset_from_project(project_id, geneset_id, async_c
     assert async_cursor.fetchall.call_count == 0
 
 
-test_add_execute_raises_error = create_execute_raises_error_test(
-    add_geneset_to_project, 1, 1
-)
+test_add_execute_raises_error = create_execute_raises_error_test(add_geneset_to_project, 1, 1)
 
-test_add_fetchone_raises_error = create_fetchone_raises_error_test(
-    add_geneset_to_project, 1, 1
-)
+test_add_fetchone_raises_error = create_fetchone_raises_error_test(add_geneset_to_project, 1, 1)
 
 test_async_add_execute_raises_error = async_create_execute_raises_error_test(
     async_add_geneset_to_project, 1, 1
@@ -93,9 +87,7 @@ test_async_add_fetchone_raises_error = async_create_fetchone_raises_error_test(
     async_add_geneset_to_project, 1, 1
 )
 
-test_add_execute_raises_error = create_execute_raises_error_test(
-    delete_geneset_from_project, 1, 1
-)
+test_add_execute_raises_error = create_execute_raises_error_test(delete_geneset_from_project, 1, 1)
 
 test_add_fetchone_raises_error = create_fetchone_raises_error_test(
     delete_geneset_from_project, 1, 1

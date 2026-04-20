@@ -1,7 +1,7 @@
 """API related utilities, helpers, and other internal functions."""
 
 from contextlib import contextmanager
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from geneweaver.client.api.exc import GeneweaverAPIError
@@ -9,14 +9,16 @@ from geneweaver.client.core.config import settings
 
 
 def _raise_for_status_hook(
-    response: requests.Response, *args: Any, **kwargs: Any  # noqa: ANN401
+    response: requests.Response,
+    *args: Any,
+    **kwargs: Any,
 ) -> None:
     """Have request responses raise an exception for non-200 status codes."""
     response.raise_for_status()
 
 
 @contextmanager
-def sessionmanager(token: Optional[str] = None) -> requests.Session:
+def sessionmanager(token: str | None = None) -> requests.Session:
     """Context manager for a requests.Session object.
 
     This context manager will do everything that a requests.Session context manager
@@ -33,9 +35,7 @@ def sessionmanager(token: Optional[str] = None) -> requests.Session:
         except requests.exceptions.RequestException as err:
             # TODO: We SHOULD try extracting the error message from the response,
             #  could even check the JSON.
-            err_str = (
-                f"There was a problem calling the Geneweaver API: {err.response.text}"
-            )
+            err_str = f"There was a problem calling the Geneweaver API: {err.response.text}"
             raise GeneweaverAPIError(err_str) from err
         finally:
             session.close()

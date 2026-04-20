@@ -1,7 +1,5 @@
 """Module for all geneset query generation functions."""
 
-# ruff: noqa: F401
-
 from geneweaver.db.query.geneset.const import (
     GENESET_FIELDS,
     GENESET_TSVECTOR,

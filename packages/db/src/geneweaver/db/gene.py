@@ -1,6 +1,6 @@
 """Database interaction code relating to Gene IDs."""
 
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db.query import gene as gene_query
@@ -10,13 +10,13 @@ from psycopg.sql import SQL
 
 def get(
     cursor: Cursor,
-    reference_id: Optional[str] = None,
-    gene_database: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-    preferred: Optional[bool] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List:
+    reference_id: str | None = None,
+    gene_database: GeneIdentifier | None = None,
+    species: Species | None = None,
+    preferred: bool | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list:
     """Get genes from the database.
 
     :param cursor: The database cursor.
@@ -46,7 +46,7 @@ def get(
 def get_preferred(
     cursor: Cursor,
     gene_id: int,
-) -> Optional[rows.Row]:
+) -> rows.Row | None:
     """Get the preferred gene from the database for a given ode_id.
 
     :param cursor: The database cursor.
@@ -66,10 +66,10 @@ def get_preferred(
 
 def mapping(
     cursor: Cursor,
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
     target_gene_id_type: GeneIdentifier,
-) -> List:
+) -> list:
     """Get gene mappings from the database.
 
     This method works _within_ a species.
@@ -94,9 +94,9 @@ def mapping(
 
 def aon_mapping(
     cursor: Cursor,
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
-) -> List:
+) -> list:
     """Get gene mappings in the default identifier type for that species in AON.
 
     This method works _within_ a species.
@@ -122,7 +122,7 @@ def aon_mapping(
 # --------------------------------------------------------------------------------------
 
 
-def id_types(cursor: Cursor, species: Optional[Species] = None) -> List:
+def id_types(cursor: Cursor, species: Species | None = None) -> list:
     """Get all the Gene ID types from the database.
 
     :param cursor: The database cursor.
@@ -149,7 +149,7 @@ def id_types(cursor: Cursor, species: Optional[Species] = None) -> List:
 INFO_BY_GENE_ID_SQL = "SELECT * FROM extsrc.gene_info WHERE ode_gene_id = %(gene_id)s;"
 
 
-def info_by_gene_id(cursor: Cursor, gene_id: int) -> List:
+def info_by_gene_id(cursor: Cursor, gene_id: int) -> list:
     """Get Gene ID type info by gene id.
 
     :param cursor: The database cursor.
@@ -161,7 +161,7 @@ def info_by_gene_id(cursor: Cursor, gene_id: int) -> List:
     return cursor.fetchall()
 
 
-def gene_database_by_id(cursor: Cursor, genedb_id: GeneIdentifier) -> List:
+def gene_database_by_id(cursor: Cursor, genedb_id: GeneIdentifier) -> list:
     """Get all gene database info by gene database id.
 
     :param cursor: The database cursor.
@@ -176,7 +176,7 @@ def gene_database_by_id(cursor: Cursor, genedb_id: GeneIdentifier) -> List:
     return cursor.fetchall()
 
 
-def gene_database_id(cursor: Cursor, identifier: GeneIdentifier) -> List:
+def gene_database_id(cursor: Cursor, identifier: GeneIdentifier) -> list:
     """Get all gene database info by gene database name.
 
     :param cursor: The database cursor.
@@ -191,7 +191,7 @@ def gene_database_id(cursor: Cursor, identifier: GeneIdentifier) -> List:
     return cursor.fetchall()
 
 
-def symbols_by_geneset_id(cursor: Cursor, geneset_id: int) -> List:
+def symbols_by_geneset_id(cursor: Cursor, geneset_id: int) -> list:
     """Get all gene symbols associated with a specific geneset id.
 
     :param cursor: The database cursor.
@@ -213,7 +213,7 @@ def symbols_by_geneset_id(cursor: Cursor, geneset_id: int) -> List:
     return cursor.fetchall()
 
 
-def symbols_by_project_id(cursor: Cursor, project_id: int) -> List:
+def symbols_by_project_id(cursor: Cursor, project_id: int) -> list:
     """Get all gene symbols associated with a specific project id.
 
     :param cursor: The database cursor.
@@ -238,7 +238,7 @@ def symbols_by_project_id(cursor: Cursor, project_id: int) -> List:
 
 def get_homolog_ids_by_ode_id(
     cursor: Cursor, ode_gene_ids: Iterable[str], identifier: GeneIdentifier
-) -> List:
+) -> list:
     """Get all homolog ids associated with a specific gene id.
 
     :param cursor: The database cursor.
@@ -267,9 +267,9 @@ def get_homolog_ids(
     cursor: Cursor,
     source_ids: Iterable[str],
     result_identifier: GeneIdentifier,
-    source_identifier: Optional[GeneIdentifier] = None,
-    result_species: Optional[Species] = None,
-    source_species: Optional[Species] = None,
+    source_identifier: GeneIdentifier | None = None,
+    result_species: Species | None = None,
+    source_species: Species | None = None,
     only_preferred_ids: bool = True,
 ) -> list:
     """Get homologous GeneIDs for a list of source IDs.

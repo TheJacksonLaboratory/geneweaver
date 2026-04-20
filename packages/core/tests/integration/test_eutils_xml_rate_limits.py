@@ -35,8 +35,6 @@ def test_rate_for_eutils_publication_endpoint(num_times, rate):
 @pytest.mark.parametrize(("num_times", "rate"), N_RATE_TEST_ARGS)
 def test_rate_for_get_xml_for_pubmed_id(num_times, rate):
     """Test rate for get_xml_for_pubmed_id."""
-    results = call_function(
-        get_xml_for_pubmed_id, num_times, rate, iterate_args=PUBMED_IDS
-    )
+    results = call_function(get_xml_for_pubmed_id, num_times, rate, iterate_args=PUBMED_IDS)
     for response in results:
         assert response is not None, response

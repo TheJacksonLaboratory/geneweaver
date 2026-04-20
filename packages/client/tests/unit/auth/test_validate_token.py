@@ -26,11 +26,11 @@ from geneweaver.client.auth import validate_token
 @pytest.mark.parametrize("valid_token", [True, False])
 def test_validate_token(example_token, valid_token):
     """Test token validation using mocks."""
-    with patch(
-        "geneweaver.client.auth.settings.AUTH_DOMAIN", "mock_auth_domain"
-    ), patch("geneweaver.client.auth.AsymmetricSignatureVerifier"), patch(
-        "geneweaver.client.auth.TokenVerifier"
-    ) as mock_tv_class:
+    with (
+        patch("geneweaver.client.auth.settings.AUTH_DOMAIN", "mock_auth_domain"),
+        patch("geneweaver.client.auth.AsymmetricSignatureVerifier"),
+        patch("geneweaver.client.auth.TokenVerifier") as mock_tv_class,
+    ):
         # Mock instances of AsymmetricSignatureVerifier and TokenVerifier
         mock_tv = mock_tv_class.return_value
 

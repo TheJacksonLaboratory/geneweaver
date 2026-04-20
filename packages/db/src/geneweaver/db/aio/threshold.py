@@ -7,9 +7,7 @@ from psycopg import AsyncCursor, rows
 
 
 @temp_override_row_factory(rows.tuple_row)
-async def user_can_set_threshold(
-    cursor: AsyncCursor, user_id: int, geneset_id: int
-) -> bool:
+async def user_can_set_threshold(cursor: AsyncCursor, user_id: int, geneset_id: int) -> bool:
     """Check if a user can set the threshold of a geneset.
 
     :param cursor: An async database cursor.
@@ -38,9 +36,7 @@ async def set_geneset_threshold(
     if not (await user_can_set_threshold(cursor, user_id, geneset_id)):
         raise ValueError("User cannot set threshold for geneset")
 
-    await cursor.execute(
-        *threshold_query.set_geneset_threshold(geneset_id, geneset_score_type)
-    )
+    await cursor.execute(*threshold_query.set_geneset_threshold(geneset_id, geneset_score_type))
     await cursor.execute(
         *threshold_query.set_geneset_value_threshold(geneset_id, geneset_score_type)
     )

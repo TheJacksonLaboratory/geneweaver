@@ -1,7 +1,7 @@
 """Utility functions for use with the CLI."""
 
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 import typer
 
@@ -10,7 +10,7 @@ def print_value_errors(func: Callable) -> Callable:
     """Print any value errors that occur in the decorated function."""
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+    def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except ValueError as e:

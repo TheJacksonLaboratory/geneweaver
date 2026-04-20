@@ -17,9 +17,7 @@ from geneweaver.client.auth import get_id_token
 )
 def test_get_id_token(token_data):
     """Test the auth.get_id_token function using mocks."""
-    with patch(
-        "geneweaver.client.auth._get_token_data_value_or_none"
-    ) as mock_get_token_data:
+    with patch("geneweaver.client.auth._get_token_data_value_or_none") as mock_get_token_data:
         # Mock return value for _get_token_data_value_or_none
         mock_get_token_data.return_value = token_data
 

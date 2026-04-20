@@ -11,8 +11,6 @@ from tests.unit.testing_utils import (
 test_get_homolog_ids_by_ode_id_execute_raises_error = create_execute_raises_error_test(
     get_homolog_ids_by_ode_id, ("1", "2"), identifier=GeneIdentifier.ENSEMBLE_GENE
 )
-test_get_homolog_ids_by_ode_id_fetchall_raises_error = (
-    create_fetchall_raises_error_test(
-        get_homolog_ids_by_ode_id, ("1", "2"), identifier=GeneIdentifier.ENSEMBLE_GENE
-    )
+test_get_homolog_ids_by_ode_id_fetchall_raises_error = create_fetchall_raises_error_test(
+    get_homolog_ids_by_ode_id, ("1", "2"), identifier=GeneIdentifier.ENSEMBLE_GENE
 )

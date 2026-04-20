@@ -1,6 +1,6 @@
 """Tests for the CSV parser module."""
 
-# ruff: noqa: B905, ANN001, ANN201
+# ruff: noqa: B905
 import tempfile
 from pathlib import Path
 
@@ -101,7 +101,7 @@ EXAMPLE_HEADER_IDX = [
 ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def csv_file() -> Path:
     """Create a temporary CSV file."""
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".csv") as temp:
@@ -230,9 +230,7 @@ def test_read_to_dict(csv_file, csv_content, expected_header_idx, expected_heade
     ("csv_content", "expected_header_idx", "expected_header"),
     zip(EXAMPLE_CSV_FILES_WITH_HEADER, EXAMPLE_HEADER_IDX, EXAMPLE_HEADERS),
 )
-def test_read_to_dict_out_of_range(
-    csv_file, csv_content, expected_header_idx, expected_header
-):
+def test_read_to_dict_out_of_range(csv_file, csv_content, expected_header_idx, expected_header):
     """Test reading a CSV file into a list of dictionaries, when out of range."""
     # Write to the temporary CSV file
     with open(csv_file, "w") as f:
@@ -249,9 +247,7 @@ def test_read_to_dict_out_of_range(
     ("csv_content", "expected_header_idx", "expected_header"),
     zip(EXAMPLE_CSV_FILES_WITH_HEADER, EXAMPLE_HEADER_IDX, EXAMPLE_HEADERS),
 )
-def test_read_to_dict_n_rows(
-    csv_file, csv_content, expected_header_idx, expected_header
-):
+def test_read_to_dict_n_rows(csv_file, csv_content, expected_header_idx, expected_header):
     """Test reading a CSV file into a list of dictionaries."""
     # Write to the temporary CSV file
     with open(csv_file, "w") as f:
@@ -269,9 +265,7 @@ def test_read_to_dict_n_rows(
     ("csv_content", "expected_header_idx", "expected_header"),
     zip(EXAMPLE_CSV_FILES_WITH_HEADER, EXAMPLE_HEADER_IDX, EXAMPLE_HEADERS),
 )
-def test_read_to_dict_n_rows_no_data(
-    csv_file, csv_content, expected_header_idx, expected_header
-):
+def test_read_to_dict_n_rows_no_data(csv_file, csv_content, expected_header_idx, expected_header):
     """Test that an error is raised when no data is found in the CSV file."""
     # Write to the temporary CSV file
     with open(csv_file, "w") as f:

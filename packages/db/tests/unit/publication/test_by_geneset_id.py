@@ -10,21 +10,17 @@ from tests.unit.testing_utils import (
     create_fetchone_raises_error_test,
 )
 
-test_by_geneset_id_execute_raises_error = create_execute_raises_error_test(
-    by_geneset_id, 1
-)
+test_by_geneset_id_execute_raises_error = create_execute_raises_error_test(by_geneset_id, 1)
 
-test_by_geneset_id_fetchone_raises_error = create_fetchone_raises_error_test(
-    by_geneset_id, 1
-)
+test_by_geneset_id_fetchone_raises_error = create_fetchone_raises_error_test(by_geneset_id, 1)
 
 
 test_async_by_geneset_id_execute_raises_error = async_create_execute_raises_error_test(
     async_by_geneset_id, 1
 )
 
-test_async_by_geneset_id_fetchone_raises_error = (
-    async_create_fetchone_raises_error_test(async_by_geneset_id, 1)
+test_async_by_geneset_id_fetchone_raises_error = async_create_fetchone_raises_error_test(
+    async_by_geneset_id, 1
 )
 
 

@@ -1,8 +1,7 @@
 """Fixture for the parse module."""
 
-# ruff: noqa: ANN001, B905
+# ruff: noqa: B905
 from pathlib import Path
-from typing import List, Tuple
 
 import pytest
 from openpyxl import Workbook, load_workbook
@@ -35,7 +34,7 @@ EXAMPLE_SHEET_NAMES = [
 @pytest.fixture(params=EXAMPLE_SHEET_NAMES)
 def multi_sheet_excel_file(
     tmp_path: Path, request: pytest.FixtureRequest
-) -> Tuple[Path, List[str]]:
+) -> tuple[Path, list[str]]:
     """Fixture for creating an Excel file with predefined sheet names."""
     # Create new workbook and add sheets
     wb = Workbook()
@@ -50,7 +49,7 @@ def multi_sheet_excel_file(
     return file_path, request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def not_an_xlsx_file(tmp_path: Path) -> Path:
     """Fixture for creating an Excel file with predefined sheet names."""
     file_path = tmp_path / "test.xlsx"
@@ -119,8 +118,8 @@ EXAMPLE_DATA = [
 
 @pytest.fixture(params=EXAMPLE_DATA)
 def multi_sheet_excel_file_w_data(
-    multi_sheet_excel_file: Tuple[Path, List[str]], request: pytest.FixtureRequest
-) -> Tuple[Path, list, list]:
+    multi_sheet_excel_file: tuple[Path, list[str]], request: pytest.FixtureRequest
+) -> tuple[Path, list, list]:
     """Fixture for creating an Excel file with predefined sheet names."""
     file_path, sheets = multi_sheet_excel_file
     workbook = load_workbook(file_path)
@@ -132,10 +131,10 @@ def multi_sheet_excel_file_w_data(
     return file_path, sheets, request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def multi_sheet_excel_file_w_data_as_dict(
-    multi_sheet_excel_file_w_data: Tuple[Path, list, list]
-) -> Tuple[Path, list, int, list]:
+    multi_sheet_excel_file_w_data: tuple[Path, list, list],
+) -> tuple[Path, list, int, list]:
     """Fixture for creating expected dict data from example data."""
     file_path, sheets, data = multi_sheet_excel_file_w_data
     data, header_index, has_header = data

@@ -2,7 +2,6 @@
 
 # ruff: noqa: B008
 import urllib.parse
-from typing import Dict, Optional, Type, Union
 
 import requests
 from fastapi import Depends, HTTPException, Request
@@ -14,21 +13,20 @@ from fastapi.security import (
     OAuth2,
     SecurityScopes,
 )
+from jose import jwt  # type: ignore
+from pydantic import ValidationError
+
 from geneweaver.api.core.exceptions import (
     Auth0UnauthenticatedException,
     Auth0UnauthorizedException,
 )
 from geneweaver.api.schemas.auth import UserInternal
-from jose import jwt  # type: ignore
-from pydantic import ValidationError
 
 
 class Auth0HTTPBearer(HTTPBearer):
     """Auth0 Specific HTTP Bearer Authentication."""
 
-    async def __call__(
-        self, request: Request
-    ) -> Optional[HTTPAuthorizationCredentials]:
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
         """Call the HTTP Bearer __call__ method."""
         return await super().__call__(request)
 
@@ -38,19 +36,17 @@ class OAuth2ImplicitBearer(OAuth2):
 
     def __init__(
         self,
-        authorizationUrl: str,  # noqa: N803
-        scopes: Optional[Dict[str, str]] = None,
-        scheme_name: Optional[str] = None,
+        authorizationUrl: str,
+        scopes: dict[str, str] | None = None,
+        scheme_name: str | None = None,
         auto_error: bool = True,
     ) -> None:
         """Initialize the OAuth2ImplicitBearer class."""
         scopes = {} if scopes is None else scopes
-        flows = OAuthFlows(
-            implicit={"authorizationUrl": authorizationUrl, "scopes": scopes}
-        )
+        flows = OAuthFlows(implicit={"authorizationUrl": authorizationUrl, "scopes": scopes})
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
-    async def __call__(self, request: Request) -> Optional[str]:
+    async def __call__(self, request: Request) -> str | None:
         """Overwrite the __call__ method to prevent useless overhead.
 
         The actual auth is done in Auth0.get_user, this scheme is just for Swagger UI.
@@ -65,12 +61,12 @@ class Auth0:
         self,
         domain: str,
         api_audience: str,
-        scopes: Union[Dict[str, str]] = None,
+        scopes: dict[str, str] = None,
         auto_error: bool = True,
         scope_auto_error: bool = True,
         email_auto_error: bool = False,
         email_claim: str = "email",
-        auth0user_model: Type[UserInternal] = UserInternal,
+        auth0user_model: type[UserInternal] = UserInternal,
     ) -> None:
         """Initialize the Auth0 class."""
         scopes = {} if scopes is None else scopes
@@ -86,7 +82,7 @@ class Auth0:
         self.auth0_user_model = auth0user_model
 
         self.algorithms = ["RS256"]
-        self.jwks: Dict = requests.get(f"https://{domain}/.well-known/jwks.json").json()
+        self.jwks: dict = requests.get(f"https://{domain}/.well-known/jwks.json").json()
 
         authorization_url_qs = urllib.parse.urlencode({"audience": api_audience})
         authorization_url = f"https://{domain}/authorize?{authorization_url_qs}"
@@ -99,9 +95,7 @@ class Auth0:
     async def public(
         self,
         security_scopes: SecurityScopes,
-        creds: Optional[HTTPAuthorizationCredentials] = Depends(
-            Auth0HTTPBearer(auto_error=False)
-        ),
+        creds: HTTPAuthorizationCredentials | None = Depends(Auth0HTTPBearer(auto_error=False)),
     ) -> bool:
         """Check if the user is public."""
         return not bool(await self.get_user(security_scopes, creds))
@@ -109,9 +103,7 @@ class Auth0:
     async def authenticated(
         self,
         security_scopes: SecurityScopes,
-        creds: Optional[HTTPAuthorizationCredentials] = Depends(
-            Auth0HTTPBearer(auto_error=False)
-        ),
+        creds: HTTPAuthorizationCredentials | None = Depends(Auth0HTTPBearer(auto_error=False)),
     ) -> bool:
         """Check if the user is authenticated."""
         try:
@@ -123,11 +115,9 @@ class Auth0:
     async def get_auth_header(
         self,
         security_scopes: SecurityScopes,
-        creds: Optional[HTTPAuthorizationCredentials] = Depends(
-            Auth0HTTPBearer(auto_error=False)
-        ),
-        auto_error_auth: Optional[bool] = False,
-    ) -> Optional[Dict[str, str]]:
+        creds: HTTPAuthorizationCredentials | None = Depends(Auth0HTTPBearer(auto_error=False)),
+        auto_error_auth: bool | None = False,
+    ) -> dict[str, str] | None:
         """Get the auth header from the token."""
         user = await self._get_user(security_scopes, creds, auto_error_auth)
         return user.auth_header if user else None
@@ -135,9 +125,7 @@ class Auth0:
     async def get_user_strict(
         self,
         security_scopes: SecurityScopes,
-        creds: Optional[HTTPAuthorizationCredentials] = Depends(
-            Auth0HTTPBearer(auto_error=False)
-        ),
+        creds: HTTPAuthorizationCredentials | None = Depends(Auth0HTTPBearer(auto_error=False)),
     ) -> UserInternal:
         """Get the user from the token, raise an exception if not found."""
         return await self._get_user(security_scopes, creds, True, disallow_public=True)
@@ -145,26 +133,20 @@ class Auth0:
     async def get_user(
         self,
         security_scopes: SecurityScopes,
-        creds: Optional[HTTPAuthorizationCredentials] = Depends(
-            Auth0HTTPBearer(auto_error=False)
-        ),
-    ) -> Optional[UserInternal]:
+        creds: HTTPAuthorizationCredentials | None = Depends(Auth0HTTPBearer(auto_error=False)),
+    ) -> UserInternal | None:
         """Get the user from the token, don't error if not found."""
         return await self._get_user(security_scopes, creds, True, disallow_public=False)
 
-    async def _get_user(  # noqa: C901
+    async def _get_user(
         self,
         security_scopes: SecurityScopes,
-        creds: Optional[HTTPAuthorizationCredentials] = Depends(
-            Auth0HTTPBearer(auto_error=False)
-        ),
-        auto_error_auth: Optional[bool] = True,
-        disallow_public: Optional[bool] = False,
-    ) -> Optional[UserInternal]:
+        creds: HTTPAuthorizationCredentials | None = Depends(Auth0HTTPBearer(auto_error=False)),
+        auto_error_auth: bool | None = True,
+        disallow_public: bool | None = False,
+    ) -> UserInternal | None:
         """Get the user from the token, don't error if not found."""
-        auto_error_auth = (
-            self.auto_error if auto_error_auth is None else auto_error_auth
-        )
+        auto_error_auth = self.auto_error if auto_error_auth is None else auto_error_auth
         logger.debug(f"`auto_error` is {'ON' if auto_error_auth else 'OFF'}")
         logger.debug(f"`disallow_public` is {'ON' if disallow_public else 'OFF'}")
         if creds is None:
@@ -180,7 +162,7 @@ class Auth0:
                 return None
 
         token = creds.credentials
-        payload: Dict = {}
+        payload: dict = {}
         try:
             unverified_header = jwt.get_unverified_header(token)
             rsa_key = {}
@@ -229,9 +211,7 @@ class Auth0:
         except Exception as e:
             logger.error(f'Handled exception decoding token: "{e}"')
             if auto_error_auth:
-                raise Auth0UnauthenticatedException(
-                    detail="Error decoding token"
-                ) from e
+                raise Auth0UnauthenticatedException(detail="Error decoding token") from e
             else:
                 return None
 
@@ -246,16 +226,13 @@ class Auth0:
                         raise Auth0UnauthorizedException(
                             detail=f'Missing "{scope}" scope',
                             headers={
-                                "WWW-Authenticate": "Bearer scope="
-                                f'"{security_scopes.scope_str}"'
+                                "WWW-Authenticate": f'Bearer scope="{security_scopes.scope_str}"'
                             },
                         )
             else:
                 # This is an unlikely case but handle it just to be safe
                 # (perhaps auth0 will change the scope format)
-                raise Auth0UnauthorizedException(
-                    detail='Token "scope" field must be a string'
-                )
+                raise Auth0UnauthorizedException(detail='Token "scope" field must be a string')
 
         try:
             self._add_auth_info(token, payload)
@@ -263,8 +240,7 @@ class Auth0:
             user = self.auth0_user_model(**payload)
             if self.email_auto_error and not user.email:
                 raise Auth0UnauthorizedException(
-                    detail="Missing email claim "
-                    '(check auth0 rule "Add email to access token")'
+                    detail='Missing email claim (check auth0 rule "Add email to access token")'
                 )
 
             logger.info(f"Successfully found user in header token: {user}")
@@ -273,9 +249,7 @@ class Auth0:
         except ValidationError as e:
             logger.error(f'Handled exception parsing Auth0User: "{e}"')
             if auto_error_auth:
-                raise Auth0UnauthorizedException(
-                    detail="Error parsing Auth0User"
-                ) from e
+                raise Auth0UnauthorizedException(detail="Error parsing Auth0User") from e
             else:
                 return None
 

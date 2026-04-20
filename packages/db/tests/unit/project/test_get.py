@@ -27,9 +27,7 @@ from tests.unit.testing_utils import (
         ["g", "h", "i"],
     ],
 )
-def test_get(
-    project_id, owner_id, name, starred, search_text, limit, offset, projects, cursor
-):
+def test_get(project_id, owner_id, name, starred, search_text, limit, offset, projects, cursor):
     """Test the project.get function."""
     cursor.fetchall.return_value = projects
 
@@ -100,6 +98,4 @@ test_get_fetchall_raises_error = create_fetchall_raises_error_test(get, 1)
 
 test_get_execute_raises_error = async_create_execute_raises_error_test(async_get, 1)
 
-test_async_get_fetchall_raises_error = async_create_fetchall_raises_error_test(
-    async_get, 1
-)
+test_async_get_fetchall_raises_error = async_create_fetchall_raises_error_test(async_get, 1)

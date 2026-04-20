@@ -62,7 +62,7 @@ def server(neo4j):
     server.stop_test_server()
 
 
-@pytest.fixture()
+@pytest.fixture
 def vgc(server):
     """Make the variant graph client.
 
@@ -76,7 +76,7 @@ def vgc(server):
     return vgc
 
 
-@pytest.fixture()
+@pytest.fixture
 def manager(server):
     """Create graph manager helper object."""
     manager = GraphManager()
@@ -112,29 +112,29 @@ class TestOrthologs:
     def test_ten_orthologs(self, vgc, manager):
         """Test."""
         _ = manager.create_orthologs(10)
-        geneset = ["ENSGTEST{}".format(i) for i in range(10)]
+        geneset = [f"ENSGTEST{i}" for i in range(10)]
         homs = vgc.get_orthologs(geneset)
         assert len(homs) == 10
 
-        expected = ["ENSMUSGTEST{}".format(i) for i in range(10)]
+        expected = [f"ENSMUSGTEST{i}" for i in range(10)]
         for hid, mid in zip(geneset, expected):
             assert homs[hid] == mid
 
     def test_no_orthologs(self, vgc, manager):
         """Test."""
         _ = manager.create_a_graph(10, connect=False)
-        geneset = ["ENSGTEST{}".format(i) for i in range(10)]
+        geneset = [f"ENSGTEST{i}" for i in range(10)]
         homs = vgc.get_orthologs(geneset)
         assert len(homs) == 0
 
     def test_ten_orthologs_larger_graph(self, vgc, manager):
         """Test."""
         _ = manager.create_a_graph(10)
-        geneset = ["ENSGTEST{}".format(i) for i in range(10)]
+        geneset = [f"ENSGTEST{i}" for i in range(10)]
         homs = vgc.get_orthologs(geneset)
         assert len(homs) == 10
 
-        expected = ["ENSMUSGTEST{}".format(i) for i in range(10)]
+        expected = [f"ENSMUSGTEST{i}" for i in range(10)]
         for hid, mid in zip(geneset, expected):
             assert homs[hid] == mid
 

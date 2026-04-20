@@ -1,6 +1,5 @@
 """Tests for the check_has_required_header_values function."""
 
-# ruff: noqa: ANN001, ANN201
 from unittest.mock import patch
 
 import pytest
@@ -60,13 +59,11 @@ def test_finalize_processed_geneset_missing_required_header(header):
 )
 def test_finalize_processed_geneset_with_mocks(header):
     """Tests finalize_processed_geneset with mocks."""
-    with patch(
-        "geneweaver.core.parse.batch.check_has_required_header_values"
-    ) as mock_check, patch(
-        "geneweaver.core.parse.batch.create_geneset"
-    ) as mock_create, patch(
-        "geneweaver.core.parse.batch.reset_required_header_values"
-    ) as mock_reset:
+    with (
+        patch("geneweaver.core.parse.batch.check_has_required_header_values") as mock_check,
+        patch("geneweaver.core.parse.batch.create_geneset") as mock_create,
+        patch("geneweaver.core.parse.batch.reset_required_header_values") as mock_reset,
+    ):
         genesets = []
         created_geneset = "geneset1"
         current_geneset_values = ["value1", "value2"]

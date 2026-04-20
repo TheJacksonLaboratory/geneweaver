@@ -1,7 +1,6 @@
 """Module for defining schemas for batch endpoints."""
 
-# ruff: noqa: N805, ANN001, ANN101, ANN401
-from typing import Any, List, Optional, Type, Union
+from typing import Any
 
 from geneweaver.core.enum import GeneIdentifierInt, MicroarrayInt, SpeciesInt
 from geneweaver.core.parse.score import parse_score
@@ -60,7 +59,7 @@ GenesetValueInput = GeneValue
 class BatchResponse(BaseModel):
     """Class for defining a response containing batch results."""
 
-    genesets: List[int]
+    genesets: list[int]
     messages: MessageResponse
 
 
@@ -78,18 +77,18 @@ class BatchUploadGeneset(BaseModel):
 
     score: GenesetScoreType
     species: SpeciesInt
-    gene_id_type: Union[GeneIdentifierInt, MicroarrayInt]
-    pubmed_id: Optional[str] = None
+    gene_id_type: GeneIdentifierInt | MicroarrayInt
+    pubmed_id: str | None = None
     private: bool = True
-    curation_id: Optional[int] = None
+    curation_id: int | None = None
     abbreviation: str
     name: str
     description: str = ""
-    values: List[GeneValue]
+    values: list[GeneValue]
 
     @field_validator("species", mode="before")
     @classmethod
-    def initialize_species(cls: Type["BatchUploadGeneset"], v: Any) -> SpeciesInt:
+    def initialize_species(cls: type["BatchUploadGeneset"], v: Any) -> SpeciesInt:
         """Initialize species."""
         if isinstance(v, SpeciesInt):
             return v
@@ -100,8 +99,8 @@ class BatchUploadGeneset(BaseModel):
     @field_validator("gene_id_type", mode="before")
     @classmethod
     def initialize_gene_id_type(
-        cls: Type["BatchUploadGeneset"], v: Any
-    ) -> Union[GeneIdentifierInt, MicroarrayInt]:
+        cls: type["BatchUploadGeneset"], v: Any
+    ) -> GeneIdentifierInt | MicroarrayInt:
         """Initialize gene id type."""
         if isinstance(v, GeneIdentifierInt) or isinstance(v, MicroarrayInt):
             return v
@@ -111,14 +110,12 @@ class BatchUploadGeneset(BaseModel):
             return GeneIdentifierInt(v)
         except KeyError:
             if isinstance(v, str):
-                return MicroarrayInt[
-                    v.upper().replace("MICROARRAY", "").strip().replace(" ", "_")
-                ]
+                return MicroarrayInt[v.upper().replace("MICROARRAY", "").strip().replace(" ", "_")]
             return MicroarrayInt(v)
 
     @field_validator("score", mode="before")
     @classmethod
-    def initialize_score(cls: Type["BatchUploadGeneset"], v: Any) -> GenesetScoreType:
+    def initialize_score(cls: type["BatchUploadGeneset"], v: Any) -> GenesetScoreType:
         """Initialize score type."""
         if isinstance(v, GenesetScoreType):
             return v
@@ -128,7 +125,7 @@ class BatchUploadGeneset(BaseModel):
 
     @field_validator("private", mode="before")
     @classmethod
-    def private_to_bool(cls: Type["BatchUploadGeneset"], v: Any) -> bool:
+    def private_to_bool(cls: type["BatchUploadGeneset"], v: Any) -> bool:
         """Convert private str to bool."""
         if isinstance(v, bool):
             return v

@@ -1,7 +1,7 @@
 """Gene schema."""
 
 import datetime
-from typing import Any, List, Optional
+from typing import Any
 
 from geneweaver.core.enum import GeneIdentifier, Species
 from pydantic import BaseModel, ConfigDict
@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 class Gene(BaseModel):
     """Gene schema."""
 
-    id: int  # noqa: A003
+    id: int
     reference_id: str
     gene_database: GeneIdentifier
     species: Species
@@ -26,8 +26,8 @@ class GeneRow(BaseModel):
     gdb_id: int
     sp_id: int
     ode_pref: bool
-    ode_date: Optional[str] = None
-    old_ode_gene_ids: Optional[List[int]] = None
+    ode_date: str | None = None
+    old_ode_gene_ids: list[int] | None = None
 
 
 class GeneValue(BaseModel):
@@ -46,7 +46,7 @@ class GeneValue(BaseModel):
         # TODO note about hashing collisions
         return hash(self.symbol)
 
-    def __eq__(self: "GeneValue", other: Any) -> bool:  # noqa: ANN401
+    def __eq__(self: "GeneValue", other: Any) -> bool:
         """Compare the gene symbol (without value)."""
         if isinstance(other, GeneValue):
             return self.symbol == other.symbol
@@ -72,4 +72,4 @@ class GeneDatabaseRow(BaseModel):
     gdb_shortname: str
     gdb_date: str
     gdb_precision: int
-    gdb_linkout_url: Optional[str] = None
+    gdb_linkout_url: str | None = None

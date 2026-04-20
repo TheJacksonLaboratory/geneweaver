@@ -7,7 +7,7 @@ from geneweaver.client.utils.cli.print.tables import print_tabular_data
 from rich.table import Table
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_console():
     """Mock the console object."""
     with patch("geneweaver.client.utils.cli.print.tables.Console") as mock:
@@ -32,9 +32,7 @@ def test_print_tabular_data(headers, rows, monkeypatch, mock_console):
     # Mocking the console.print method
     mock_print = Mock()
     mock_table = MagicMock(spec=Table)
-    monkeypatch.setattr(
-        "geneweaver.client.utils.cli.print.tables.console.print", mock_print
-    )
+    monkeypatch.setattr("geneweaver.client.utils.cli.print.tables.console.print", mock_print)
     monkeypatch.setattr("geneweaver.client.utils.cli.print.tables.Table", mock_table)
 
     # Calling the function with mock

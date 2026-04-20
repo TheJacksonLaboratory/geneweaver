@@ -7,9 +7,7 @@ from geneweaver.db.query.search.utils import search
 
 @pytest.mark.parametrize("filters", [[], ["A"], ["A", "B", "C", "D"]])
 @pytest.mark.parametrize("params", [{}, {"gs_id": 1}, {"gs_id": 1, "user_id": 1}])
-@pytest.mark.parametrize(
-    "search_text", [None, "test", "test search", "test search text"]
-)
+@pytest.mark.parametrize("search_text", [None, "test", "test search", "test search text"])
 def test_search(filters, params, search_text):
     """Test the internal _search function for geneset sql generation."""
     result = search(filters, params, GENESET_TSVECTOR, search_text)

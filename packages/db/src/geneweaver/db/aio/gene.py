@@ -1,7 +1,5 @@
 """Database interaction code relating to Gene IDs."""
 
-from typing import List, Optional
-
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db.query import gene as gene_query
 from psycopg import AsyncCursor, rows
@@ -9,13 +7,13 @@ from psycopg import AsyncCursor, rows
 
 async def get(
     cursor: AsyncCursor,
-    reference_id: Optional[str] = None,
-    gene_database: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-    preferred: Optional[bool] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List:
+    reference_id: str | None = None,
+    gene_database: GeneIdentifier | None = None,
+    species: Species | None = None,
+    preferred: bool | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list:
     """Get genes from the database.
 
     :param cursor: An async database cursor.
@@ -45,7 +43,7 @@ async def get(
 async def get_preferred(
     cursor: AsyncCursor,
     gene_id: int,
-) -> Optional[rows.Row]:
+) -> rows.Row | None:
     """Get the preferred gene from the database for a given ode_id.
 
     :param cursor: An async database cursor.
@@ -65,10 +63,10 @@ async def get_preferred(
 
 async def mapping(
     cursor: AsyncCursor,
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
     target_gene_id_type: GeneIdentifier,
-) -> List:
+) -> list:
     """Get gene mappings from the database.
 
     This method works _within_ a species.
@@ -93,9 +91,9 @@ async def mapping(
 
 async def aon_mapping(
     cursor: AsyncCursor,
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
-) -> List:
+) -> list:
     """Get gene mappings in the default identifier type for that species in AON.
 
     This method works _within_ a species.

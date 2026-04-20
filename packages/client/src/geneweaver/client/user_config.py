@@ -39,7 +39,7 @@ def get_auth_token() -> str:
     if not auth_token_file.is_file():
         return ""
 
-    with open(auth_token_file, "r") as f:
+    with open(auth_token_file) as f:
         token = f.read()
 
     return token

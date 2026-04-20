@@ -36,9 +36,7 @@ def test_link_user_id_with_sso_id_execute_raises_error(
 ) -> None:
     """Test that it raises an error when cursor.execute raises an error."""
     with pytest.raises(all_psycopg_errors, match="Error message"):
-        link_user_id_with_sso_id(
-            cursor_execute_raises_error, 1, "auth0|5f9b7b7a9a9a9a9a9a9a9a9a"
-        )
+        link_user_id_with_sso_id(cursor_execute_raises_error, 1, "auth0|5f9b7b7a9a9a9a9a9a9a9a9a")
     assert cursor_execute_raises_error.execute.call_count == 1
     assert cursor_execute_raises_error.fetchone.call_count == 0
     assert cursor_execute_raises_error.fetchall.call_count == 0
@@ -51,9 +49,7 @@ def test_link_user_id_with_sso_id_fetchone_raises_error(
 ) -> None:
     """Test that it raises an error when cursor.fetchone raises an error."""
     with pytest.raises(all_psycopg_errors, match="Error message"):
-        link_user_id_with_sso_id(
-            cursor_fetchone_raises_error, 1, "auth0|5f9b7b7a9a9a9a9a9a9a9a9a"
-        )
+        link_user_id_with_sso_id(cursor_fetchone_raises_error, 1, "auth0|5f9b7b7a9a9a9a9a9a9a9a9a")
     assert cursor_fetchone_raises_error.execute.call_count == 1
     assert cursor_fetchone_raises_error.fetchone.call_count == 1
     assert cursor_fetchone_raises_error.fetchall.call_count == 0

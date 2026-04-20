@@ -1,7 +1,5 @@
 """Models needed to work with the legacy API."""
 
-from typing import List, Optional
-
 from geneweaver.core.enum import GenesetAccess, ScoreType
 from pydantic import BaseModel, ConfigDict, HttpUrl
 
@@ -9,14 +7,14 @@ from pydantic import BaseModel, ConfigDict, HttpUrl
 class AddGenesetByUserPublication(BaseModel):
     """Publication schema for adding genesets by user."""
 
-    pub_abstract: Optional[str] = None
-    pub_authors: Optional[str] = None
-    pub_journal: Optional[str] = None
-    pub_pages: Optional[str] = None
-    pub_pubmed: Optional[str] = None
-    pub_title: Optional[str] = None
-    pub_volume: Optional[str] = None
-    pub_year: Optional[str] = None
+    pub_abstract: str | None = None
+    pub_authors: str | None = None
+    pub_journal: str | None = None
+    pub_pages: str | None = None
+    pub_pubmed: str | None = None
+    pub_title: str | None = None
+    pub_volume: str | None = None
+    pub_year: str | None = None
 
 
 class AddGenesetByUserBase(BaseModel):
@@ -28,8 +26,8 @@ class AddGenesetByUserBase(BaseModel):
     gs_name: str
     gs_threshold_type: ScoreType
     permissions: GenesetAccess
-    publication: Optional[AddGenesetByUserPublication] = None
-    select_groups: List[str]
+    publication: AddGenesetByUserPublication | None = None
+    select_groups: list[str]
     sp_id: str
     model_config = ConfigDict(use_enum_values=True)
 

@@ -1,14 +1,15 @@
 """Utility functions for prompting the user related to enums."""
 
+from collections.abc import Iterable
 from enum import Enum
-from typing import Any, Iterable, Type, TypeVar, Union, get_args
+from typing import Any, TypeVar, Union, get_args
 
 import typer
 
 E = TypeVar("E", bound=Enum)
 
 
-def is_enum_or_enum_union(field_type: Type[Any]) -> bool:
+def is_enum_or_enum_union(field_type: type[Any]) -> bool:
     """Check if the field_type is an enum or a union of enums."""
     # Check if the field_type is an enum
     try:
@@ -18,7 +19,7 @@ def is_enum_or_enum_union(field_type: Type[Any]) -> bool:
         return is_enum_union(field_type)
 
 
-def is_enum_union(field_type: Any) -> bool:  # noqa: ANN401
+def is_enum_union(field_type: Any) -> bool:
     """Check if the field_type is a union of enums.
 
     :param field_type: The type to check.
@@ -26,13 +27,13 @@ def is_enum_union(field_type: Any) -> bool:  # noqa: ANN401
     """
     if hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
         try:
-            return all((issubclass(arg, Enum) for arg in get_args(field_type)))
+            return all(issubclass(arg, Enum) for arg in get_args(field_type))
         except TypeError:
             pass
     return False
 
 
-def select_enum_from_enum_union(union_enum_type: Union[Enum]) -> Type[Enum]:
+def select_enum_from_enum_union(union_enum_type: Enum) -> type[Enum]:
     """Select an enum from a union of enums.
 
     :param union_enum_type: The union of enums to select from.
@@ -50,7 +51,7 @@ def select_enum_from_enum_union(union_enum_type: Union[Enum]) -> Type[Enum]:
 
 
 def prompt_for_enum_selection(
-    enum_class: Union[Enum, Union[Enum]],
+    enum_class: Enum | Enum,
     allow_none: bool = False,
 ) -> Enum:
     """Prompt the user to select an enum member from an enum.
@@ -76,7 +77,7 @@ def prompt_for_enum_selection(
     return _enum_member_by_index(enum_class, selected_value)
 
 
-def _format_enum_selection(enum_class: Type[Enum], enum_type: Union[str, int]) -> str:
+def _format_enum_selection(enum_class: type[Enum], enum_type: str | int) -> str:
     """Format the enum selection prompt string."""
     enum_name = format_enum_name(enum_class)
     strs = [f"\nAvailable Geneset {enum_name} Types:"]
@@ -87,7 +88,7 @@ def _format_enum_selection(enum_class: Type[Enum], enum_type: Union[str, int]) -
     return "\n".join(strs)
 
 
-def _format_enum_type_selection(enums: Iterable[Type[Enum]]) -> str:
+def _format_enum_type_selection(enums: Iterable[type[Enum]]) -> str:
     """Format the enum type selection prompt string.
 
     :param enums: The enum types to select from.
@@ -100,21 +101,18 @@ def _format_enum_type_selection(enums: Iterable[Type[Enum]]) -> str:
     return "\n".join(strs)
 
 
-def format_enum_name(enum_class: Type[Enum]) -> str:
+def format_enum_name(enum_class: type[Enum]) -> str:
     """Return the name of the enum class without the 'Geneset' or 'Type' suffix.
 
     :param enum_class (Type[Enum]): The class of the enumeration.
     :return (str): The name of the enum class without the 'Geneset' or 'Type' suffix.
     """
     return (
-        enum_class.__name__.replace("Geneset", "")
-        .replace("Type", "")
-        .replace("Enum", "")
-        .strip()
+        enum_class.__name__.replace("Geneset", "").replace("Type", "").replace("Enum", "").strip()
     )
 
 
-def _enum_member_by_index(enum_class: Type[E], index: int) -> E:
+def _enum_member_by_index(enum_class: type[E], index: int) -> E:
     """Get the enum member at the specified index from the given enum class.
 
     :param enum_class (Type[E]): The class of the enumeration.

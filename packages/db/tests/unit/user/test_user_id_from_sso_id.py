@@ -11,7 +11,8 @@ from .const import MOCK_USER_DATA
 @pytest.mark.parametrize(
     ("sso_id", "expected_result"),
     # The sso_id exists
-    [(item["usr_sso_id"], item["usr_id"]) for item in MOCK_USER_DATA] +
+    [(item["usr_sso_id"], item["usr_id"]) for item in MOCK_USER_DATA]
+    +
     # The sso_id does not exist
     [("not a real SSO id", None)],
 )

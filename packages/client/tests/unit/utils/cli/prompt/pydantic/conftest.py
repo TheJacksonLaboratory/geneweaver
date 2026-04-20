@@ -2,7 +2,6 @@
 
 from enum import Enum
 from itertools import chain, combinations
-from typing import List, Optional, Union
 
 from pydantic import BaseModel
 
@@ -28,29 +27,29 @@ class MockInternalModel(BaseModel):
 
     enum_field: MockEnum
     enum_int_field: MockIntEnum
-    union_enum_field: Union[MockEnum, MockIntEnum]
+    union_enum_field: MockEnum | MockIntEnum
 
     bool_field: bool
 
     int_field: int
-    int_field_optional: Optional[int] = None
+    int_field_optional: int | None = None
 
     float_field: float
-    float_field_optional: Optional[float] = None
+    float_field_optional: float | None = None
 
     str_field: str
-    str_field_optional: Optional[str] = None
+    str_field_optional: str | None = None
 
-    list_str_field: List[str]
-    list_str_field_optional: Optional[List[str]] = None
-    list_union_field: List[Union[str, int]]
+    list_str_field: list[str]
+    list_str_field_optional: list[str] | None = None
+    list_union_field: list[str | int]
 
 
 class MockModel(MockInternalModel):
     """Mock model for testing."""
 
     sub_model: MockInternalModel
-    sub_model_optional: Optional[MockInternalModel] = None
+    sub_model_optional: MockInternalModel | None = None
 
 
 MOCK_INTERNAL_MODEL_EXAMPLE_INSTANCE = MockInternalModel(
@@ -88,7 +87,6 @@ MOCK_EXISTING_FIELDS = list(MOCK_MODEL_EXAMPLE_INSTANCE.dict().items())
 MOCK_EXISTING_COMBINATIONS = [
     dict(e)
     for e in chain.from_iterable(
-        combinations(MOCK_EXISTING_FIELDS, r)
-        for r in range(len(MOCK_EXISTING_FIELDS) + 1)
+        combinations(MOCK_EXISTING_FIELDS, r) for r in range(len(MOCK_EXISTING_FIELDS) + 1)
     )
 ]

@@ -1,7 +1,6 @@
 """Authentication Related Schemas."""
 
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,11 +16,11 @@ class AppRoles(str, Enum):
 class User(BaseModel):
     """User model."""
 
-    email: Optional[str] = None
-    name: Optional[str] = None
+    email: str | None = None
+    name: str | None = None
     sso_id: str = Field(None, alias="sub")
-    id: int = Field(None, alias="gw_id")  # noqa: A003
-    role: Optional[AppRoles] = AppRoles.user
+    id: int = Field(None, alias="gw_id")
+    role: AppRoles | None = AppRoles.user
 
 
 class UserInternal(User):
@@ -29,6 +28,6 @@ class UserInternal(User):
 
     auth_header: dict = {}
     token: str
-    permissions: Optional[List[str]] = None
+    permissions: list[str] | None = None
 
     model_config = ConfigDict(populate_by_name=True)

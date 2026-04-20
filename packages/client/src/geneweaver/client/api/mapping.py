@@ -1,7 +1,6 @@
 """Cross-API Geneset Symbol Mapping."""
 
 import re
-from typing import List, Optional
 
 from geneweaver.client.api import aon, genes, genesets
 from geneweaver.client.utils.aon import map_symbols
@@ -13,8 +12,8 @@ def ensembl_mouse_mapping(
     access_token: str,
     geneset_id: int,
     in_threshold: bool,
-    algorithm: Optional[aon.OrthologAlgorithms] = None,
-) -> List[dict]:
+    algorithm: aon.OrthologAlgorithms | None = None,
+) -> list[dict]:
     """Get a Geneset's values as Ensembl Mouse Gene IDs.
 
     :param access_token: User access token.
@@ -33,16 +32,11 @@ def ensembl_mouse_mapping(
         try:
             gene_id_type = AON_ID_TYPE_FOR_SPECIES[species]
         except KeyError as e:
-            raise ValueError(
-                f"Species {species} is not supported for ortholog mapping"
-            ) from e
+            raise ValueError(f"Species {species} is not supported for ortholog mapping") from e
 
     response = genesets.get_values(access_token, geneset_id, gene_id_type, in_threshold)
     if species == Species.MUS_MUSCULUS:
-        result = [
-            {"gene_id": item["symbol"], "score": item["value"]}
-            for item in response["data"]
-        ]
+        result = [{"gene_id": item["symbol"], "score": item["value"]} for item in response["data"]]
 
     else:
         if algorithm:
@@ -71,10 +65,7 @@ def ensembl_mouse_mapping(
 
         ensembl_result = map_symbols(
             mgi_result,
-            [
-                (r["original_ref_id"], r["mapped_ref_id"])
-                for r in gw_map_response["gene_ids_map"]
-            ],
+            [(r["original_ref_id"], r["mapped_ref_id"]) for r in gw_map_response["gene_ids_map"]],
         )
 
         result = [{"gene_id": k, "score": v} for k, v in ensembl_result.items()]

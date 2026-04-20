@@ -10,16 +10,14 @@ class UnsupportedFileTypeError(Exception):
 class EmptyFileError(UnsupportedFileTypeError):
     """Custom exception for when a file is empty.
 
-    Attributes
+    Attributes:
     ----------
         file_path -- the path of the file that is empty
         message -- explanation of the error
 
     """
 
-    def __init__(
-        self: "EmptyFileError", file_path: str, message: str = "File is empty."
-    ) -> None:
+    def __init__(self: "EmptyFileError", file_path: str, message: str = "File is empty.") -> None:
         """Initialize the exception."""
         self.file_path = file_path
         self.message = message

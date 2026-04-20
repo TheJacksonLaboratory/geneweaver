@@ -8,28 +8,23 @@ from geneweaver.core.publication.pubmed import extract_date
 # Parameterized inputs and expected outputs
 EXAMPLE_XML_DATES = [
     (
-        "<root><PubDate><Year>2023</Year><Month>07"
-        "</Month><Day>13</Day></PubDate></root>",
+        "<root><PubDate><Year>2023</Year><Month>07</Month><Day>13</Day></PubDate></root>",
         {"year": "2023", "month": "07", "day": "13"},
     ),
     (
-        "<root><PubDate><Year>2022</Year><Month>06"
-        "</Month><Day>12</Day></PubDate></root>",
+        "<root><PubDate><Year>2022</Year><Month>06</Month><Day>12</Day></PubDate></root>",
         {"year": "2022", "month": "06", "day": "12"},
     ),
     (
-        "<root><PubDate><Year>2021</Year><Month>05"
-        "</Month><Day>11</Day></PubDate></root>",
+        "<root><PubDate><Year>2021</Year><Month>05</Month><Day>11</Day></PubDate></root>",
         {"year": "2021", "month": "05", "day": "11"},
     ),
     (
-        "<root><PubDate><Year>2020</Year><Month>04"
-        "</Month><Day>10</Day></PubDate></root>",
+        "<root><PubDate><Year>2020</Year><Month>04</Month><Day>10</Day></PubDate></root>",
         {"year": "2020", "month": "04", "day": "10"},
     ),
     (
-        "<root><PubDate><Year>2019</Year><Month>03"
-        "</Month><Day>09</Day></PubDate></root>",
+        "<root><PubDate><Year>2019</Year><Month>03</Month><Day>09</Day></PubDate></root>",
         {"year": "2019", "month": "03", "day": "09"},
     ),
     (

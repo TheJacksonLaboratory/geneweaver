@@ -78,10 +78,7 @@ def test_set_geneset_threshold(geneset_id, score_type, threshold):
     if "threshold_low" in threshold:
         assert str(threshold["threshold_low"]) in params["threshold_str"]
         assert str(threshold["threshold"]) in params["threshold_str"]
-        assert (
-            params["threshold_str"]
-            == f"{threshold['threshold_low']},{threshold['threshold']}"
-        )
+        assert params["threshold_str"] == f"{threshold['threshold_low']},{threshold['threshold']}"
     else:
         assert params["threshold_str"] == str(threshold["threshold"])
 
@@ -122,10 +119,7 @@ def test_set_geneset_threshold_error(geneset_id, score_type, threshold):
     geneset_score_type.score_type = score_type
     geneset_score_type.threshold_low = threshold["threshold_low"]
 
-    error_str = (
-        "geneset_score_type.threshold must be larger "
-        "than geneset_score_type.threshold_low"
-    )
+    error_str = "geneset_score_type.threshold must be larger than geneset_score_type.threshold_low"
 
     with pytest.raises(ValueError, match=error_str):
         set_geneset_threshold(geneset_id, geneset_score_type)

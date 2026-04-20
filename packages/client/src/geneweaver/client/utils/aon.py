@@ -1,15 +1,13 @@
 """Utilities for AON interaction."""
 
 from collections.abc import Hashable
-from typing import Dict, List, Tuple, TypeVar, Union
+from typing import TypeVar
 
-Number = TypeVar("Number", bound=Union[int, float])
+Number = TypeVar("Number", bound=int | float)
 T = TypeVar("T", bound=Hashable)
 
 
-def map_symbols(
-    original: Dict[T, Number], mappings: List[Tuple[T, T]]
-) -> Dict[T, Number]:
+def map_symbols(original: dict[T, Number], mappings: list[tuple[T, T]]) -> dict[T, Number]:
     """Map gene symbols using a list of mappings.
 
     When a human gene maps to multiple mouse genes, there should be a row for each

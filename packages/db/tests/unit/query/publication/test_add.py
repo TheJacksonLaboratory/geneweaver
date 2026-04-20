@@ -9,9 +9,7 @@ from psycopg.sql import SQL, Composed, Identifier, Placeholder
     "authors",
     ["Author 1", "Author 1, Author 2", "Author 1, Author 2, Author 3, et al."],
 )
-@pytest.mark.parametrize(
-    "title", ["Title 1", "Title 1: Subtitle", "Title 1: Subtitle, Part 2"]
-)
+@pytest.mark.parametrize("title", ["Title 1", "Title 1: Subtitle", "Title 1: Subtitle, Part 2"])
 @pytest.mark.parametrize(
     "abstract",
     [
@@ -24,18 +22,14 @@ from psycopg.sql import SQL, Composed, Identifier, Placeholder
 @pytest.mark.parametrize(
     "journal", ["Journal 1", "Journal 1: Subjournal", "Journal 1: Subjournal, Part 2"]
 )
-@pytest.mark.parametrize(
-    "pubmed_id", ["12345678", "23456789", "34567890", "45678901", "1234"]
-)
+@pytest.mark.parametrize("pubmed_id", ["12345678", "23456789", "34567890", "45678901", "1234"])
 def test_add_types(authors, title, abstract, journal, pubmed_id):
     """Test the add query generation function."""
     query, params = add(authors, title, abstract, journal, pubmed_id)
     assert isinstance(query, Composed)
     assert isinstance(params, dict)
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])
 
     for item in params.values():
         if item is not None:

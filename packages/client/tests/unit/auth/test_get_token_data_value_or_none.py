@@ -16,9 +16,7 @@ from geneweaver.client.auth import _get_token_data_value_or_none
 )
 def test_get_token_data_value_or_none(token_data, token_data_key, expected_result):
     """Test the _get_token_data_value_or_none function."""
-    with patch(
-        "geneweaver.client.auth.app_dir.get_auth_token", return_value=token_data
-    ):
+    with patch("geneweaver.client.auth.app_dir.get_auth_token", return_value=token_data):
         # Call the function and assert its return value
         result = _get_token_data_value_or_none(token_data_key)
         assert result == expected_result

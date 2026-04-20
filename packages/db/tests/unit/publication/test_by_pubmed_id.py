@@ -15,9 +15,7 @@ from tests.unit.testing_utils import (
     create_fetchone_raises_error_test,
 )
 
-test_by_pubmed_id_execute_raises_error = create_execute_raises_error_test(
-    by_pubmed_id, "12345678"
-)
+test_by_pubmed_id_execute_raises_error = create_execute_raises_error_test(by_pubmed_id, "12345678")
 
 test_by_pubmed_id_fetchone_raises_error = create_fetchone_raises_error_test(
     by_pubmed_id, "12345678"

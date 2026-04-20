@@ -1,7 +1,5 @@
 """Database code for interacting with Project table."""
 
-from typing import List, Optional
-
 from geneweaver.core.schema.project import ProjectCreate
 from geneweaver.db.query import project as project_query
 from psycopg import Cursor
@@ -10,14 +8,14 @@ from psycopg.rows import Row
 
 def get(
     cursor: Cursor,
-    project_id: Optional[int] = None,
-    owner_id: Optional[int] = None,
-    name: Optional[str] = None,
-    starred: Optional[bool] = None,
-    search_text: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    project_id: int | None = None,
+    owner_id: int | None = None,
+    name: str | None = None,
+    starred: bool | None = None,
+    search_text: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get projects from the database.
 
     :param cursor: A database cursor.
@@ -49,9 +47,9 @@ def get(
 def shared_with_user(
     cursor: Cursor,
     user_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get projects shared with the given user id.
 
     :param cursor: A database cursor.
@@ -61,9 +59,7 @@ def shared_with_user(
 
     :return: list of results using `.fetchall()`
     """
-    cursor.execute(
-        *project_query.shared_with_user(user_id=user_id, limit=limit, offset=offset)
-    )
+    cursor.execute(*project_query.shared_with_user(user_id=user_id, limit=limit, offset=offset))
 
     return cursor.fetchall()
 
@@ -73,7 +69,7 @@ def add(
     project: ProjectCreate,
     user_id: int,
     starred: bool = False,
-) -> Optional[Row]:
+) -> Row | None:
     """Add a new project.
 
     :param cursor: A database cursor
@@ -84,16 +80,12 @@ def add(
     :return: The ID of the added project
 
     """
-    cursor.execute(
-        *project_query.add(user_id=user_id, starred=starred, **project.model_dump())
-    )
+    cursor.execute(*project_query.add(user_id=user_id, starred=starred, **project.model_dump()))
 
     return cursor.fetchone()
 
 
-def add_geneset_to_project(
-    cursor: Cursor, project_id: int, geneset_id: int
-) -> Optional[Row]:
+def add_geneset_to_project(cursor: Cursor, project_id: int, geneset_id: int) -> Row | None:
     """Add a genset to a project. Insert association.
 
     :param cursor: A database cursor
@@ -103,17 +95,13 @@ def add_geneset_to_project(
     :return: record of created the association (project id, geneset id)
     """
     cursor.execute(
-        *project_query.insert_geneset_to_project(
-            project_id=project_id, geneset_id=geneset_id
-        )
+        *project_query.insert_geneset_to_project(project_id=project_id, geneset_id=geneset_id)
     )
 
     return cursor.fetchone()
 
 
-def delete_geneset_from_project(
-    cursor: Cursor, project_id: int, geneset_id: int
-) -> Optional[Row]:
+def delete_geneset_from_project(cursor: Cursor, project_id: int, geneset_id: int) -> Row | None:
     """Delete a genset from a project. Remove association.
 
     :param cursor: A database cursor
@@ -123,9 +111,7 @@ def delete_geneset_from_project(
     :return: record of the deleted association (project id, geneset id)
     """
     cursor.execute(
-        *project_query.remove_geneset_from_project(
-            project_id=project_id, geneset_id=geneset_id
-        )
+        *project_query.remove_geneset_from_project(project_id=project_id, geneset_id=geneset_id)
     )
 
     return cursor.fetchone()

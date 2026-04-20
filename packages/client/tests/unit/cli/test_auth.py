@@ -21,10 +21,14 @@ runner = CliRunner()
 )
 def test_login(reauth, auth_token_exists, raises_auth_error):
     """Test the login CLI command under various scenarios."""
-    with patch("geneweaver.client.auth.login") as mock_login, patch(
-        "geneweaver.client.cli.beta.auth.get_access_token",
-        return_value=auth_token_exists,
-    ), patch("builtins.print") as mock_print:
+    with (
+        patch("geneweaver.client.auth.login") as mock_login,
+        patch(
+            "geneweaver.client.cli.beta.auth.get_access_token",
+            return_value=auth_token_exists,
+        ),
+        patch("builtins.print") as mock_print,
+    ):
         auth_error = AuthenticationError("Login error")
         if raises_auth_error:
             mock_login.side_effect = auth_error
@@ -58,9 +62,7 @@ def test_print_identity_token():
 
 def test_print_access_token():
     """Test the print_access_token CLI command."""
-    with patch(
-        "geneweaver.client.cli.beta.auth.get_access_token"
-    ) as mock_get_access_token:
+    with patch("geneweaver.client.cli.beta.auth.get_access_token") as mock_get_access_token:
         mock_get_access_token.return_value = "access_token"
         result = runner.invoke(cli, ["print-access-token"])
         assert result.exit_code == 0, result.output

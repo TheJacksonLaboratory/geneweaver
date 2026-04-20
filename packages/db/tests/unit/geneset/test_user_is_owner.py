@@ -42,10 +42,6 @@ def test_user_is_owner_true(count_value, expected_return, cursor, example_user_i
     assert cursor.fetchall.call_count == 0
 
 
-test_user_is_owner_execute_raises_error = create_execute_raises_error_test(
-    user_is_owner, 1, 1
-)
+test_user_is_owner_execute_raises_error = create_execute_raises_error_test(user_is_owner, 1, 1)
 
-test_user_is_owner_fetchone_raises_error = create_fetchone_raises_error_test(
-    user_is_owner, 1, 1
-)
+test_user_is_owner_fetchone_raises_error = create_fetchone_raises_error_test(user_is_owner, 1, 1)

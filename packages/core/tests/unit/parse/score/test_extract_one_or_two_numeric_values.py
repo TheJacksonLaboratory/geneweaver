@@ -1,6 +1,5 @@
 """Tests for the extract_one_or_two_numeric_values function."""
 
-# ruff: noqa: ANN001, ANN201
 import pytest
 from geneweaver.core.parse.score import (
     InvalidScoreThresholdError,
@@ -80,9 +79,7 @@ def test_extract_one_or_two_numeric_values_valid(
 # Test function for invalid inputs
 @pytest.mark.parametrize("score_input", invalid_input_strings)
 @pytest.mark.parametrize(("input_transform", "output_transform"), transformations)
-def test_extract_one_or_two_numeric_values_invalid(
-    score_input, input_transform, output_transform
-):
+def test_extract_one_or_two_numeric_values_invalid(score_input, input_transform, output_transform):
     """Tests the extract_one_or_two_numeric_values function for invalid inputs."""
     transformed_input = input_transform(score_input)
     with pytest.raises(InvalidScoreThresholdError):

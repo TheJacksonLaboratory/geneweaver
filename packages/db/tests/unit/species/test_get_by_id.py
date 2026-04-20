@@ -12,9 +12,7 @@ from tests.unit.testing_utils import (
 
 test_get_by_id_execute_raises_error = create_execute_raises_error_test(get_by_id, 1234)
 
-test_get_by_id_fetchone_raises_error = create_fetchone_raises_error_test(
-    get_by_id, 1234
-)
+test_get_by_id_fetchone_raises_error = create_fetchone_raises_error_test(get_by_id, 1234)
 
 test_async_get_by_id_execute_raises_error = async_create_execute_raises_error_test(
     async_get_by_id, 1234

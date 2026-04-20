@@ -1,7 +1,5 @@
 """Utility functions for the geneset query."""
 
-from typing import Optional, Tuple
-
 from geneweaver.core.enum import GenesetTier, ScoreType, Species
 from geneweaver.core.schema.geneset import GenesetUpload
 from geneweaver.db.query.geneset.const import (
@@ -77,7 +75,7 @@ def add_ontology_query(query: Composed) -> Composed:
 
 def add_ontology_parameter(
     existing_filters: SQLList, existing_params: ParamDict, ontology_term: str
-) -> Tuple[SQLList, ParamDict]:
+) -> tuple[SQLList, ParamDict]:
     """Add the ontology term filter to the query.
 
     :param existing_filters: The existing filters.
@@ -92,9 +90,9 @@ def add_ontology_parameter(
 def is_readable(
     existing_filters: SQLList,
     existing_params: ParamDict,
-    is_readable_by: Optional[int] = None,
+    is_readable_by: int | None = None,
     gs_id_table: str = "geneset",
-) -> Tuple[SQLList, ParamDict]:
+) -> tuple[SQLList, ParamDict]:
     """Add the is_readable filter to the query.
 
     :param existing_filters: The existing filters.
@@ -104,9 +102,9 @@ def is_readable(
     """
     if is_readable_by is not None:
         existing_filters.append(
-            SQL(
-                "production.geneset_is_readable2(%(is_readable_by)s, {table}.gs_id)"
-            ).format(table=Identifier(gs_id_table))
+            SQL("production.geneset_is_readable2(%(is_readable_by)s, {table}.gs_id)").format(
+                table=Identifier(gs_id_table)
+            )
         )
         existing_params["is_readable_by"] = is_readable_by
     return existing_filters, existing_params
@@ -115,8 +113,8 @@ def is_readable(
 def restrict_tier(
     existing_filters: SQLList,
     existing_params: ParamDict,
-    curation_tier: Optional[GenesetTierOrTiers] = None,
-) -> Tuple[SQLList, ParamDict]:
+    curation_tier: GenesetTierOrTiers | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Restrict the query by curation tier.
 
     :param existing_filters: The existing filters.
@@ -134,8 +132,8 @@ def restrict_tier(
 def restrict_score_type(
     existing_filters: SQLList,
     existing_params: ParamDict,
-    score_type: Optional[GenesetScoreTypeOrScoreTypes] = None,
-) -> Tuple[SQLList, ParamDict]:
+    score_type: GenesetScoreTypeOrScoreTypes | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Restrict the query by score type.
 
     :param existing_filters: The existing filters.
@@ -153,8 +151,8 @@ def restrict_score_type(
 def restrict_species(
     existing_filters: SQLList,
     existing_params: ParamDict,
-    species: Optional[SpeciesOrSpeciesSet] = None,
-) -> Tuple[SQLList, ParamDict]:
+    species: SpeciesOrSpeciesSet | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Restrict the query by species.
 
     :param existing_filters: The existing filters.

@@ -6,9 +6,7 @@ from tests.data import test_species_data
 
 species_no_params = test_species_data.get("species_no_parameters")
 species_by_taxonomy_id_10090 = test_species_data.get("species_by_taxonomy_id_10090")
-species_by_gene_id_type_flybase = test_species_data.get(
-    "species_by_gene_id_type_flybase"
-)
+species_by_gene_id_type_flybase = test_species_data.get("species_by_gene_id_type_flybase")
 
 
 def _validate_species_response(response_item: dict, expected_item: dict) -> None:
@@ -16,10 +14,10 @@ def _validate_species_response(response_item: dict, expected_item: dict) -> None
     assert response_item["id"] == expected_item["id"]
     assert response_item["name"] == expected_item["name"]
     assert response_item["taxonomic_id"] == expected_item["taxonomic_id"]
-    assert (
-        response_item["reference_gene_identifier"]
-        == str(expected_item["reference_gene_identifier"])
-        or response_item["reference_gene_identifier"] is None
+    assert response_item["reference_gene_identifier"] == str(
+        expected_item["reference_gene_identifier"]
+    ) or (
+        response_item["reference_gene_identifier"] is None
         and expected_item["reference_gene_identifier"] is None
     )
 
@@ -56,9 +54,7 @@ def test_valid_species_url_gene_id_type_req(mock_species_service_call, client):
 
     assert response.status_code == 200
     assert isinstance(response.json(), dict)
-    _validate_species_response(
-        response.json().get("data")[0], species_by_gene_id_type_flybase
-    )
+    _validate_species_response(response.json().get("data")[0], species_by_gene_id_type_flybase)
 
 
 @patch("geneweaver.api.services.species.get_species_by_id")
@@ -69,6 +65,4 @@ def test_valid_url_species_by_id(mock_species_service_call, client):
     response = client.get(url="/api/species/5")
 
     assert response.status_code == 200
-    _validate_species_response(
-        response.json().get("object"), species_by_gene_id_type_flybase
-    )
+    _validate_species_response(response.json().get("object"), species_by_gene_id_type_flybase)

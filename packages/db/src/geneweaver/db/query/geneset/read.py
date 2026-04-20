@@ -1,7 +1,6 @@
 """SQL query generation code for reading genesets."""
 
 from datetime import date
-from typing import Optional, Tuple
 
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db.query.geneset.const import GENESET_TSVECTOR
@@ -27,30 +26,30 @@ from psycopg.sql import SQL, Composed
 
 
 def get(
-    gs_id: Optional[int] = None,
-    owner_id: Optional[int] = None,
-    curation_tier: Optional[GenesetTierOrTiers] = None,
-    species: Optional[Species] = None,
-    name: Optional[str] = None,
-    abbreviation: Optional[str] = None,
-    publication_id: Optional[int] = None,
-    pubmed_id: Optional[int] = None,
-    gene_id_type: Optional[GeneIdentifier] = None,
-    search_text: Optional[str] = None,
-    status: Optional[str] = "normal",
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    is_readable_by: Optional[int] = None,
+    gs_id: int | None = None,
+    owner_id: int | None = None,
+    curation_tier: GenesetTierOrTiers | None = None,
+    species: Species | None = None,
+    name: str | None = None,
+    abbreviation: str | None = None,
+    publication_id: int | None = None,
+    pubmed_id: int | None = None,
+    gene_id_type: GeneIdentifier | None = None,
+    search_text: str | None = None,
+    status: str | None = "normal",
+    limit: int | None = None,
+    offset: int | None = None,
+    is_readable_by: int | None = None,
     with_publication_info: bool = True,
-    ontology_term: Optional[str] = None,
-    score_type: Optional[GenesetScoreTypeOrScoreTypes] = None,
-    lte_count: Optional[int] = None,
-    gte_count: Optional[int] = None,
-    created_after: Optional[date] = None,
-    created_before: Optional[date] = None,
-    updated_after: Optional[date] = None,
-    updated_before: Optional[date] = None,
-) -> Tuple[Composed, dict]:
+    ontology_term: str | None = None,
+    score_type: GenesetScoreTypeOrScoreTypes | None = None,
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_after: date | None = None,
+    created_before: date | None = None,
+    updated_after: date | None = None,
+    updated_before: date | None = None,
+) -> tuple[Composed, dict]:
     """Get genesets.
 
     :param gs_id: Show only results with this geneset ID.
@@ -135,10 +134,10 @@ def get(
 
 def shared_with_user(
     user_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    limit: int | None = None,
+    offset: int | None = None,
     with_publication_info: bool = True,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Get Genesets that are shared with a user.
 
     NOTE: NOT IMPLEMENTED
@@ -148,11 +147,11 @@ def shared_with_user(
 
 def by_project_id(
     project_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    is_readable_by: Optional[int] = None,
+    limit: int | None = None,
+    offset: int | None = None,
+    is_readable_by: int | None = None,
     with_publication_info: bool = True,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Create a psycopg query to get genesets by project ID.
 
     :param project_id: The project ID to search for.

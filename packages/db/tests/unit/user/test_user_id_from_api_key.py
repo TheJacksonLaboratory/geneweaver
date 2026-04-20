@@ -11,7 +11,8 @@ from .const import MOCK_USER_DATA
 @pytest.mark.parametrize(
     ("apikey", "expected_result"),
     # The apikey exists
-    [(item["apikey"], item["usr_id"]) for item in MOCK_USER_DATA] +
+    [(item["apikey"], item["usr_id"]) for item in MOCK_USER_DATA]
+    +
     # The apikey does not exist
     [("not a real api key", None)],
 )

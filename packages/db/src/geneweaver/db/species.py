@@ -1,7 +1,5 @@
 """Species database functions."""
 
-from typing import List, Optional
-
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db.query import species as species_query
 from psycopg import Cursor, rows
@@ -9,10 +7,10 @@ from psycopg import Cursor, rows
 
 def get(
     cursor: Cursor,
-    taxonomic_id: Optional[int] = None,
-    reference_gene_db_id: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-) -> List:
+    taxonomic_id: int | None = None,
+    reference_gene_db_id: GeneIdentifier | None = None,
+    species: Species | None = None,
+) -> list:
     """Get species info.
 
     :param cursor: The database cursor.
@@ -36,7 +34,7 @@ def get(
 def get_by_id(
     cursor: Cursor,
     species: Species,
-) -> Optional[rows.Row]:
+) -> rows.Row | None:
     """Get species info by species id.
 
     :param cursor: The database cursor.

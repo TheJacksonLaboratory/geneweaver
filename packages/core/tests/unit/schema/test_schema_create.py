@@ -11,7 +11,7 @@ from geneweaver.core.schema.stubgenerator import StubGenerator
 from geneweaver.core.schema.user import UserFull
 
 
-@pytest.mark.xfail()
+@pytest.mark.xfail
 def test_gene_schema(gene_data: dict) -> None:
     """Test creating a gene from a dict."""
     gene = Gene(**gene_data)
@@ -55,10 +55,7 @@ def test_geneset_upload_schema(geneset_upload_data: dict) -> None:
     geneset_upload = GenesetUpload(**geneset_upload_data)
     assert geneset_upload.name == geneset_upload_data["name"]
     assert geneset_upload.abbreviation == geneset_upload_data["abbreviation"]
-    assert (
-        str(geneset_upload.score.score_type)
-        == geneset_upload_data["score"]["score_type"]
-    )
+    assert str(geneset_upload.score.score_type) == geneset_upload_data["score"]["score_type"]
     assert geneset_upload.description == geneset_upload_data["description"]
     assert geneset_upload.pubmed_id == geneset_upload_data["pubmed_id"]
     assert geneset_upload.private == geneset_upload_data["private"]

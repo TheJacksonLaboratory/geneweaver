@@ -8,9 +8,7 @@ from tests.unit.testing_utils import (
 )
 
 
-def test_by_project_id_and_user_id(
-    example_genesets, example_primary_key, example_user_id, cursor
-):
+def test_by_project_id_and_user_id(example_genesets, example_primary_key, example_user_id, cursor):
     """Test the geneset.by_project_id_and_user_id function using a mock cursor."""
     cursor.fetchall.return_value = example_genesets
     result = get(cursor, example_primary_key, example_user_id)
@@ -20,11 +18,7 @@ def test_by_project_id_and_user_id(
     assert cursor.fetchall.call_count == 1
 
 
-test_by_project_id_and_user_id_execute_raises_error = create_execute_raises_error_test(
-    get, 2, 1
-)
+test_by_project_id_and_user_id_execute_raises_error = create_execute_raises_error_test(get, 2, 1)
 
 
-test_by_project_id_and_user_id_fetchall_raises_error = (
-    create_fetchall_raises_error_test(get, 2, 1)
-)
+test_by_project_id_and_user_id_fetchall_raises_error = create_fetchall_raises_error_test(get, 2, 1)

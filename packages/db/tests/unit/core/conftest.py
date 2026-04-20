@@ -3,7 +3,7 @@
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def _monkeypatch_settings_env(monkeypatch) -> None:
     """Monkeypatch the environment variables used by the settings.config module."""
     monkeypatch.setenv("GWDB_USERNAME", "test_username")

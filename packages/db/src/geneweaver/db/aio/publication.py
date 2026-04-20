@@ -1,6 +1,6 @@
 """Database code for interacting with Publication table."""
 
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 
 from geneweaver.core.schema.publication import PublicationInfo
 from geneweaver.db.query import publication as publication_query
@@ -8,7 +8,7 @@ from psycopg import AsyncCursor, rows
 from psycopg.rows import Row
 
 
-async def by_pubmed_id(cursor: AsyncCursor, pubmed_id: int) -> Optional[rows.Row]:
+async def by_pubmed_id(cursor: AsyncCursor, pubmed_id: int) -> rows.Row | None:
     """Get a publication by PubMed ID.
 
     :param cursor: The database cursor.
@@ -20,9 +20,7 @@ async def by_pubmed_id(cursor: AsyncCursor, pubmed_id: int) -> Optional[rows.Row
     return await cursor.fetchone()
 
 
-async def by_pubmed_ids(
-    cursor: AsyncCursor, pubmed_ids: Iterable[int]
-) -> List[rows.Row]:
+async def by_pubmed_ids(cursor: AsyncCursor, pubmed_ids: Iterable[int]) -> list[rows.Row]:
     """Get publications by a list of PubMed IDs.
 
     :param cursor: The database cursor.
@@ -34,7 +32,7 @@ async def by_pubmed_ids(
     return await cursor.fetchall()
 
 
-async def by_id(cursor: AsyncCursor, pub_id: int) -> Optional[rows.Row]:
+async def by_id(cursor: AsyncCursor, pub_id: int) -> rows.Row | None:
     """Get a publication by ID.
 
     :param cursor: The database cursor.
@@ -46,7 +44,7 @@ async def by_id(cursor: AsyncCursor, pub_id: int) -> Optional[rows.Row]:
     return await cursor.fetchone()
 
 
-async def by_geneset_id(cursor: AsyncCursor, geneset_id: int) -> Optional[rows.Row]:
+async def by_geneset_id(cursor: AsyncCursor, geneset_id: int) -> rows.Row | None:
     """Get a publication by geneset ID.
 
     :param cursor: The database cursor.
@@ -58,7 +56,7 @@ async def by_geneset_id(cursor: AsyncCursor, geneset_id: int) -> Optional[rows.R
     return await cursor.fetchone()
 
 
-async def add(cursor: AsyncCursor, publication: PublicationInfo) -> Optional[rows.Row]:
+async def add(cursor: AsyncCursor, publication: PublicationInfo) -> rows.Row | None:
     """Add a publication to the database.
 
     :param cursor: The database cursor.
@@ -72,20 +70,20 @@ async def add(cursor: AsyncCursor, publication: PublicationInfo) -> Optional[row
 
 async def get(
     cursor: AsyncCursor,
-    pub_id: Optional[int] = None,
-    authors: Optional[str] = None,
-    title: Optional[str] = None,
-    abstract: Optional[str] = None,
-    journal: Optional[str] = None,
-    volume: Optional[str] = None,
-    pages: Optional[str] = None,
-    month: Optional[str] = None,
-    year: Optional[str] = None,
-    pubmed: Optional[str] = None,
-    search_text: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    pub_id: int | None = None,
+    authors: str | None = None,
+    title: str | None = None,
+    abstract: str | None = None,
+    journal: str | None = None,
+    volume: str | None = None,
+    pages: str | None = None,
+    month: str | None = None,
+    year: str | None = None,
+    pubmed: str | None = None,
+    search_text: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get publications by some criteria.
 
     :param cursor: An async database cursor.

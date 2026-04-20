@@ -13,6 +13,4 @@ def test_project_add():
         starred=False,
     )
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])

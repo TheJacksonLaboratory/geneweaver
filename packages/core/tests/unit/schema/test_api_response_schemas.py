@@ -1,7 +1,5 @@
 """Test the api_response schemas."""
 
-from typing import List
-
 import pytest
 from geneweaver.core.schema.api_response import CollectionResponse, Paging, PagingLinks
 from geneweaver.core.schema.gene import Gene, GeneValue
@@ -122,15 +120,11 @@ def test_collection_response():
     assert collection_response.paging.total_pages == 5
     assert collection_response.paging.total_items == 50
     assert collection_response.paging.links.first == AnyUrl("http://example.com/first")
-    assert collection_response.paging.links.previous == AnyUrl(
-        "http://example.com/previous"
-    )
+    assert collection_response.paging.links.previous == AnyUrl("http://example.com/previous")
     assert collection_response.paging.links.next == AnyUrl("http://example.com/next")
     assert collection_response.paging.links.last == AnyUrl("http://example.com/last")
     assert str(collection_response.paging.links.first) == "http://example.com/first"
-    assert (
-        str(collection_response.paging.links.previous) == "http://example.com/previous"
-    )
+    assert str(collection_response.paging.links.previous) == "http://example.com/previous"
     assert str(collection_response.paging.links.next) == "http://example.com/next"
     assert str(collection_response.paging.links.last) == "http://example.com/last"
 
@@ -143,7 +137,7 @@ def test_inherit_from_collection_response(data_class):
     """Test that we can inherit from the CollectionResponse class."""
 
     class CollectionResponseSubclass(CollectionResponse):
-        data: List[data_class]
+        data: list[data_class]
 
     collection_response = CollectionResponseSubclass(
         data=[],

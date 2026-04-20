@@ -10,9 +10,7 @@ from geneweaver.client.utils.cli.prompt.bool import prompt_for_bool
 def test_prompt_for_bool(field_name, monkeypatch):
     """Test the prompt_for_bool function."""
     mock_prompt = Mock()
-    monkeypatch.setattr(
-        "geneweaver.client.utils.cli.prompt.bool.typer.confirm", mock_prompt
-    )
+    monkeypatch.setattr("geneweaver.client.utils.cli.prompt.bool.typer.confirm", mock_prompt)
     assert mock_prompt.call_count == 0
 
     prompt_for_bool(field_name)

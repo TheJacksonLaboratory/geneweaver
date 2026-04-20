@@ -1,7 +1,6 @@
 """Async database interaction code relating to Genesets."""
 
 from datetime import date
-from typing import List, Optional
 
 from geneweaver.core.enum import GeneIdentifier, GenesetTier, Species
 from geneweaver.core.schema.gene import GeneValue
@@ -16,29 +15,29 @@ from psycopg.rows import Row
 
 async def get(
     cursor: AsyncCursor,
-    gs_id: Optional[int] = None,
-    owner_id: Optional[int] = None,
-    curation_tier: Optional[GenesetTierOrTiers] = None,
-    species: Optional[Species] = None,
-    name: Optional[str] = None,
-    abbreviation: Optional[str] = None,
-    publication_id: Optional[int] = None,
-    pubmed_id: Optional[int] = None,
-    gene_id_type: Optional[GeneIdentifier] = None,
-    search_text: Optional[str] = None,
-    is_readable_by: Optional[int] = None,
+    gs_id: int | None = None,
+    owner_id: int | None = None,
+    curation_tier: GenesetTierOrTiers | None = None,
+    species: Species | None = None,
+    name: str | None = None,
+    abbreviation: str | None = None,
+    publication_id: int | None = None,
+    pubmed_id: int | None = None,
+    gene_id_type: GeneIdentifier | None = None,
+    search_text: str | None = None,
+    is_readable_by: int | None = None,
     with_publication_info: bool = True,
-    ontology_term: Optional[str] = None,
-    score_type: Optional[GenesetScoreTypeOrScoreTypes] = None,
-    lte_count: Optional[int] = None,
-    gte_count: Optional[int] = None,
-    created_after: Optional[date] = None,
-    created_before: Optional[date] = None,
-    updated_after: Optional[date] = None,
-    updated_before: Optional[date] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    ontology_term: str | None = None,
+    score_type: GenesetScoreTypeOrScoreTypes | None = None,
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_after: date | None = None,
+    created_before: date | None = None,
+    updated_after: date | None = None,
+    updated_before: date | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get genesets from the database.
 
     :param cursor: An async database cursor.
@@ -101,9 +100,9 @@ async def get(
 async def by_id(
     cursor: AsyncCursor,
     gs_id: int,
-    is_readable_by: Optional[int] = None,
+    is_readable_by: int | None = None,
     with_publication_info: bool = True,
-) -> Optional[Row]:
+) -> Row | None:
     """Get a geneset by its ID.
 
     :param cursor: An async database cursor.
@@ -125,9 +124,9 @@ async def by_id(
 async def by_owner_id(
     cursor: AsyncCursor,
     owner_id: int,
-    is_readable_by: Optional[int] = None,
+    is_readable_by: int | None = None,
     with_publication_info: bool = True,
-) -> List[Row]:
+) -> list[Row]:
     """Get genesets by owner ID.
 
     :param cursor: An async database cursor.
@@ -150,9 +149,9 @@ async def by_owner_id(
 async def by_project_id(
     cursor: AsyncCursor,
     project_id: int,
-    is_readable_by: Optional[int] = None,
+    is_readable_by: int | None = None,
     with_publication_info: bool = True,
-) -> List[Row]:
+) -> list[Row]:
     """Get a list of genesets by their membership in a project.
 
     :param cursor: An async database cursor.
@@ -184,9 +183,9 @@ async def add_geneset(
     score: GenesetScoreType,
     gene_id_type: GeneIdentifier,
     description: str = "",
-    publication_id: Optional[int] = None,
-    attribution: Optional[str] = None,
-) -> Optional[Row]:
+    publication_id: int | None = None,
+    attribution: str | None = None,
+) -> Row | None:
     """Add a geneset to the database.
 
     NOTE: This function _only_ adds the geneset instance to the database, and does not
@@ -231,9 +230,9 @@ async def add_geneset(
 
 async def add_geneset_file(
     cursor: AsyncCursor,
-    values: List[GeneValue],
+    values: list[GeneValue],
     comments: str = "",
-) -> Optional[Row]:
+) -> Row | None:
     """Add a geneset file to the database.
 
     NOTE: This function _only_ adds the geneset file to the database, and does not
@@ -260,8 +259,8 @@ async def add_geneset_file(
 async def add(
     cursor: AsyncCursor,
     geneset: GenesetUpload,
-    owner_id: Optional[int] = None,
-    publication_id: Optional[int] = None,
+    owner_id: int | None = None,
+    publication_id: int | None = None,
 ) -> int:
     """Add a geneset to the database with all necessary components.
 

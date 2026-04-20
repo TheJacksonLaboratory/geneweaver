@@ -2,7 +2,6 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 from geneweaver.client.utils.cli.prompt.generic import (
@@ -32,8 +31,8 @@ def convert(
     file_path: Path,
     # value_header: Annotated[str, typer.Option(prompt=True)],
     # id_header: Annotated[str, typer.Option(prompt=True)],
-    value_header: Optional[str] = None,
-    id_header: Optional[str] = None,
+    value_header: str | None = None,
+    id_header: str | None = None,
     to: CovertFileType = CovertFileType.BATCH,
 ) -> None:
     """Convert files from one format to another.
@@ -58,9 +57,7 @@ def convert(
 
     if to == CovertFileType.CSV:
         for geneset in genesets:
-            this_out_file = out_file.with_name(
-                f"{out_file}_{geneset.abbreviation}.{to.value}"
-            )
+            this_out_file = out_file.with_name(f"{out_file}_{geneset.abbreviation}.{to.value}")
             with open(this_out_file, "w") as f:
                 f.write(format_csv_file(geneset))
             print(f"Converted {file_path} to {this_out_file}")
@@ -72,8 +69,8 @@ def convert(
 
 
 def _convert_excel(
-    file_path: Path, id_header: Optional[str] = None, value_header: Optional[str] = None
-) -> List[BatchUploadGeneset]:
+    file_path: Path, id_header: str | None = None, value_header: str | None = None
+) -> list[BatchUploadGeneset]:
     """Convert an Excel file to a batch file.
 
     :param file_path: The path to the Excel file.
@@ -101,17 +98,15 @@ def _convert_excel(
         geneset = _build_geneset(
             name=gs_name, abbreviation=gs_abbreviation, description=gs_description
         )
-        geneset.values = _parse_gene_list(  # noqa: PD011
-            sheet_data, id_header, value_header
-        )
+        geneset.values = _parse_gene_list(sheet_data, id_header, value_header)
         genesets.append(geneset)
 
     return genesets
 
 
 def _covert_csv(
-    file_path: Path, id_header: Optional[str] = None, value_header: Optional[str] = None
-) -> List[BatchUploadGeneset]:
+    file_path: Path, id_header: str | None = None, value_header: str | None = None
+) -> list[BatchUploadGeneset]:
     """Convert a CSV file to a batch file.
 
     :param file_path: The path to the CSV file.
@@ -147,12 +142,12 @@ def _covert_csv(
     geneset = _build_geneset(
         name=gs_name, abbreviation=gs_abbreviation, description=gs_description
     )
-    geneset.values = _parse_gene_list(data, id_header, value_header)  # noqa: PD011
+    geneset.values = _parse_gene_list(data, id_header, value_header)
 
     return [geneset]
 
 
-def _parse_excel(file_path: Path) -> List[tuple]:
+def _parse_excel(file_path: Path) -> list[tuple]:
     """Parse an Excel file.
 
     :param file_path: The file path to the Excel file.
@@ -187,9 +182,7 @@ def _parse_excel(file_path: Path) -> List[tuple]:
     return zip(sheet_names, headers, sheet_metadata, data)  # noqa: B905
 
 
-def _parse_gene_list(
-    data: List[dict], id_header: str, value_header: str
-) -> List[GeneValue]:
+def _parse_gene_list(data: list[dict], id_header: str, value_header: str) -> list[GeneValue]:
     """Parse a list of genes from a data file.
 
     :param data: A list of dictionaries representing the data from a data file.
@@ -215,9 +208,7 @@ def _build_geneset(**kwargs: str) -> BatchUploadGeneset:
     :param kwargs: Keyword arguments to pass to the BatchUploadGeneset constructor.
     :returns: A BatchUploadGeneset instance.
     """
-    geneset_args = prompt_for_missing_fields(
-        BatchUploadGeneset, kwargs, exclude={"values"}
-    )
+    geneset_args = prompt_for_missing_fields(BatchUploadGeneset, kwargs, exclude={"values"})
 
     batch_upload = BatchUploadGeneset(values=[], **geneset_args)
 

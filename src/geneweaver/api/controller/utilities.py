@@ -14,9 +14,7 @@ EXCEPTION_MAP = {
     api_message.RECORD_NOT_FOUND_ERROR: HTTPException(
         status_code=404, detail=api_message.RECORD_NOT_FOUND_ERROR
     ),
-    api_message.RECORD_EXISTS: HTTPException(
-        status_code=412, detail=api_message.RECORD_EXISTS
-    ),
+    api_message.RECORD_EXISTS: HTTPException(status_code=412, detail=api_message.RECORD_EXISTS),
 }
 
 
@@ -31,6 +29,4 @@ def raise_http_error(response: dict) -> None:
         try:
             raise EXCEPTION_MAP[response.get("message")]
         except KeyError:
-            raise HTTPException(
-                status_code=500, detail=api_message.UNEXPECTED_ERROR
-            ) from None
+            raise HTTPException(status_code=500, detail=api_message.UNEXPECTED_ERROR) from None

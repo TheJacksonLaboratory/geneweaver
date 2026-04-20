@@ -40,12 +40,14 @@ from geneweaver.client.auth import (
         (500, {"error": "Another Error!"}, {"error": "Another Error!"}, True),
     ],
 )
-def test_get_device_code_data(
-    status_code, response_data, expected_output, raises_exception
-):
+def test_get_device_code_data(status_code, response_data, expected_output, raises_exception):
     """Test the _get_device_code_data function using mocks."""
-    with patch("geneweaver.client.auth.requests.post") as mock_post, patch(
-        "geneweaver.client.auth._device_code_payload", return_value={"mock": "payload"}
+    with (
+        patch("geneweaver.client.auth.requests.post") as mock_post,
+        patch(
+            "geneweaver.client.auth._device_code_payload",
+            return_value={"mock": "payload"},
+        ),
     ):
         # Configure the mock response
         mock_response = MagicMock()

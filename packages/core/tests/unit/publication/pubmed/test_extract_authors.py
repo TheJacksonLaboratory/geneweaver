@@ -45,16 +45,19 @@ def test_extract_authors_mocked(xml_string, expected_output):
     publication_xml = ElementTree.fromstring(xml_string)
 
     # Mock the internal function calls
-    with mock.patch(
-        f"{MODULE}.format_author_node",
-        side_effect=lambda node: f"{node.findtext('ForeName')} "
-        f"{node.findtext('LastName')}",
-    ), mock.patch(
-        f"{MODULE}.authors_are_complete",
-        side_effect=lambda node: node.attrib["CompleteYN"] == "Y",
-    ), mock.patch(
-        f"{MODULE}.add_to_dict_if_not_none",
-        side_effect=lambda d, k, v: v and d.update({k: v}),
+    with (
+        mock.patch(
+            f"{MODULE}.format_author_node",
+            side_effect=lambda node: f"{node.findtext('ForeName')} {node.findtext('LastName')}",
+        ),
+        mock.patch(
+            f"{MODULE}.authors_are_complete",
+            side_effect=lambda node: node.attrib["CompleteYN"] == "Y",
+        ),
+        mock.patch(
+            f"{MODULE}.add_to_dict_if_not_none",
+            side_effect=lambda d, k, v: v and d.update({k: v}),
+        ),
     ):
         # Call the function with the XML element
         result = extract_authors(publication_xml)

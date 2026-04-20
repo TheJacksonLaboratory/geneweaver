@@ -1,7 +1,7 @@
 """Authentication code for the GeneWeaver client."""
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jwt
 import requests
@@ -22,7 +22,7 @@ def login() -> None:
     app_dir.save_auth_token(token_data)
 
 
-def get_id_token() -> Optional[str]:
+def get_id_token() -> str | None:
     """Get the ID token from the authentication token file.
 
     :returns: The ID token.
@@ -30,7 +30,7 @@ def get_id_token() -> Optional[str]:
     return _get_token_data_value_or_none("id_token")
 
 
-def get_access_token() -> Optional[str]:
+def get_access_token() -> str | None:
     """Get the Access token from the authentication token file.
 
     :returns: The ID token.
@@ -42,7 +42,7 @@ def get_access_token() -> Optional[str]:
     return token
 
 
-def _get_token_data_value_or_none(token_data_key: str) -> Optional[str]:
+def _get_token_data_value_or_none(token_data_key: str) -> str | None:
     token_data = app_dir.get_auth_token()
 
     if token_data is None:
@@ -56,12 +56,10 @@ def validate_token(token: str) -> None:
 
     :param token:
     """
-    jwks_url = "https://{}/.well-known/jwks.json".format(settings.AUTH_DOMAIN)
-    issuer = "https://{}/".format(settings.AUTH_DOMAIN)
+    jwks_url = f"https://{settings.AUTH_DOMAIN}/.well-known/jwks.json"
+    issuer = f"https://{settings.AUTH_DOMAIN}/"
     sv = AsymmetricSignatureVerifier(jwks_url)
-    tv = TokenVerifier(
-        signature_verifier=sv, issuer=issuer, audience=settings.AUTH_CLIENT_ID
-    )
+    tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH_CLIENT_ID)
     tv.verify(token)
 
 
@@ -91,15 +89,13 @@ def refresh_token() -> None:
         "client_id": settings.AUTH_CLIENT_ID,
         "refresh_token": refresh_token,
     }
-    response = requests.post(
-        "https://{}/oauth/token".format(settings.AUTH_DOMAIN), data=payload
-    )
+    response = requests.post(f"https://{settings.AUTH_DOMAIN}/oauth/token", data=payload)
     token_data = response.json()
     token_data["refresh_token"] = app_dir.get_auth_token()["refresh_token"]
     app_dir.save_auth_token(token_data)
 
 
-def current_user(id_token: str) -> Dict[str, str]:
+def current_user(id_token: str) -> dict[str, str]:
     """Get the current user from the ID token."""
     return jwt.decode(
         id_token,
@@ -108,7 +104,7 @@ def current_user(id_token: str) -> Dict[str, str]:
     )
 
 
-def _device_code_payload() -> Dict[str, str]:
+def _device_code_payload() -> dict[str, str]:
     return {
         "client_id": settings.AUTH_CLIENT_ID,
         "audience": settings.AUTH_AUDIENCE,
@@ -118,7 +114,7 @@ def _device_code_payload() -> Dict[str, str]:
 
 def _get_device_code_data() -> dict:
     device_code_response = requests.post(
-        "https://{}/oauth/device/code".format(settings.AUTH_DOMAIN),
+        f"https://{settings.AUTH_DOMAIN}/oauth/device/code",
         data=_device_code_payload(),
     )
 
@@ -128,7 +124,7 @@ def _get_device_code_data() -> dict:
     return device_code_response.json()
 
 
-def _print_device_code_instructions(device_code_data: Dict[str, Any]) -> None:
+def _print_device_code_instructions(device_code_data: dict[str, Any]) -> None:
     print(
         "1. On your computer or mobile device navigate to: ",
         device_code_data["verification_uri_complete"],
@@ -136,7 +132,7 @@ def _print_device_code_instructions(device_code_data: Dict[str, Any]) -> None:
     print("2. Enter the following code: ", device_code_data["user_code"])
 
 
-def _token_payload(device_code: str) -> Dict[str, str]:
+def _token_payload(device_code: str) -> dict[str, str]:
     return {
         "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
         "device_code": device_code,
@@ -146,13 +142,13 @@ def _token_payload(device_code: str) -> Dict[str, str]:
 
 
 def _poll_for_flow_completion(
-    device_code_data: Dict[str, Any]
-) -> Optional[Dict[str, any]]:
+    device_code_data: dict[str, Any],
+) -> dict[str, any] | None:
     authenticated = False
     token_data = None
     while not authenticated:
         token_response = requests.post(
-            "https://{}/oauth/token".format(settings.AUTH_DOMAIN),
+            f"https://{settings.AUTH_DOMAIN}/oauth/token",
             data=_token_payload(device_code_data["device_code"]),
         )
 

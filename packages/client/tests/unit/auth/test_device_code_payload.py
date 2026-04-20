@@ -10,12 +10,10 @@ from geneweaver.client.auth import (
 def test_device_code_payload():
     """Test the _device_code_payload function with mock data."""
     # Mock settings
-    with patch(
-        "geneweaver.client.auth.settings.AUTH_CLIENT_ID", "mock_client_id"
-    ), patch(
-        "geneweaver.client.auth.settings.AUTH_SCOPES", ["scope1", "scope2"]
-    ), patch(
-        "geneweaver.client.auth.settings.AUTH_AUDIENCE", "https://audience.com"
+    with (
+        patch("geneweaver.client.auth.settings.AUTH_CLIENT_ID", "mock_client_id"),
+        patch("geneweaver.client.auth.settings.AUTH_SCOPES", ["scope1", "scope2"]),
+        patch("geneweaver.client.auth.settings.AUTH_AUDIENCE", "https://audience.com"),
     ):
         expected_payload = {
             "client_id": "mock_client_id",

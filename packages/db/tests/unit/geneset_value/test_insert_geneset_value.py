@@ -45,7 +45,5 @@ def test_insert_geneset_value(
 ):
     """Test the happy path using a mock cursor."""
     mock_cursor = get_magic_mock_cursor(fetch_result)
-    result = insert_geneset_value(
-        mock_cursor, geneset_id, gene_id, value, name, within_threshold
-    )
+    result = insert_geneset_value(mock_cursor, geneset_id, gene_id, value, name, within_threshold)
     assert result == expected_result

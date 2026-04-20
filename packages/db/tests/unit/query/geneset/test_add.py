@@ -23,6 +23,4 @@ def test_geneset_add():
         attribution="a string",
     )
     for item in query:
-        assert any(
-            isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder]
-        )
+        assert any(isinstance(item, t) for t in [SQL, Composed, Identifier, Placeholder])

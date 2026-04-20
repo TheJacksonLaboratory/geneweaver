@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional
 
 import typer
 
@@ -31,7 +30,7 @@ def get_auth_token_file() -> Path:
     return get_config_dir() / "auth_token.json"
 
 
-def get_auth_token() -> Optional[dict]:
+def get_auth_token() -> dict | None:
     """Get the authentication token data from the authentication token file.
 
     :returns: The authentication token.
@@ -41,7 +40,7 @@ def get_auth_token() -> Optional[dict]:
     if not auth_token_file.is_file():
         return None
 
-    with open(auth_token_file, "r") as f:
+    with open(auth_token_file) as f:
         token = json.load(f)
 
     return token

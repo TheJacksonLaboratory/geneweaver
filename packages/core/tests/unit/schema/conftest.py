@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def gene_data() -> dict:
     """Provide example gene data."""
     return {
@@ -19,13 +19,13 @@ def gene_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def gene_value_data() -> dict:
     """Provide example gene value data."""
     return {"symbol": "1", "value": "1"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def geneset_data() -> dict:
     """Provide example geneset data."""
     return {
@@ -52,7 +52,7 @@ def geneset_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def geneset_upload_data() -> dict:
     """Provide example geneset upload data."""
     return {
@@ -68,13 +68,13 @@ def geneset_upload_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def batch_upload_data() -> dict:
     """Provide example batch upload data."""
     return {"batch_file": "batch_file", "curation_group": ["group"]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def group_data() -> dict:
     """Provide example group data."""
     return {
@@ -86,13 +86,13 @@ def group_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_admin_group_data() -> dict:
     """Provide example user admin group data."""
     return {"name": "name", "public": True, "created": "2019-01-01"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def project_data() -> dict:
     """Provide example project data."""
     return {
@@ -106,7 +106,7 @@ def project_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def project_create_data() -> dict:
     """Provide example project create data."""
     return {
@@ -115,7 +115,7 @@ def project_create_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def publication_data() -> dict:
     """Provide example publication data."""
     return {
@@ -132,7 +132,7 @@ def publication_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def stub_generator_data() -> dict:
     """Provide example stub generator data."""
     return {
@@ -143,7 +143,7 @@ def stub_generator_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_data() -> dict:
     """Provide example user data."""
     return {
@@ -159,7 +159,7 @@ def user_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def ontology_data() -> dict:
     """Provide example ontology data."""
     return {
@@ -174,7 +174,7 @@ def ontology_data() -> dict:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def ontology_db_data() -> dict:
     """Provide example ontology db data."""
     return {

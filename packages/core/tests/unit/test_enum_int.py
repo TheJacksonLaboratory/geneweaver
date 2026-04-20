@@ -40,16 +40,12 @@ def test_curation_assignment(attribute: str, expected: int) -> None:
         (5, CurationAssignmentInt.APPROVED),
     ],
 )
-def test_curation_assignment_from_int(
-    int_value: int, expected: CurationAssignmentInt
-) -> None:
+def test_curation_assignment_from_int(int_value: int, expected: CurationAssignmentInt) -> None:
     """Test the CurationAssignmentInt enum creation from an int."""
     assert CurationAssignmentInt(int_value) == expected
 
 
-@pytest.mark.parametrize(
-    ("attribute", "expected"), [("PRIVATE", "private"), ("PUBLIC", "public")]
-)
+@pytest.mark.parametrize(("attribute", "expected"), [("PRIVATE", "private"), ("PUBLIC", "public")])
 def test_geneset_access(attribute: str, expected: str) -> None:
     """Test the GenesetAccess enum."""
     assert getattr(GenesetAccess, attribute).value == expected

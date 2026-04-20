@@ -50,13 +50,9 @@ async def test_async_test_by_ontology_term(
     assert async_cursor.fetchall.call_count == 0
 
 
-test_get_execute_raises_error = create_execute_raises_error_test(
-    by_ontology_term, "term"
-)
+test_get_execute_raises_error = create_execute_raises_error_test(by_ontology_term, "term")
 
-test_get_fetchone_raises_error = create_fetchone_raises_error_test(
-    by_ontology_term, "term"
-)
+test_get_fetchone_raises_error = create_fetchone_raises_error_test(by_ontology_term, "term")
 
 test_get_execute_raises_error = async_create_execute_raises_error_test(
     async_by_ontology_term, "term"

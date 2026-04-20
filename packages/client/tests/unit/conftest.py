@@ -5,7 +5,6 @@ import json
 import os
 import pickle
 import random
-from typing import List, Set
 
 import numpy
 import pytest
@@ -81,36 +80,27 @@ class MockGeneExpressionDatabaseClient(GeneExpressionDatabaseClient):
 
     def search(self, drequest: DataRequest):
         """Mock search."""
-        if (
-            drequest.sourceType is SourceType.IMPUTED.name
-            and drequest.tissue == "maxilla"
-        ):
-
+        if drequest.sourceType is SourceType.IMPUTED.name and drequest.tissue == "maxilla":
             # Read file and return json
             with gzip.open("tests/unit/imputations.json.gz", "rb") as f:
                 file_content = f.read()
                 return [
-                    self._class_from_args(DataResult, item)
-                    for item in json.loads(file_content)
+                    self._class_from_args(DataResult, item) for item in json.loads(file_content)
                 ]
 
         raise HTTPError("Not mocked!")
 
-    def search_expression(self, drequest: DataRequest) -> List[StrainResult]:
+    def search_expression(self, drequest: DataRequest) -> list[StrainResult]:
         """Mock search."""
-        if (
-            drequest.sourceType is SourceType.IMPUTED.name
-            and drequest.tissue == "maxilla"
-        ):
-
+        if drequest.sourceType is SourceType.IMPUTED.name and drequest.tissue == "maxilla":
             # Read file and return json
             with open("tests/unit/strain-expressions.pkl", "rb") as f:
-                data: List[StrainResult] = pickle.load(f)
+                data: list[StrainResult] = pickle.load(f)
                 return data
 
         raise HTTPError("Not mocked!")
 
-    def distinct(self, field: str) -> Set[str]:
+    def distinct(self, field: str) -> set[str]:
         """Mock distinct."""
         # Override for test.
         if field == "tissue":
@@ -143,10 +133,10 @@ class MockGeneExpressionDatabaseClient(GeneExpressionDatabaseClient):
 
         raise HTTPError("Not mocked!")
 
-    def get_meta(self, tissue: str) -> List[Metadata]:
+    def get_meta(self, tissue: str) -> list[Metadata]:
         """Mock get metadata."""
-        if "maxilla" == tissue:
-            jsons: List = json.loads(
+        if tissue == "maxilla":
+            jsons: list = json.loads(
                 '[{"ingestid": "95c8aa44-5d5a-42d9-9f10-33a20904ad1e", \
             "modelversion": "ridge_v1_2_1", "population": "GenomeMUSter_v2", \
             "tissue": "maxilla", "sourcetype": "IMPUTED", "species": "Mus musculus", \
@@ -156,30 +146,28 @@ class MockGeneExpressionDatabaseClient(GeneExpressionDatabaseClient):
 
         raise HTTPError("Not mocked!")
 
-    def random(self, ingest_id: str, size: int, count: int = 1) -> List[DataFrame]:
+    def random(self, ingest_id: str, size: int, count: int = 1) -> list[DataFrame]:
         """Get a random gene expression frame."""
-        randoms: List[str] = []
+        randoms: list[str] = []
 
         for _ in range(count):
-            name: str = "s{}".format(round(random.random() * 1000))
+            name: str = f"s{round(random.random() * 1000)}"
             for _ in range(size):
-                r: str = "{},{}".format(name, (random.random() * 2) - 1)
+                r: str = f"{name},{(random.random() * 2) - 1}"
                 randoms.append(r)
 
-        ret: List[List[str]] = self._split_list(randoms, size)
+        ret: list[list[str]] = self._split_list(randoms, size)
         return [self._frame(list(r)) for r in ret]
 
-    def random_spearmanrho(
-        self, ingest_id: str, scores: [float], r_size: int = 1
-    ) -> List[float]:
+    def random_spearmanrho(self, ingest_id: str, scores: [float], r_size: int = 1) -> list[float]:
         """Mock."""
         gen: Generator = numpy.random.default_rng()
-        rhos: List[float] = list(gen.random(r_size))
+        rhos: list[float] = list(gen.random(r_size))
         return rhos
 
     def _random_data_result(self, name: str) -> Bulk:
         r: Bulk = Bulk()
         r.exprnames = [name]
         r.exprvalues = [(random.random() * 2) - 1]
-        r.geneid = "ESNMUSTEST{}".format(round(random.random() * 1000))
+        r.geneid = f"ESNMUSTEST{round(random.random() * 1000)}"
         return r

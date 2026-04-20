@@ -1,7 +1,5 @@
 """Ontology schema."""
 
-from typing import List
-
 from pydantic import BaseModel
 
 
@@ -12,8 +10,8 @@ class Ontology(BaseModel):
     reference_id: int
     name: str
     description: str
-    children: List["Ontology"]
-    parents: List["Ontology"]
+    children: list["Ontology"]
+    parents: list["Ontology"]
     ontdb_id: int
     ro_ont_id: int
 

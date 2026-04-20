@@ -24,9 +24,7 @@ PUBMED_ID = "Show only results with this PubMed ID"
 SEARCH_TEXT = "Return genesets that match this search text"
 WITH_PUBLICATION = "Include publication info in the return"
 GS_PUB_SEARCH_ENTITIES = "Entites to search, genesets and/or publications"
-GS_PUB_SEARCH_TEXT = (
-    "Gensets and/or publications search types ('genesets', 'publications') "
-)
+GS_PUB_SEARCH_TEXT = "Gensets and/or publications search types ('genesets', 'publications') "
 CHECK_DB_HEALTH = "Check DB health flag"
 ONTOLOGY_ID = "Ontology term reference ID"
 CREATE_DATE = "Create date limit (before or after). E.g. 2024-08-01"

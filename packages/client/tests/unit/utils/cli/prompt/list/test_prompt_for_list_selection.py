@@ -22,10 +22,8 @@ def test_prompt_for_list_selection(list_type, example_input, monkeypatch):
     """Test the prompt_for_list_selection function."""
     example_input.append("")
     mock_prompt = Mock(side_effect=example_input)
-    monkeypatch.setattr(
-        "geneweaver.client.utils.cli.prompt.list.typer.prompt", mock_prompt
-    )
-    result = prompt_for_list_selection(typing.List[list_type])
+    monkeypatch.setattr("geneweaver.client.utils.cli.prompt.list.typer.prompt", mock_prompt)
+    result = prompt_for_list_selection(list[list_type])
     if list_type is int:
         assert result == [int(x) for x in example_input[:-1]]
         assert all([isinstance(x, int) for x in result])
@@ -39,11 +37,11 @@ def test_prompt_for_list_selection(list_type, example_input, monkeypatch):
 @pytest.mark.parametrize(
     "field_type",
     [
-        typing.Dict[str, str],
-        typing.Dict[str, int],
+        dict[str, str],
+        dict[str, int],
         typing.Union[str, int],
         typing.Any,
-        typing.Tuple[str, int],
+        tuple[str, int],
         typing.Callable,
         typing.Optional[str],
         typing.Optional[int],
@@ -51,7 +49,7 @@ def test_prompt_for_list_selection(list_type, example_input, monkeypatch):
         typing.IO[str],
         typing.IO[int],
         typing.IO[typing.Any],
-        typing.IO[typing.Union[str, int]],
+        typing.IO[str | int],
     ],
 )
 def test_prompt_for_list_selection__invalid_field_type(field_type):

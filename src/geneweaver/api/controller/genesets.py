@@ -3,22 +3,22 @@
 import json
 from datetime import date, datetime
 from tempfile import TemporaryDirectory
-from typing import Optional, Set
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Security
 from fastapi.responses import FileResponse, StreamingResponse
-from geneweaver.api import dependencies as deps
-from geneweaver.api.schemas.auth import UserInternal
-from geneweaver.api.schemas.search import GenesetSearch
-from geneweaver.api.services import geneset as geneset_service
-from geneweaver.api.services import publications as publication_service
 from geneweaver.core.enum import GeneIdentifier, GenesetTier, Species
 from geneweaver.core.schema.geneset import GeneValue
 from geneweaver.core.schema.publication import Publication
 from geneweaver.core.schema.score import GenesetScoreType, ScoreType
 from geneweaver.db import search as db_search
 from jax.apiutils import CollectionResponse, Response
-from typing_extensions import Annotated
+
+from geneweaver.api import dependencies as deps
+from geneweaver.api.schemas.auth import UserInternal
+from geneweaver.api.schemas.search import GenesetSearch
+from geneweaver.api.services import geneset as geneset_service
+from geneweaver.api.services import publications as publication_service
 
 from . import message as api_message
 from .utilities import raise_http_error
@@ -31,7 +31,7 @@ def get_visible_genesets(
     cursor: deps.CursorDep,
     user: deps.OptionalFullUserDep,
     gs_id: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -39,17 +39,13 @@ def get_visible_genesets(
             description=api_message.GENESET_ID,
         ),
     ] = None,
-    only_my_genesets: Annotated[
-        Optional[bool], Query(description=api_message.ONLY_MY_GS)
-    ] = False,
-    curation_tier: Annotated[Optional[Set[GenesetTier]], Query()] = None,
-    species: Optional[Species] = None,
-    name: Annotated[Optional[str], Query(description=api_message.NAME)] = None,
-    abbreviation: Annotated[
-        Optional[str], Query(description=api_message.ABBREVIATION)
-    ] = None,
+    only_my_genesets: Annotated[bool | None, Query(description=api_message.ONLY_MY_GS)] = False,
+    curation_tier: Annotated[set[GenesetTier] | None, Query()] = None,
+    species: Species | None = None,
+    name: Annotated[str | None, Query(description=api_message.NAME)] = None,
+    abbreviation: Annotated[str | None, Query(description=api_message.ABBREVIATION)] = None,
     publication_id: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -58,7 +54,7 @@ def get_visible_genesets(
         ),
     ] = None,
     pubmed_id: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -66,17 +62,13 @@ def get_visible_genesets(
             description=api_message.PUBMED_ID,
         ),
     ] = None,
-    gene_id_type: Optional[GeneIdentifier] = None,
-    ontology_term: Optional[str] = None,
-    search_text: Annotated[
-        Optional[str], Query(description=api_message.SEARCH_TEXT)
-    ] = None,
-    with_publication_info: Annotated[
-        bool, Query(description=api_message.ONLY_MY_GS)
-    ] = True,
-    score_type: Annotated[Optional[Set[ScoreType]], Query()] = None,
+    gene_id_type: GeneIdentifier | None = None,
+    ontology_term: str | None = None,
+    search_text: Annotated[str | None, Query(description=api_message.SEARCH_TEXT)] = None,
+    with_publication_info: Annotated[bool, Query(description=api_message.ONLY_MY_GS)] = True,
+    score_type: Annotated[set[ScoreType] | None, Query()] = None,
     size_less_than: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -85,7 +77,7 @@ def get_visible_genesets(
         ),
     ] = None,
     size_greater_than: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -98,7 +90,7 @@ def get_visible_genesets(
     updated_after: Annotated[date, Query(description=api_message.UPDATE_DATE)] = None,
     updated_before: Annotated[date, Query(description=api_message.UPDATE_DATE)] = None,
     limit: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -107,7 +99,7 @@ def get_visible_genesets(
         ),
     ] = 10,
     offset: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -153,7 +145,7 @@ def search(
     request: Request,
     geneset_search: Annotated[GenesetSearch, Query()],
     user: UserInternal = Security(deps.optional_full_user),
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> CollectionResponse:
     """Search genesets."""
     return CollectionResponse(
@@ -169,13 +161,11 @@ def search(
 
 @router.get("/{geneset_id}")
 def get_geneset(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     user: deps.OptionalFullUserDep,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
-    gene_id_type: Optional[GeneIdentifier] = None,
-    in_threshold: Optional[bool] = None,
+    cursor: deps.Cursor | None = Depends(deps.cursor),
+    gene_id_type: GeneIdentifier | None = None,
+    in_threshold: bool | None = None,
 ) -> Response:
     """Get a geneset by ID. Optional filter results by gene identifier type."""
     if gene_id_type:
@@ -194,13 +184,11 @@ def get_geneset(
 
 @router.get("/{geneset_id}/values")
 def get_geneset_values(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     user: deps.OptionalFullUserDep,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
-    gene_id_type: Optional[GeneIdentifier] = None,
-    in_threshold: Optional[bool] = None,
+    cursor: deps.Cursor | None = Depends(deps.cursor),
+    gene_id_type: GeneIdentifier | None = None,
+    in_threshold: bool | None = None,
 ) -> CollectionResponse[GeneValue]:
     """Get geneset gene values by geneset ID."""
     response = geneset_service.get_geneset_gene_values(
@@ -214,22 +202,18 @@ def get_geneset_values(
     raise_http_error(response)
 
     if response.get("data") is None:
-        raise HTTPException(
-            status_code=404, detail=api_message.INACCESSIBLE_OR_FORBIDDEN
-        )
+        raise HTTPException(status_code=404, detail=api_message.INACCESSIBLE_OR_FORBIDDEN)
 
     return CollectionResponse(**response)
 
 
 @router.get("/{geneset_id}/file", response_class=FileResponse)
 def get_export_geneset_by_id_type(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     user: deps.OptionalFullUserDep,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
     temp_dir: TemporaryDirectory = Depends(deps.get_temp_dir),
-    gene_id_type: Optional[GeneIdentifier] = None,
+    gene_id_type: GeneIdentifier | None = None,
 ) -> StreamingResponse:
     """Export geneset into JSON file. Search by ID and optional gene identifier type."""
     current_datetime = datetime.now()
@@ -271,17 +255,13 @@ def get_export_geneset_by_id_type(
 
 @router.get("/{geneset_id}/metadata")
 def get_geneset_metadata(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     user: deps.OptionalFullUserDep,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
-    include_pub_info: Optional[bool] = False,
+    cursor: deps.Cursor | None = Depends(deps.cursor),
+    include_pub_info: bool | None = False,
 ) -> Response:
     """Get a geneset metadata by geneset id."""
-    response = geneset_service.get_geneset_metadata(
-        cursor, geneset_id, user, include_pub_info
-    )
+    response = geneset_service.get_geneset_metadata(cursor, geneset_id, user, include_pub_info)
 
     raise_http_error(response)
 
@@ -290,11 +270,9 @@ def get_geneset_metadata(
 
 @router.get("/{geneset_id}/publication")
 def get_publication_for_geneset(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     user: deps.OptionalFullUserDep,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> Response[Publication]:
     """Get the publication associated with the geneset."""
     geneset_resp = geneset_service.get_geneset_metadata(cursor, geneset_id, user, True)
@@ -321,30 +299,24 @@ def get_publication_for_geneset(
 
 @router.put("/{geneset_id}/threshold", status_code=204)
 def put_geneset_threshold(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     gene_score_type: GenesetScoreType,
     user: UserInternal = Security(deps.full_user),
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> None:
     """Set geneset threshold for geneset owner."""
-    response = geneset_service.update_geneset_threshold(
-        cursor, geneset_id, gene_score_type, user
-    )
+    response = geneset_service.update_geneset_threshold(cursor, geneset_id, gene_score_type, user)
 
     raise_http_error(response)
 
 
 @router.get("/{geneset_id}/ontologies")
 def get_geneset_ontology_terms(
-    geneset_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
+    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
     user: deps.OptionalFullUserDep,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
     limit: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -353,7 +325,7 @@ def get_geneset_ontology_terms(
         ),
     ] = 10,
     offset: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -385,7 +357,7 @@ def put_geneset_ontology_term(
     ],
     ontology_id: Annotated[str, Query(description=api_message.ONTOLOGY_ID)],
     user: UserInternal = Security(deps.full_user),
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> None:
     """Set geneset threshold for geneset owner."""
     response = geneset_service.add_geneset_ontology_term(
@@ -411,7 +383,7 @@ def delete_geneset_ontology_term(
     ],
     ontology_id: Annotated[str, Path(description=api_message.ONTOLOGY_ID)],
     user: UserInternal = Security(deps.full_user),
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> None:
     """Set geneset threshold for geneset owner."""
     response = geneset_service.delete_geneset_ontology_term(

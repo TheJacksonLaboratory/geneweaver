@@ -38,12 +38,15 @@ def test_format_geneset(
     :param mock_batch_upload_geneset_all_species_scores: A mock geneset (a fixture).
     """
     mock_batch_upload_geneset_all_species_scores.name = geneset_name
-    with patch(
-        "geneweaver.core.render.batch.format_geneset_metadata",
-        side_effect=mock_format_geneset_metadata,
-    ), patch(
-        "geneweaver.core.render.batch.format_geneset_values",
-        side_effect=mock_format_geneset_values,
+    with (
+        patch(
+            "geneweaver.core.render.batch.format_geneset_metadata",
+            side_effect=mock_format_geneset_metadata,
+        ),
+        patch(
+            "geneweaver.core.render.batch.format_geneset_values",
+            side_effect=mock_format_geneset_values,
+        ),
     ):
         result = format_geneset(mock_batch_upload_geneset_all_species_scores)
         assert result == expected_output

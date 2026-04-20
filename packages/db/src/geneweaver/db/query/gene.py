@@ -1,7 +1,5 @@
 """Generate SQL queries to get Gene information."""
 
-from typing import List, Optional, Tuple
-
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.core.mapping import AON_ID_TYPE_FOR_SPECIES
 from geneweaver.db.utils import format_sql_fields, limit_and_offset
@@ -35,14 +33,14 @@ GENE_INFO_FIELDS = format_sql_fields(GENE_INFO_FIELDS_MAP, query_table="gene_inf
 
 
 def get(
-    gene_id: Optional[int] = None,
-    reference_id: Optional[str] = None,
-    gene_database: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-    preferred: Optional[bool] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Tuple[Composed, dict]:
+    gene_id: int | None = None,
+    reference_id: str | None = None,
+    gene_database: GeneIdentifier | None = None,
+    species: Species | None = None,
+    preferred: bool | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[Composed, dict]:
     """Create a psycopg query to Get genes from the database.
 
     :param gene_id: The id of the gene to get.
@@ -94,10 +92,10 @@ def get(
 
 
 def mapping(
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
     target_gene_id_type: GeneIdentifier,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Create a query to get a list of gene IDs in an alternate identifier type.
 
     :param source_ids: The list of gene IDs to map.
@@ -155,9 +153,9 @@ def mapping(
 
 
 def aon_mapping(
-    source_ids: List[str],
+    source_ids: list[str],
     species: Species,
-) -> Tuple[Composed, dict]:
+) -> tuple[Composed, dict]:
     """Create a query to get a list of gene IDs the AON preferred identifier type.
 
     :param source_ids: The list of gene IDs to map.

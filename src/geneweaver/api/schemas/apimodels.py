@@ -1,9 +1,8 @@
 """Models for API requests."""
 
-# ruff: noqa: ANN002, ANN003
-
+from collections.abc import Iterable
 from enum import Enum
-from typing import Dict, Generic, Iterable, List, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.core.schema.gene import Gene as GeneSchema
@@ -17,27 +16,27 @@ T = TypeVar("T")
 class PagingLinks(BaseModel):
     """Schema for holding paging links."""
 
-    first: Optional[AnyUrl] = None
-    previous: Optional[AnyUrl] = None
-    next_page: Optional[AnyUrl] = None
-    last_page: Optional[AnyUrl] = None
+    first: AnyUrl | None = None
+    previous: AnyUrl | None = None
+    next_page: AnyUrl | None = None
+    last_page: AnyUrl | None = None
 
 
 class Paging(BaseModel):
     """Schema for paging information."""
 
-    page: Optional[int] = None
-    items: Optional[int] = None
-    total_pages: Optional[int] = None
-    total_items: Optional[int] = None
-    links: Optional[PagingLinks] = None
+    page: int | None = None
+    items: int | None = None
+    total_pages: int | None = None
+    total_items: int | None = None
+    links: PagingLinks | None = None
 
 
 class CollectionResponse(BaseModel):
     """Schema for API responses with collections."""
 
-    data: List
-    paging: Optional[Paging] = None
+    data: list
+    paging: Paging | None = None
 
 
 class GeneIdMappingResp(BaseModel):
@@ -51,15 +50,15 @@ class GeneIdHomologReq(BaseModel):
 
     source_ids: Iterable[str]
     target_gene_id_type: GeneIdentifier
-    source_gene_id_type: Optional[GeneIdentifier] = None
-    target_species: Optional[Species] = None
-    source_species: Optional[Species] = None
+    source_gene_id_type: GeneIdentifier | None = None
+    target_species: Species | None = None
+    source_species: Species | None = None
 
 
 class GeneIdMappingReq(BaseModel):
     """Model for gene id mapping request."""
 
-    source_ids: List[str]
+    source_ids: list[str]
     target_gene_id_type: GeneIdentifier
     species: Species
 
@@ -67,26 +66,26 @@ class GeneIdMappingReq(BaseModel):
 class GeneIdMappingAonReq(BaseModel):
     """Model for AON gene id mapping request."""
 
-    source_ids: List[str]
+    source_ids: list[str]
     species: Species
 
 
 class GeneReturn(CollectionResponse):
     """Model for gene endpoint return."""
 
-    data: List[GeneSchema]
+    data: list[GeneSchema]
 
 
 class SpeciesReturn(CollectionResponse):
     """Model for Species endpoint return."""
 
-    data: List[SpeciesSchema]
+    data: list[SpeciesSchema]
 
 
 class GeneValueReturn(BaseModel):
     """Model for geneset values endpoint return."""
 
-    data: List[GeneValueSchema]
+    data: list[GeneValueSchema]
 
 
 class NewPubmedRecord(BaseModel):
@@ -106,7 +105,7 @@ class GsPubSearchType(str, Enum):
 class SearchResponse(CollectionResponse, Generic[T]):
     """Model for search response endpoint."""
 
-    data: List[T]
+    data: list[T]
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the search response model.
@@ -121,7 +120,7 @@ class SearchResponse(CollectionResponse, Generic[T]):
 class CombinedSearchResponse(BaseModel, Generic[T]):
     """Model for combined search response endpoint."""
 
-    object: Dict[str, List[T]]
+    object: dict[str, list[T]]
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the combined search response model.

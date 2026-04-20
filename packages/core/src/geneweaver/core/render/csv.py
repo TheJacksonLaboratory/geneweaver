@@ -4,9 +4,7 @@ from geneweaver.core.render.gene_list import gene_list_str
 from geneweaver.core.schema.batch import BatchUploadGeneset
 
 
-def format_csv_file(
-    geneset: BatchUploadGeneset, sep: str = ",", header_prefix: str = "#"
-) -> str:
+def format_csv_file(geneset: BatchUploadGeneset, sep: str = ",", header_prefix: str = "#") -> str:
     """Format a geneset for a CSV file.
 
     :param geneset: The geneset to format.
@@ -33,6 +31,4 @@ def format_csv_metadata(
     :return: A string containing the geneset metadata in CSV format.
     """
     geneset_dict = geneset.dict(exclude={"values", "curation_id"})
-    return "\n".join(
-        (f"{header_prefix}{key}{sep}{value}" for key, value in geneset_dict.items())
-    )
+    return "\n".join((f"{header_prefix}{key}{sep}{value}" for key, value in geneset_dict.items()))

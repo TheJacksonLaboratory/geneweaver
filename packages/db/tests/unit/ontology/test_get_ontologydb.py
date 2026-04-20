@@ -78,9 +78,7 @@ test_get_execute_raises_error = create_execute_raises_error_test(get_ontology_db
 
 test_get_fetchall_raises_error = create_fetchall_raises_error_test(get_ontology_dbs, 1)
 
-test_get_execute_raises_error = async_create_execute_raises_error_test(
-    async_get_ontology_dbs, 1
-)
+test_get_execute_raises_error = async_create_execute_raises_error_test(async_get_ontology_dbs, 1)
 
 test_async_get_fetchall_raises_error = async_create_fetchall_raises_error_test(
     async_get_ontology_dbs, 1

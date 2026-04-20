@@ -4,20 +4,12 @@ from geneweaver.core.parse.batch import HEADER_CHARACTERS, REQUIRED_HEADERS
 
 HAS_REQUIRED_HEADER_FIELDS = [
     # All required keys are present
-    {
-        f"{HEADER_CHARACTERS[h_key]}": f"value{idx}"
-        for idx, h_key in enumerate(REQUIRED_HEADERS)
-    },
+    {f"{HEADER_CHARACTERS[h_key]}": f"value{idx}" for idx, h_key in enumerate(REQUIRED_HEADERS)},
     # Extra keys are present, but all required keys are still there
+    {header_name: f"value{idx}" for idx, header_name in enumerate(HEADER_CHARACTERS.values())},
     {
         header_name: f"value{idx}"
-        for idx, header_name in enumerate(HEADER_CHARACTERS.values())
-    },
-    {
-        header_name: f"value{idx}"
-        for idx, header_name in enumerate(
-            list(HEADER_CHARACTERS.values()) + ["extra_key"]
-        )
+        for idx, header_name in enumerate(list(HEADER_CHARACTERS.values()) + ["extra_key"])
     },
 ]
 

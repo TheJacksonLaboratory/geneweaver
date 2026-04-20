@@ -1,7 +1,5 @@
 """Database functions for geneset values."""
 
-from typing import List, Optional
-
 from geneweaver.core.enum import GeneIdentifier
 from geneweaver.core.schema.batch import GenesetValueInput
 from geneweaver.db.exceptions import GeneweaverTypeError
@@ -10,7 +8,7 @@ from psycopg.sql import SQL
 
 
 def format_geneset_values_for_file_insert(
-    geneset_values: List[GenesetValueInput],
+    geneset_values: list[GenesetValueInput],
 ) -> str:
     """Format geneset values for insertion into the database.
 
@@ -18,16 +16,11 @@ def format_geneset_values_for_file_insert(
     :return: A string to insert into the database.
     """
     return "\n".join(
-        (
-            f"{geneset_value.symbol}\t{geneset_value.value}"
-            for geneset_value in geneset_values
-        )
+        f"{geneset_value.symbol}\t{geneset_value.value}" for geneset_value in geneset_values
     )
 
 
-def insert_file(
-    cursor: Cursor, formatted_geneset_values: str, comments: str = ""
-) -> int:
+def insert_file(cursor: Cursor, formatted_geneset_values: str, comments: str = "") -> int:
     """Insert a file of geneset values into the database.
 
     :param cursor: The database cursor.
@@ -39,10 +32,7 @@ def insert_file(
 
     :return: The file ID of the inserted file.
     """
-    if (
-        not isinstance(formatted_geneset_values, str)
-        or len(formatted_geneset_values) == 0
-    ):
+    if not isinstance(formatted_geneset_values, str) or len(formatted_geneset_values) == 0:
         raise GeneweaverTypeError("Geneset values must be a nonzero length string.")
 
     cursor.execute(
@@ -127,8 +117,8 @@ def insert_geneset_value(
 def by_geneset_id(
     cursor: Cursor,
     geneset_id: int,
-    identifier: Optional[GeneIdentifier] = None,
-    gsv_in_threshold: Optional[bool] = False,
+    identifier: GeneIdentifier | None = None,
+    gsv_in_threshold: bool | None = False,
 ) -> list:
     """Retrieve all geneset values associated with a geneset.
 
@@ -141,15 +131,13 @@ def by_geneset_id(
     :return: A list of geneset values associated with the geneset.
     """
     if identifier is not None:
-        return by_geneset_id_and_identifier(
-            cursor, geneset_id, identifier, gsv_in_threshold
-        )
+        return by_geneset_id_and_identifier(cursor, geneset_id, identifier, gsv_in_threshold)
     else:
         return by_geneset_id_as_uploaded(cursor, geneset_id, gsv_in_threshold)
 
 
 def by_geneset_id_as_uploaded(
-    cursor: Cursor, geneset_id: int, gsv_in_threshold: Optional[bool] = False
+    cursor: Cursor, geneset_id: int, gsv_in_threshold: bool | None = False
 ) -> list:
     """Retrieve all geneset values associated with a geneset.
 
@@ -183,7 +171,7 @@ def by_geneset_id_and_identifier(
     cursor: Cursor,
     geneset_id: int,
     identifier: GeneIdentifier,
-    gsv_in_threshold: Optional[bool] = False,
+    gsv_in_threshold: bool | None = False,
 ) -> list:
     """Retrieve all geneset values associated with a geneset.
 

@@ -1,7 +1,5 @@
 """Test the ndarray_to_gene_values function."""
 
-from typing import List
-
 import numpy as np
 import pytest
 from geneweaver.core.parse.numpy import ndarray_to_gene_values
@@ -66,9 +64,7 @@ test_cases_gene_values = [
 
 
 @pytest.mark.parametrize(("geneset_array", "expected"), test_cases_gene_values)
-def test_ndarray_to_gene_values(
-    geneset_array: np.ndarray, expected: List[GenesetValueInput]
-):
+def test_ndarray_to_gene_values(geneset_array: np.ndarray, expected: list[GenesetValueInput]):
     """Test that the ndarray_to_gene_values function works as expected."""
     if isinstance(expected, ValueError):
         with pytest.raises(type(expected)) as err:

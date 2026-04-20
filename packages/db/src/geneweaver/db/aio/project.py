@@ -1,7 +1,5 @@
 """Database code for interacting with Project table."""
 
-from typing import List, Optional
-
 from geneweaver.core.schema.project import ProjectCreate
 from geneweaver.db.query import project as project_query
 from psycopg import AsyncCursor
@@ -10,14 +8,14 @@ from psycopg.rows import Row
 
 async def get(
     cursor: AsyncCursor,
-    project_id: Optional[int] = None,
-    owner_id: Optional[int] = None,
-    name: Optional[str] = None,
-    starred: Optional[bool] = None,
-    search_text: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    project_id: int | None = None,
+    owner_id: int | None = None,
+    name: str | None = None,
+    starred: bool | None = None,
+    search_text: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get projects from the database.
 
     :param cursor: A database async cursor.
@@ -49,9 +47,9 @@ async def get(
 async def shared_with_user(
     cursor: AsyncCursor,
     user_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get projects shared with the given user id.
 
     :param cursor: A database async cursor.
@@ -69,7 +67,7 @@ async def shared_with_user(
 
 async def add(
     cursor: AsyncCursor, project: ProjectCreate, user_id: int, starred: bool = False
-) -> Optional[Row]:
+) -> Row | None:
     """Add a new project.
 
     :param cursor: A database async cursor
@@ -88,7 +86,7 @@ async def add(
 
 async def add_geneset_to_project(
     cursor: AsyncCursor, project_id: int, geneset_id: int
-) -> Optional[Row]:
+) -> Row | None:
     """Add a genset to a project. Insert association.
 
     :param cursor: An async database cursor
@@ -98,9 +96,7 @@ async def add_geneset_to_project(
     :return: record of the association
     """
     await cursor.execute(
-        *project_query.insert_geneset_to_project(
-            project_id=project_id, geneset_id=geneset_id
-        )
+        *project_query.insert_geneset_to_project(project_id=project_id, geneset_id=geneset_id)
     )
 
     return await cursor.fetchone()
@@ -108,7 +104,7 @@ async def add_geneset_to_project(
 
 async def delete_geneset_from_project(
     cursor: AsyncCursor, project_id: int, geneset_id: int
-) -> Optional[Row]:
+) -> Row | None:
     """Delete a genset from a project. Remove association.
 
     :param cursor: An async database cursor
@@ -118,9 +114,7 @@ async def delete_geneset_from_project(
     :return:
     """
     await cursor.execute(
-        *project_query.remove_geneset_from_project(
-            project_id=project_id, geneset_id=geneset_id
-        )
+        *project_query.remove_geneset_from_project(project_id=project_id, geneset_id=geneset_id)
     )
 
     return await cursor.fetchone()

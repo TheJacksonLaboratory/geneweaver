@@ -3,7 +3,6 @@
 import pytest
 from geneweaver.core.enum import ScoreType
 from psycopg.sql import SQL
-
 from src.geneweaver.db.query.geneset.utils import restrict_score_type
 
 

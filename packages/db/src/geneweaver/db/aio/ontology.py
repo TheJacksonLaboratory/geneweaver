@@ -1,7 +1,5 @@
 """Database code for interacting with ontologies."""
 
-from typing import List, Optional
-
 from geneweaver.db.query import ontology as ontology_query
 from psycopg import AsyncCursor
 from psycopg.rows import Row
@@ -10,9 +8,9 @@ from psycopg.rows import Row
 async def by_geneset(
     cursor: AsyncCursor,
     geneset_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get geneset ontologies from the database.
 
     :param cursor: An async database cursor.
@@ -34,7 +32,7 @@ async def by_geneset(
 
 async def add_ontology_term_to_geneset(
     cursor: AsyncCursor, ontolog_term_id: int, geneset_id: int, gso_ref_type: str
-) -> Optional[Row]:
+) -> Row | None:
     """Relate an ontology term with a geneset. Insert association.
 
     :param cursor: A async database cursor
@@ -57,7 +55,7 @@ async def add_ontology_term_to_geneset(
 
 async def delete_ontology_term_from_geneset(
     cursor: AsyncCursor, ontology_term_id: int, geneset_id: int, gso_ref_type: str
-) -> Optional[Row]:
+) -> Row | None:
     """Remove ontology term from a geneset. Delete association.
 
     :param cursor: A database cursor
@@ -81,9 +79,9 @@ async def delete_ontology_term_from_geneset(
 async def by_ontology_db(
     cursor: AsyncCursor,
     ontology_db_id: int,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get ontology terms by ontology DB id from the database.
 
     :param cursor: An async database cursor.
@@ -105,10 +103,10 @@ async def by_ontology_db(
 
 async def get_ontology_dbs(
     cursor: AsyncCursor,
-    ontology_db_id: Optional[int] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Row]:
+    ontology_db_id: int | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Row]:
     """Get ontology ontologies DB from the database.
 
     :param cursor: An async database cursor.
@@ -128,7 +126,7 @@ async def get_ontology_dbs(
     return await cursor.fetchall()
 
 
-async def by_ontology_term(cursor: AsyncCursor, onto_ref_term_id: str) -> List[Row]:
+async def by_ontology_term(cursor: AsyncCursor, onto_ref_term_id: str) -> list[Row]:
     """Get ontology term by term ref id from the database.
 
     :param cursor: An database cursor.

@@ -1,7 +1,5 @@
 """Batch upload file rendering."""
 
-from typing import List
-
 from geneweaver.core.schema.batch import (
     HEADER_CHARACTERS,
     IGNORE_CHARACTERS,
@@ -13,7 +11,7 @@ from geneweaver.core.schema.batch import (
 CHAR_MAP = HEADER_CHARACTERS | SPACE_SEPARATED_HEADER_CHARACTERS | IGNORE_CHARACTERS
 
 
-def format_batch_file(genesets: List[BatchUploadGeneset]) -> str:
+def format_batch_file(genesets: list[BatchUploadGeneset]) -> str:
     """Format a batch upload file from a list of genesets.
 
     :param genesets: A list of genesets to format.
@@ -36,7 +34,7 @@ def format_geneset_metadata(geneset: BatchUploadGeneset) -> str:
     """
     data_str = "\n".join(
         (
-            f"{INV_CHAR_MAP[key] if key in INV_CHAR_MAP else key} {str(value)}"
+            f"{INV_CHAR_MAP[key] if key in INV_CHAR_MAP else key} {value!s}"
             for key, value in geneset
             if key != "values" and value is not None
         )
@@ -52,7 +50,7 @@ def format_geneset_values(geneset: BatchUploadGeneset) -> str:
 
     :return: A string containing the geneset values in batch upload format.
     """
-    return "\n".join((str(gene_value) for gene_value in geneset.values))  # noqa: PD011
+    return "\n".join(str(gene_value) for gene_value in geneset.values)
 
 
 def format_geneset(geneset: BatchUploadGeneset) -> str:

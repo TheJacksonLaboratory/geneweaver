@@ -9,9 +9,8 @@ from geneweaver.db.core.settings import settings
 @contextmanager
 def cursor() -> psycopg.Cursor:
     """Get a cursor to the database."""
-    with psycopg.connect(settings.URI) as connection:
-        with connection.cursor() as _cursor:
-            yield _cursor
+    with psycopg.connect(settings.URI) as connection, connection.cursor() as _cursor:
+        yield _cursor
 
 
 @asynccontextmanager

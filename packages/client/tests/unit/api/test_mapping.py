@@ -77,6 +77,4 @@ def test_ensembl_mouse_mapping(
 
     else:
         with pytest.raises(ValueError, match="not supported for ortholog mapping"):
-            mapping.ensembl_mouse_mapping(
-                "fake_access_token", 123, True, OrthologAlgorithms.HGNC
-            )
+            mapping.ensembl_mouse_mapping("fake_access_token", 123, True, OrthologAlgorithms.HGNC)

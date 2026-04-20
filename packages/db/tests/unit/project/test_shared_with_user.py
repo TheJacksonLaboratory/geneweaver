@@ -70,9 +70,7 @@ test_get_execute_raises_error = create_execute_raises_error_test(shared_with_use
 
 test_get_fetchall_raises_error = create_fetchall_raises_error_test(shared_with_user, 1)
 
-test_get_execute_raises_error = async_create_execute_raises_error_test(
-    async_shared_with_user, 1
-)
+test_get_execute_raises_error = async_create_execute_raises_error_test(async_shared_with_user, 1)
 
 test_async_get_fetchall_raises_error = async_create_fetchall_raises_error_test(
     async_shared_with_user, 1

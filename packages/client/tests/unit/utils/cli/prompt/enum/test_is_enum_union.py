@@ -1,6 +1,6 @@
 """Test the is_enum_or_enum_union function."""
 
-from typing import Type, Union
+from typing import Union
 
 import pytest
 from geneweaver.client.utils.cli.prompt.enum import is_enum_union
@@ -30,8 +30,8 @@ def test_is_enum_union(value):
         Union[str, int],
         Union[MockEnum, str],
         Union[MockIntEnum, str],
-        Union[Union[MockEnum, str], Union[MockIntEnum, str]],
-        Union[Type[MockEnum], Type[MockIntEnum]],
+        Union[MockEnum | str, MockIntEnum | str],
+        Union[type[MockEnum], type[MockIntEnum]],
     ],
 )
 def test_is_enum_union_with_non_enum(value):

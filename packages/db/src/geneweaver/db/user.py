@@ -19,8 +19,6 @@ The functions that return a single value from a user record are:
 - user_id_from_sso_id
 """
 
-from typing import Optional
-
 from geneweaver.core.schema.user import User
 from geneweaver.db.query import user
 from geneweaver.db.utils import temp_override_row_factory
@@ -28,7 +26,7 @@ from psycopg import Cursor, rows
 
 
 @temp_override_row_factory(rows.tuple_row)
-def user_id_from_api_key(cursor: Cursor, api_key: str) -> Optional[int]:
+def user_id_from_api_key(cursor: Cursor, api_key: str) -> int | None:
     """Get user id from api key.
 
     :param cursor: The database cursor.
@@ -45,7 +43,7 @@ def user_id_from_api_key(cursor: Cursor, api_key: str) -> Optional[int]:
 
 
 @temp_override_row_factory(rows.tuple_row)
-def user_id_from_sso_id(cursor: Cursor, sso_id: str) -> Optional[int]:
+def user_id_from_sso_id(cursor: Cursor, sso_id: str) -> int | None:
     """Get user id from sso id.
 
     :param cursor: The database cursor.
@@ -61,7 +59,7 @@ def user_id_from_sso_id(cursor: Cursor, sso_id: str) -> Optional[int]:
     return result[0] if result else None
 
 
-def __fetch_and_return_user(cursor: Cursor) -> Optional[User]:
+def __fetch_and_return_user(cursor: Cursor) -> User | None:
     """Fetch and return a user from the cursor.
 
     :param cursor: The database cursor.
@@ -72,7 +70,7 @@ def __fetch_and_return_user(cursor: Cursor) -> Optional[User]:
     return User(**result) if result else None
 
 
-def by_api_key(cursor: Cursor, api_key: str) -> Optional[User]:
+def by_api_key(cursor: Cursor, api_key: str) -> User | None:
     """Get user info by api key.
 
     :param cursor: The database cursor.
@@ -84,7 +82,7 @@ def by_api_key(cursor: Cursor, api_key: str) -> Optional[User]:
     return __fetch_and_return_user(cursor)
 
 
-def by_sso_id(cursor: Cursor, sso_id: str) -> Optional[User]:
+def by_sso_id(cursor: Cursor, sso_id: str) -> User | None:
     """Get user info by sso id.
 
     :param cursor: The database cursor.
@@ -96,7 +94,7 @@ def by_sso_id(cursor: Cursor, sso_id: str) -> Optional[User]:
     return __fetch_and_return_user(cursor)
 
 
-def by_sso_id_and_email(cursor: Cursor, sso_id: str, email: str) -> Optional[User]:
+def by_sso_id_and_email(cursor: Cursor, sso_id: str, email: str) -> User | None:
     """Get user info by sso id and email.
 
     :param cursor: The database cursor.
@@ -109,7 +107,7 @@ def by_sso_id_and_email(cursor: Cursor, sso_id: str, email: str) -> Optional[Use
     return __fetch_and_return_user(cursor)
 
 
-def by_user_id(cursor: Cursor, user_id: int) -> Optional[User]:
+def by_user_id(cursor: Cursor, user_id: int) -> User | None:
     """Get user info by user id.
 
     :param cursor: The database cursor.
@@ -121,7 +119,7 @@ def by_user_id(cursor: Cursor, user_id: int) -> Optional[User]:
     return __fetch_and_return_user(cursor)
 
 
-def by_email(cursor: Cursor, email: str) -> Optional[User]:
+def by_email(cursor: Cursor, email: str) -> User | None:
     """Get user info by email.
 
     :param cursor: The database cursor.

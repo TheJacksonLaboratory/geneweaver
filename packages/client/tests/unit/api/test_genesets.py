@@ -32,9 +32,7 @@ def test_get(geneset_id, gene_id_type):
         result = genesets.get("fake_access_token", geneset_id, gene_id_type)
         assert result["geneset"]["geneset_id"] == geneset_id
         assert result["geneset_values"][0]["geneset_id"] == geneset_id
-        assert (
-            mock_sessionmanager.return_value.__enter__.return_value.get.call_count == 1
-        )
+        assert mock_sessionmanager.return_value.__enter__.return_value.get.call_count == 1
         assert (
             mock_sessionmanager.return_value.__enter__.return_value.get.return_value.json.call_count
             == 1
@@ -51,9 +49,7 @@ def test_get_genesets():
         assert len(result) == 2
         assert result[0]["geneset_id"] == 1
         assert result[1]["geneset_id"] == 2
-        assert (
-            mock_sessionmanager.return_value.__enter__.return_value.get.call_count == 1
-        )
+        assert mock_sessionmanager.return_value.__enter__.return_value.get.call_count == 1
         assert (
             mock_sessionmanager.return_value.__enter__.return_value.get.return_value.json.call_count
             == 1
@@ -71,9 +67,7 @@ def test_get_values():
         assert len(result["data"]) == 2
         assert result["data"][0]["gene1"] == 1.0
         assert result["data"][1]["gene2"] == 2.0
-        assert (
-            mock_sessionmanager.return_value.__enter__.return_value.get.call_count == 1
-        )
+        assert mock_sessionmanager.return_value.__enter__.return_value.get.call_count == 1
         assert (
             mock_sessionmanager.return_value.__enter__.return_value.get.return_value.json.call_count
             == 1

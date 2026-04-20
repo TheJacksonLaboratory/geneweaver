@@ -16,9 +16,7 @@ def test_prompt_generic(field_name, field_type, example_input, allow_none, monke
     """Test the prompt_generic function."""
     mock_prompt = Mock(return_value=example_input)
     mock_allow_none_str = Mock(return_value=" (Optional)")
-    monkeypatch.setattr(
-        "geneweaver.client.utils.cli.prompt.generic.typer.prompt", mock_prompt
-    )
+    monkeypatch.setattr("geneweaver.client.utils.cli.prompt.generic.typer.prompt", mock_prompt)
     monkeypatch.setattr(
         "geneweaver.client.utils.cli.prompt.generic.allow_none_str", mock_allow_none_str
     )
@@ -42,9 +40,7 @@ def test_prompt_generic_with_none_input(monkeypatch):
     """Test the prompt_generic function with None input."""
     mock_prompt = Mock(return_value=None)
     mock_allow_none_str = Mock(return_value=" (Optional)")
-    monkeypatch.setattr(
-        "geneweaver.client.utils.cli.prompt.generic.typer.prompt", mock_prompt
-    )
+    monkeypatch.setattr("geneweaver.client.utils.cli.prompt.generic.typer.prompt", mock_prompt)
     monkeypatch.setattr(
         "geneweaver.client.utils.cli.prompt.generic.allow_none_str", mock_allow_none_str
     )
@@ -62,9 +58,7 @@ def test_prompt_generic_with_invalid_input(monkeypatch):
     """Test the prompt_generic function with invalid input."""
     mock_prompt = Mock(side_effect=[None, 1])
     mock_print = Mock()
-    monkeypatch.setattr(
-        "geneweaver.client.utils.cli.prompt.generic.typer.prompt", mock_prompt
-    )
+    monkeypatch.setattr("geneweaver.client.utils.cli.prompt.generic.typer.prompt", mock_prompt)
     monkeypatch.setattr("builtins.print", mock_print)
     assert mock_prompt.call_count == 0
 
@@ -73,7 +67,4 @@ def test_prompt_generic_with_invalid_input(monkeypatch):
     assert mock_prompt.call_count == 2
     assert result == 1
     assert "Field name (int)" in mock_prompt.call_args_list[0][0][0]
-    assert (
-        "Invalid value for field_name. Please try again."
-        in mock_print.call_args_list[0][0][0]
-    )
+    assert "Invalid value for field_name. Please try again." in mock_print.call_args_list[0][0][0]

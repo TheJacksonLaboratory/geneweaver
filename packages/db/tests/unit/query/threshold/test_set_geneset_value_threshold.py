@@ -120,10 +120,7 @@ def test_set_geneset_threshold_error(geneset_id, score_type, threshold):
     geneset_score_type.score_type = score_type
     geneset_score_type.threshold_low = threshold["threshold_low"]
 
-    error_str = (
-        "geneset_score_type.threshold must be larger "
-        "than geneset_score_type.threshold_low"
-    )
+    error_str = "geneset_score_type.threshold must be larger than geneset_score_type.threshold_low"
 
     with pytest.raises(ValueError, match=error_str):
         set_geneset_value_threshold(geneset_id, geneset_score_type)

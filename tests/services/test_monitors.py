@@ -3,8 +3,8 @@
 from unittest.mock import patch
 
 import pytest
-from geneweaver.api.services import monitors
 
+from geneweaver.api.services import monitors
 from tests.data import test_monitors_data
 
 db_health_status = test_monitors_data.get("db_health_status")

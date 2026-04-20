@@ -1,7 +1,6 @@
 """Group schemas."""
 
 import datetime
-from typing import List
 
 from geneweaver.core.schema.stubgenerator import StubGenerator
 from pydantic import BaseModel
@@ -10,11 +9,11 @@ from pydantic import BaseModel
 class Group(BaseModel):
     """Group schema."""
 
-    id: int  # noqa: A003
+    id: int
     name: str
     private: bool
     created: datetime.date
-    stubgenerators: List[StubGenerator]
+    stubgenerators: list[StubGenerator]
 
 
 class UserAdminGroup(BaseModel):

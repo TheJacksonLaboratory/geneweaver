@@ -1,6 +1,5 @@
 """Test the extract numeric values function."""
 
-# ruff: noqa: ANN001, ANN201
 import pytest
 from geneweaver.core.parse.score import extract_numeric_values
 
@@ -58,9 +57,7 @@ transformations = [
 # Double parametrize the test function
 @pytest.mark.parametrize(("score_input", "expected_output"), input_strings)
 @pytest.mark.parametrize(("input_transform", "output_transform"), transformations)
-def test_extract_numeric_values(
-    score_input, expected_output, input_transform, output_transform
-):
+def test_extract_numeric_values(score_input, expected_output, input_transform, output_transform):
     """Tests the extract_numeric_values function."""
     transformed_input = input_transform(score_input)
     transformed_output = output_transform(expected_output)

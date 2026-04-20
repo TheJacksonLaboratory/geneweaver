@@ -1,6 +1,5 @@
 """The main entrypoint to the GeneWeaver CLI client."""
 
-# ruff: noqa: B008
 import pkg_resources
 import typer
 from geneweaver.client.cli import alpha, beta
@@ -24,9 +23,7 @@ def common(
     ctx: typer.Context,
     version: bool = typer.Option(None, "--version", callback=version_callback),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress all output."),
-    pretty: bool = typer.Option(
-        False, "--pretty", "-p", help="Pretty print data output."
-    ),
+    pretty: bool = typer.Option(False, "--pretty", "-p", help="Pretty print data output."),
 ) -> None:
     """GeneWeaver CLI client."""
     ctx.obj = {"quiet": quiet, "pretty": pretty}

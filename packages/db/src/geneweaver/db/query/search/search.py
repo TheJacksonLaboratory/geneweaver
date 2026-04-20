@@ -1,7 +1,6 @@
 """Full general search of Geneweaver Database."""
 
 from datetime import date
-from typing import Optional, Tuple
 
 from geneweaver.db.query.geneset.utils import (
     format_select_query,
@@ -24,22 +23,22 @@ from psycopg.sql import SQL, Composed
 
 def genesets(
     search_text: str,
-    is_readable_by: Optional[int] = None,
-    publication_id: Optional[int] = None,
-    pubmed_id: Optional[int] = None,
-    species: Optional[SpeciesOrSpeciesSet] = None,
-    curation_tier: Optional[GenesetTierOrTiers] = None,
-    score_type: Optional[GenesetScoreTypeOrScoreTypes] = None,
-    lte_count: Optional[int] = None,
-    gte_count: Optional[int] = None,
-    created_before: Optional[date] = None,
-    created_after: Optional[date] = None,
-    updated_before: Optional[date] = None,
-    updated_after: Optional[date] = None,
-    limit: Optional[int] = 25,
-    offset: Optional[int] = 0,
-    _status: Optional[str] = "normal",
-) -> Tuple[Composed, dict]:
+    is_readable_by: int | None = None,
+    publication_id: int | None = None,
+    pubmed_id: int | None = None,
+    species: SpeciesOrSpeciesSet | None = None,
+    curation_tier: GenesetTierOrTiers | None = None,
+    score_type: GenesetScoreTypeOrScoreTypes | None = None,
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_before: date | None = None,
+    created_after: date | None = None,
+    updated_before: date | None = None,
+    updated_after: date | None = None,
+    limit: int | None = 25,
+    offset: int | None = 0,
+    _status: str | None = "normal",
+) -> tuple[Composed, dict]:
     """Search genesets using all relevant metadata fields.
 
     :param search_text: Return genesets that match this search text.
@@ -67,9 +66,7 @@ def genesets(
     )
 
     filtering, params = is_readable(filtering, params, is_readable_by)
-    filtering, params = search(
-        filtering, params, const.SEARCH_COMBINED_COL, search_text
-    )
+    filtering, params = search(filtering, params, const.SEARCH_COMBINED_COL, search_text)
     filtering, params = restrict_tier(filtering, params, curation_tier)
     filtering, params = restrict_score_type(filtering, params, score_type)
     filtering, params = restrict_species(filtering, params, species)

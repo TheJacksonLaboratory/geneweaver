@@ -60,9 +60,7 @@ def test_get_publications_by_pubmed_ids(pmids, expected_result, cursor):
 
 
 @pytest.mark.parametrize(("pmids", "expected_result"), params)
-async def test_async_get_publications_by_pubmed_ids(
-    pmids, expected_result, async_cursor
-):
+async def test_async_get_publications_by_pubmed_ids(pmids, expected_result, async_cursor):
     """Test getting multiple publications by pubmed ids."""
     # Prepare the mock cursor
     async_cursor.fetchall.return_value = expected_result

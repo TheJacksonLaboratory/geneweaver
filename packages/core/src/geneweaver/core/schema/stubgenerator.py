@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class StubGenerator(BaseModel):
     """Stub generator schema."""
 
-    id: int  # noqa: A003
+    id: int
     name: str
     querystring: str
     last_update: str

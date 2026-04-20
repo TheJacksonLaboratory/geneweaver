@@ -26,7 +26,6 @@ Exceptions:
 """
 
 import re
-from typing import List
 
 from geneweaver.core.parse.exceptions import InvalidScoreThresholdError
 from geneweaver.core.schema.score import GenesetScoreType, ScoreType
@@ -162,7 +161,7 @@ def parse_score(score_input: str) -> GenesetScoreType:
     raise InvalidScoreThresholdError()
 
 
-def extract_numeric_values(score_input: str) -> List[str]:
+def extract_numeric_values(score_input: str) -> list[str]:
     """Extract all numerical values from a given string.
 
     This function uses regular expressions to find and return all numeric

@@ -1,7 +1,6 @@
 """Namespace for defining schemas related to messaging."""
 
 import enum
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -19,7 +18,7 @@ class Message(BaseModel):
 
     message: str
     message_type: MessageType
-    detail: Optional[str] = None
+    detail: str | None = None
 
 
 class UserMessage(Message):
@@ -33,5 +32,5 @@ class SystemMessage(Message):
 class MessageResponse(BaseModel):
     """Class for defining a response containing messages."""
 
-    user_messages: Optional[List[UserMessage]] = None
-    system_messages: Optional[List[SystemMessage]] = None
+    user_messages: list[UserMessage] | None = None
+    system_messages: list[SystemMessage] | None = None

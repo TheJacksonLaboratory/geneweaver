@@ -1,6 +1,5 @@
 """Tests for the process_lines function."""
 
-# ruff: noqa: ANN001, ANN201
 from unittest.mock import patch
 
 import pytest
@@ -17,15 +16,11 @@ from geneweaver.core.parse.score import (
     [
         (
             "effect=0.05",
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=None, threshold=0.05
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=None, threshold=0.05),
         ),
         (
             "effect=0.1,0.2",
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=0.1, threshold=0.2
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=0.1, threshold=0.2),
         ),
         (
             "effect=1,2",
@@ -33,9 +28,7 @@ from geneweaver.core.parse.score import (
         ),
         (
             "effect = 0.5,1",
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=0.5, threshold=1
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=0.5, threshold=1),
         ),
     ],
 )
@@ -68,16 +61,12 @@ def test_parse_effect_invalid(invalid_input):
         (
             "effect=0.05",
             [None, 0.05],
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=None, threshold=0.05
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=None, threshold=0.05),
         ),
         (
             "effect=0.1,0.2",
             [0.1, 0.2],
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=0.1, threshold=0.2
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=0.1, threshold=0.2),
         ),
         (
             "effect=1,2",
@@ -87,16 +76,12 @@ def test_parse_effect_invalid(invalid_input):
         (
             "effect = 0.5,1",
             [0.5, 1],
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=0.5, threshold=1
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=0.5, threshold=1),
         ),
     ],
 )
 @patch("geneweaver.core.parse.score.extract_one_or_two_numeric_values")
-def test_parse_effect_valid_with_mock(
-    mock_extract, input_string, mock_return, expected_output
-):
+def test_parse_effect_valid_with_mock(mock_extract, input_string, mock_return, expected_output):
     """Tests the parse_effect function with valid inputs using a mock."""
     mock_extract.return_value = mock_return
     result = parse_effect(input_string)

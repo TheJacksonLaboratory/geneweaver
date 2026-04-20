@@ -1,7 +1,6 @@
 """Fixtures for the gene db tests."""
 
 import random
-from typing import List
 
 import pytest
 
@@ -12,6 +11,6 @@ random.seed(0)
 
 
 @pytest.fixture(params=list(range(1, 250)))
-def geneset_gene_symbols(request) -> List[str]:
+def geneset_gene_symbols(request) -> list[str]:
     """Return a list of geneset genes."""
     return random.sample(GENE_SYMBOLS_01 + GENE_SYMBOLS_02, request.param)

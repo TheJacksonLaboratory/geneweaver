@@ -160,7 +160,7 @@ EXAMPLE_AUTHORS_LIST = [
 
 EXAMPLE_AUTHORS = [
     (
-        "<author><ForeName>Jane</ForeName>" "<LastName>Smith</LastName></author>",
+        "<author><ForeName>Jane</ForeName><LastName>Smith</LastName></author>",
         "Jane Smith",
     ),
     ("<author><LastName>Smith</LastName></author>", "Smith"),
@@ -177,16 +177,15 @@ EXAMPLE_AUTHORS = [
     ("<author><Initials>JS</Initials><LastName></LastName></author>", "JS"),
     ("<author><ForeName>Jane</ForeName><Initials>JS</Initials></author>", "Jane"),
     (
-        "<author><LastName>Smith</LastName>" "<ForeName>Jane</ForeName></author>",
+        "<author><LastName>Smith</LastName><ForeName>Jane</ForeName></author>",
         "Jane Smith",
     ),
     (
-        "<author><ForeName>Jane</ForeName>"
-        "<Initials>JS</Initials><LastName></LastName></author>",
+        "<author><ForeName>Jane</ForeName><Initials>JS</Initials><LastName></LastName></author>",
         "Jane",
     ),
     (
-        "<author><LastName>Smith</LastName>" "<Initials>JS</Initials></author>",
+        "<author><LastName>Smith</LastName><Initials>JS</Initials></author>",
         "JS Smith",
     ),
     (
@@ -203,8 +202,7 @@ EXAMPLE_AUTHORS = [
     ("<author><LastName>Doe</LastName></author>", "Doe"),
     ("<author><ForeName>John</ForeName></author>", "John"),
     (
-        "<author><ForeName>John</ForeName>"
-        "<Initials>J</Initials><LastName>Doe</LastName></author>",
+        "<author><ForeName>John</ForeName><Initials>J</Initials><LastName>Doe</LastName></author>",
         "John Doe",
     ),
     ("<author><Initials>J</Initials><LastName>Doe</LastName></author>", "J Doe"),
@@ -215,19 +213,16 @@ EXAMPLE_AUTHORS = [
     ("<author><ForeName>John</ForeName><Initials>J</Initials></author>", "John"),
     ("<author><LastName>Doe</LastName><ForeName>John</ForeName></author>", "John Doe"),
     (
-        "<author><ForeName>John</ForeName>"
-        "<Initials>J</Initials><LastName></LastName></author>",
+        "<author><ForeName>John</ForeName><Initials>J</Initials><LastName></LastName></author>",
         "John",
     ),
     ("<author><LastName>Doe</LastName><Initials>J</Initials></author>", "J Doe"),
     (
-        "<author><ForeName>John</ForeName>"
-        "<Initials></Initials><LastName>Doe</LastName></author>",
+        "<author><ForeName>John</ForeName><Initials></Initials><LastName>Doe</LastName></author>",
         "John Doe",
     ),
     (
-        "<author><ForeName>John</ForeName>"
-        "<Initials>J</Initials><LastName>Doe</LastName></author>",
+        "<author><ForeName>John</ForeName><Initials>J</Initials><LastName>Doe</LastName></author>",
         "John Doe",
     ),
 ]

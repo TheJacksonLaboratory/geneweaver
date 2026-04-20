@@ -4,16 +4,17 @@
 import logging
 from contextlib import asynccontextmanager
 from tempfile import TemporaryDirectory
-from typing import Annotated, Optional
+from typing import Annotated
 
 import psycopg
 from fastapi import Depends, FastAPI, Request
-from geneweaver.api.core.config import settings
-from geneweaver.api.core.exceptions import AuthenticationMismatch
-from geneweaver.api.core.security import Auth0, UserInternal
 from geneweaver.db import user as db_user
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import ConnectionPool
+
+from geneweaver.api.core.config import settings
+from geneweaver.api.core.exceptions import AuthenticationMismatch
+from geneweaver.api.core.security import Auth0, UserInternal
 
 auth = Auth0(
     domain=settings.AUTH_DOMAIN,
@@ -46,14 +47,10 @@ async def lifespan(app: FastAPI) -> None:
     )
     app.pool.open()
     app.pool.wait()
-    with app.pool.connection() as conn:
-        with conn.cursor() as cur:
-            logger.info("Setting search path.")
-            cur.execute(
-                'SET search_path = "$user", '
-                "public, production, extsrc, odestatic, curation;"
-            )
-            conn.commit()
+    with app.pool.connection() as conn, conn.cursor() as cur:
+        logger.info("Setting search path.")
+        cur.execute('SET search_path = "$user", public, production, extsrc, odestatic, curation;')
+        conn.commit()
     yield
     logger.info("Closing DB Connection Pool.")
     app.pool.close()
@@ -62,9 +59,8 @@ async def lifespan(app: FastAPI) -> None:
 async def cursor(request: Request) -> Cursor:
     """Get a cursor from the connection pool."""
     logger.debug("Getting cursor from pool.")
-    with request.app.pool.connection() as conn:
-        with conn.cursor() as cur:
-            yield cur
+    with request.app.pool.connection() as conn, conn.cursor() as cur:
+        yield cur
 
 
 CursorDep = Annotated[Cursor, Depends(cursor)]
@@ -89,9 +85,7 @@ def _get_user_details(cursor: Cursor, user: UserInternal) -> UserInternal:
         else:
             if not user.name:
                 user.name = user.email
-            user.id = db_user.create_sso_user(
-                cursor, user.name, user.email, user.sso_id
-            )
+            user.id = db_user.create_sso_user(cursor, user.name, user.email, user.sso_id)
     return user
 
 
@@ -117,8 +111,8 @@ FullUserDep = Annotated[UserInternal, Depends(full_user)]
 
 async def optional_full_user(
     cursor: CursorDep,
-    user: Optional[UserInternal] = Depends(auth.get_user),
-) -> Optional[UserInternal]:
+    user: UserInternal | None = Depends(auth.get_user),
+) -> UserInternal | None:
     """Get the full user object, if request is logged in.
 
     Since there are external dependencies to wait for,
@@ -134,7 +128,7 @@ async def optional_full_user(
     return None
 
 
-OptionalFullUserDep = Annotated[Optional[UserInternal], Depends(optional_full_user)]
+OptionalFullUserDep = Annotated[UserInternal | None, Depends(optional_full_user)]
 
 
 async def get_temp_dir() -> TemporaryDirectory:

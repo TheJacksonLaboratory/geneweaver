@@ -1,7 +1,6 @@
 """Utilities for testing the database module."""
 
-# ruff: noqa: ANN002, ANN003, ANN101, D102, D107
-from typing import Callable
+from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import pytest
@@ -64,9 +63,7 @@ def create_fetchall_raises_error_test(function, *args, **kwargs) -> Callable:
 def async_create_execute_raises_error_test(function, *args, **kwargs) -> Callable:
     """Return a test function that tests the execute error path."""
 
-    async def test_function(
-        all_psycopg_errors, async_cursor_execute_raises_error
-    ) -> None:
+    async def test_function(all_psycopg_errors, async_cursor_execute_raises_error) -> None:
         with pytest.raises(all_psycopg_errors, match="Error message"):
             await function(async_cursor_execute_raises_error, *args, **kwargs)
         assert async_cursor_execute_raises_error.execute.call_count == 1
@@ -81,9 +78,7 @@ def async_create_execute_raises_error_test(function, *args, **kwargs) -> Callabl
 def async_create_fetchone_raises_error_test(function, *args, **kwargs) -> Callable:
     """Return a test function that tests the fetchone error path."""
 
-    async def test_function(
-        all_psycopg_errors, async_cursor_fetchone_raises_error
-    ) -> None:
+    async def test_function(all_psycopg_errors, async_cursor_fetchone_raises_error) -> None:
         with pytest.raises(all_psycopg_errors, match="Error message"):
             await function(async_cursor_fetchone_raises_error, *args, **kwargs)
         assert async_cursor_fetchone_raises_error.execute.call_count == 1
@@ -98,9 +93,7 @@ def async_create_fetchone_raises_error_test(function, *args, **kwargs) -> Callab
 def async_create_fetchall_raises_error_test(function, *args, **kwargs) -> Callable:
     """Return a test function that tests the fetchall error path."""
 
-    async def test_function(
-        all_psycopg_errors, async_cursor_fetchall_raises_error
-    ) -> None:
+    async def test_function(all_psycopg_errors, async_cursor_fetchall_raises_error) -> None:
         with pytest.raises(all_psycopg_errors, match="Error message"):
             await function(async_cursor_fetchall_raises_error, *args, **kwargs)
         assert async_cursor_fetchall_raises_error.execute.call_count == 1

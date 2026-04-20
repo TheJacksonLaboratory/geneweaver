@@ -13,7 +13,7 @@ The auth commands allow you to authenticate with the GeneWeaver API.
 
 
 @cli.command(name="login")
-def _login(reauth: bool = typer.Option(False, "--reauth")) -> None:  # noqa: B008
+def _login(reauth: bool = typer.Option(False, "--reauth")) -> None:
     """Run the device authorization flow.
 
     :param reauth: Force a re-authentication

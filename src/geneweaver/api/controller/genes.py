@@ -1,8 +1,12 @@
 """Endpoints related to genes."""
 
-from typing import Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
+from geneweaver.core.enum import GeneIdentifier, Species
+from geneweaver.core.schema.gene import Gene
+from jax.apiutils import CollectionResponse, Response
+
 from geneweaver.api import dependencies as deps
 from geneweaver.api.schemas.apimodels import (
     GeneIdHomologReq,
@@ -11,10 +15,6 @@ from geneweaver.api.schemas.apimodels import (
     GeneIdMappingResp,
 )
 from geneweaver.api.services import genes as genes_service
-from geneweaver.core.enum import GeneIdentifier, Species
-from geneweaver.core.schema.gene import Gene
-from jax.apiutils import CollectionResponse, Response
-from typing_extensions import Annotated
 
 from . import message as api_message
 
@@ -23,17 +23,13 @@ router = APIRouter(prefix="/genes", tags=["genes"])
 
 @router.get("")
 def get_genes(
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
-    reference_id: Annotated[
-        Optional[str], Query(description=api_message.GENE_REFERENCE)
-    ] = None,
-    gene_database: Optional[GeneIdentifier] = None,
-    species: Optional[Species] = None,
-    preferred: Annotated[
-        Optional[bool], Query(description=api_message.GENE_PREFERRED)
-    ] = None,
+    cursor: deps.Cursor | None = Depends(deps.cursor),
+    reference_id: Annotated[str | None, Query(description=api_message.GENE_REFERENCE)] = None,
+    gene_database: GeneIdentifier | None = None,
+    species: Species | None = None,
+    preferred: Annotated[bool | None, Query(description=api_message.GENE_PREFERRED)] = None,
     limit: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -42,7 +38,7 @@ def get_genes(
         ),
     ] = None,
     offset: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -63,10 +59,8 @@ def get_genes(
 
 @router.get("/{gene_id}/preferred")
 def get_gene_preferred(
-    gene_id: Annotated[
-        int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)
-    ],
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    gene_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> Response[Gene]:
     """Get preferred gene for a given gene ode_id."""
     response = genes_service.get_gene_preferred(cursor, gene_id)
@@ -76,7 +70,7 @@ def get_gene_preferred(
 @router.post("/homologs", response_model=GeneIdMappingResp, deprecated=True)
 def get_related_gene_ids(
     gene_id_mapping: GeneIdHomologReq,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> GeneIdMappingResp:
     """Get homologous gene ids given list of gene ids."""
     response = genes_service.get_homolog_ids(
@@ -97,7 +91,7 @@ def get_related_gene_ids(
 @router.post("/mappings", response_model=GeneIdMappingResp)
 def get_genes_mapping(
     gene_id_mapping: GeneIdMappingReq,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> GeneIdMappingResp:
     """Get gene ids mapping."""
     response = genes_service.get_gene_mapping(
@@ -116,7 +110,7 @@ def get_genes_mapping(
 @router.post("/mappings/aon", response_model=GeneIdMappingResp)
 def get_genes_mapping_aon(
     gene_id_mapping: GeneIdMappingAonReq,
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> GeneIdMappingResp:
     """Get gene ids mapping given list of gene ids and target gene identifier type."""
     response = genes_service.get_gene_aon_mapping(

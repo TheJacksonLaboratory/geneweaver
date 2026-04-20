@@ -20,9 +20,11 @@ from requests.exceptions import HTTPError
 )
 def test_download_zip_file(file_exists, redownload, http_status, raises_exception):
     """Test the download_zip_file method in BaseDataset with mocks."""
-    with patch("geneweaver.client.datasets.base.requests.get") as mock_get, patch(
-        "geneweaver.client.datasets.base.zipfile.ZipFile"
-    ), patch.object(Path, "is_file", return_value=file_exists):
+    with (
+        patch("geneweaver.client.datasets.base.requests.get") as mock_get,
+        patch("geneweaver.client.datasets.base.zipfile.ZipFile"),
+        patch.object(Path, "is_file", return_value=file_exists),
+    ):
         # Configure the mock response for requests.get
         mock_response = MagicMock()
         mock_response.status_code = http_status
@@ -40,9 +42,7 @@ def test_download_zip_file(file_exists, redownload, http_status, raises_exceptio
 
         # Test download_zip_file
         if raises_exception:
-            with pytest.raises(
-                HTTPError
-            ):  # Replace with specific exception if applicable
+            with pytest.raises(HTTPError):  # Replace with specific exception if applicable
                 base_dataset.download_zip_file(redownload=redownload)
         else:
             base_dataset.download_zip_file(redownload=redownload)

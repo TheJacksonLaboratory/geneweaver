@@ -1,12 +1,10 @@
 """Utilities for integration tests."""
 
 import time
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 
-def call_function(
-    func: Callable, num_times: int, rate: int, iterate_args: Optional[Sequence]
-):  # noqa: ANN002
+def call_function(func: Callable, num_times: int, rate: int, iterate_args: Sequence | None):
     """Call 'func' 'num_times' times at 'rate' times per second."""
     results = []
 

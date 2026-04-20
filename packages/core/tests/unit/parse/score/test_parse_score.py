@@ -1,6 +1,5 @@
 """Test the parse_score function."""
 
-# ruff: noqa: ANN001, ANN201
 from unittest.mock import Mock, patch
 
 import pytest
@@ -26,15 +25,11 @@ from geneweaver.core.parse.score import (
         ),
         (
             "0.40 < Correlation < 0.90",
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=0.4, threshold=0.9
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=0.4, threshold=0.9),
         ),
         (
             "6.0 < Effect < 22.50",
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=6, threshold=22.5
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=6, threshold=22.5),
         ),
     ],
 )
@@ -83,16 +78,12 @@ def test_parse_score_invalid(invalid_input):
         (
             "0.40 < Correlation < 0.90",
             "correlation",
-            GenesetScoreType(
-                score_type=ScoreType.CORRELATION, threshold_low=0.4, threshold=0.9
-            ),
+            GenesetScoreType(score_type=ScoreType.CORRELATION, threshold_low=0.4, threshold=0.9),
         ),
         (
             "6.0 < Effect < 22.50",
             "effect",
-            GenesetScoreType(
-                score_type=ScoreType.EFFECT, threshold_low=6, threshold=22.7
-            ),
+            GenesetScoreType(score_type=ScoreType.EFFECT, threshold_low=6, threshold=22.7),
         ),
     ],
 )

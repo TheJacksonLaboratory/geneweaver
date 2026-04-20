@@ -1,10 +1,11 @@
-""""Unit tests for the read_file_contents function in the io module."""
+""" "Unit tests for the read_file_contents function in the io module."""
 
 import pytest
+
 from geneweaver.api.services import io
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("contents", "encoding", "expected"),
     [

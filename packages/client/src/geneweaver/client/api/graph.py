@@ -10,15 +10,13 @@ This intentionally obfuscates the underlying graph database
 for the reasons of security and scalability.
 """
 
-# ruff: noqa: E501, N803
 import csv
 import json
 from enum import Enum
-from typing import Optional
 
 import requests
 
-Source = Enum("Source", ["BAYLOR", "HOMOLOGENE" "ENSEMBL"])
+Source = Enum("Source", ["BAYLOR", "HOMOLOGENEENSEMBL"])
 """
 @usage: from geneweaver.client.api.graph import Source
 """
@@ -52,12 +50,12 @@ class SearchRequest:
         searchType: SearchType = SearchType.EQTL_BP_TO_GENES,
         delimiter: str = ",",
         species: str = "Mus musculus",
-        geneIds: Optional[list] = None,
-        eqtls: Optional[list] = None,
-        rsId: Optional[str] = None,
-        tissue: Optional[str] = None,
-        studyId: Optional[str] = None,
-        source: Optional[Source] = None,
+        geneIds: list | None = None,
+        eqtls: list | None = None,
+        rsId: str | None = None,
+        tissue: str | None = None,
+        studyId: str | None = None,
+        source: Source | None = None,
     ) -> None:
         """Initialize a SearchRequest object."""
         # Defaulted properties
@@ -77,7 +75,7 @@ class SearchRequest:
 class Position:
     """A class to hold a position on a chromosome."""
 
-    def __init__(self, bp: str, chr: str) -> None:  # noqa: A002
+    def __init__(self, bp: str, chr: str) -> None:
         """Initialize a Position object."""
         self.bp = bp
         self.chr = chr
@@ -138,9 +136,7 @@ class VariantGraphClient:
 
         reader = csv.reader(csv_lines)
         omap = {
-            row[0]: row[1]
-            for row in reader
-            if len(row) > 0 and not row[0].startswith("gf.geneId")
+            row[0]: row[1] for row in reader if len(row) > 0 and not row[0].startswith("gf.geneId")
         }
 
         return omap

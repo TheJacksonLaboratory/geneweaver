@@ -1,14 +1,13 @@
 """Service functions for publications."""
 
-from typing import Optional
-
 from fastapi.logger import logger
-from geneweaver.api.controller import message
-from geneweaver.api.schemas.auth import User
 from geneweaver.core.exc import ExternalAPIError
 from geneweaver.core.publication import pubmed
 from geneweaver.db import publication as db_publication
 from psycopg import Cursor
+
+from geneweaver.api.controller import message
+from geneweaver.api.schemas.auth import User
 
 
 def get_publication(cursor: Cursor, pub_id: int) -> dict:
@@ -82,19 +81,19 @@ def add_pubmed_record(cursor: Cursor, user: User, pubmed_id: str) -> dict:
 
 def get(
     cursor: Cursor,
-    pub_id: Optional[int] = None,
-    authors: Optional[str] = None,
-    title: Optional[str] = None,
-    abstract: Optional[str] = None,
-    journal: Optional[str] = None,
-    volume: Optional[str] = None,
-    pages: Optional[str] = None,
-    month: Optional[str] = None,
-    year: Optional[str] = None,
-    pubmed: Optional[str] = None,
-    search_text: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    pub_id: int | None = None,
+    authors: str | None = None,
+    title: str | None = None,
+    abstract: str | None = None,
+    journal: str | None = None,
+    volume: str | None = None,
+    pages: str | None = None,
+    month: str | None = None,
+    year: str | None = None,
+    pubmed: str | None = None,
+    search_text: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> dict:
     """Get publications by some criteria.
 

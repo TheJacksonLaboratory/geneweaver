@@ -37,9 +37,7 @@ from geneweaver.core.threshold import check_threshold_list
             [False, True],
         ),
         (
-            GenesetScoreType(
-                score_type="correlation", threshold=0.05, threshold_low=0.01
-            ),
+            GenesetScoreType(score_type="correlation", threshold=0.05, threshold_low=0.01),
             [0.03, 0.06],
             [True, False],
         ),

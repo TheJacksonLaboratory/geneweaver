@@ -1,7 +1,6 @@
 """CLI for parsing utility functions."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from geneweaver.client.parser import general
@@ -59,7 +58,7 @@ def get_sheet_names(file_path: Path) -> None:
 
 @cli.command()
 @print_value_errors
-def get_metadata(file_path: Path, sheet: Optional[str] = None) -> None:
+def get_metadata(file_path: Path, sheet: str | None = None) -> None:
     """Get the metadata from a data file."""
     file_type = get_file_type(file_path)
 
@@ -73,9 +72,7 @@ def get_metadata(file_path: Path, sheet: Optional[str] = None) -> None:
 
         print_metadata_csv(file_path, metadata)
     elif file_type == "xlsx":
-        sheet_names, sheet_metadata, _, _, n_sheets = xlsx.get_metadata(
-            file_path, sheet
-        )
+        sheet_names, sheet_metadata, _, _, n_sheets = xlsx.get_metadata(file_path, sheet)
         print_metadata_xlsx(file_path, sheet_names, sheet_metadata, n_sheets)
 
 
@@ -127,9 +124,7 @@ def _preview_xlsx(
 
     for idx, (sheet_name, metadata, header, header_idx) in enumerate(zipped_data):
         print(f"Data for sheet - {sheet_name} - {metadata}")
-        rows = xlsx.read_to_dict_n_rows(
-            str(file_path), rows_to_read, header_idx, sheet_name
-        )
+        rows = xlsx.read_to_dict_n_rows(str(file_path), rows_to_read, header_idx, sheet_name)
         print_tabular_data(header, rows)
 
         if prompt and idx < n_sheets - 1:

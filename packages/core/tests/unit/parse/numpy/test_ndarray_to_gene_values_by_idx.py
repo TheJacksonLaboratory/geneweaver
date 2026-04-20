@@ -1,7 +1,5 @@
 """Test the ndarray_to_gene_values_by_idx function."""
 
-from typing import List
-
 import numpy as np
 import pytest
 from geneweaver.core.parse.numpy import ndarray_to_gene_values_by_idx
@@ -14,15 +12,9 @@ from tests.unit.parse.numpy.const import (
 )
 
 # Additional test cases for ndarray_to_gene_values_by_idx function
-test_case_array_1 = np.array(
-    [("GeneX", 7.0)], dtype=[("Symbol", "U10"), ("Value", "f8")]
-)
-test_case_array_2 = np.array(
-    [("GeneY", 8.1)], dtype=[("Symbol", "U10"), ("Value", "f8")]
-)
-test_case_array_3 = np.array(
-    [("GeneZ", 9.2)], dtype=[("Symbol", "U10"), ("Value", "f8")]
-)
+test_case_array_1 = np.array([("GeneX", 7.0)], dtype=[("Symbol", "U10"), ("Value", "f8")])
+test_case_array_2 = np.array([("GeneY", 8.1)], dtype=[("Symbol", "U10"), ("Value", "f8")])
+test_case_array_3 = np.array([("GeneZ", 9.2)], dtype=[("Symbol", "U10"), ("Value", "f8")])
 
 # Test cases for ndarray_to_gene_values_by_idx function
 test_cases_by_idx = [
@@ -55,7 +47,7 @@ test_cases_by_idx = [
 
 @pytest.mark.parametrize(("geneset_array", "expected"), test_cases_by_idx)
 def test_ndarray_to_gene_values_by_idx(
-    geneset_array: np.ndarray, expected: List[GenesetValueInput]
+    geneset_array: np.ndarray, expected: list[GenesetValueInput]
 ):
     """Test that the ndarray_to_gene_values_by_idx function works as expected."""
     result = ndarray_to_gene_values_by_idx(geneset_array)

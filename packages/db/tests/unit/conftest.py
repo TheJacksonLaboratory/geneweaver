@@ -29,9 +29,7 @@ def base_psycopg_errors(request):
 random.seed(0)
 
 # Some small primary keys, and some big ones.
-EXAMPLE_PRIMARY_KEYS = [0, 1, 2, 3, 10, 100] + sorted(
-    random.sample(range(100, 500150300), 10)
-)
+EXAMPLE_PRIMARY_KEYS = [0, 1, 2, 3, 10, 100] + sorted(random.sample(range(100, 500150300), 10))
 
 # Like the PRIMARY_KEYS, but a bit smaller.
 EXAMPLE_USER_IDS = [1, 2, 3, 10, 100] + sorted(random.sample(range(100, 250300), 10))
@@ -75,54 +73,54 @@ def geneset_curation_id(request):
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def cursor(request):
     """Create a magic mock cursor."""
     return MagicMock(spec=Cursor)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cursor_execute_raises_error(cursor, all_psycopg_errors):
     """Create a magic mock cursor that raises an error when execute is called."""
     cursor.execute.side_effect = all_psycopg_errors("Error message")
     return cursor
 
 
-@pytest.fixture()
+@pytest.fixture
 def cursor_fetchone_raises_error(cursor, all_psycopg_errors):
     """Create a magic mock cursor that raises an error when fetchone is called."""
     cursor.fetchone.side_effect = all_psycopg_errors("Error message")
     return cursor
 
 
-@pytest.fixture()
+@pytest.fixture
 def cursor_fetchall_raises_error(cursor, all_psycopg_errors):
     """Create a magic mock cursor that raises an error when fetchall is called."""
     cursor.fetchall.side_effect = all_psycopg_errors("Error message")
     return cursor
 
 
-@pytest.fixture()
+@pytest.fixture
 def async_cursor(request):
     """Create a magic mock async cursor."""
     return AsyncMock(spec=AsyncCursor)
 
 
-@pytest.fixture()
+@pytest.fixture
 def async_cursor_execute_raises_error(async_cursor, all_psycopg_errors):
     """Create a magic mock cursor that raises an error when execute is called."""
     async_cursor.execute.side_effect = all_psycopg_errors("Error message")
     return async_cursor
 
 
-@pytest.fixture()
+@pytest.fixture
 def async_cursor_fetchone_raises_error(async_cursor, all_psycopg_errors):
     """Create a magic mock cursor that raises an error when fetchone is called."""
     async_cursor.fetchone.side_effect = all_psycopg_errors("Error message")
     return async_cursor
 
 
-@pytest.fixture()
+@pytest.fixture
 def async_cursor_fetchall_raises_error(async_cursor, all_psycopg_errors):
     """Create a magic mock cursor that raises an error when fetchall is called."""
     async_cursor.fetchall.side_effect = all_psycopg_errors("Error message")

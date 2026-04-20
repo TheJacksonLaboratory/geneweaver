@@ -1,15 +1,15 @@
 """Endpoints related to searching."""
 
-from typing import List, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Security
+from geneweaver.db import search as db_search
+from jax.apiutils import Response
+
 from geneweaver.api import dependencies as deps
 from geneweaver.api.schemas.apimodels import GsPubSearchType
 from geneweaver.api.schemas.auth import UserInternal
 from geneweaver.api.services import publications as publication_service
-from geneweaver.db import search as db_search
-from jax.apiutils import Response
-from typing_extensions import Annotated
 
 from . import message as api_message
 
@@ -18,14 +18,12 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 @router.get("")
 def search(
-    entities: Annotated[
-        List[GsPubSearchType], Query(description=api_message.GS_PUB_SEARCH_TEXT)
-    ],
+    entities: Annotated[list[GsPubSearchType], Query(description=api_message.GS_PUB_SEARCH_TEXT)],
     search_text: Annotated[str, Query(description=api_message.SEARCH_TEXT)],
     user: UserInternal = Security(deps.optional_full_user),
-    cursor: Optional[deps.Cursor] = Depends(deps.cursor),
+    cursor: deps.Cursor | None = Depends(deps.cursor),
     limit: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,
@@ -34,7 +32,7 @@ def search(
         ),
     ] = 10,
     offset: Annotated[
-        Optional[int],
+        int | None,
         Query(
             format="int64",
             minimum=0,

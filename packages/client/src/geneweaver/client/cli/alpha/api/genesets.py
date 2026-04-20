@@ -2,7 +2,6 @@
 
 # ruff: noqa: B008
 import json
-from typing import Optional
 
 import typer
 from geneweaver.client.api import genesets
@@ -20,7 +19,7 @@ Tools and utilities for interacting with the Geneweaver API.
 def get(
     ctx: typer.Context,
     geneset_id: int,
-    gene_id_type: Optional[GeneIdentifier] = typer.Option(None, case_sensitive=False),
+    gene_id_type: GeneIdentifier | None = typer.Option(None, case_sensitive=False),
 ) -> dict:
     """Get a Geneset by ID."""
     result = genesets.get(get_access_token(), geneset_id, gene_id_type=gene_id_type)

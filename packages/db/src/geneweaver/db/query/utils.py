@@ -1,26 +1,25 @@
 """Utility functions for the SQL generation functions."""
 
 from datetime import date
-from typing import Dict, List, Optional, Tuple, Union
 
 from psycopg.sql import SQL, Composed, Identifier, Placeholder
 from typing_extensions import LiteralString
 
-SQLList = List[Union[Composed, SQL]]
-ParamDict = Dict[str, Union[str, int, list]]
-OptionalParamDict = Dict[str, Optional[Union[str, int]]]
-OptionalParamTuple = Tuple[str, Optional[Union[str, int]]]
+SQLList = list[Composed | SQL]
+ParamDict = dict[str, str | int | list]
+OptionalParamDict = dict[str, str | int | None]
+OptionalParamTuple = tuple[str, str | int | None]
 
 
 def construct_filter(
     filters: SQLList,
     params: ParamDict,
     filter_name: str,
-    filter_value: Optional[Union[str, int]],
+    filter_value: str | int | None,
     operator: LiteralString = "=",
-    place_holder: Optional[str] = None,
-    table: Optional[str] = None,
-) -> Tuple[SQLList, ParamDict]:
+    place_holder: str | None = None,
+    table: str | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Construct a simple filter for a query.
 
     :param filters: The existing filters.
@@ -59,8 +58,8 @@ def construct_filters(
     filters: SQLList,
     params: ParamDict,
     filter_items: OptionalParamDict,
-    table: Optional[str] = None,
-) -> Tuple[SQLList, ParamDict]:
+    table: str | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Construct multiple simple filters for a query.
 
     Calls the `construct_filter` function for each filter item.
@@ -73,9 +72,7 @@ def construct_filters(
     :return: The constructed filters and parameters.
     """
     for filter_name, filter_value in filter_items.items():
-        filters, params = construct_filter(
-            filters, params, filter_name, filter_value, table=table
-        )
+        filters, params = construct_filter(filters, params, filter_name, filter_value, table=table)
 
     return filters, params
 
@@ -83,14 +80,14 @@ def construct_filters(
 def add_op_filters(
     filters: SQLList,
     params: ParamDict,
-    lte_count: Optional[int] = None,
-    gte_count: Optional[int] = None,
-    created_after: Optional[date] = None,
-    created_before: Optional[date] = None,
-    updated_after: Optional[date] = None,
-    updated_before: Optional[date] = None,
-    table: Optional[str] = None,
-) -> Tuple[SQLList, ParamDict]:
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_after: date | None = None,
+    created_before: date | None = None,
+    updated_after: date | None = None,
+    updated_before: date | None = None,
+    table: str | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Add multiple simple filters with operators to the query.
 
     :param filters: The existing filters.
@@ -152,8 +149,8 @@ def construct_op_filters(
     filters: SQLList,
     params: ParamDict,
     filter_items: [dict],
-    table: Optional[str] = None,
-) -> Tuple[SQLList, ParamDict]:
+    table: str | None = None,
+) -> tuple[SQLList, ParamDict]:
     """Construct multiple simple filters with operators for a query.
 
     Calls the `construct_filter` function for each filter item.

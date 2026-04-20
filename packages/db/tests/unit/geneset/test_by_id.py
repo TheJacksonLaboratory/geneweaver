@@ -29,9 +29,7 @@ def test_by_id(geneset, cursor):
 def test_by_id__pub_info_kwarg(with_publication_info, geneset, cursor):
     """Test the geneset.by_id function with publication info kwarg."""
     cursor.fetchone.return_value = geneset
-    result = by_id(
-        cursor, geneset["gs_id"], with_publication_info=with_publication_info
-    )
+    result = by_id(cursor, geneset["gs_id"], with_publication_info=with_publication_info)
     assert result == geneset
     assert cursor.execute.call_count == 1
     assert cursor.fetchone.call_count == 1
@@ -63,9 +61,7 @@ async def test_async_by_id(geneset, async_cursor):
 
 @pytest.mark.parametrize("with_publication_info", [True, False])
 @pytest.mark.parametrize("geneset", GENESETS)
-async def test_async_by_id__pub_info_kwarg(
-    with_publication_info, geneset, async_cursor
-):
+async def test_async_by_id__pub_info_kwarg(with_publication_info, geneset, async_cursor):
     """Test the geneset.by_id function with publication info kwarg."""
     async_cursor.fetchone.return_value = geneset
     result = await async_by_id(
@@ -93,10 +89,6 @@ test_by_id_execute_raises_error = create_execute_raises_error_test(by_id, 1)
 
 test_by_id_fetchone_raises_error = create_fetchone_raises_error_test(by_id, 1)
 
-test_async_by_id_execute_raises_error = async_create_execute_raises_error_test(
-    async_by_id, 1
-)
+test_async_by_id_execute_raises_error = async_create_execute_raises_error_test(async_by_id, 1)
 
-test_async_by_id_fetchone_raises_error = async_create_fetchone_raises_error_test(
-    async_by_id, 1
-)
+test_async_by_id_fetchone_raises_error = async_create_fetchone_raises_error_test(async_by_id, 1)
