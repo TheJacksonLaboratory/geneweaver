@@ -4,23 +4,30 @@ on:
     inputs:
       python-version:
         description: 'Python version to set up'
-        required: true
+        required: false
         default: '3.9'
         type: string
 jobs:
   format-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
-      - name: Install Poetry
-        run: pipx install poetry
-      - name: Install Black and Ruff
-        run: poetry install --only dev
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies with uv
+        run: uv sync --only-group dev
+
       - name: Run Ruff Linter
-        run: poetry run ruff src/ tests/
-      - name: Run Black Formatter
-        run: poetry run black --check src/ tests/
+        run: uv run --only-group dev ruff check src/ tests/
+
+      - name: Run Ruff Formatter
+        run: uv run --only-group dev ruff format --check src/ tests/

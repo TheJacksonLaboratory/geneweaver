@@ -1,24 +1,28 @@
-[tool.poetry]
+[project]
 name = "geneweaver-db"
-version = "0.6.0a4"
+version = "0.20.0a0"
 description = "Database Interaction Services for GeneWeaver"
-authors = ["Jax Computational Sciences <cssc@jax.org>"]
 readme = "README.md"
-license = "Apache-2.0"
-homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
-repository = "https://github.com/TheJacksonLaboratory/geneweaver-db"
-packages = [
-    { include = "geneweaver/db", from = "src" },
+requires-python = ">=3.9,<4.0"
+license = { text = "Apache-2.0" }
+
+authors = [
+    { name = "Jax Computational Sciences", email = "cssc@jax.org" },
 ]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-geneweaver-core = ">=0.10.0a3,<1.0.0"
-psycopg = {version = "3.1.18", extras = ["binary"]}
+dependencies = [
+    "geneweaver-core>=0.10.0a3,<1.0.0",
+    "psycopg[binary]==3.1.18",
+]
 
-[tool.poetry.group.dev.dependencies]
-geneweaver-testing = ">=0.1.2,<1.0.0"
-pytest-asyncio = "^0.23.5"
+[project.urls]
+Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
+Repository = "https://github.com/TheJacksonLaboratory/geneweaver-db"
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=0.23.5",
+]
 
 [tool.ruff]
 select = ['F', 'E', 'W', 'A', 'C90', 'N', 'B', 'ANN', 'D', 'I', 'ERA', 'PD', 'NPY', 'PT']
@@ -30,5 +34,8 @@ select = ['F', 'E', 'W', 'A', 'C90', 'N', 'B', 'ANN', 'D', 'I', 'ERA', 'PD', 'NP
 asyncio_mode = "auto"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "geneweaver.db"

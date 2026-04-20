@@ -1,36 +1,49 @@
-[tool.poetry]
+[project]
 name = "geneweaver-api"
-version = "0.12.3"
+version = "0.20.0a0"
 description = "The Geneweaver API"
-authors = [
-    "Alexander Berger <alexander.berger@jax.org>",
-    "Francisco Castellanos <francisco.castellanos@jax.org>",
-    "Sejal Desai <sejal.desai@jax.org>"
-]
 readme = "README.md"
-license = "Apache-2.0"
-homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
-repository = "https://github.com/TheJacksonLaboratory/geneweaver-api"
-packages = [
-    {include = "geneweaver/api", from = "src"}
+requires-python = ">=3.9,<4.0"
+license = { text = "Apache-2.0" }
+
+authors = [
+    { name = "Alexander Berger", email = "alexander.berger@jax.org" },
+    { name = "Francisco Castellanos", email = "francisco.castellanos@jax.org" },
+    { name = "Sejal Desai", email = "sejal.desai@jax.org" },
 ]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-geneweaver-core = "^0.10.0a3"
-fastapi = {extras = ["all"], version = "^0.115.5"}
-uvicorn = {extras = ["standard"], version = "^0.32.1"}
-geneweaver-db = "^0.6.0a4"
-psycopg-pool = "^3.1.7"
-requests = "^2.32.3"
-python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-psycopg-binary = "3.1.18"
-pydantic-settings = "^2.3.4"
-jax-apiutils = "^0.2.0a0"
+dependencies = [
+    "geneweaver-core>=0.20.0a0",
+    "fastapi[all]>=0.115.5",
+    "uvicorn[standard]>=0.32.1",
+    "geneweaver-db>=0.20.0a0",
+    "psycopg-pool>=3.1.7",
+    "requests>=2.32.3",
+    "python-jose[cryptography]>=3.3.0",
+    "psycopg-binary==3.1.18",
+    "pydantic-settings>=2.3.4",
+    "jax-apiutils>=0.2.0a0",
+]
 
-[tool.poetry.group.dev.dependencies]
-geneweaver-testing = "^0.1.2"
-pytest-asyncio = "^0.21.0"
+[project.urls]
+Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
+Repository = "https://github.com/TheJacksonLaboratory/geneweaver-api"
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=0.21.0",
+    "ruff==0.15.11",
+]
+
+[tool.uv.workspace]
+members = [
+    "packages/*",
+]
+
+[tool.uv.sources]
+geneweaver-core   = { workspace = true }
+geneweaver-db     = { workspace = true }
+geneweaver-client = { workspace = true }
 
 [tool.ruff]
 select = ['F', 'E', 'W', 'A', 'C90', 'N', 'B', 'ANN', 'D', 'I', 'ERA', 'PD', 'NPY', 'PT']
@@ -41,8 +54,11 @@ select = ['F', 'E', 'W', 'A', 'C90', 'N', 'B', 'ANN', 'D', 'I', 'ERA', 'PD', 'NP
 "src/geneweaver/api/controller/*" = ["B008"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "geneweaver.api"
 
 # TODO: Remove this when batch API is hooked up and tested.
 [tool.coverage.report]

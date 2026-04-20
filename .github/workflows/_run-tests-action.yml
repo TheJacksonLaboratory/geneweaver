@@ -3,13 +3,13 @@ on:
   workflow_call:
     inputs:
       python-version:
-        description: Python version to set up'
-        required: true
+        description: 'Python version to set up'
+        required: false
         default: '3.9'
         type: string
       runner-os:
         description: 'Runner OS'
-        required: true
+        required: false
         default: 'ubuntu-latest'
         type: string
       upload-coverage:
@@ -18,21 +18,43 @@ on:
         type: boolean
       required-coverage:
         description: 'Required coverage percentage'
-        default: 75
+        default: "75"
         type: string
+
 jobs:
   run-tests:
     runs-on: ${{ inputs.runner-os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
-      - name: Install Poetry
-        run: pipx install poetry
-      - name: Install dependencies with Poetry
-        run: poetry install
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install dependencies with uv
+        run: uv sync --all-packages --all-extras --all-groups
+
       - name: Test with pytest
         run: |
-          poetry run pytest tests
+          set -euo pipefail
+
+          # Root tests
+          if [ -d "tests" ]; then
+            echo "Running root tests"
+            uv run pytest tests
+          fi
+
+          # Package tests: run each with that package as a root on sys.path
+          for pkg in packages/*; do
+            if [ -d "$pkg/tests" ]; then
+              echo "Running tests in "$pkg/tests""
+              uv run pytest "$pkg/tests"
+            fi
+          done
