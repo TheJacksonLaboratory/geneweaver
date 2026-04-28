@@ -46,6 +46,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/_check-coverage-action.yml
     permissions:
+      contents: read
       pull-requests: write
     with:
       required-coverage: ${{ vars.REQUIRED_COVERAGE }}
