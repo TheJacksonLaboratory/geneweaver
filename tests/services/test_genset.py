@@ -64,9 +64,9 @@ def test_get_geneset_returned_values(mock_db_genset_value, mock_db_geneset):
 @patch("geneweaver.api.services.geneset.db_geneset")
 def test_get_geneset_db_call_error(mock_db_geneset):
     """Test error in get DB call."""
-    mock_db_geneset.get.side_effect = Exception("ERROR")
+    mock_db_geneset.get.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.get_geneset(None, 1234, mock_user)
 
 
@@ -152,9 +152,9 @@ def test_get_geneset_w_gene_id_type_no_user(mock_db_geneset, mock_gsv):
 @patch("geneweaver.api.services.geneset.db_geneset")
 def test_geneset_w_gene_id_type_db_call_error(mock_db_geneset):
     """Test error in get DB call."""
-    mock_db_geneset.get.side_effect = Exception("ERROR")
+    mock_db_geneset.get.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.get_geneset_w_gene_id_type(None, 1234, mock_user, GeneIdentifier(2))
 
 
@@ -188,9 +188,9 @@ def test_get_geneset_metadata_w_pub_info(mock_db_geneset):
 @patch("geneweaver.api.services.geneset.db_geneset")
 def test_geneset_metadata_db_call_error(mock_db_geneset):
     """Test error in get DB call."""
-    mock_db_geneset.get.side_effect = Exception("ERROR")
+    mock_db_geneset.get.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.get_geneset_metadata(None, 1234, mock_user, True)
 
 
@@ -242,7 +242,7 @@ def test_visible_geneset_no_user(mock_db_geneset, user, curation_tier):
         assert "Error" not in response
         assert mock_db_geneset.get.called is True
         assert mock_db_geneset.get.call_count == 1
-        called_args, called_kwargs = mock_db_geneset.get.call_args
+        _called_args, called_kwargs = mock_db_geneset.get.call_args
         if curation_tier is None:
             assert called_kwargs["curation_tier"] == {
                 GenesetTier.TIER1,
@@ -289,9 +289,9 @@ def test_visible_geneset_all_expected_parameters(mock_db_geneset):
 @patch("geneweaver.api.services.geneset.db_geneset")
 def test_visible_geneset_db_call_error(mock_db_geneset):
     """Test error in get DB call."""
-    mock_db_geneset.get.side_effect = Exception("ERROR")
+    mock_db_geneset.get.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.get_visible_genesets(None, mock_user)
 
 
@@ -309,9 +309,9 @@ def test_map_geneset_homology(mock_db_gene):
 @patch("geneweaver.api.services.geneset.db_gene")
 def test_map_geneset_homology_db_call_error(mock_db_gene):
     """Test error in get DB call."""
-    mock_db_gene.get_homolog_ids_by_ode_id.side_effect = Exception("ERROR")
+    mock_db_gene.get_homolog_ids_by_ode_id.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.map_geneset_homology(None, geneset_by_id_resp["geneset_values"], GeneIdentifier(2))
 
 
@@ -369,9 +369,9 @@ def test_get_geneset_with_threshold(mock_db_genset_value, mock_db_geneset, gsv_i
 @patch("geneweaver.api.services.geneset.db_geneset_value")
 def test_get_geneset_gene_values_db_errors(mock_db_geneset_value):
     """Test error in get DB call."""
-    mock_db_geneset_value.by_geneset_id.side_effect = Exception("ERROR")
+    mock_db_geneset_value.by_geneset_id.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.get_geneset_gene_values(None, user=mock_user, geneset_id=1234, gene_id_type=None)
 
 
@@ -426,8 +426,8 @@ def test_geneset_thershold_update_errors(mock_db_threshold, mock_db_geneset):
 
     # db error
     mock_db_geneset.user_is_owner.return_value = True
-    mock_db_threshold.set_geneset_threshold.side_effect = Exception("ERROR")
-    with pytest.raises(expected_exception=Exception):
+    mock_db_threshold.set_geneset_threshold.side_effect = RuntimeError("ERROR")
+    with pytest.raises(RuntimeError):
         geneset.update_geneset_threshold(
             cursor=None,
             user=mock_user,
@@ -545,8 +545,8 @@ def test_add_geneset_ontology_term_errors(mock_db_ontology, mock_db_geneset):
     # db error
     mock_db_geneset.user_is_owner.return_value = True
     mock_db_ontology.by_ontology_term.return_value = {"onto_id": 123123}
-    mock_db_ontology.add_ontology_term_to_geneset.side_effect = Exception("ERROR")
-    with pytest.raises(expected_exception=Exception):
+    mock_db_ontology.add_ontology_term_to_geneset.side_effect = RuntimeError("ERROR")
+    with pytest.raises(RuntimeError):
         geneset.add_geneset_ontology_term(
             cursor=None, user=mock_user, geneset_id=1234, term_ref_id="D001921"
         )
@@ -619,8 +619,8 @@ def test_delete_geneset_ontology_term_errors(mock_db_ontology, mock_db_geneset):
     # db error
     mock_db_geneset.user_is_owner.return_value = True
     mock_db_ontology.by_ontology_term.return_value = {"onto_id": 123123}
-    mock_db_ontology.delete_ontology_term_from_geneset.side_effect = Exception("ERROR")
-    with pytest.raises(expected_exception=Exception):
+    mock_db_ontology.delete_ontology_term_from_geneset.side_effect = RuntimeError("ERROR")
+    with pytest.raises(RuntimeError):
         geneset.delete_geneset_ontology_term(
             cursor=None, user=mock_user, geneset_id=1234, term_ref_id="D001921"
         )

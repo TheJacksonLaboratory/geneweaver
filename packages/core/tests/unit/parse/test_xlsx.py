@@ -108,7 +108,7 @@ def test_read_row(multi_sheet_excel_file_w_data):
         if len(row) == len(d):
             assert row == d
         elif len(d) == 0:
-            assert all([cell is None for cell in row])
+            assert all(cell is None for cell in row)
         else:
             for item in d:
                 assert item in row

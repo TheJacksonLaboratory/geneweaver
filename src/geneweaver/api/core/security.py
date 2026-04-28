@@ -61,7 +61,7 @@ class Auth0:
         self,
         domain: str,
         api_audience: str,
-        scopes: dict[str, str] = None,
+        scopes: dict[str, str] | None = None,
         auto_error: bool = True,
         scope_auto_error: bool = True,
         email_auto_error: bool = False,

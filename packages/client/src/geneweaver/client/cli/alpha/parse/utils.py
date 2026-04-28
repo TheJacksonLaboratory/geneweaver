@@ -30,7 +30,7 @@ def infer_file_format(file_path: Path) -> None:
 
 @cli.command()
 @print_value_errors
-def get_headers(file_path: Path, sheet: str = None) -> None:
+def get_headers(file_path: Path, sheet: str | None = None) -> None:
     """Get the headers from a data file."""
     try:
         headers, _ = general.get_headers(file_path, sheet_name=sheet)
@@ -63,7 +63,7 @@ def get_metadata(file_path: Path, sheet: str | None = None) -> None:
     file_type = get_file_type(file_path)
 
     if file_type == "csv":
-        header, header_idx = csv.get_headers(file_path)
+        _header, header_idx = csv.get_headers(file_path)
         try:
             metadata = general.read_metadata(file_path, header_idx)
         except (EmptyFileError, ValueError, UnsupportedFileTypeError) as e:
@@ -79,7 +79,7 @@ def get_metadata(file_path: Path, sheet: str | None = None) -> None:
 @cli.command()
 @print_value_errors
 def preview(
-    file_path: Path, rows_to_read: int = 5, sheet: str = None, prompt: bool = True
+    file_path: Path, rows_to_read: int = 5, sheet: str | None = None, prompt: bool = True
 ) -> None:
     """Preview the data in a data file."""
     file_type = get_file_type(file_path)
@@ -108,7 +108,7 @@ def _preview_csv(file_path: Path, rows_to_read: int = 5, prompt: bool = True) ->
 
 
 def _preview_xlsx(
-    file_path: Path, rows_to_read: int = 5, sheet: str = None, prompt: bool = True
+    file_path: Path, rows_to_read: int = 5, sheet: str | None = None, prompt: bool = True
 ) -> None:
     sheet_names, sheet_metadata, headers, headers_idx, n_sheets = xlsx.get_metadata(
         file_path, sheet
@@ -131,7 +131,7 @@ def _preview_xlsx(
             typer.confirm("Next sheet?", default=True, abort=True)
 
 
-def _preview_data(file_path: Path, rows_to_read: int = 5, sheet: str = None) -> None:
+def _preview_data(file_path: Path, rows_to_read: int = 5, sheet: str | None = None) -> None:
     try:
         headers, headers_idx = general.get_headers(file_path, sheet_name=sheet)
         rows = general.data_file_to_dict_n_rows(

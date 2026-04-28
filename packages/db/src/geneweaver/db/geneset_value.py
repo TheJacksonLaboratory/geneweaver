@@ -126,7 +126,7 @@ def by_geneset_id(
     :param geneset_id: The geneset ID to retrieve values for.
     :param identifier: The gene identifier to return.
     :param gsv_in_threshold: optional. filter for geneset value that
-     are/aren't in the geneset’s threshold.
+     are/aren't in the geneset's threshold.
 
     :return: A list of geneset values associated with the geneset.
     """
@@ -144,7 +144,7 @@ def by_geneset_id_as_uploaded(
     :param cursor: The database cursor.
     :param geneset_id: The geneset ID to retrieve values for.
     :param gsv_in_threshold: optional. filter for geneset value that
-     are/aren't in the geneset’s threshold.
+     are/aren't in the geneset's threshold.
 
     :return: A list of geneset values associated with the geneset.
     """
@@ -183,7 +183,7 @@ def by_geneset_id_and_identifier(
     :param geneset_id: The geneset ID to retrieve values for.
     :param identifier: The gene identifier to use.
     :param gsv_in_threshold: optional. filter for geneset value that
-     are/aren't in the geneset’s threshold.
+     are/aren't in the geneset's threshold.
     :return: A list of geneset values associated with the geneset.
 
     """

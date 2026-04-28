@@ -106,7 +106,7 @@ def test_read_header(
     starting_genest_values_len = len(current_geneset_values)
     print(starting_read_mode)
 
-    genesets, current_geneset_values, header, read_mode = read_header(
+    _genesets, current_geneset_values, _header, read_mode = read_header(
         "header_line_1", {}, current_geneset_values, read_mode, []
     )
 

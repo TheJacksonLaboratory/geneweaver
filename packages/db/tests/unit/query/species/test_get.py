@@ -10,7 +10,7 @@ from geneweaver.db.query.species import get
 @pytest.mark.parametrize("species", [None, Species.HOMO_SAPIENS])
 def test_all_kwargs(taxonomic_id, reference_gene_db_id, species):
     """Test all the kwarg combinations for query.species.get."""
-    query, params = get(
+    _query, params = get(
         taxonomic_id=taxonomic_id,
         reference_gene_db_id=reference_gene_db_id,
         species=species,

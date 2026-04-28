@@ -8,7 +8,7 @@ from psycopg.sql import SQL, Composed, Identifier, Placeholder
 
 def test_geneset_add():
     """Test the add geneset query generation function."""
-    query, params = add(
+    query, _params = add(
         user_id=1,
         file_id=1,
         name="a string",

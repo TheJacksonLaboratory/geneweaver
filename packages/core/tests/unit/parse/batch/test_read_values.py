@@ -99,4 +99,4 @@ def test_read_values_missing_header_error(
     mock_check_header.side_effect = Exception("MissingRequiredHeaderError")
 
     with pytest.raises(Exception, match="MissingRequiredHeaderError"):
-        values, mode = read_values(line, header, current_geneset_values, ReadMode.HEADER)
+        _values, _mode = read_values(line, header, current_geneset_values, ReadMode.HEADER)

@@ -22,7 +22,7 @@ def test_db_health_check(mock_db_heath):
 @patch("geneweaver.api.services.monitors.db_health_check")
 def test_db_health_check_error(mock_db_heath):
     """Test error in call to get db health status."""
-    mock_db_heath.side_effect = Exception("ERROR")
+    mock_db_heath.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         monitors.check_db_health(None)

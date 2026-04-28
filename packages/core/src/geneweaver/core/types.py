@@ -1,11 +1,10 @@
 """A module for common complex types used by Geneweaver."""
 
 from pathlib import Path
-from typing import Union
 
 from geneweaver.core.schema.gene import GeneValue
 
-StringOrPath = Union[str, Path]
+StringOrPath = str | Path
 
 DictRow = dict[str, str | int]
 

@@ -97,7 +97,7 @@ def extract_top_level_fields(publication_xml: ElementTree.XML) -> dict:
 
     :returns: The extracted top level fields
     """
-    publication_fields = dict()
+    publication_fields = {}
 
     for field, xpath in TOP_LEVEL_XML_FIELD_MAPS.items():
         value = publication_xml.findtext(xpath)
@@ -113,7 +113,7 @@ def extract_date(publication_xml: ElementTree.XML) -> dict:
 
     :returns: The extracted date
     """
-    publication_date = dict()
+    publication_date = {}
 
     pub_date_node = publication_xml.find(".//PubDate")
 
@@ -164,7 +164,7 @@ def extract_authors(publication_xml: ElementTree.XML) -> dict:
 
     :returns: The extracted authors
     """
-    publication_authors = dict()
+    publication_authors = {}
 
     author_list_node = publication_xml.find(".//AuthorList")
 

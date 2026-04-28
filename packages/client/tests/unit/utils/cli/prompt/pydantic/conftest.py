@@ -73,7 +73,7 @@ MOCK_MODEL_EXAMPLE_INSTANCE = MockModel(
     **MOCK_INTERNAL_MODEL_EXAMPLE_INSTANCE.model_dump(),
 )
 
-MOCK_MODEL_FIELDS = [field_name for field_name in MockModel.__fields__.keys()]
+MOCK_MODEL_FIELDS = list(MockModel.__fields__.keys())
 
 MOCK_MODEL_FIELD_COMBINATIONS = [
     set(s)

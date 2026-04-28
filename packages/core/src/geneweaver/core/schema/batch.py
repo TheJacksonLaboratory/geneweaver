@@ -102,7 +102,7 @@ class BatchUploadGeneset(BaseModel):
         cls: type["BatchUploadGeneset"], v: Any
     ) -> GeneIdentifierInt | MicroarrayInt:
         """Initialize gene id type."""
-        if isinstance(v, GeneIdentifierInt) or isinstance(v, MicroarrayInt):
+        if isinstance(v, (GeneIdentifierInt, MicroarrayInt)):
             return v
         try:
             if isinstance(v, str):

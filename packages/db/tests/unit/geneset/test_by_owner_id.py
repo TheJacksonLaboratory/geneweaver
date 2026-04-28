@@ -14,7 +14,7 @@ from tests.unit.testing_utils import (
 
 
 @pytest.mark.parametrize("user_id", [1, 101, 1001, 10001])
-@pytest.mark.parametrize("geneset", GENESETS + [GENESETS[:3]] + [GENESETS])
+@pytest.mark.parametrize("geneset", [*GENESETS, GENESETS[:3], GENESETS])
 def test_by_owner_id(geneset, user_id, cursor):
     """Test the geneset.by_owner_id function using a mock."""
     cursor.fetchall.return_value = [geneset]
@@ -26,7 +26,7 @@ def test_by_owner_id(geneset, user_id, cursor):
 
 
 @pytest.mark.parametrize("user_id", [1, 101, 1001, 10001])
-@pytest.mark.parametrize("geneset", GENESETS + [GENESETS[:3]] + [GENESETS])
+@pytest.mark.parametrize("geneset", [*GENESETS, GENESETS[:3], GENESETS])
 async def async_test_by_owner_id(geneset, user_id, async_cursor):
     """Test the geneset.by_owner_id function using a mock."""
     async_cursor.fetchall.return_value = [geneset]

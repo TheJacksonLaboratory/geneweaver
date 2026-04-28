@@ -88,10 +88,7 @@ def ndarray_has_gene_labels(geneset_array: np.ndarray) -> bool:
     if geneset_array.dtype.names is None:
         return False
 
-    if len(geneset_array.dtype.names) < 2:
-        return False
-
-    return True
+    return not len(geneset_array.dtype.names) < 2
 
 
 SYMBOL_KEYS = ("Symbol", "GeneID", "Gene_ID", "Gene ID")

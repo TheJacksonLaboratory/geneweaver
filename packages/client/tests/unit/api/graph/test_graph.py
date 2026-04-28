@@ -117,7 +117,7 @@ class TestOrthologs:
         assert len(homs) == 10
 
         expected = [f"ENSMUSGTEST{i}" for i in range(10)]
-        for hid, mid in zip(geneset, expected):
+        for hid, mid in zip(geneset, expected, strict=False):
             assert homs[hid] == mid
 
     def test_no_orthologs(self, vgc, manager):
@@ -135,7 +135,7 @@ class TestOrthologs:
         assert len(homs) == 10
 
         expected = [f"ENSMUSGTEST{i}" for i in range(10)]
-        for hid, mid in zip(geneset, expected):
+        for hid, mid in zip(geneset, expected, strict=False):
             assert homs[hid] == mid
 
 

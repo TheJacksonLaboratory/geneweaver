@@ -21,11 +21,11 @@ def test_format_select_query(with_publication_info, with_publication_join):
     assert "SELECT" in str_results
     assert "FROM geneset" in str_results
 
-    for field in GENESET_FIELDS_MAP.keys():
+    for field in GENESET_FIELDS_MAP:
         assert field in str_results
 
     if with_publication_info is True:
-        for field in PUB_FIELD_MAP.keys():
+        for field in PUB_FIELD_MAP:
             assert field in str_results
 
     if with_publication_join is True or with_publication_info is True:
@@ -34,12 +34,12 @@ def test_format_select_query(with_publication_info, with_publication_join):
         assert "ON geneset.pub_id = publication.pub_id" in str_results
 
     if with_publication_join is True and with_publication_info is False:
-        for field in PUB_FIELD_MAP.keys():
+        for field in PUB_FIELD_MAP:
             if field != "pub_id":
                 assert field not in str_results
 
     if with_publication_join is False and with_publication_info is False:
-        for field in PUB_FIELD_MAP.keys():
+        for field in PUB_FIELD_MAP:
             if field != "pub_id":
                 assert field not in str_results
         assert "JOIN publication" not in str_results

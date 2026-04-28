@@ -9,7 +9,7 @@ from geneweaver.db.query.ontology import get_ontology_dbs
 @pytest.mark.parametrize("offset", [None, 1, 10])
 def test_all_kwargs(ontology_db_id, limit, offset):
     """Test all the kwarg combinations for query.ontology.get_ontology_dbs."""
-    query, params = get_ontology_dbs(
+    query, _params = get_ontology_dbs(
         ontology_db_id=ontology_db_id,
         limit=limit,
         offset=offset,

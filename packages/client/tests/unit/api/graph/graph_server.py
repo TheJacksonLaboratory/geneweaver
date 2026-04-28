@@ -63,16 +63,21 @@ class GraphServer:
         ]
 
         # This process normally needs google credentials in order to
-        self.process = subprocess.Popen(
-            cmd,
-            stdout=open("./test_graph_server_out.log", "w"),
-            stderr=open("./test_graph_server_err.log", "w"),
-            preexec_fn=os.setpgrp,
-        )
+        with (
+            open("./test_graph_server_out.log", "w") as out,
+            open("./test_graph_server_err.log", "w") as err,
+        ):
+            self.process = subprocess.Popen(
+                cmd,
+                stdout=out,
+                stderr=err,
+                preexec_fn=os.setpgrp,
+            )
 
         while True:
-            if ":: Spring Boot ::" in open("./test_graph_server_out.log").read():
-                break
+            with open("./test_graph_server_out.log") as f:
+                if ":: Spring Boot ::" in f.read():
+                    break
             time.sleep(1)
 
         self.server_url = "http://localhost:8080/"

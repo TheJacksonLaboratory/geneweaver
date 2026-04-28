@@ -85,10 +85,10 @@ def get_visible_genesets(
             description=api_message.GENESET_SIZE,
         ),
     ] = None,
-    created_after: Annotated[date, Query(description=api_message.CREATE_DATE)] = None,
-    created_before: Annotated[date, Query(description=api_message.CREATE_DATE)] = None,
-    updated_after: Annotated[date, Query(description=api_message.UPDATE_DATE)] = None,
-    updated_before: Annotated[date, Query(description=api_message.UPDATE_DATE)] = None,
+    created_after: Annotated[date | None, Query(description=api_message.CREATE_DATE)] = None,
+    created_before: Annotated[date | None, Query(description=api_message.CREATE_DATE)] = None,
+    updated_after: Annotated[date | None, Query(description=api_message.UPDATE_DATE)] = None,
+    updated_before: Annotated[date | None, Query(description=api_message.UPDATE_DATE)] = None,
     limit: Annotated[
         int | None,
         Query(

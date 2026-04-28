@@ -16,8 +16,7 @@ def cursor() -> psycopg.Cursor:
 @asynccontextmanager
 async def async_cursor() -> psycopg.AsyncCursor:
     """Get an async cursor to the database."""
-    async with await psycopg.AsyncConnection.connect(settings.URI) as connection:
-        async with connection.cursor() as _cursor:
+    async with await psycopg.AsyncConnection.connect(settings.URI) as connection, connection.cursor() as _cursor:
             yield _cursor
 
 

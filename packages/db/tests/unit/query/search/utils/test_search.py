@@ -15,7 +15,7 @@ def test_search_uses_plainto_tsquery_by_default():
     'Shwachman-Diamond syndrome'. plainto_tsquery treats each token
     independently and returns correct results.
     """
-    filters, params = search([], {}, TSVECTOR_COL, search_text="Shwachman-Diamond syndrome")
+    filters, _params = search([], {}, TSVECTOR_COL, search_text="Shwachman-Diamond syndrome")
     assert len(filters) == 1
     sql_str = str(filters[0])
     assert "plainto_tsquery" in sql_str

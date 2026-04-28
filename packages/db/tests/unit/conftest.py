@@ -29,10 +29,10 @@ def base_psycopg_errors(request):
 random.seed(0)
 
 # Some small primary keys, and some big ones.
-EXAMPLE_PRIMARY_KEYS = [0, 1, 2, 3, 10, 100] + sorted(random.sample(range(100, 500150300), 10))
+EXAMPLE_PRIMARY_KEYS = [0, 1, 2, 3, 10, 100, *sorted(random.sample(range(100, 500150300), 10))]
 
 # Like the PRIMARY_KEYS, but a bit smaller.
-EXAMPLE_USER_IDS = [1, 2, 3, 10, 100] + sorted(random.sample(range(100, 250300), 10))
+EXAMPLE_USER_IDS = [1, 2, 3, 10, 100, *sorted(random.sample(range(100, 250300), 10))]
 
 
 @pytest.fixture(params=EXAMPLE_PRIMARY_KEYS)
@@ -54,13 +54,7 @@ def example_geneset(request):
 
 
 @pytest.fixture(
-    params=[]
-    + [GENESETS]
-    + [GENESETS[0]]
-    + [GENESETS[1:]]
-    + [GENESETS[0:2]]
-    + [GENESETS[0:3]]
-    + [GENESETS[0:4]]
+    params=[GENESETS, GENESETS[0], GENESETS[1:], GENESETS[0:2], GENESETS[0:3], GENESETS[0:4]]
 )
 def example_genesets(request):
     """Return an example geneset."""

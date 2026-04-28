@@ -46,4 +46,4 @@ def test_enum_int_mapping(enum_class, int_enum_class):
         assert enum_class(int_enum.value).as_int() == int_enum
         assert enum_class(int_enum.value) == int_enum.as_str()
 
-    assert set(e.name for e in enum_class) == set(e.name for e in int_enum_class)
+    assert {e.name for e in enum_class} == {e.name for e in int_enum_class}

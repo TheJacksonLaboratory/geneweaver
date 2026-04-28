@@ -1,6 +1,6 @@
 """Test the is_list_of_str_or_int function."""
 
-from typing import Any, Union
+from typing import Any
 
 import pytest
 from geneweaver.client.utils.cli.prompt.list import is_list_of_str_or_int
@@ -14,7 +14,7 @@ def test_is_list_of_str_or_int(field_type):
 
 @pytest.mark.parametrize(
     "field_type",
-    [list[float], list[bool], list[dict], dict, tuple, Any, Union[str, int]],
+    [list[float], list[bool], list[dict], dict, tuple, Any, str | int],
 )
 def test_is_list_of_str_or_int__false(field_type):
     """Test the is_list_of_str_or_int function with invalid input."""

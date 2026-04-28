@@ -13,7 +13,7 @@ from geneweaver.testing.fixtures import *  # noqa: F403
 @pytest.fixture(scope="session")
 def core_settings_fields() -> list[str]:
     """Return a list of the pydantic Settings class fields."""
-    return [name for name in CoreSettings.model_fields.keys()]
+    return list(CoreSettings.model_fields.keys())
 
 
 @pytest.fixture(scope="session")

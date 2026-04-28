@@ -58,7 +58,7 @@ def test_defines_2xx_response(openapi_json, openapi_json_path):
     path = openapi_json_path
     path_details = openapi_json["paths"][path]
     for method, method_details in path_details.items():
-        assert any("2" in response_code for response_code in method_details["responses"].keys()), (
+        assert any("2" in response_code for response_code in method_details["responses"]), (
             f"Response for {method.upper()} {path} does not contain a 2xx status code"
         )
 

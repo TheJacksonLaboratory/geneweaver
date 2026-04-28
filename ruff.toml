@@ -35,6 +35,9 @@ convention = "google"
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Unused imports in __init__ files
+"src/geneweaver/api/controller/*.py" = [
+    "B008",  # FastAPI dependency injection uses Depends/Security in parameter defaults
+]
 "src/jabs/scripts/cli/cli.py" = [
     "D301",  # Click uses \b in docstrings to control help formatting
     "D412",  # Click Examples sections look better with a blank line before \b blocks

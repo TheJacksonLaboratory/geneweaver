@@ -43,13 +43,13 @@ def test_get_publication_by_pubmed_id(mock_db_publication):
 def test_get_publication_errors(mock_db_publication):
     """Test get publication by ID data response structure."""
     # unexpected error
-    mock_db_publication.by_pubmed_id.side_effect = Exception()
-    with pytest.raises(expected_exception=Exception):
+    mock_db_publication.by_pubmed_id.side_effect = RuntimeError()
+    with pytest.raises(RuntimeError):
         pub_service.get_publication_by_pubmed_id(cursor=None, pubmed_id=1234)
 
     # unexpected error
-    mock_db_publication.by_id.side_effect = Exception()
-    with pytest.raises(expected_exception=Exception):
+    mock_db_publication.by_id.side_effect = RuntimeError()
+    with pytest.raises(RuntimeError):
         pub_service.get_publication(cursor=None, pub_id=123)
 
 
@@ -106,8 +106,8 @@ def test_add_pubmed_publication_errors(mock_db_publication, mock_pubmed):
     assert response.get("message") == message.UNEXPECTED_ERROR
 
     # unexpected error
-    mock_db_publication.add.side_effect = Exception()
-    with pytest.raises(expected_exception=Exception):
+    mock_db_publication.add.side_effect = RuntimeError()
+    with pytest.raises(RuntimeError):
         response = pub_service.add_pubmed_record(cursor=None, user=mock_user, pubmed_id=1234)
 
 
@@ -138,8 +138,8 @@ def test_get_publications(mock_db_publication):
 def test_get_publications_w_filter_errors(mock_db_publication):
     """Test get publication errors."""
     # unexpected error
-    mock_db_publication.get.side_effect = Exception()
-    with pytest.raises(expected_exception=Exception):
+    mock_db_publication.get.side_effect = RuntimeError()
+    with pytest.raises(RuntimeError):
         pub_service.get(
             cursor=None,
             pub_id=1,

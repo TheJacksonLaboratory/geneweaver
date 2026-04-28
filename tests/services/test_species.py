@@ -58,9 +58,9 @@ def test_get_species_by_gene_id_type_and_taxonomy(mock_db_species):
 @patch("geneweaver.api.services.species.db_species")
 def test_get_species_with_error(mock_db_species):
     """Test get species error in DB call."""
-    mock_db_species.get.side_effect = Exception("ERROR")
+    mock_db_species.get.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         species_service.get(None)
 
 
@@ -77,7 +77,7 @@ def test_get_species_by_id(mock_db_species):
 @patch("geneweaver.api.services.species.db_species")
 def test_get_species_by_id_with_error(mock_db_species):
     """Test species by id error in DB call."""
-    mock_db_species.get_by_id.side_effect = Exception("ERROR")
+    mock_db_species.get_by_id.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         species_service.get_species_by_id(None, Species(5))

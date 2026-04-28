@@ -39,10 +39,7 @@ def ensembl_mouse_mapping(
         result = [{"gene_id": item["symbol"], "score": item["value"]} for item in response["data"]]
 
     else:
-        if algorithm:
-            algorithm_id = aon.algorithm_id_from_name(algorithm.value)
-        else:
-            algorithm_id = None
+        algorithm_id = aon.algorithm_id_from_name(algorithm.value) if algorithm else None
 
         response = clean_identifiers_for_aon(response, species)
         aon_response = aon.ortholog_mapping(

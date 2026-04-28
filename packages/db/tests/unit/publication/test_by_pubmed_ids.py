@@ -43,7 +43,7 @@ lengths = [random.randint(1, len(PUBLICATIONS)) for _ in range(30)]
 # Now let's generate a list of subsets of our publications.
 subsets = [random.sample(PUBLICATIONS, length) for length in lengths]
 # Now we unpack the subsets into a tuple of pubmed ids and a tuple of expected results.
-params = [[l for l in zip(*subset)] for subset in subsets]  # noqa: B905, E741
+params = [list(zip(*subset)) for subset in subsets]  # noqa: B905
 
 
 @pytest.mark.parametrize(("pmids", "expected_result"), params)

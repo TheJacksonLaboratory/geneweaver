@@ -24,6 +24,6 @@ def abbreviate_string_param(param: Any) -> str:
     if isinstance(param, str) and len(param) > 15:
         return param[:15] + "..."
     elif isinstance(param, dict) and len(param) > 5:
-        return str({k: v for k, v in list(param.items())[:5]}) + "..."
+        return str(dict(list(param.items())[:5])) + "..."
     else:
         return str(param)

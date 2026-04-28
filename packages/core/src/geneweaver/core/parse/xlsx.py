@@ -24,7 +24,7 @@ def get_sheet_names(file_path: StringOrPath) -> list[str]:
     return workbook.sheetnames
 
 
-def get_sheet(file_path: StringOrPath, sheet_name: str = None) -> Worksheet:
+def get_sheet(file_path: StringOrPath, sheet_name: str | None = None) -> Worksheet:
     """Load a workbook and return a sheet.
 
     This function opens an Excel workbook and returns the specified sheet if a sheet
@@ -46,7 +46,7 @@ def get_sheet(file_path: StringOrPath, sheet_name: str = None) -> Worksheet:
 
 
 def find_header(
-    file_path: StringOrPath, max_rows_to_check: int = 5, sheet_name: str = None
+    file_path: StringOrPath, max_rows_to_check: int = 5, sheet_name: str | None = None
 ) -> tuple[bool, int]:
     """Determine if a given Excel worksheet has a header row.
 
@@ -79,7 +79,7 @@ def find_header(
     return False, -1
 
 
-def has_header(file_path: str, max_rows_to_check: int = 5, sheet_name: str = None) -> bool:
+def has_header(file_path: str, max_rows_to_check: int = 5, sheet_name: str | None = None) -> bool:
     """Summary function to return true/false for if a header is found by `find_header`.
 
     :param file_path: Path to the Excel (.xlsx) file.
@@ -112,7 +112,7 @@ def get_headers(file_path: StringOrPath, sheet_name: str | None = None) -> tuple
     return headers, header_idx
 
 
-def read_row(file_path: str, row_idx: int = 0, sheet_name: str = None) -> list[str]:
+def read_row(file_path: str, row_idx: int = 0, sheet_name: str | None = None) -> list[str]:
     """Get the contents of a row from an Exel (.xlsx) file.
 
     :param file_path: The file path to the CSV file.
@@ -186,7 +186,7 @@ def read_to_dict(
 
 
 def read_to_dict_n_rows(
-    file_path: str, n: int, start_row: int = 0, sheet_name: str = None
+    file_path: str, n: int, start_row: int = 0, sheet_name: str | None = None
 ) -> list[dict[str, str]]:
     """Parse n lines of an Excel file into a list of dictionaries.
 

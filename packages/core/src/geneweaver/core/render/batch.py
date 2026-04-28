@@ -34,7 +34,7 @@ def format_geneset_metadata(geneset: BatchUploadGeneset) -> str:
     """
     data_str = "\n".join(
         (
-            f"{INV_CHAR_MAP[key] if key in INV_CHAR_MAP else key} {value!s}"
+            f"{INV_CHAR_MAP.get(key, key)} {value!s}"
             for key, value in geneset
             if key != "values" and value is not None
         )

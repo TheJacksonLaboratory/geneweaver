@@ -53,4 +53,4 @@ def test_extract_fields_pubmed(pubmed_xml):
     assert result is not None
     assert isinstance(result, dict)
     for item in ["title", "abstract", "journal", "volume", "pages"]:
-        assert item in result.keys()
+        assert item in result

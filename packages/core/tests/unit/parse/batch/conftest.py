@@ -9,7 +9,7 @@ HAS_REQUIRED_HEADER_FIELDS = [
     {header_name: f"value{idx}" for idx, header_name in enumerate(HEADER_CHARACTERS.values())},
     {
         header_name: f"value{idx}"
-        for idx, header_name in enumerate(list(HEADER_CHARACTERS.values()) + ["extra_key"])
+        for idx, header_name in enumerate([*list(HEADER_CHARACTERS.values()), "extra_key"])
     },
 ]
 

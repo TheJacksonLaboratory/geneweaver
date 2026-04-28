@@ -71,7 +71,7 @@ def test_process_lines_header_error(
     """Test that process_lines calls read_header and create_geneset."""
     mock_read_header.side_effect = [
         read_header_error(),
-        ([] + starting_genesets, [], {}, read_mode),
+        ([*starting_genesets], [], {}, read_mode),
     ]
     mock_create_geneset.return_value = "geneset"
     mock_read_values.return_value = (
@@ -87,4 +87,4 @@ def test_process_lines_header_error(
         assert mock_read_values.call_count == 0
     else:
         assert mock_read_values.call_count == 1
-    assert result == starting_genesets + ["geneset"]
+    assert result == [*starting_genesets, "geneset"]

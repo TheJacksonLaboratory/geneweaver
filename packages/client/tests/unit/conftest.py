@@ -68,7 +68,7 @@ class MockGeneExpressionDatabaseClient(GeneExpressionDatabaseClient):
 
     """
 
-    def __init__(self, url: str = None, auth_proxy: str = None) -> None:
+    def __init__(self, url: str | None = None, auth_proxy: str | None = None) -> None:
         """Create a GeneExpressionDatabaseClient from a URL.
 
         @param url: The optional URL to which we will connect

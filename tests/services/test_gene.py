@@ -99,9 +99,9 @@ def test_get_gene_id_map_by_gene_ids_and_target_no_species(mock_db_gene):
 @patch("geneweaver.api.services.genes.db_gene")
 def test_get_gene_id_homolog_error(mock_db_gene):
     """Test error in DB call."""
-    mock_db_gene.get_homolog_ids.side_effect = Exception("ERROR")
+    mock_db_gene.get_homolog_ids.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         genes.get_homolog_ids(
             None,
             gene_ids_homolog_req_3.get("source_ids"),
@@ -168,9 +168,9 @@ def test_get_gene_map_human(mock_db_gene):
 @patch("geneweaver.api.services.genes.db_gene")
 def test_get_gene_map_error(mock_db_gene):
     """TTest error in DB call."""
-    mock_db_gene.mapping.side_effect = Exception("ERROR")
+    mock_db_gene.mapping.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         genes.get_gene_mapping(
             None,
             gene_id_mapping_req_2.get("source_ids"),
@@ -199,9 +199,9 @@ def test_get_gene_aon_map(mock_db_gene):
 @patch("geneweaver.api.services.genes.db_gene")
 def test_get_aon_gene_map_error(mock_db_gene):
     """Test error in DB call."""
-    mock_db_gene.aon_mapping.side_effect = Exception("ERROR")
+    mock_db_gene.aon_mapping.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         genes.get_gene_aon_mapping(
             None,
             gene_id_aon_mapping_req_1.get("source_ids"),
@@ -212,9 +212,9 @@ def test_get_aon_gene_map_error(mock_db_gene):
 @patch("geneweaver.api.services.genes.db_gene")
 def test_get_gene_error(mock_db_gene):
     """Test error in DB call."""
-    mock_db_gene.get.side_effect = Exception("ERROR")
+    mock_db_gene.get.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         genes.get_genes(None)
 
 
@@ -255,7 +255,7 @@ def test_get_gene_preferred(mock_db_gene):
 @patch("geneweaver.api.services.genes.db_gene")
 def test_get_gene_preferred_error(mock_db_gene):
     """Test error in DB call gene_preferred."""
-    mock_db_gene.get_preferred.side_effect = Exception("ERROR")
+    mock_db_gene.get_preferred.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         genes.get_gene_preferred(None, gene_id=1000)

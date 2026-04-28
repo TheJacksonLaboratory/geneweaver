@@ -1,16 +1,15 @@
 """Utilities for the GeneWeaver database functions."""
 
 import functools
-from typing import Union
 
 from geneweaver.core.enum import GenesetTier, ScoreType, Species
 from geneweaver.db.exceptions import GeneweaverDoesNotExistError, GeneweaverValueError
 from psycopg import sql
 from psycopg.rows import Row
 
-SpeciesOrSpeciesSet = Union[Species, set[Species]]
-GenesetTierOrTiers = Union[GenesetTier, set[GenesetTier]]
-GenesetScoreTypeOrScoreTypes = Union[ScoreType, set[ScoreType]]
+SpeciesOrSpeciesSet = Species | set[Species]
+GenesetTierOrTiers = GenesetTier | set[GenesetTier]
+GenesetScoreTypeOrScoreTypes = ScoreType | set[ScoreType]
 
 
 def unpack_one_item_fetchall_results(results: list[Row]) -> list:
@@ -47,10 +46,7 @@ def temp_override_row_factory(row_factory):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # Determine cursor based on positional or keyword argument
-            if args:
-                cursor = args[0]
-            else:
-                cursor = kwargs.get("cursor")
+            cursor = args[0] if args else kwargs.get("cursor")
 
             if cursor is None:
                 raise ValueError(

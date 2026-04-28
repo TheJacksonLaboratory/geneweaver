@@ -9,7 +9,7 @@ from psycopg.sql import SQL, Composed, Identifier, Placeholder
 
 def test_insert_project_geneset():
     """Test the insert project geneset query generation function."""
-    query, params = insert_geneset_to_project(
+    query, _params = insert_geneset_to_project(
         project_id=1,
         geneset_id=1,
     )
@@ -19,7 +19,7 @@ def test_insert_project_geneset():
 
 def test_remove_project_geneset():
     """Test the remove project geneset query generation function."""
-    query, params = remove_geneset_from_project(
+    query, _params = remove_geneset_from_project(
         project_id=1,
         geneset_id=1,
     )

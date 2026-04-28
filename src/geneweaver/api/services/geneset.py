@@ -255,7 +255,7 @@ def get_geneset_gene_values(
     :param geneset_id: geneset identifier
     :param user: GW user
     :param gene_id_type: gene identifier type object
-    :param in_threshold: geneset’s threshold filter
+    :param in_threshold: geneset's threshold filter
     :return: dictionary response (geneset and genset values).
     """
     try:
@@ -315,7 +315,7 @@ def get_geneset_w_gene_id_type(
     @param geneset_id: geneset identifier
     @param user: GW user
     @param gene_id_type: gene identifier type object
-    @param in_threshold: geneset’s threshold filter
+    @param in_threshold: geneset's threshold filter
     @return: Dictionary response (geneset identifier, geneset, and genset values).
     """
     try:
@@ -358,7 +358,7 @@ def get_gsv_w_gene_homology_update(
 
     @param cursor: DB cursor
     @param gene_id_type: geneset identifier
-    @param in_threshold: geneset’s threshold filter
+    @param in_threshold: geneset's threshold filter
     @return: geneset value
     """
     mapping_across_species = False
@@ -396,10 +396,7 @@ def map_geneset_homology(
 
         for gene in geneset_value:
             gene["gdb_id"] = gene_id_type.value
-            if gene["ode_gene_id"] in homolog_mapping:
-                gene["ode_ref_id"] = homolog_mapping[gene["ode_gene_id"]]
-            else:
-                gene["ode_ref_id"] = None
+            gene["ode_ref_id"] = homolog_mapping.get(gene["ode_gene_id"])
 
         return geneset_value
     except Exception as err:

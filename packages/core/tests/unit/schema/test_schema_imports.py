@@ -1,5 +1,6 @@
 """Test that we can import schema definitions."""
 
+import contextlib
 import importlib
 
 import pytest
@@ -50,9 +51,7 @@ def test_cannot_import(import_path: str, package_attr: str) -> None:
     module = importlib.import_module(import_path)
     package = None
     if package_attr is not None:
-        try:
+        with contextlib.suppress(AttributeError):
             package = getattr(module, package_attr)
-        except AttributeError:
-            pass
 
     assert module is None or package is None

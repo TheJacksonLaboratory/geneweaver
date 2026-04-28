@@ -13,10 +13,10 @@ random.seed(0)
 
 MOCK_GENE_CHARACTERS = string.ascii_letters + string.digits + "-_"
 MOCK_FLOAT_VALUES = [0.55, 0.136, 0.01, 0.99, -0.53]
-SCORE_TYPES = [s for s in ScoreType]
-GENE_IDS = [g for g in GeneIdentifierInt]
-MICROARRAYS = [m for m in MicroarrayInt]
-SPECIES = [s for s in SpeciesInt]
+SCORE_TYPES = list(ScoreType)
+GENE_IDS = list(GeneIdentifierInt)
+MICROARRAYS = list(MicroarrayInt)
+SPECIES = list(SpeciesInt)
 ALL_GENE_IDS = GENE_IDS + MICROARRAYS
 ONE_GENE_ID_ONE_MICROARRAY = [
     GeneIdentifierInt.ENSEMBLE_GENE,

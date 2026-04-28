@@ -12,7 +12,7 @@ from tests.unit.testing_utils import (
 
 @pytest.mark.parametrize(
     "hom_ids",
-    [GENESET_HOM_IDS] + [GENESET_HOM_IDS[:5]] + [GENESET_HOM_IDS[5:]] + [GENESET_HOM_IDS[10:20]],
+    [GENESET_HOM_IDS, GENESET_HOM_IDS[:5], GENESET_HOM_IDS[5:], GENESET_HOM_IDS[10:20]],
 )
 def test_homology_ids(hom_ids, example_primary_key, cursor):
     """Test the geneset.homology_ids function using a mock cursor."""

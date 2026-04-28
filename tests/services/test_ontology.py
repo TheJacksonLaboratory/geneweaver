@@ -58,7 +58,7 @@ def test_get_geneset_ontology_terms_no_user(mock_db_geneset, mock_db_ontology):
 @patch("geneweaver.api.services.geneset.db_ontology")
 def test_get_geneset_ontology_term_error(mock_db_ontology):
     """Test error in get DB call."""
-    mock_db_ontology.by_geneset.side_effect = Exception("ERROR")
+    mock_db_ontology.by_geneset.side_effect = RuntimeError("ERROR")
 
-    with pytest.raises(expected_exception=Exception):
+    with pytest.raises(RuntimeError):
         geneset.get_geneset_ontology_terms(None, 1234, mock_user)

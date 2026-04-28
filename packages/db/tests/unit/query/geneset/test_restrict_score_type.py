@@ -54,8 +54,9 @@ def test_restrict_score_type(existing_filters, existing_params, score_type):
         if isinstance(score_type, ScoreType):
             score_type = {score_type}
 
-        assert new_filters == existing_filters + [
-            SQL("geneset.gs_threshold_type = ANY(%(score_type)s)")
+        assert new_filters == [
+            *existing_filters,
+            SQL("geneset.gs_threshold_type = ANY(%(score_type)s)"),
         ]
         assert new_params == {
             **existing_params,

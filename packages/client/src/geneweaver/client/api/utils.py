@@ -43,4 +43,4 @@ def sessionmanager(token: str | None = None) -> requests.Session:
 
 def format_endpoint(directory: str, *args: str) -> str:
     """Format the endpoint with the API host and path."""
-    return "/".join([settings.API_URL, directory] + list(args))
+    return "/".join([settings.API_URL, directory, *list(args)])

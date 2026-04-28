@@ -222,9 +222,6 @@ def extract_one_or_two_numeric_values(score_input: str) -> list:
     if len(values) not in (1, 2):
         raise InvalidScoreThresholdError()
 
-    if len(values) == 1:
-        values = [None, float(values[0])]
-    else:
-        values = [float(v) for v in values]
+    values = [None, float(values[0])] if len(values) == 1 else [float(v) for v in values]
 
     return values

@@ -30,11 +30,11 @@ def mock_read_space_separated():
     ("line", "expected"),
     [
         (f"{key}sample line", ("single_prefix_key", "single_prefix_value"))
-        for key in HEADER_CHARACTERS.keys()
+        for key in HEADER_CHARACTERS
     ]
     + [
         (f"{key} sample line", ("space_separated_key", "space_separated_value"))
-        for key in HEADER_CHARACTERS.keys()
+        for key in HEADER_CHARACTERS
     ],
 )
 def test_process_header_line_single_prefix(
@@ -55,7 +55,7 @@ def test_process_header_line_single_prefix(
     ("line", "expected"),
     [
         (f"{key} sample line", ("space_separated_key", "space_separated_value"))
-        for key in SPACE_SEPARATED_HEADER_CHARACTERS.keys()
+        for key in SPACE_SEPARATED_HEADER_CHARACTERS
     ],
 )
 def test_process_header_line_space_separated(

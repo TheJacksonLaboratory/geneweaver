@@ -20,7 +20,7 @@ router = APIRouter(prefix="/publications", tags=["publications"])
 def get_publication(
     cursor: deps.Cursor | None = Depends(deps.cursor),
     publication_id: Annotated[
-        int, Query(format="int64", minimum=0, maxiumum=9223372036854775807)
+        int | None, Query(format="int64", minimum=0, maxiumum=9223372036854775807)
     ] = None,
     authors: str | None = None,
     title: str | None = None,

@@ -6,8 +6,8 @@ import pytest
 from geneweaver.core.enum import GeneIdentifier, Species
 from geneweaver.db.gene import get_homolog_ids
 
-IDENTIFIERS = [identifier for identifier in GeneIdentifier]
-SPECIES = [species for species in Species]
+IDENTIFIERS = list(GeneIdentifier)
+SPECIES = list(Species)
 
 
 @pytest.mark.parametrize("source_identifier", IDENTIFIERS)

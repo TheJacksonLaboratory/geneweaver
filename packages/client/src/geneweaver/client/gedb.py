@@ -155,7 +155,7 @@ class GeneExpressionDatabaseClient:
     the 'gene/expression/search' endpoint.
     """
 
-    def __init__(self, url: str = None, auth_proxy: str = None) -> None:
+    def __init__(self, url: str | None = None, auth_proxy: str | None = None) -> None:
         """Create a GeneExpressionDatabaseClient from a URL.
 
         @param url: The optional URL to which we will connect
@@ -311,7 +311,7 @@ class GeneExpressionDatabaseClient:
         return rhos
 
     def _split_list(self, lst: list, chunk_size: int) -> list[list]:
-        return list(zip(*[iter(lst)] * chunk_size))
+        return list(zip(*[iter(lst)] * chunk_size, strict=False))
 
     def _frame(self, randoms: list[str]) -> DataFrame:
         # Make them into a frame.

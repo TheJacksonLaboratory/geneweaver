@@ -8,11 +8,11 @@ from geneweaver.client.api.aon import OrthologAlgorithms
 from geneweaver.core.enum import Species
 from geneweaver.core.mapping import AON_ID_TYPE_FOR_SPECIES
 
-SUPPORTED_AON_SP_IDS = [int(species) for species in AON_ID_TYPE_FOR_SPECIES.keys()]
+SUPPORTED_AON_SP_IDS = [int(species) for species in AON_ID_TYPE_FOR_SPECIES]
 
 
 @pytest.mark.parametrize("species_id", [int(species) for species in Species])
-@pytest.mark.parametrize("algorithm", [algorithm for algorithm in OrthologAlgorithms])
+@pytest.mark.parametrize("algorithm", list(OrthologAlgorithms))
 @patch("geneweaver.client.api.mapping.insert_colon_delimiter", lambda x: x)
 @patch("geneweaver.client.api.mapping.genesets.get")
 @patch("geneweaver.client.api.mapping.genesets.get_values")

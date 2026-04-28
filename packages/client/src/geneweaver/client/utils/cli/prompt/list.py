@@ -15,7 +15,7 @@ def prompt_for_list_selection(field_type: T, allow_none: bool = False) -> list[T
     :return: The list of values entered by the user.
     """
     origin_type = get_origin(field_type)
-    if origin_type != list:
+    if origin_type is not list:
         raise TypeError("Expected a typing.List type")
 
     # Extract the type of the list's elements

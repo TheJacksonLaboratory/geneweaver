@@ -32,11 +32,10 @@ def map_ids(
         source_species=source_species,
     )
 
-    if len(result["gene_ids_map"]) > 0:
-        if not ctx.obj["quiet"]:
-            if ctx.obj["pretty"]:
-                typer.echo(json.dumps(result, indent=4))
-            else:
-                typer.echo(json.dumps(result))
+    if len(result["gene_ids_map"]) > 0 and not ctx.obj["quiet"]:
+        if ctx.obj["pretty"]:
+            typer.echo(json.dumps(result, indent=4))
+        else:
+            typer.echo(json.dumps(result))
 
     return result

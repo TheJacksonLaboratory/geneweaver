@@ -44,8 +44,7 @@ def test_get_xml_for_pubmed_id_raises_external_api_error():
     mock_response.ok = False
 
     # Patch requests.get to return the mock response.
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        with pytest.raises(ExternalAPIError):
+    with patch("requests.get", return_value=mock_response) as mock_get, pytest.raises(ExternalAPIError):
             get_xml_for_pubmed_id("some_pubmed_id")
 
     assert mock_get.called
