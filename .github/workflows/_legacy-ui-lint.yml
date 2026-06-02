@@ -1,0 +1,38 @@
+name: 'Legacy UI Lint Code Definition'
+
+# Lint/format gate for the legacy GeneWeaver FIRST-PARTY UI JavaScript (legacy/src/static).
+# Uses the same tooling as geneweaver-ui (ESLint + Prettier); config lives in
+# legacy/eslint.config.js, legacy/.prettierrc and legacy/.prettierignore.
+# Scope (src/static/js, src/static/tools) and vendored excludes are defined there.
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to set up'
+        required: false
+        default: '22'
+        type: string
+
+jobs:
+  ui-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: legacy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node ${{ inputs.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Prettier (check only)
+        run: npm run format:check
+
+      - name: Run ESLint
+        run: npm run lint

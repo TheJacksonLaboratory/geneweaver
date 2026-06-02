@@ -1,0 +1,59 @@
+# Legacy GeneWeaver ruff config.
+#
+# Mirrors the monorepo root ruff.toml (the standard the migrated API follows inside
+# this repo) so legacy is held to the same lint/style bar as geneweaver-api.
+#
+# Deviations from root, and why:
+#   - target-version = "py39": legacy runs on Python 3.9 (see legacy/Dockerfile and
+#     pyproject `python = ">=3.9.2"`). Using py310 would let pyupgrade (UP) rewrite to
+#     3.10+ syntax that breaks at runtime on 3.9.
+#   - exclude lists legacy-specific non-source trees (vendored assets / C++/R tool),
+#     analogous to how the root config excludes ui/docs/deploy.
+
+lint.select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "D",    # pydocstyle
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RUF",  # Ruff-specific rules
+]
+lint.ignore = [
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D212",  # multi-line-summary-first-line (conflicts with D213)
+    "D107",  # missing docstring in __init__
+    "D105",  # missing docstring in magic method
+    "D100",  # missing module docstring (optional for smaller scripts)
+    "E501",  # line too long (handled by formatter)
+    "D403",  # ignore doc capitalization
+    "D415",  # ignore doc punctuation
+]
+
+# Lint the legacy PYTHON application code only (src/, src/tools/, tests/,
+# curation-server/). Everything below is a non-Python project or non-source tree and
+# is excluded so ruff never touches it. force-exclude makes these stick even when a
+# path inside them is passed explicitly (e.g. pre-commit / `ruff check .`).
+force-exclude = true
+exclude = [
+    "src/static",      # vendored frontend assets (JS/CSS/PHP) — not maintained Python
+    "src/tools/mset",  # vendored C++/R research tool (+ a legacy py2 demo); not the Flask app
+    "sample-configs",  # sample k8s/docker configs
+    "migration",       # raw SQL migration scripts
+    "docs",            # documentation
+    "deploy",          # k8s manifests
+    # Dead 2015 dev file with an unresolved `<<<<<<< HEAD` merge-conflict marker;
+    # unparseable, unreferenced, superseded by jaccardsimilarityblueprint.py.
+    "src/tools/jaccardsimilarityblueprint2.py",
+]
+
+target-version = "py39"
+line-length = 99
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports in __init__ files

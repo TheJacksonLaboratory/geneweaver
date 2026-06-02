@@ -1,0 +1,54 @@
+name: Legacy - Pull Request Build and Deploy
+
+# Builds and deploys the legacy GeneWeaver app (legacy/) to the dev environment
+# on pull requests that touch legacy/. Mirrors the API PR pipeline, scoped to the
+# legacy subtree via the reusable skaffold actions' `working_directory` input.
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'legacy/**'
+
+jobs:
+  # Gates run in parallel (no dependency between them).
+  format-lint:
+    name: "Legacy Python Format and Lint"
+    uses: ./.github/workflows/_legacy-format-lint.yml
+    with:
+      python-version: '3.9'
+
+  ui-lint:
+    name: "Legacy UI Lint"
+    uses: ./.github/workflows/_legacy-ui-lint.yml
+
+  test:
+    name: "Legacy Run Tests"
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.9']
+    uses: ./.github/workflows/_legacy-run-tests.yml
+    with:
+      runner-os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+
+  build:
+    name: "Legacy Build: Dev"
+    needs: [ format-lint, ui-lint, test ]
+    uses: ./.github/workflows/_skaffold-build-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: "legacy"
+      artifact_name: "build-artifact-json-legacy"
+      default_image_repo: "us-east1-docker.pkg.dev/jax-cs-registry/docker-test/geneweaver"
+
+  deploy:
+    name: "Legacy Deploy: Dev"
+    needs: [ build ]
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: "legacy"
+      artifact_name: "build-artifact-json-legacy"
+      environment: "jax-cluster-dev-10--dev"

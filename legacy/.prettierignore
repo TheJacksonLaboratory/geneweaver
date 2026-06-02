@@ -1,0 +1,25 @@
+# Mirrors geneweaver-ui's .prettierignore, extended for the legacy tree.
+# Prettier/ESLint only cover legacy's FIRST-PARTY UI JavaScript; everything below is
+# vendored, generated, non-UI, or non-JS and must not be formatted.
+
+# build/output
+/dist
+/coverage
+
+# non-UI / non-JS trees
+/src/templates
+/migration
+/deploy
+/docs
+/sample-configs
+
+# vendored frontend libraries (third-party, not first-party UI)
+/src/static/bootstrap-3.1.1-dist
+/src/static/font-awesome-4.1.0
+/src/static/font-awesome-4.7.0
+/src/static/pixit
+/src/static/select2
+/src/static/d3
+/src/static/js/cytoscape
+/src/static/js/d3.v3.js
+**/*.min.js

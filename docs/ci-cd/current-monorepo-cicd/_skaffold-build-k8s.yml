@@ -7,16 +7,6 @@ on:
         required: false
         type: string
         default: "us-docker.pkg.dev/jax-cs-registry/docker/geneweaver"
-      working_directory:
-        description: 'Directory containing the skaffold.yaml to build (defaults to repo root)'
-        required: false
-        type: string
-        default: "."
-      artifact_name:
-        description: 'Name of the uploaded build.json artifact (override to avoid collisions across components)'
-        required: false
-        type: string
-        default: "build-artifact-json"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,7 +23,6 @@ jobs:
       - name: Docker Login
         run: gcloud auth configure-docker us-docker.pkg.dev,us-east1-docker.pkg.dev
       - name: Build
-        working-directory: ${{ inputs.working_directory }}
         run: |
           skaffold build \
           --default-repo=${{ inputs.default_image_repo }} \
@@ -41,5 +30,5 @@ jobs:
       - name: Upload Build Artifact Information
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_name }}
-          path: ${{ inputs.working_directory }}/build.json
+          name: build-artifact-json
+          path: build.json

@@ -1,0 +1,42 @@
+name: 'Legacy Python Lint Code Definition'
+
+# Lint/format gate for the legacy GeneWeaver Python app (legacy/).
+# Legacy is a Poetry / Python 3.9 Flask project, so this runs Ruff directly.
+# Scope is governed by legacy/ruff.toml: it lints the Python application code only
+# (src/, src/tools/, tests/, curation-server/) and excludes the non-Python projects
+# (vendored mset C++/R tool, static JS/CSS assets, SQL migrations, etc.).
+# UI/frontend code is linted separately (ESLint/Prettier) — see _legacy-ui-lint.yml.
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to set up'
+        required: false
+        default: '3.9'
+        type: string
+
+jobs:
+  format-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: legacy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      # Scope comes from legacy/ruff.toml (force-exclude + exclude); "." lints all
+      # legacy Python application code while skipping the excluded non-Python projects.
+      - name: Run Ruff Linter
+        run: ruff check .
+
+      - name: Run Ruff Formatter (check only)
+        run: ruff format --check .

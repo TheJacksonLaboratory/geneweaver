@@ -1,0 +1,82 @@
+name: Pull Request Test, Build and Deploy
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  format-lint:
+    name: "Format and Lint"
+    uses: ./.github/workflows/_format-lint-action.yml
+    with:
+      python-version: '3.9'
+
+  version-check:
+    name: "Version Sync Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version consistency
+        run: |
+          set -euo pipefail
+          ROOT_VERSION=$(grep '^version = ' pyproject.toml | head -1 | cut -d '"' -f 2)
+          echo "Root version: $ROOT_VERSION"
+
+          MISMATCH=0
+          for toml in packages/*/pyproject.toml; do
+            PKG_NAME=$(grep '^name = ' "$toml" | head -1 | cut -d '"' -f 2)
+            PKG_VERSION=$(grep '^version = ' "$toml" | head -1 | cut -d '"' -f 2)
+            if [ "$PKG_VERSION" != "$ROOT_VERSION" ]; then
+              echo "::error::$PKG_NAME version ($PKG_VERSION) != root ($ROOT_VERSION). Run ./scripts/sync-versions.sh"
+              MISMATCH=1
+            else
+              echo "$PKG_NAME: $PKG_VERSION (ok)"
+            fi
+          done
+
+          if [ "$MISMATCH" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All package versions in sync"
+
+  check-coverage:
+    name: "Check Coverage"
+    needs: [format-lint]
+    secrets: inherit
+    uses: ./.github/workflows/_check-coverage-action.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      required-coverage: ${{ vars.REQUIRED_COVERAGE }}
+      coverage-module: "geneweaver.api"
+
+  test:
+    name: "Run Tests"
+    needs: [format-lint, version-check]
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.10', '3.11']
+    uses: ./.github/workflows/_run-tests-action.yml
+    with:
+      runner-os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      required-coverage: ${{ vars.REQUIRED_COVERAGE }}
+
+  build:
+    name: "Build: Dev"
+    needs: [test, check-coverage]
+    uses: ./.github/workflows/_skaffold-build-k8s.yml
+    secrets: inherit
+    with:
+      default_image_repo: "us-east1-docker.pkg.dev/jax-cs-registry/docker-test/geneweaver"
+
+  deploy:
+    name: "Deploy: Dev"
+    needs: [build]
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      environment: "jax-cluster-dev-10--dev"
