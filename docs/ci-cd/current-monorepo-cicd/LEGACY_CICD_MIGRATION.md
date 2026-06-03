@@ -5,8 +5,12 @@
 > monorepo so it can replace them.
 >
 > **Branch:** `G3-748-finish-migration-of-geneweaver-to-monorepo`
-> **Status:** Phase A complete (gates + build + deploy, parallelized); current CI/CD snapshotted. Legacy lint **tooling/config** in place per language — **Python → ruff** (scoped to app code only) and **first-party UI JS → ESLint+Prettier** (mirrors geneweaver-ui). The automated code formatting/fixes were **reverted at user request** — legacy source is back to its original committed state; no code changes applied. Burn-downs pending. UI migration + repo retirement (Phase B) still pending.
-> **Last updated:** 2026-06-02
+> **Status:** ⚠️ **DIRECTION CHANGED (2026-06-03).** The legacy-focused CI/CD was removed.
+> CI/CD now targets the **current platform**: the **API** (`src/geneweaver/api`, via the
+> existing root `pull_requests.yml`/`release.yml`) and the **UI** (`ui/`, via new
+> `ui-*` workflows translated from geneweaver-ui's Bitbucket pipeline). The earlier
+> legacy investigation/sections below are retained as history. See the 2026-06-03 log entry.
+> **Last updated:** 2026-06-03
 
 ---
 
@@ -331,3 +335,35 @@ coverage gate is still **to-be-done**:
 *(Also noted, not added as action items: the live `.github/workflows/README.md` is stale —
 it predates the monorepo's PyPI-publish / version-sync work and the legacy + ui pipelines — and
 it has a typo referencing `_skaffold-deploy-action.yml` instead of `_skaffold-deploy-k8s.yml`.)*
+
+### 2026-06-03 — Direction change: target the current platform (API + UI), drop legacy CI/CD
+Once it was confirmed that `legacy/` is the **old monolithic Flask app** (not a consolidation
+of the new repos) and that the live platform is the new **API** + **UI**, the CI/CD was
+re-pointed accordingly.
+
+**Removed (legacy-focused CI):**
+- `.github/workflows/legacy-pull_requests.yml`, `legacy-release.yml`,
+  `_legacy-format-lint.yml`, `_legacy-run-tests.yml`, `_legacy-ui-lint.yml`.
+- (Recoverable from commit `478e8ed0`.) The legacy lint configs under `legacy/`
+  (`ruff.toml`, `.prettierrc`, `.prettierignore`, `eslint.config.js`, `package.json`) are now
+  orphaned — can be cleaned up separately.
+
+**API — unchanged, already correct:** the root `pull_requests.yml` / `release.yml` build,
+test, publish, and deploy `src/geneweaver/api` (+ `packages/*`). It is current/ahead of the
+standalone `geneweaver-api` repo (which has been frozen since 2026-03-12, a state already
+merged into the monorepo).
+
+**UI — new GitHub Actions pipeline (translated from geneweaver-ui's Bitbucket pipeline):**
+- `_ui-code-integrity.yml` — `npm ci` → seed `environment.ts` → `nx lint` → `nx test`.
+- `_ui-deploy.yml` — per-env: download `ui-dist` artifact → upload static build to the GCS
+  deployment bucket → `skaffold deploy -f ui/skaffold.yaml --profile <env>` (kustomize, no image build).
+- `ui-pull_requests.yml` (paths `ui/**`): code-integrity → build dev+sqa (`npm run build:jax-cluster-dev-10`) → deploy **dev → sqa**.
+- `ui-release.yml` (push main, paths `ui/**`): code-integrity → build all 4 (`build:jax-cluster-dev-10` + `build:jax-cluster-prod-10`) → deploy **sqa → stage → prod**.
+- Same 4 GKE environments as the API; sqa/stage/prod stay sequential (SQA approval gates apply).
+
+**Required repo secrets/vars for UI deploy:** `GCLOUD_CLUSTER_SA_KEY` (secret) and
+`DEPLOYMENT_BUCKET`, `CLUSTER_NAME`, `CLUSTER_REGION`, `CLUSTER_PROJECT` (vars, per environment) —
+the same set Bitbucket used (`$CLUSTER_SA`, `$DEPLOYMENT_BUCKET`, `$CLUSTER_*`).
+
+**Still open:** the monorepo `ui/` is **stale** vs `geneweaver-ui` (missing the search-filters
+feature, PR #20, ~2026-04-30) and has 3 uncommitted local edits — re-sync before retiring Bitbucket.
