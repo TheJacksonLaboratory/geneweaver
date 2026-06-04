@@ -14,7 +14,7 @@ class PublicationInfo(BaseModel):
     volume: str | None = None
     pages: str | None = None
     month: str | None = None
-    year: int | None = None
+    year: int | str | None = None
 
 
 class Publication(PublicationInfo):
