@@ -1,6 +1,7 @@
 """The main entrypoint to the GeneWeaver CLI client."""
 
-import pkg_resources
+from importlib.metadata import version as _package_version
+
 import typer
 from geneweaver.client.cli import alpha, beta
 
@@ -13,7 +14,7 @@ cli.add_typer(beta.cli, name="beta", help=beta.HELP_MESSAGE)
 def version_callback(version: bool) -> None:
     """Print the version of the GeneWeaver CLI client."""
     if version:
-        version = pkg_resources.get_distribution("geneweaver-client").version
+        version = _package_version("geneweaver-client")
         typer.echo(f"GeneWeaver CLI client (gweave) version: {version}")
         raise typer.Exit(code=0)
 

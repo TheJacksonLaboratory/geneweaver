@@ -22,10 +22,10 @@ def test_common():
     # Simulate the CLI execution without any arguments
     result = runner.invoke(cli)
 
-    # There should be no output in this case
+    # With no_args_is_help=True the CLI prints help; exit code is 0 (older click) or
+    # 2 (newer click/typer treats "no command" as a usage exit while still showing help).
     assert "GeneWeaver CLI client." in result.output
-    # Check the exit code
-    assert result.exit_code == 0
+    assert result.exit_code in (0, 2)
 
 
 def test_common_w_arg():
