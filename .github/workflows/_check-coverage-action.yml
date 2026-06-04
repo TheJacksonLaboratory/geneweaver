@@ -30,18 +30,21 @@ jobs:
   check_coverage:
     runs-on: ${{ inputs.runner-os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
-      - name: Install Poetry
-        run: pipx install poetry
-      - name: Install dependencies with Poetry
-        run: poetry install
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+      - name: Install dependencies with uv
+        run: uv sync --all-packages --all-extras --all-groups
       - name: Test with pytest
         run: |
-          poetry run pytest tests \
+          uv run pytest tests \
           --tb=${{ inputs.show-test-traceback }} \
           --cov=${{ inputs.coverage-module }} \
           --cov-report=term \
@@ -74,7 +77,7 @@ jobs:
           }"
       - name: Upload complexity to Compass
         run: |
-          METRIC_VALUE=$(poetry run radon cc src --total-average | grep 'Average complexity:' | awk '{print $NF}' | sed 's/[\(\)]//g')
+          METRIC_VALUE=$(uvx radon cc src --total-average | grep 'Average complexity:' | awk '{print $NF}' | sed 's/[\(\)]//g')
           curl --request POST \
           --url https://jacksonlaboratory.atlassian.net/gateway/api/compass/v1/metrics \
           --user "${{ vars.ATLASSIAN_COMPASS_EMAIL }}:${{ secrets.ATLASSIAN_COMPASS_KEY }}" \
