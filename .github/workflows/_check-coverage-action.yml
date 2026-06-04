@@ -44,12 +44,17 @@ jobs:
         run: uv sync --all-packages --all-extras --all-groups
       - name: Test with pytest
         run: |
+          # Fall back to 0 when the REQUIRED_COVERAGE repo variable is unset/empty, so
+          # --cov-fail-under gets a valid number instead of crashing pytest (exit 4).
+          # Set the REQUIRED_COVERAGE repo variable to enforce a real threshold.
+          REQUIRED_COVERAGE="${{ inputs.required-coverage }}"
+          REQUIRED_COVERAGE="${REQUIRED_COVERAGE:-0}"
           uv run pytest tests \
           --tb=${{ inputs.show-test-traceback }} \
           --cov=${{ inputs.coverage-module }} \
           --cov-report=term \
           --cov-report=html \
-          --cov-fail-under=${{ inputs.required-coverage }} > coverage_report.txt
+          --cov-fail-under="$REQUIRED_COVERAGE" > coverage_report.txt
       - name: Upload coverage report
         if: '!cancelled()'
         uses: actions/upload-artifact@v4
