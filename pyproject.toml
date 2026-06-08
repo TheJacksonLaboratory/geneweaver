@@ -55,6 +55,7 @@ members = [
 geneweaver-core   = { workspace = true }
 geneweaver-db     = { workspace = true }
 geneweaver-client = { workspace = true }
+geneweaver-tools  = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
