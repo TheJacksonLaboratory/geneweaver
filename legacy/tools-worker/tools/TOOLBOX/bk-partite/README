@@ -1,0 +1,9 @@
+usage:
+./bk-partite <k-partite graph file> <flags>  
+
+The only flags that are guaranteed to work are the -p, -inter, and -intra flags. 
+Use the -p flag to print out all maximal k-cliques.
+Using the -inter flag is recommded; it usually results in significant speedup.
+Using the -intra flag is NOT recommended; it usually results in a significant     
+slowdown. It's only there for testing purposes.
+
