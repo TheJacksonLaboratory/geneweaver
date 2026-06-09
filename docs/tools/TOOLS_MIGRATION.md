@@ -4,8 +4,9 @@
 > `geneweaver-tools` `AbstractTool` framework (`packages/tools`), as faithful, pure,
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
-> **Status:** 9 compute tools ported; 1 moved to the DB layer; 2 documented as data-layer;
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 73 passing.**
+> **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 73 passing;
+> `packages/db` suite green (incl. 10 new ABBA tests).**
 > **Last updated:** 2026-06-09
 
 ---
@@ -59,7 +60,7 @@ properties. The reimplementations follow consistent principles:
 | Legacy tool | Where it went | Why |
 |---|---|---|
 | SimilarGenesets | `geneweaver-db`: `geneset_jaccard.calculate_jaccard()` + `query/geneset_jaccard.py` | No in-process algorithm — it triggers the `calculate_jaccard` Postgres stored proc + timestamp/cache bookkeeping (one set vs all ~50k, over 2M+ memberships). Ported the stored proc to a versioned, testable query; heavy set-work stays in Postgres. A pure-Python port would be a perf/memory regression. |
-| ABBA | (recommended: `geneweaver-db`) | DB query/aggregation: temp table of input genes → joins to find gene sets → tier/species count rollups. No self-contained algorithm; belongs in the data layer, not the tools framework. |
+| ABBA | `geneweaver-db`: `abba.abba()` + `query/abba.py` | DB query/aggregation: builds 4 session temp tables (input genes → homology-expanded genes of interest → matching gene sets → recurring result genes) plus tier/species count rollups. Ported to versioned, parameterised query builders + an orchestration function returning an `ABBAResult`. **Improvements**: list values bind via `= ANY(%(...)s)` and temp-table names use `sql.Identifier` (the legacy string-joined `IN (...)` clauses were an injection/quoting hazard); the "ignore homology" branch now actually creates its temp table (legacy ran a bare `SELECT` and broke every later step); per-call uuid table suffixes for concurrency. Rendering (JSON dump, zero-padding/list reshaping) dropped. |
 
 ### Flagged — not yet ported (with reason + approach)
 
@@ -81,6 +82,11 @@ properties. The reimplementations follow consistent principles:
   (subset links, transitive reduction, p-value/FDR trim, cut/trim) is pure and unit-tested
   with an injectable biclique runner — no compiled binary needed for tests.
 - **DBSCAN (in-process variant)** — added `SklearnDBSCAN` and a benchmark (§5).
+- **ABBA** — replaced the legacy string-joined `IN (...)` clauses with parameterised
+  `= ANY(%(...)s)` binds and `sql.Identifier` temp-table names (fixes the SQL-injection /
+  quoting hazard); fixed the "ignore homology" branch that ran a bare `SELECT` and never
+  created the genes-of-interest table (breaking every later step); per-call uuid table
+  suffixes for concurrency safety.
 - **dead/conflicted code** — excluded the unparseable `jaccardsimilarityblueprint2.py`
   (merge-conflict marker) from lint; dropped vendored/compiled artifacts from version control.
 
@@ -141,7 +147,8 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    runner once the `.odemat` encoding is specified (see §5.1).
 2. Decide **GeneSetViewer**'s home (UI rendering vs a pure graph-building helper).
 3. Specify **TricliqueViewer**'s `.kel` / `bk-partite` contract, then port (or retire if unused).
-4. Move **ABBA** into `geneweaver-db` as versioned queries.
+4. Validate **ABBA**'s ported pipeline against the legacy tool on the real database
+   (the temp-table queries are covered by mock-cursor unit tests, not yet a live run).
 5. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
    default runners work in production; wire the binary paths via env vars (e.g.
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
