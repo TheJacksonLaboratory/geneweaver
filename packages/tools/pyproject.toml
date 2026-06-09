@@ -14,6 +14,13 @@ dependencies = [
     "geneweaver-core>=0.20.0a0",
 ]
 
+[project.optional-dependencies]
+# In-process (no compiled binary) implementations that use C/C++-backed libraries.
+sklearn = [
+    "scikit-learn>=1.3.0",
+    "scipy>=1.10.0",
+]
+
 [project.urls]
 Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
 Repository = "https://github.com/TheJacksonLaboratory/geneweaver-tools"
