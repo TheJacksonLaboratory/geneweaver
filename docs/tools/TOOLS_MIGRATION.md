@@ -4,8 +4,8 @@
 > `geneweaver-tools` `AbstractTool` framework (`packages/tools`), as faithful, pure,
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
-> **Status:** 8 compute tools ported; 1 moved to the DB layer; 2 documented as data-layer;
-> 3 flagged (presentation / incomplete / large). **`packages/tools` unit suite: 60 passing.**
+> **Status:** 9 compute tools ported; 1 moved to the DB layer; 2 documented as data-layer;
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 73 passing.**
 > **Last updated:** 2026-06-09
 
 ---
@@ -52,6 +52,7 @@ properties. The reimplementations follow consistent principles:
 | DBSCAN | `dbscan` | binary wrapper | encode bipartite gene graph → `dbscan` C++ binary → decode JSON clusters. Also an in-process `sklearn_tool.SklearnDBSCAN` variant (`[sklearn]`) — see §5. |
 | UpSet | `upset` | pure | intersection sizes per exact gene-set combination (legacy `os.system` calls were commented out) |
 | MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. |
+| PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. **Improvement**: KS term uses `scipy.stats.ks_2samp` (only when ranks supplied) vs the legacy hand-rolled KS. All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
 
 ### Moved to the data layer (not an `AbstractTool`)
 
@@ -66,7 +67,6 @@ properties. The reimplementations follow consistent principles:
 |---|---|---|
 | TricliqueViewer | binary (incomplete) | Legacy is a **scaffold**: reads a pre-built `.kel` edge list, runs `bk-partite`, dumps raw stdout; the JSON/CSV result generation is an unimplemented TODO and the I/O contract is undefined. Needs the `.kel` + `bk-partite` output formats specified before a faithful port. |
 | GeneSetViewer | presentation | Builds a graph and renders it via graphviz `dot` (`os.system`). This is **visualization**, not a compute algorithm — belongs in the UI/rendering layer. The graph-building could be a pure helper if needed. |
-| PhenomeMap | binary (large) | 983 LOC: maximal-biclique enumeration (`biclique`/`bicliquer`) + bootstrap (`bstrap`) + graphviz. Genuine compute; port the biclique + bootstrap stages via the binary-wrapper pattern (encode → runner → decode), drop the graphviz rendering. A focused follow-up. |
 
 ## 4. Bug fixes & improvements made during the port
 
@@ -76,6 +76,10 @@ properties. The reimplementations follow consistent principles:
 - **JaccardClustering** — replaced the legacy O(n³) hand-rolled agglomerative clustering with
   `scipy.cluster.hierarchy` (correct + C-backed).
 - **MSET** — fixed the copy-paste bug where `group_2` used `group_1_background`.
+- **PhenomeMap** — KS term of the link score uses `scipy.stats.ks_2samp` (well-tested,
+  C-backed) instead of the legacy hand-rolled KS approximation; the whole graph pipeline
+  (subset links, transitive reduction, p-value/FDR trim, cut/trim) is pure and unit-tested
+  with an injectable biclique runner — no compiled binary needed for tests.
 - **DBSCAN (in-process variant)** — added `SklearnDBSCAN` and a benchmark (§5).
 - **dead/conflicted code** — excluded the unparseable `jaccardsimilarityblueprint2.py`
   (merge-conflict marker) from lint; dropped vendored/compiled artifacts from version control.
@@ -103,6 +107,19 @@ scalable (avoid the O(n²) all-pairs matrix). Equivalence to the binary is not b
 swapping. The C++ binary's own compute time was **not** benchmarked (it couldn't be built in
 this environment).
 
+### 5.1 PhenomeMap: what was ported vs deferred
+
+Ported (the reusable compute): edge-list encode → `biclique` binary (injectable runner) →
+parse → assemble bicliques by gene-set count → subset-link scoring (gene-count ratio × KS
+p-value) with transitive reduction → p-value/FDR link trim → cut-depth → unconnected-node
+trim → graph of nodes/links with depth. Optional bootstrap reduction (the `bstrap` binary)
+is a second injectable runner, skipped when unconfigured or on small graphs.
+
+Deferred: the **permutation-significance** add-on (the `bicliquer` binary over an `.odemat`
+matrix) is a separate statistic with a different input encoding; it can be added later as a
+third injectable runner. All rendering (dot/graphml/svg/pdf/csv/json + graphviz) and the
+DB label/species/publication lookups are presentation and were dropped.
+
 ## 6. Source of truth
 
 The recovered legacy worker source lives at **`legacy/tools-worker/`** (provenance in its
@@ -120,11 +137,13 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
 ```
 
 ## 8. Remaining work
-1. Port **PhenomeMap** (biclique + bootstrap) via the binary-wrapper pattern.
+1. Add **PhenomeMap permutation** significance (the `bicliquer` add-on) as a third injectable
+   runner once the `.odemat` encoding is specified (see §5.1).
 2. Decide **GeneSetViewer**'s home (UI rendering vs a pure graph-building helper).
 3. Specify **TricliqueViewer**'s `.kel` / `bk-partite` contract, then port (or retire if unused).
 4. Move **ABBA** into `geneweaver-db` as versioned queries.
 5. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
-   default runners work in production; wire the binary paths via env vars.
+   default runners work in production; wire the binary paths via env vars (e.g.
+   `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
 6. Validate ported tools' outputs against the legacy worker on real gene sets (esp. the
-   bug-fixed HyperGeometric and the DBSCAN variant).
+   bug-fixed HyperGeometric, the DBSCAN variant, and the PhenomeMap graph structure).
