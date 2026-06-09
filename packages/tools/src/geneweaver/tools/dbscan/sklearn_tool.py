@@ -29,8 +29,7 @@ from .schema import DBSCANInput, DBSCANOutput
 
 try:
     import numpy as np
-    from scipy.sparse import csr_matrix
-    from scipy.sparse.csgraph import shortest_path
+    from scipy.sparse import csr_matrix, identity
     from sklearn.cluster import DBSCAN as _SklearnDBSCAN
 except ImportError as exc:  # pragma: no cover - exercised only without the extra
     raise ImportError(
@@ -66,17 +65,34 @@ def build_gene_graph(
     return csr_matrix((data, (rows, cols)), shape=(n, n)), genes
 
 
+def neighbor_graph(adjacency: csr_matrix, eps_hops: int) -> csr_matrix:
+    """Sparse "within eps_hops" neighbour graph (incl. self), without all-pairs distances.
+
+    Built from bounded sparse matrix powers (A, A^2, ... A^eps_hops) instead of a dense
+    n x n shortest-path matrix, so it scales with the number of *edges*, not n^2. Stored
+    entries are set to distance 1.0 (the eps radius is baked into which entries exist), so
+    a downstream DBSCAN with eps=1.0 treats every stored entry as a neighbour.
+    """
+    n = adjacency.shape[0]
+    adj = (adjacency != 0).astype(np.float64)
+    reach = adj.copy()
+    power = adj.copy()
+    for _ in range(int(eps_hops) - 1):
+        power = (power @ adj != 0).astype(np.float64)
+        reach = (reach + power != 0).astype(np.float64)
+    reach = (reach + identity(n, format="csr") != 0).astype(np.float64)
+    return reach.tocsr()
+
+
 def cluster_labels(adjacency: csr_matrix, epsilon: float, min_points: int) -> np.ndarray:
-    """Run DBSCAN over hop distances; returns sklearn labels (-1 = noise)."""
+    """Run DBSCAN over the sparse eps-hop neighbour graph; labels (-1 = noise)."""
     n = adjacency.shape[0]
     if n == 0:
         return np.empty(0, dtype=int)
-    # Unweighted shortest paths = hop counts; unreachable pairs become inf -> clamp to a
-    # finite value larger than any real hop so sklearn treats them as non-neighbours.
-    distances = shortest_path(adjacency, method="D", unweighted=True)
-    distances[np.isinf(distances)] = float(n)
-    model = _SklearnDBSCAN(eps=epsilon, min_samples=min_points, metric="precomputed")
-    return model.fit_predict(distances)
+    graph = neighbor_graph(adjacency, int(epsilon))
+    # All stored entries are at distance 1.0, so eps=1.0 == "neighbours within eps hops".
+    model = _SklearnDBSCAN(eps=1.0, min_samples=min_points, metric="precomputed")
+    return model.fit_predict(graph)
 
 
 def labels_to_clusters(labels: np.ndarray, genes: dict[str, int]) -> list[list[str]]:
