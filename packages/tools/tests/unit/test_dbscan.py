@@ -1,10 +1,10 @@
-"""Tests for the DBSCAN tool (ported from legacy DBSCAN; wraps the dbscan C++ binary)."""
+"""Tests for BinaryDBSCAN (the dbscan C++ binary wrapper; default DBSCAN is in-process)."""
 
 import json
 
 import pytest
 from geneweaver.tools.dbscan import (
-    DBSCAN,
+    BinaryDBSCAN,
     DBSCANInput,
     DBSCANOutput,
     decode_clusters,
@@ -17,12 +17,12 @@ GENE_SYMBOLS = {"GS1": ["a", "b"], "GS2": ["b", "c"]}
 
 
 def test_is_abstract_tool() -> None:
-    """DBSCAN implements the framework contract."""
-    t = DBSCAN(runner=lambda *_: "@")
+    """BinaryDBSCAN implements the framework contract."""
+    t = BinaryDBSCAN(runner=lambda *_: "@")
     assert isinstance(t, AbstractTool)
     assert t.tool_input is DBSCANInput
     assert t.tool_output is DBSCANOutput
-    assert t.tool_name == "DBSCAN"
+    assert t.tool_name == "BinaryDBSCAN"
 
 
 def test_encode_bipartite() -> None:
@@ -50,7 +50,7 @@ def test_decode_clusters_no_clusters_sentinel() -> None:
 def test_run_skips_when_too_few_genes() -> None:
     """ran=False when num_genes - 1 < min_points (binary not invoked)."""
     called = []
-    tool = DBSCAN(runner=lambda *a: called.append(a) or "@")
+    tool = BinaryDBSCAN(runner=lambda *a: called.append(a) or "@")
     out = tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=10))
     assert isinstance(out, DBSCANOutput)
     assert out.ran is False
@@ -66,7 +66,7 @@ def test_run_invokes_runner_and_decodes() -> None:
         captured["args"] = (encoded, epsilon, min_points)
         return json.dumps([[0, 1]])  # genes a, b cluster together
 
-    out = DBSCAN(runner=fake_runner).run(
+    out = BinaryDBSCAN(runner=fake_runner).run(
         DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2)
     )
     assert out.ran is True
@@ -78,7 +78,7 @@ def test_run_invokes_runner_and_decodes() -> None:
 
 def test_run_no_clusters() -> None:
     """A '@' result yields ran=True with no clusters."""
-    out = DBSCAN(runner=lambda *_: "@").run(
+    out = BinaryDBSCAN(runner=lambda *_: "@").run(
         DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2)
     )
     assert out.ran is True
@@ -87,6 +87,6 @@ def test_run_no_clusters() -> None:
 
 def test_unconfigured_binary_raises() -> None:
     """Without a runner or binary path, running raises a helpful error."""
-    tool = DBSCAN()  # no runner, no binary_path, env var unset in test
+    tool = BinaryDBSCAN()  # no runner, no binary_path, env var unset in test
     with pytest.raises(RuntimeError, match="dbscan binary not configured"):
         tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2))

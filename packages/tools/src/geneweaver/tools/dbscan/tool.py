@@ -1,9 +1,14 @@
-"""DBSCAN tool, reimplemented on the AbstractTool framework.
+"""DBSCAN binary wrapper (``BinaryDBSCAN``), on the AbstractTool framework.
 
 Ported from the legacy Celery worker ``legacy/tools-worker/tools/DBSCAN.py``, which shells
 out to the compiled ``TOOLBOX/DBSCAN/dbscan`` C++ binary.
 
-This is the first tool that wraps a compiled binary, so it establishes the pattern:
+Note: the *default* ``DBSCAN`` is the in-process ``sklearn_tool.DBSCAN`` -- validated
+identical to this binary and far faster (see ``docs/tools/TOOLS_BENCHMARKS.md`` §1). This
+wrapper is kept for exact-legacy-parity / environments that prefer the compiled binary, and
+it requires no extra dependencies.
+
+This is the canonical compiled-binary wrapper, so it establishes the pattern:
 
   - the *pure* parts (encoding the bipartite gene/gene-set graph into the binary's input
     string, and decoding the binary's JSON output back to gene symbols) are standalone,
@@ -95,8 +100,12 @@ def _subprocess_runner(binary_path: str) -> BinaryRunner:
     return run
 
 
-class DBSCAN(AbstractTool):
-    """Cluster genes by gene-set co-membership using the DBSCAN C++ binary."""
+class BinaryDBSCAN(AbstractTool):
+    """Cluster genes by gene-set co-membership using the DBSCAN C++ binary.
+
+    The default ``DBSCAN`` is the in-process ``sklearn_tool.DBSCAN``; use this wrapper when
+    you specifically want the compiled binary (exact legacy parity, or no scipy/sklearn).
+    """
 
     def __init__(self, binary_path: str | None = None, runner: BinaryRunner | None = None) -> None:
         """Configure how the dbscan binary is located/invoked.

@@ -26,7 +26,7 @@ import sys
 import psycopg
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "packages", "tools", "src"))
-from geneweaver.tools.dbscan import DBSCAN, DBSCANInput
+from geneweaver.tools.dbscan import BinaryDBSCAN, DBSCANInput
 
 DSN = "host=127.0.0.1 port=5433 dbname=geneweaver-dev user=geneweaver-dev password=localdev"
 BINARY = os.environ["GENEWEAVER_DBSCAN_BINARY"]
@@ -110,7 +110,7 @@ def main():
     n_genes = len({g for members in gene_symbols.values() for g in members})
     print(f"graph: {len(gene_symbols)} gene sets, {n_genes} distinct genes")
 
-    tool = DBSCAN(binary_path=BINARY)
+    tool = BinaryDBSCAN(binary_path=BINARY)
     # (epsilon, min_points): small minPts -> clusters; large -> no clusters; > genes-1 -> not run.
     cases = [(1, 2), (1, 3), (2, 5), (3, 10), (1, 60), (1, 100)]
     all_ok = True

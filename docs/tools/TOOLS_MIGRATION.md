@@ -52,7 +52,7 @@ properties. The reimplementations follow consistent principles:
 | JaccardSimilarity | `jaccard_similarity` | pure | Jaccard coefficient + empirical p-value (null distribution supplied as input; the `distribution_generator` binary is a data-prep step, not per-run compute) |
 | HyperGeometric | `hypergeometric` | pure | Fisher's exact (odds ratio + ut/lt/tt + hg). **Fixes a real bug**: legacy reused `pval` across the three tails (they accumulated). Uses `math.comb`. Verified vs `scipy.stats.fisher_exact`. |
 | JaccardClustering | `jaccard_clustering` | pure (`[sklearn]`) | hierarchical dendrogram. **Improvement**: `scipy.cluster.hierarchy` (C-backed, ~O(n² log n)) vs legacy hand-rolled O(n³); methods ward/complete/average/mcquitty→weighted/single |
-| DBSCAN | `dbscan` | binary wrapper | encode bipartite gene graph → `dbscan` C++ binary → decode JSON clusters. Also an in-process `sklearn_tool.SklearnDBSCAN` variant (`[sklearn]`) — see §5. |
+| DBSCAN | `dbscan` | in-process (default) + binary wrapper | the default `DBSCAN` is the in-process scipy+sklearn impl (`[sklearn]`), validated identical to the binary and far faster (see [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1). `BinaryDBSCAN` keeps the C++ binary path (encode bipartite graph → `dbscan` binary → decode JSON clusters; no extra required). |
 | UpSet | `upset` | pure | intersection sizes per exact gene-set combination (legacy `os.system` calls were commented out) |
 | MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. |
 | PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. KS term is a pure-Python transcription of the legacy asymptotic KS (a `scipy.stats.ks_2samp` swap was reverted — [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4). All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
@@ -90,7 +90,9 @@ properties. The reimplementations follow consistent principles:
   **Bug fixed during validation (§9):** after a level is cut, the port no longer emits
   dangling child/parent links to trimmed nodes (the legacy tool filtered these only at
   render time, so the port leaked them into its graph output).
-- **DBSCAN (in-process variant)** — added `SklearnDBSCAN` and a benchmark (§5).
+- **DBSCAN** — the in-process scipy+sklearn implementation is now the **default** `DBSCAN`
+  (the compiled-binary wrapper is `BinaryDBSCAN`); benchmarked identical to the binary and
+  4.9×–56× faster (§5, [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1).
   **Bug fixed during validation (§9):** `DBSCANInput.epsilon` was typed `float`, so a caller
   passing `epsilon=1` produced `"1.0"`, which the binary's integer `atol` rejects ("Epsilon
   is invalid"). Epsilon is an integer hop-radius for this binary, so it is now typed `int`.
@@ -105,9 +107,10 @@ properties. The reimplementations follow consistent principles:
 
 ## 5. DBSCAN: subprocess binary vs. in-process (C-libs)
 
-`SklearnDBSCAN` (`dbscan/sklearn_tool.py`, `[sklearn]` extra) reproduces the legacy graph
-DBSCAN (gene co-membership graph + BFS hop radius) in-process: a **sparse eps-hop neighbour
-graph** (bounded sparse matrix powers) → `sklearn.cluster.DBSCAN(metric="precomputed")`. No
+The default in-process `DBSCAN` (`dbscan/sklearn_tool.py`, `[sklearn]` extra; the legacy
+binary path is `BinaryDBSCAN`) reproduces the legacy graph DBSCAN (gene co-membership graph +
+BFS hop radius) in-process: a **sparse eps-hop neighbour graph** (bounded sparse matrix
+powers) → `sklearn.cluster.DBSCAN(metric="precomputed")`. No
 process spawn, no serialise-the-whole-graph-into-one-argv (the binary's argv string exceeds
 the 256 KB single-arg limit at ~5k genes and the ~1 MB total `ARG_MAX` at 10k → the binary
 call would fail there).

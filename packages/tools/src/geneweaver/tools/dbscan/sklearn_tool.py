@@ -1,8 +1,13 @@
-"""In-process DBSCAN variant using C/C++-backed libraries (scipy + scikit-learn).
+"""The default DBSCAN: in-process, using C/C++-backed libraries (scipy + scikit-learn).
 
-An alternative to the subprocess-based ``DBSCAN`` (which shells out to the TOOLBOX C++
-binary). It reproduces the legacy algorithm's *structure* — DBSCAN over the gene
-co-membership graph using BFS hop distance — but runs entirely in-process:
+This is the canonical ``DBSCAN`` tool. It reproduces the legacy algorithm's *structure* —
+DBSCAN over the gene co-membership graph using BFS hop distance — but runs entirely
+in-process instead of shelling out to the TOOLBOX C++ binary. It was validated to produce
+**identical** clusters to that binary and is far faster (4.9x-56x over the tested range);
+see ``docs/tools/TOOLS_BENCHMARKS.md`` §1. The compiled-binary wrapper remains available as
+``BinaryDBSCAN`` (``tool.py``) for exact legacy parity / no-extra deployments.
+
+In-process pipeline:
 
   gene co-membership graph (scipy sparse)
     -> all-pairs hop distance (scipy.sparse.csgraph.shortest_path, C-backed)
@@ -106,8 +111,11 @@ def labels_to_clusters(labels: np.ndarray, genes: dict[str, int]) -> list[list[s
     return [clusters[key] for key in sorted(clusters)]
 
 
-class SklearnDBSCAN(AbstractTool):
-    """DBSCAN over the gene co-membership graph, in-process (scipy + scikit-learn)."""
+class DBSCAN(AbstractTool):
+    """DBSCAN over the gene co-membership graph, in-process (scipy + scikit-learn).
+
+    The default GeneWeaver DBSCAN tool. See ``BinaryDBSCAN`` for the compiled-binary wrapper.
+    """
 
     @property
     def tool_input(self) -> type[DBSCANInput]:
@@ -137,3 +145,7 @@ class SklearnDBSCAN(AbstractTool):
             num_genes=num_genes,
             num_genesets=num_genesets,
         )
+
+
+# Back-compat alias for the previous name of the in-process implementation.
+SklearnDBSCAN = DBSCAN

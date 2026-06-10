@@ -11,7 +11,7 @@
 
 | Tool | What the port changed | Better than original? | Evidence |
 |---|---|---|---|
-| **DBSCAN** | in-process `SklearnDBSCAN` (scipy sparse + sklearn) vs. the C++ binary | **Yes — adopt as default** | identical clusters (multi-cluster, real + synthetic); **4.9×→56× faster**; removes the compiled-binary/subprocess/ARG_MAX dependency |
+| **DBSCAN** | in-process scipy+sklearn vs. the C++ binary | **Yes — now the default** | identical clusters (multi-cluster, real + synthetic); **4.9×→56× faster**; removes the compiled-binary/subprocess/ARG_MAX dependency. The in-process impl is now the canonical `DBSCAN`; the binary is `BinaryDBSCAN`. |
 | **JaccardClustering** | `scipy.cluster.hierarchy` vs. hand-rolled agglomerative | **Yes** | identical merge distances (avg linkage, diff 0.0); **up to 86× faster** |
 | **HyperGeometric** | `math.comb` vs. legacy incremental-float `combtl` | **Yes** | fixes the lt/tt bug + exact integers; also **1.1×–2.8× faster** |
 | **PhenomeMap (KS term)** | `scipy.stats.ks_2samp` vs. legacy hand-rolled KS | **No — reverted** | scipy is **slower** (1.6×–12×) *and* changes results (exact vs. asymptotic, up to ~0.1); reverted to the faithful asymptotic KS (see below) |
@@ -25,9 +25,10 @@ adapters, not "better/faster".
 
 ## 1. DBSCAN — in-process variant vs. the C++ binary
 
-`SklearnDBSCAN` reproduces the legacy graph-DBSCAN (gene co-membership graph, BFS hop
-radius) with a sparse eps-hop neighbour graph + `sklearn.cluster.DBSCAN(metric="precomputed")`.
-The binary's `regionQuery` runs a per-seed BFS — roughly O(V·E) per seed — which scales badly.
+The in-process `DBSCAN` (`dbscan/sklearn_tool.py`) reproduces the legacy graph-DBSCAN (gene
+co-membership graph, BFS hop radius) with a sparse eps-hop neighbour graph +
+`sklearn.cluster.DBSCAN(metric="precomputed")`. The binary's `regionQuery` runs a per-seed
+BFS — roughly O(V·E) per seed — which scales badly.
 
 **Agreement** (both produce the *same* clusters):
 - real graph (9 sets / 70 genes), 4 (eps, minPts) settings → **identical**;
@@ -47,7 +48,9 @@ The binary's `regionQuery` runs a per-seed BFS — roughly O(V·E) per seed — 
 
 **Verdict:** the Python variant is identical in output and far faster, and it removes the
 compiled-binary dependency (no cross-platform build, no subprocess, no ARG_MAX ceiling on the
-serialised graph). Recommend making `SklearnDBSCAN` the default DBSCAN. *Caveat:* agreement
+serialised graph). **Done:** the in-process implementation is now the canonical `DBSCAN`
+(`from geneweaver.tools.dbscan import DBSCAN`); the compiled-binary wrapper remains available
+as `BinaryDBSCAN` (no extra required) for exact legacy parity. *Caveat:* agreement
 was verified on graphs up to 3 clusters; border-point handling on pathological graphs is not
 proven bit-identical (the binary's `expandCluster` vs. sklearn density-reachability), so a
 one-off spot-check against the binary is worthwhile if exact legacy parity is ever required.

@@ -1,4 +1,4 @@
-"""Tests for the in-process (scipy + sklearn) DBSCAN variant."""
+"""Tests for the default in-process (scipy + sklearn) DBSCAN."""
 
 import pytest
 
@@ -7,7 +7,7 @@ pytest.importorskip("scipy")
 
 from geneweaver.tools.dbscan import DBSCANInput, DBSCANOutput
 from geneweaver.tools.dbscan.sklearn_tool import (
-    SklearnDBSCAN,
+    DBSCAN,
     build_gene_graph,
     cluster_labels,
     labels_to_clusters,
@@ -23,13 +23,22 @@ GENE_SYMBOLS = {
 }
 
 
+def test_package_default_dbscan_is_in_process() -> None:
+    """`from geneweaver.tools.dbscan import DBSCAN` resolves to the in-process implementation."""
+    import geneweaver.tools.dbscan as dbscan_pkg
+
+    assert dbscan_pkg.DBSCAN is DBSCAN  # the lazy default == sklearn_tool.DBSCAN
+    assert dbscan_pkg.SklearnDBSCAN is DBSCAN  # back-compat alias
+    assert dbscan_pkg.DBSCAN is not dbscan_pkg.BinaryDBSCAN
+
+
 def test_is_abstract_tool() -> None:
-    """SklearnDBSCAN implements the framework contract and shares DBSCAN I/O."""
-    t = SklearnDBSCAN()
+    """The in-process DBSCAN implements the framework contract and shares DBSCAN I/O."""
+    t = DBSCAN()
     assert isinstance(t, AbstractTool)
     assert t.tool_input is DBSCANInput
     assert t.tool_output is DBSCANOutput
-    assert t.tool_name == "SklearnDBSCAN"
+    assert t.tool_name == "DBSCAN"
 
 
 def test_build_gene_graph_is_co_membership() -> None:
@@ -44,7 +53,7 @@ def test_build_gene_graph_is_co_membership() -> None:
 
 def test_run_finds_two_clusters() -> None:
     """With eps=1, min_points=3 the two triangles cluster; 'lone' is noise."""
-    out = SklearnDBSCAN().run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=3))
+    out = DBSCAN().run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=3))
     assert isinstance(out, DBSCANOutput)
     assert out.ran is True
     clusters = {frozenset(c) for c in out.clusters}
@@ -56,9 +65,7 @@ def test_run_finds_two_clusters() -> None:
 
 def test_run_skips_when_too_few_genes() -> None:
     """ran=False when num_genes - 1 < min_points."""
-    out = SklearnDBSCAN().run(
-        DBSCANInput(gene_symbols={"GS1": ["a", "b"]}, epsilon=1, min_points=10)
-    )
+    out = DBSCAN().run(DBSCANInput(gene_symbols={"GS1": ["a", "b"]}, epsilon=1, min_points=10))
     assert out.ran is False
     assert out.clusters == []
 

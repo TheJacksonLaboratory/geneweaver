@@ -25,8 +25,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "packages", "tools", "src"))
-from geneweaver.tools.dbscan import DBSCANInput, decode_clusters, encode_bipartite
-from geneweaver.tools.dbscan.sklearn_tool import SklearnDBSCAN
+from geneweaver.tools.dbscan import DBSCAN, DBSCANInput, decode_clusters, encode_bipartite
 
 BINARY = os.environ["GENEWEAVER_DBSCAN_BINARY"]
 
@@ -54,9 +53,9 @@ def run_binary(gene_symbols, epsilon, min_pts):
 
 
 def run_sklearn(gene_symbols, epsilon, min_pts):
-    """Time the in-process SklearnDBSCAN end-to-end."""
+    """Time the in-process (default) DBSCAN end-to-end."""
     t0 = time.perf_counter()
-    out = SklearnDBSCAN().run(
+    out = DBSCAN().run(
         DBSCANInput(gene_symbols=gene_symbols, epsilon=epsilon, min_points=min_pts)
     )
     return out.clusters, (time.perf_counter() - t0) * 1000
