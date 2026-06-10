@@ -21,9 +21,11 @@ abbreviations). The permutation-significance add-on (the ``bicliquer`` binary ov
 ``.odemat`` matrix) is out of scope for this port -- it is a separate statistic with a
 different input encoding and can be added later as another injectable runner.
 
-Improvement vs legacy: the link score's Kolmogorov-Smirnov term uses
-``scipy.stats.ks_2samp`` (well-tested, C-backed) instead of the legacy hand-rolled KS
-approximation. scipy is only imported when gene ranks are supplied (the ``sklearn`` extra).
+The link score's Kolmogorov-Smirnov term is a pure-Python transcription of the legacy
+asymptotic KS (``ks_2samp_pvalue``). An earlier version used ``scipy.stats.ks_2samp``, but a
+benchmark showed scipy is both slower and numerically different here (it defaults to the
+*exact* p-value, diverging from the legacy asymptotic form) -- so the faithful legacy KS was
+kept; PhenomeMap needs no scipy/numpy. See ``docs/tools/TOOLS_BENCHMARKS.md`` §4.
 
 biclique binary contract (from biclique-driver.c): ``biclique <edgelist_file> -p`` prints,
 per biclique, three lines -- tab-joined gene-set ids, tab-joined gene ids, then a blank line.
@@ -33,6 +35,8 @@ one ``<gene_id>\t<geneset_id>`` per edge.
 
 from __future__ import annotations
 
+import bisect
+import math
 import os
 import subprocess
 import tempfile
@@ -57,6 +61,10 @@ BootstrapRunner = Callable[[str], "tuple[set[int], dict[tuple[int, int], float]]
 
 BICLIQUE_BINARY_ENV_VAR = "GENEWEAVER_BICLIQUE_BINARY"
 BOOTSTRAP_BINARY_ENV_VAR = "GENEWEAVER_BSTRAP_BINARY"
+
+# Below this KS statistic the two rank distributions are treated as identical (p = 1.0),
+# matching the legacy ``d > np.finfo('float').eps`` guard.
+_FLOAT_EPS = 2.220446049250313e-16
 
 
 @dataclass
@@ -128,24 +136,42 @@ def parse_bicliques(raw_output: str) -> list[tuple[frozenset[str], list[str]]]:
     return bicliques
 
 
+def ks_2samp_pvalue(ranks1: list[float], ranks2: list[float]) -> float:
+    """Two-sample Kolmogorov-Smirnov p-value, faithful to the legacy PhenomeMap.
+
+    Pure-Python transcription of the legacy ``ks_2samp`` (Stephens' asymptotic approximation
+    with the ``en + 0.12 + 0.11/en`` small-sample correction). Kept faithful on purpose: a
+    benchmark showed ``scipy.stats.ks_2samp`` is both slower *and* numerically different here
+    (it defaults to the *exact* p-value, diverging from this asymptotic form by up to ~0.1 for
+    small samples) -- see ``docs/tools/TOOLS_BENCHMARKS.md`` §4. No numpy/scipy needed.
+    """
+    d1 = sorted(ranks1)
+    d2 = sorted(ranks2)
+    n1, n2 = len(d1), len(d2)
+    # KS statistic: max gap between the two empirical CDFs, evaluated at every sample point.
+    d = 0.0
+    for value in d1 + d2:
+        cdf1 = bisect.bisect_right(d1, value) / n1
+        cdf2 = bisect.bisect_right(d2, value) / n2
+        d = max(d, abs(cdf1 - cdf2))
+    if d <= _FLOAT_EPS:
+        return 1.0
+    en = math.sqrt(n1 * n2 / (n1 + n2))
+    x = (en + 0.12 + 0.11 / en) * d
+    series = sum(math.exp(-((i * math.pi) ** 2) / 8 / x**2) for i in (1, 3, 5))
+    return 1.0 - math.sqrt(2 * math.pi) / x * series
+
+
 def similarity(parent: _Biclique, child: _Biclique) -> float:
     """Score a parent->child link: gene-count ratio times a KS p-value over gene ranks.
 
     Faithful to the legacy ``similarity()``: ``(parent_genes / child_genes) * ks_pvalue``.
-    When either side has no ranks, the KS term is 1.0 (the ratio alone), avoiding scipy.
+    When either side has no ranks, the KS term is 1.0 (the ratio alone).
     """
     ratio = parent.num_genes / child.num_genes if child.num_genes else 0.0
     if not parent.ranks or not child.ranks:
         return ratio
-    try:
-        from scipy.stats import ks_2samp
-    except ImportError as exc:  # pragma: no cover - exercised only without the extra
-        raise ImportError(
-            "PhenomeMap link scoring with gene ranks requires the 'sklearn' extra "
-            "(for scipy): pip install geneweaver-tools[sklearn]"
-        ) from exc
-    ks_pvalue = float(ks_2samp(parent.ranks, child.ranks).pvalue)
-    return ks_pvalue * ratio
+    return ks_2samp_pvalue(parent.ranks, child.ranks) * ratio
 
 
 def _fdr_threshold(scores: list[float], p_value_threshold: float) -> float:

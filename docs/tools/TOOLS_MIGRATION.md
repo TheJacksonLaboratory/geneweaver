@@ -5,10 +5,11 @@
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
 > **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 74 passing;
-> `packages/db` suite green (incl. 10 new ABBA tests).** PhenomeMap and ABBA validated
-> against the legacy tools on the local DB (see §9).
-> **Last updated:** 2026-06-09
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 75 passing;
+> `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
+> and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
+> changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md).
+> **Last updated:** 2026-06-10
 
 ---
 
@@ -54,7 +55,7 @@ properties. The reimplementations follow consistent principles:
 | DBSCAN | `dbscan` | binary wrapper | encode bipartite gene graph → `dbscan` C++ binary → decode JSON clusters. Also an in-process `sklearn_tool.SklearnDBSCAN` variant (`[sklearn]`) — see §5. |
 | UpSet | `upset` | pure | intersection sizes per exact gene-set combination (legacy `os.system` calls were commented out) |
 | MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. |
-| PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. **Improvement**: KS term uses `scipy.stats.ks_2samp` (only when ranks supplied) vs the legacy hand-rolled KS. All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
+| PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. KS term is a pure-Python transcription of the legacy asymptotic KS (a `scipy.stats.ks_2samp` swap was reverted — [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4). All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
 
 ### Moved to the data layer (not an `AbstractTool`)
 
@@ -78,11 +79,14 @@ properties. The reimplementations follow consistent principles:
 - **JaccardClustering** — replaced the legacy O(n³) hand-rolled agglomerative clustering with
   `scipy.cluster.hierarchy` (correct + C-backed).
 - **MSET** — fixed the copy-paste bug where `group_2` used `group_1_background`.
-- **PhenomeMap** — KS term of the link score uses `scipy.stats.ks_2samp` (well-tested,
-  C-backed) instead of the legacy hand-rolled KS approximation; the whole graph pipeline
-  (subset links, transitive reduction, p-value/FDR trim, cut/trim) is pure and unit-tested
-  with an injectable biclique runner — no compiled binary needed for tests. The empty-FDR
-  case that crashes the legacy tool (`p_values` empty → divide-by-zero) is guarded.
+- **PhenomeMap** — the whole graph pipeline (subset links, transitive reduction,
+  p-value/FDR trim, cut/trim) is pure and unit-tested with an injectable biclique runner —
+  no compiled binary needed for tests. The empty-FDR case that crashes the legacy tool
+  (`p_values` empty → divide-by-zero) is guarded. The KS term of the link score is a
+  pure-Python transcription of the legacy asymptotic KS (`ks_2samp_pvalue`); an earlier
+  `scipy.stats.ks_2samp` swap was **reverted** after benchmarking showed scipy was slower
+  *and* numerically different (exact vs. the legacy asymptotic — see
+  [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4).
   **Bug fixed during validation (§9):** after a level is cut, the port no longer emits
   dangling child/parent links to trimmed nodes (the legacy tool filtered these only at
   render time, so the port leaked them into its graph output).
@@ -180,8 +184,11 @@ group-access gate, auto min-genes gate, and tier/species filters are what's exer
 `biclique` binary output, so validation isolates the ported Python pipeline. On a real
 17-gene-set / 166-gene graph (18 enumerated bicliques) across 6 parameter combinations
 (no-trim, p-value, p-value+FDR, min_genes, two cut-depth cases), the node sets, link sets,
-link scores (**max diff 0.0** — the `scipy` KS swap is bit-identical to the legacy KS here),
-and cut depths all match.
+link scores (**max diff 0.0**), and cut depths all match. *Note:* every gene in the local DB
+has `gene_rank = 0.0`, so the KS term is 1.0 for every link (link scores reduce to the
+gene-count ratio) — the KS comparison here is vacuous. A separate benchmark
+([TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4) exercises the KS on non-degenerate ranks and
+drove the revert from `scipy` back to the faithful legacy KS.
 
 **HyperGeometric** — validated against a verbatim transcription of the legacy `fisher()`
 *and* an independent `scipy` oracle over 45 gene-set pairs (112-gene universe). The odds

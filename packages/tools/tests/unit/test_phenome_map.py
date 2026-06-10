@@ -1,5 +1,7 @@
 """Tests for the PhenomeMap tool (wraps the biclique C binary via an injectable runner)."""
 
+import math
+
 import pytest
 from geneweaver.tools.framework.abstract import AbstractTool
 from geneweaver.tools.phenome_map import (
@@ -11,7 +13,7 @@ from geneweaver.tools.phenome_map import (
     find_cut_depth,
     parse_bicliques,
 )
-from geneweaver.tools.phenome_map.tool import _Biclique
+from geneweaver.tools.phenome_map.tool import _Biclique, ks_2samp_pvalue
 
 # A fake biclique-binary stdout: 3 lines per biclique (gene-sets, genes, blank).
 # A {GS1,GS2,GS3}/{g1,g2}  >  B {GS1,GS2}/{g1,g2,g4}  >  C {GS1}/{g1,g2,g3,g4}
@@ -141,17 +143,31 @@ def test_unconfigured_binary_raises() -> None:
         PhenomeMap().run(PhenomeMapInput(gene_sets={"GS1": ["g1"]}))
 
 
+def test_ks_2samp_pvalue_faithful_to_legacy() -> None:
+    """Pure-Python KS matches the legacy asymptotic formula (identical -> 1.0, shifted -> small)."""
+    # identical distributions (incl. the all-zero gene_rank case) -> p = 1.0
+    assert ks_2samp_pvalue([0.0, 0.0, 0.0], [0.0, 0.0, 0.0]) == 1.0
+    assert ks_2samp_pvalue(list(range(20)), list(range(20))) == 1.0
+    # clearly separated distributions -> small p
+    p = ks_2samp_pvalue([1, 2, 3, 4, 5], [11, 12, 13, 14, 15])
+    assert 0.0 < p < 0.1
+    # transcription check against the legacy Stephens formula for a fixed input
+    d1, d2 = [1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]
+    d_stat = 0.25  # max CDF gap for this pair
+    en = math.sqrt(4 * 4 / (4 + 4))
+    x = (en + 0.12 + 0.11 / en) * d_stat
+    expected = 1.0 - math.sqrt(2 * math.pi) / x * sum(
+        math.exp(-((i * math.pi) ** 2) / 8 / x**2) for i in (1, 3, 5)
+    )
+    assert ks_2samp_pvalue(d1, d2) == pytest.approx(expected)
+
+
 def test_cut_does_not_leave_dangling_links() -> None:
     """After a level is cut, surviving nodes must not emit links to trimmed nodes."""
     # Two size-2 bicliques (a level with >max_level nodes) under one size-4 root, plus a
     # size-1 leaf. max_level=1 cuts everything of size <= 2, leaving only the root, whose
     # child links pointed into the cut level.
-    output = (
-        "G1\tG2\tG3\tG4\nx\n\n"
-        "G1\tG2\nx\ta\tb\n\n"
-        "G3\tG4\nx\tc\td\n\n"
-        "G1\nx\ta\tb\te\n\n"
-    )
+    output = "G1\tG2\tG3\tG4\nx\n\nG1\tG2\nx\ta\tb\n\nG3\tG4\nx\tc\td\n\nG1\nx\ta\tb\te\n\n"
     out = PhenomeMap(biclique_runner=lambda _e: output).run(
         PhenomeMapInput(gene_sets={"G1": ["x"]}, max_level=1)
     )
