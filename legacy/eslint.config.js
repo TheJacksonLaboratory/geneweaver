@@ -11,10 +11,14 @@ const prettier = require('eslint-config-prettier');
 
 module.exports = [
   {
-    // Vendored third-party libraries that live inside otherwise-first-party folders.
+    // Vendored third-party libraries intermixed with first-party JS in src/static/js/
+    // (jQuery + plugins, DataTables, d3, dynatree, cytoscape) — never lint these.
     ignores: [
       'src/static/js/cytoscape/**',
-      'src/static/js/d3.v3.js',
+      'src/static/js/dynatree-1.2.8/**',
+      'src/static/js/jquery*.js',
+      'src/static/js/dataTables.*.js',
+      'src/static/js/d3.*.js',
       '**/*.min.js',
     ],
   },

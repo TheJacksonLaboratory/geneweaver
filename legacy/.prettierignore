@@ -20,6 +20,10 @@
 /src/static/pixit
 /src/static/select2
 /src/static/d3
+# vendored libs intermixed in src/static/js/ (jQuery + plugins, DataTables, d3, dynatree, cytoscape)
 /src/static/js/cytoscape
-/src/static/js/d3.v3.js
+/src/static/js/dynatree-1.2.8
+/src/static/js/jquery*
+/src/static/js/dataTables.*
+/src/static/js/d3.*
 **/*.min.js
