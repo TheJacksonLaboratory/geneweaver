@@ -84,7 +84,7 @@ def neighbor_graph(adjacency: csr_matrix, eps_hops: int) -> csr_matrix:
     return reach.tocsr()
 
 
-def cluster_labels(adjacency: csr_matrix, epsilon: float, min_points: int) -> np.ndarray:
+def cluster_labels(adjacency: csr_matrix, epsilon: int, min_points: int) -> np.ndarray:
     """Run DBSCAN over the sparse eps-hop neighbour graph; labels (-1 = noise)."""
     n = adjacency.shape[0]
     if n == 0:

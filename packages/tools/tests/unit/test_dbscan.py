@@ -51,7 +51,7 @@ def test_run_skips_when_too_few_genes() -> None:
     """ran=False when num_genes - 1 < min_points (binary not invoked)."""
     called = []
     tool = DBSCAN(runner=lambda *a: called.append(a) or "@")
-    out = tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=0.5, min_points=10))
+    out = tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=10))
     assert isinstance(out, DBSCANOutput)
     assert out.ran is False
     assert out.clusters == []
@@ -62,24 +62,24 @@ def test_run_invokes_runner_and_decodes() -> None:
     """run() encodes input, calls the runner, and decodes the cluster output."""
     captured = {}
 
-    def fake_runner(encoded: str, epsilon: float, min_points: int) -> str:
+    def fake_runner(encoded: str, epsilon: int, min_points: int) -> str:
         captured["args"] = (encoded, epsilon, min_points)
         return json.dumps([[0, 1]])  # genes a, b cluster together
 
     out = DBSCAN(runner=fake_runner).run(
-        DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=0.5, min_points=2)
+        DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2)
     )
     assert out.ran is True
     assert out.clusters == [["a", "b"]]
     assert out.num_genes == 3
     assert out.num_genesets == 2
-    assert captured["args"] == ("3*2*4*0*0*1*0*1*1*2*1*", 0.5, 2)
+    assert captured["args"] == ("3*2*4*0*0*1*0*1*1*2*1*", 1, 2)
 
 
 def test_run_no_clusters() -> None:
     """A '@' result yields ran=True with no clusters."""
     out = DBSCAN(runner=lambda *_: "@").run(
-        DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=0.5, min_points=2)
+        DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2)
     )
     assert out.ran is True
     assert out.clusters == []
@@ -89,4 +89,4 @@ def test_unconfigured_binary_raises() -> None:
     """Without a runner or binary path, running raises a helpful error."""
     tool = DBSCAN()  # no runner, no binary_path, env var unset in test
     with pytest.raises(RuntimeError, match="dbscan binary not configured"):
-        tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=0.5, min_points=2))
+        tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2))

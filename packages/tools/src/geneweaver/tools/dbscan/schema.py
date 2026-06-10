@@ -14,7 +14,9 @@ class DBSCANInput(ToolInput):
     """
 
     gene_symbols: dict[str, list[str]] = Field(default_factory=dict)
-    epsilon: float
+    # Integer neighbourhood radius (BFS hop count). The dbscan binary parses epsilon with an
+    # integer ``atol`` (rejecting any non-digit, e.g. "1.0"), so this is an int, not a float.
+    epsilon: int
     min_points: int
     geneset_ids: list[str] = Field(default_factory=list)
 

@@ -31,7 +31,7 @@ from geneweaver.tools.framework.abstract import AbstractTool
 from .schema import DBSCANInput, DBSCANOutput
 
 # A runner takes (encoded_data, epsilon, min_points) and returns the binary's raw stdout.
-BinaryRunner = Callable[[str, float, int], str]
+BinaryRunner = Callable[[str, int, int], str]
 
 #: Env var that points at the compiled dbscan binary when no runner/path is supplied.
 BINARY_ENV_VAR = "GENEWEAVER_DBSCAN_BINARY"
@@ -79,7 +79,7 @@ def decode_clusters(raw_output: str, genes: dict[str, int]) -> list[list[str]]:
 def _subprocess_runner(binary_path: str) -> BinaryRunner:
     """Default runner: invoke the compiled dbscan binary via subprocess."""
 
-    def run(encoded: str, epsilon: float, min_points: int) -> str:
+    def run(encoded: str, epsilon: int, min_points: int) -> str:
         result = subprocess.run(
             [binary_path, encoded, str(epsilon), str(min_points)],
             capture_output=True,
@@ -119,7 +119,7 @@ class DBSCAN(AbstractTool):
         """Output schema for the tool."""
         return DBSCANOutput
 
-    def _run_binary(self, encoded: str, epsilon: float, min_points: int) -> str:
+    def _run_binary(self, encoded: str, epsilon: int, min_points: int) -> str:
         runner = self._runner
         if runner is None:
             if not self._binary_path:

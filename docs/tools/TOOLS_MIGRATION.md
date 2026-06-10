@@ -87,6 +87,10 @@ properties. The reimplementations follow consistent principles:
   dangling child/parent links to trimmed nodes (the legacy tool filtered these only at
   render time, so the port leaked them into its graph output).
 - **DBSCAN (in-process variant)** — added `SklearnDBSCAN` and a benchmark (§5).
+  **Bug fixed during validation (§9):** `DBSCANInput.epsilon` was typed `float`, so a caller
+  passing `epsilon=1` produced `"1.0"`, which the binary's integer `atol` rejects ("Epsilon
+  is invalid"). Epsilon is an integer hop-radius for this binary, so it is now typed `int`.
+  (The unit tests used fake runners with `epsilon=0.5` and never exercised the real binary.)
 - **ABBA** — replaced the legacy string-joined `IN (...)` clauses with parameterised
   `= ANY(%(...)s)` binds and `sql.Identifier` temp-table names (fixes the SQL-injection /
   quoting hazard); fixed the "ignore homology" branch that ran a bare `SELECT` and never
@@ -155,14 +159,15 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
 4. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
    default runners work in production; wire the binary paths via env vars (e.g.
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
-5. Validate the remaining ported tools against the legacy worker on real gene sets (esp. the
-   bug-fixed HyperGeometric and the DBSCAN variant). ABBA and PhenomeMap done — see §9.
+5. Validate the remaining ported tools against the legacy worker on real gene sets. ABBA,
+   PhenomeMap, HyperGeometric, and DBSCAN done — see §9.
 
 ## 9. Validation against the legacy tools (local DB)
 
-ABBA and PhenomeMap were validated against faithful transcriptions of the legacy logic,
-run on the seeded local Postgres (`gw-local-pg`, 50k gene sets / 2M+ memberships). Harness:
-`scripts/validation/` (`validate_abba.py`, `validate_phenomemap.py`, `_legacy_phenomemap.py`).
+ABBA, PhenomeMap, HyperGeometric, and DBSCAN were validated against faithful transcriptions
+of the legacy logic, run on the seeded local Postgres (`gw-local-pg`, 50k gene sets / 2M+
+memberships). Harness: `scripts/validation/` (`validate_abba.py`, `validate_phenomemap.py`,
+`validate_hypergeometric.py`, `validate_dbscan.py`, `_legacy_phenomemap.py`).
 
 **ABBA** — the port and a verbatim transcription of the legacy SQL pipeline (homology-on
 path) run against the same DB produce identical results: `available_genes`,
@@ -178,11 +183,33 @@ group-access gate, auto min-genes gate, and tier/species filters are what's exer
 link scores (**max diff 0.0** — the `scipy` KS swap is bit-identical to the legacy KS here),
 and cut depths all match.
 
+**HyperGeometric** — validated against a verbatim transcription of the legacy `fisher()`
+*and* an independent `scipy` oracle over 45 gene-set pairs (112-gene universe). The odds
+ratio matches the legacy exactly (45/45); the upper tail matches the legacy `ut` — the one
+tail computed before the accumulation bug pollutes it (45/45, max diff 2e-16); the port's
+two-tailed matches `scipy.stats.fisher_exact` (45/45, max diff 1e-16) and its upper/lower
+match an independent `scipy.stats.hypergeom` pmf oracle using the same tail definition
+(45/45). The legacy two-tailed is **wrong in 35/45 pairs** (the `pval` accumulation bug the
+port fixes) — so the port matches the legacy where the legacy is correct and matches the
+oracle where the legacy is not.
+
+**DBSCAN** — both the port and the legacy invoke the *same* `dbscan` C++ binary, so
+validation covers the port's encode/gate/decode. The bipartite input string is
+**byte-identical** to a verbatim transcription of the legacy encoding; across 6
+(epsilon, min_points) settings on a real 9-gene-set / 70-gene graph, the `ran` gate, gene/
+gene-set counts, and decoded clusters all match (including a not-run case).
+
 Notes:
 - The recovered `biclique` binary uses POSIX `hsearch` for label storage, which prints empty
   labels on macOS. The validation rebuilds it with the equivalent linear-search label code
   (the block already present, commented, in `bigraph.c`); the committed source is untouched.
-- **Bug found & fixed:** the cut-depth cases initially produced dangling child/parent links
-  in the port's output (links to nodes removed by the cut). The legacy tool filtered these
-  only at render time; the port now filters them when building the graph. Covered by
-  `test_cut_does_not_leave_dangling_links`.
+- The `dbscan` C++ binary builds on macOS via `xcrun clang++ -stdlib=libc++ -isysroot $SDK
+  -isystem $SDK/usr/include/c++/v1` (the makefile's bare `g++` can't find `<iostream>`).
+- Where the local DB container's host port mapping is unavailable, the gene-set graphs are
+  dumped via `docker exec ... psql` to a JSON fixture (`GENEWEAVER_*_GRAPH_JSON`); it is the
+  same data the in-script DB query returns.
+- **Bugs found & fixed:** (PhenomeMap) the cut-depth cases initially produced dangling
+  child/parent links in the port's output (links to nodes removed by the cut); the legacy
+  tool filtered these only at render time, the port now filters them when building the graph
+  (covered by `test_cut_does_not_leave_dangling_links`). (DBSCAN) `epsilon` was typed
+  `float`, breaking the binary's integer parser — now `int` (see §4).
