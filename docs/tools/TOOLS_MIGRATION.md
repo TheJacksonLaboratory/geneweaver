@@ -5,8 +5,9 @@
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
 > **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 73 passing;
-> `packages/db` suite green (incl. 10 new ABBA tests).**
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 74 passing;
+> `packages/db` suite green (incl. 10 new ABBA tests).** PhenomeMap and ABBA validated
+> against the legacy tools on the local DB (see §9).
 > **Last updated:** 2026-06-09
 
 ---
@@ -80,7 +81,11 @@ properties. The reimplementations follow consistent principles:
 - **PhenomeMap** — KS term of the link score uses `scipy.stats.ks_2samp` (well-tested,
   C-backed) instead of the legacy hand-rolled KS approximation; the whole graph pipeline
   (subset links, transitive reduction, p-value/FDR trim, cut/trim) is pure and unit-tested
-  with an injectable biclique runner — no compiled binary needed for tests.
+  with an injectable biclique runner — no compiled binary needed for tests. The empty-FDR
+  case that crashes the legacy tool (`p_values` empty → divide-by-zero) is guarded.
+  **Bug fixed during validation (§9):** after a level is cut, the port no longer emits
+  dangling child/parent links to trimmed nodes (the legacy tool filtered these only at
+  render time, so the port leaked them into its graph output).
 - **DBSCAN (in-process variant)** — added `SklearnDBSCAN` and a benchmark (§5).
 - **ABBA** — replaced the legacy string-joined `IN (...)` clauses with parameterised
   `= ANY(%(...)s)` binds and `sql.Identifier` temp-table names (fixes the SQL-injection /
@@ -147,10 +152,37 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    runner once the `.odemat` encoding is specified (see §5.1).
 2. Decide **GeneSetViewer**'s home (UI rendering vs a pure graph-building helper).
 3. Specify **TricliqueViewer**'s `.kel` / `bk-partite` contract, then port (or retire if unused).
-4. Validate **ABBA**'s ported pipeline against the legacy tool on the real database
-   (the temp-table queries are covered by mock-cursor unit tests, not yet a live run).
-5. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
+4. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
    default runners work in production; wire the binary paths via env vars (e.g.
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
-6. Validate ported tools' outputs against the legacy worker on real gene sets (esp. the
-   bug-fixed HyperGeometric, the DBSCAN variant, and the PhenomeMap graph structure).
+5. Validate the remaining ported tools against the legacy worker on real gene sets (esp. the
+   bug-fixed HyperGeometric and the DBSCAN variant). ABBA and PhenomeMap done — see §9.
+
+## 9. Validation against the legacy tools (local DB)
+
+ABBA and PhenomeMap were validated against faithful transcriptions of the legacy logic,
+run on the seeded local Postgres (`gw-local-pg`, 50k gene sets / 2M+ memberships). Harness:
+`scripts/validation/` (`validate_abba.py`, `validate_phenomemap.py`, `_legacy_phenomemap.py`).
+
+**ABBA** — the port and a verbatim transcription of the legacy SQL pipeline (homology-on
+path) run against the same DB produce identical results: `available_genes`,
+`available_genesets`, genes of interest (58), matching gene sets (top 50), and result genes
+(top 50) all match for gene set 514's symbols over all species / tiers 1-5.
+(`extsrc.homology` is empty locally, so homology expansion is a no-op — the aggregation,
+group-access gate, auto min-genes gate, and tier/species filters are what's exercised.)
+
+**PhenomeMap** — both the port and the legacy in-memory algorithm consume the *same*
+`biclique` binary output, so validation isolates the ported Python pipeline. On a real
+17-gene-set / 166-gene graph (18 enumerated bicliques) across 6 parameter combinations
+(no-trim, p-value, p-value+FDR, min_genes, two cut-depth cases), the node sets, link sets,
+link scores (**max diff 0.0** — the `scipy` KS swap is bit-identical to the legacy KS here),
+and cut depths all match.
+
+Notes:
+- The recovered `biclique` binary uses POSIX `hsearch` for label storage, which prints empty
+  labels on macOS. The validation rebuilds it with the equivalent linear-search label code
+  (the block already present, commented, in `bigraph.c`); the committed source is untouched.
+- **Bug found & fixed:** the cut-depth cases initially produced dangling child/parent links
+  in the port's output (links to nodes removed by the cut). The legacy tool filtered these
+  only at render time; the port now filters them when building the graph. Covered by
+  `test_cut_does_not_leave_dangling_links`.

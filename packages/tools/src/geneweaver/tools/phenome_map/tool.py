@@ -442,6 +442,11 @@ class PhenomeMap(AbstractTool):
                 notes=[*notes, "No connected bicliques remained after trimming."],
             )
 
+        # Links may still reference bicliques that were cut (size <= cut_depth) or trimmed
+        # as unconnected; restrict parents/children to the surviving nodes so the emitted
+        # graph has no dangling edges (the legacy tool filters these at output time).
+        surviving = {b.id for _, lst in by_size for b in lst}
+
         # Depth: largest gene-set count = depth 0, descending by size.
         nodes: list[BicliqueNode] = []
         for depth, (_, lst) in enumerate(reversed(by_size)):
@@ -454,10 +459,11 @@ class PhenomeMap(AbstractTool):
                         depth=depth,
                         displayed=b.displayed,
                         emphasize=b.emphasize,
-                        parents=sorted(b.parents),
+                        parents=sorted(pid for pid in b.parents if pid in surviving),
                         children=[
                             BicliqueLink(target=cid, score=score)
                             for cid, score in sorted(b.children.items())
+                            if cid in surviving
                         ],
                     )
                 )

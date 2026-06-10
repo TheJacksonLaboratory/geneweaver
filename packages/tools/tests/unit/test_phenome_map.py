@@ -141,6 +141,27 @@ def test_unconfigured_binary_raises() -> None:
         PhenomeMap().run(PhenomeMapInput(gene_sets={"GS1": ["g1"]}))
 
 
+def test_cut_does_not_leave_dangling_links() -> None:
+    """After a level is cut, surviving nodes must not emit links to trimmed nodes."""
+    # Two size-2 bicliques (a level with >max_level nodes) under one size-4 root, plus a
+    # size-1 leaf. max_level=1 cuts everything of size <= 2, leaving only the root, whose
+    # child links pointed into the cut level.
+    output = (
+        "G1\tG2\tG3\tG4\nx\n\n"
+        "G1\tG2\nx\ta\tb\n\n"
+        "G3\tG4\nx\tc\td\n\n"
+        "G1\nx\ta\tb\te\n\n"
+    )
+    out = PhenomeMap(biclique_runner=lambda _e: output).run(
+        PhenomeMapInput(gene_sets={"G1": ["x"]}, max_level=1)
+    )
+    ids = {n.id for n in out.nodes}
+    assert out.cut_depth == 2
+    for n in out.nodes:
+        assert all(link.target in ids for link in n.children)
+        assert all(pid in ids for pid in n.parents)
+
+
 def test_bootstrap_runner_invoked_on_large_graph() -> None:
     """A bootstrap runner is called past the node threshold and sets displayed flags."""
     calls = {}
