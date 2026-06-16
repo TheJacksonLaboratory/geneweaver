@@ -79,31 +79,38 @@ class DBSCAN(tools.toolbase.GeneWeaverToolBase):
             # Reads from the executables stdout and stderr
             data, error = popen.communicate()
 
-            # If there was an unsuccessful return, we print that error to the file
+            # Popen returns bytes on Python 3; decode before comparing/parsing.
+            if isinstance(data, bytes):
+                data = data.decode('utf-8', 'replace')
+            if isinstance(error, bytes):
+                error = error.decode('utf-8', 'replace')
+
+            # Map each gene index back to its symbol. Built unconditionally so the
+            # result keys set below are always defined, even when there are no
+            # clusters or the executable fails (otherwise the result page 500s).
+            decode = {}
+            for gene in genes:
+                decode[str(genes[gene])] = gene
+            clusters = []
+
+            # A non-zero return code means the executable failed; an '@' or empty
+            # stdout means no clusters were found. Either way, degrade gracefully
+            # with an empty cluster set instead of raising.
             if returncode != 0:
                 fout.write(str(error))
-            # Successful return
+            elif data.strip() in ('', '@'):
+                fout.write("No Clusters Found")
             else:
-                # try json
-                # If an '@' sign is printed, no clusters were found
-                if data == "@":
-                    fout.write("No Clusters Found")
+                clusters = json.loads(data)
 
-                else:
-                    clusters = json.loads(data)
-
-                    decode = {}
-                    for gene in genes:
-                        decode[str(genes[gene])] = gene
-
-                    for clus in clusters:
-                        fout.write("Cluster: ")
-                        tempCluster = []
-                        for g in clus:
-                            fout.write(str(decode[str(g)]) + " ")
-                            tempCluster.append(str(decode[str(g)]))
-                        fout.write("\n")
-                        resClusters.append(tempCluster)
+                for clus in clusters:
+                    fout.write("Cluster: ")
+                    tempCluster = []
+                    for g in clus:
+                        fout.write(str(decode[str(g)]) + " ")
+                        tempCluster.append(str(decode[str(g)]))
+                    fout.write("\n")
+                    resClusters.append(tempCluster)
 
             fout.close()
 
