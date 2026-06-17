@@ -58,7 +58,7 @@ def run_tool():
     try:
         async_result, task_id, tool = run_tool_exec(group_1_gsid, group_2_gsid, number_of_trials, user.user_id)
     except ValueError as e:
-        flask.flash(e.message)
+        flask.flash(str(e))
         return flask.redirect('/analyze')
 
     # Render the status page and perform a 303 redirect to the
@@ -84,7 +84,7 @@ def run_tool_api(apikey, num_samples, geneset_1, geneset_2):
     try:
         async_result, task_id, tool = run_tool_exec(geneset_1, geneset_2, num_samples, user_id)
     except ValueError as e:
-        flask.flash(e.message)
+        flask.flash(str(e))
         return flask.redirect('/analyze')
 
     return task_id
@@ -195,7 +195,8 @@ def view_result(task_id):
     if not mset_output:
         flask.flash('An error occurred with the request, and your results are not available. '
                     'Please contact a GeneWeaver administrator for help or try again. {}'.format(async_result.get('error', [])))
-        rurl = flask.request.referrer if 'MSET-result' not in flask.request.referrer else '/analyze'
+        referrer = flask.request.referrer or ''
+        rurl = referrer if referrer and 'MSET-result' not in referrer else '/analyze'
         return flask.redirect(rurl)
 
     ## MSET Histogram
