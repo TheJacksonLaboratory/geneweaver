@@ -66,7 +66,7 @@ class MSET(tools.toolbase.GeneWeaverToolBase):
         bg_1_file_base = os.path.join(self.bg_dir, str(list_1_bg))
 
         list_2 = gs_dict.get("group_2_genes")
-        list_2_bg = gs_dict.get("group_1_background")
+        list_2_bg = gs_dict.get("group_2_background")
         bg_2_file_base = os.path.join(self.bg_dir, str(list_2_bg))
 
         if list_1 and list_2:
@@ -118,8 +118,14 @@ class MSET(tools.toolbase.GeneWeaverToolBase):
                 logger.error('There was a problem writing MSET results to a file: {}'.format(e))
                 raise e
 
-        list_1_file.delete()
-        list_2_file.delete()
+        # These temp files were created with delete=False; remove them by name.
+        # (NamedTemporaryFile.delete is a bool attribute, not a method -- calling it
+        # raises "'bool' object is not callable" and masks the real result/error.)
+        for _tmp in (list_1_file, list_2_file):
+            try:
+                os.unlink(_tmp.name)
+            except OSError:
+                pass
 
         self._results['gs_dict'] = gs_dict
         self._results['gs_ids'] = self._gsids
