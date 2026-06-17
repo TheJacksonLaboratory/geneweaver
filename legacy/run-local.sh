@@ -30,6 +30,10 @@ RESULTS="$LEGACY/.local/results"
 WEB_PORT=8001
 WEB_LOG=/tmp/legacy_web.log
 WORKER_LOG=/tmp/legacy_worker.log
+# tools-worker: single Linux image (all tools + TOOLBOX binaries), mirrors prod/sqa.
+# Build once: docker build --platform linux/amd64 -f legacy/tools-worker/Dockerfile -t geneweaver-legacy-tools:local legacy
+TOOLS_IMAGE=geneweaver-legacy-tools:local
+TOOLS_CTR=gw-legacy-tools
 # Ensure Homebrew bins (dot, etc.) are reachable by the worker + its subprocesses.
 export PATH="/opt/homebrew/bin:$PATH"
 
@@ -89,10 +93,20 @@ do_start() {
 
   mkdir -p "$RESULTS"
 
-  say "Starting Celery tools-worker..."
-  pkill -f "celery -A tools.celeryapp worker" 2>/dev/null || true
-  ( cd "$WORKER" && nohup poetry run celery -A tools.celeryapp worker \
-      --loglevel=warning --concurrency=2 >"$WORKER_LOG" 2>&1 & )
+  say "Starting tools-worker container (linux/amd64, mirrors prod geneweaver-legacy-tools)..."
+  pkill -f "celery -A tools.celeryapp worker" 2>/dev/null || true   # stop any native worker
+  docker rm -f "$TOOLS_CTR" >/dev/null 2>&1 || true
+  docker run -d --name "$TOOLS_CTR" --platform linux/amd64 \
+    --add-host host.docker.internal:host-gateway \
+    -e DB_HOST=host.docker.internal -e DB_PORT=5433 -e DB_NAME=geneweaver-dev \
+    -e DB_USERNAME=geneweaver-dev -e DB_PASSWORD=localdev \
+    -e CELERY_HOST=host.docker.internal -e CELERY_PORT=6379 \
+    -e TOOLS='{"tool_dir":"/app/tools-worker/tools","results":"/results"}' \
+    -e APPLICATION_RESULTS=/results \
+    -v "$RESULTS":/results \
+    "$TOOLS_IMAGE" >/dev/null \
+    && say "  tools-worker container up ($TOOLS_CTR)" \
+    || warn "  tools-worker container failed to start (build it: docker build --platform linux/amd64 -f legacy/tools-worker/Dockerfile -t $TOOLS_IMAGE legacy)"
 
   say "Starting web (gunicorn) on port ${WEB_PORT}"
   lsof -ti tcp:${WEB_PORT} 2>/dev/null | xargs -r kill 2>/dev/null || true
@@ -102,25 +116,25 @@ do_start() {
 
   until [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${WEB_PORT}/ 2>/dev/null)" = "200" ]; do sleep 1; done
   say "Legacy GeneWeaver is up:  http://localhost:$WEB_PORT"
-  echo "    logs: tail -f $WEB_LOG   |   $WORKER_LOG"
+  echo "    logs: tail -f $WEB_LOG   |   docker logs -f $TOOLS_CTR"
   echo "    stop: $0 stop"
 }
 
 do_stop() {
-  say "Stopping web + worker..."
+  say "Stopping web..."
   lsof -ti tcp:$WEB_PORT 2>/dev/null | xargs -r kill 2>/dev/null || true
   pkill -f "celery -A tools.celeryapp worker" 2>/dev/null || true
   say "Stopping containers..."
-  docker stop gw-manticore gw-redis gw-local-pg >/dev/null 2>&1 || true
+  docker stop "$TOOLS_CTR" gw-manticore gw-redis gw-local-pg >/dev/null 2>&1 || true
   say "Stopped. (containers preserved; data intact)"
 }
 
 do_status() {
-  printf '%-12s %s\n' "postgres" "$(docker ps --filter name=gw-local-pg --format '{{.Status}}' || echo down)"
-  printf '%-12s %s\n' "redis"    "$(docker ps --filter name=gw-redis    --format '{{.Status}}' || echo down)"
-  printf '%-12s %s\n' "manticore" "$(docker ps --filter name=gw-manticore --format '{{.Status}}' || echo down)"
-  printf '%-12s %s\n' "web :8001" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$WEB_PORT/ 2>/dev/null || echo down)"
-  printf '%-12s %s\n' "worker" "$(pgrep -f 'celery -A tools.celeryapp worker' >/dev/null && echo running || echo down)"
+  printf '%-14s %s\n' "postgres"  "$(docker ps --filter name=gw-local-pg  --format '{{.Status}}' || echo down)"
+  printf '%-14s %s\n' "redis"     "$(docker ps --filter name=gw-redis     --format '{{.Status}}' || echo down)"
+  printf '%-14s %s\n' "manticore" "$(docker ps --filter name=gw-manticore --format '{{.Status}}' || echo down)"
+  printf '%-14s %s\n' "tools-worker" "$(docker ps --filter name=$TOOLS_CTR --format '{{.Status}}' || echo down)"
+  printf '%-14s %s\n' "web :8001" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$WEB_PORT/ 2>/dev/null || echo down)"
 }
 
 case "${1:-start}" in
