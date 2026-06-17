@@ -108,7 +108,7 @@ export class GeneSetComponent implements OnInit {
     private router: Router
   ) {
     this.gwApi = this.apiBaseServiceFactory.create(
-      'https://geneweaver.jax.org/api'
+      environment.urls.geneWeaverApi
     );
   }
 

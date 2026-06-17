@@ -12,6 +12,7 @@ export const environment: Environment = {
   },
   urls: {
     geneWeaver: 'https://geneweaver.jax.org',
+    geneWeaverApi: 'https://geneweaver.jax.org/api',
     pubmed: 'https://pubmed.ncbi.nlm.nih.gov',
   }
 };
