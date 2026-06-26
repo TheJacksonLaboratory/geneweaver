@@ -5,6 +5,8 @@ transformers:
 resources:
   - configmap.yaml
   - deployment.yaml
+  - tools-worker-configmap.yaml
+  - tools-worker-deployment.yaml
   - service.yaml
   - external-secrets.yaml
   - persistent-volume-claim.yaml
