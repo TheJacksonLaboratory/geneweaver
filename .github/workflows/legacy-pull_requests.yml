@@ -1,4 +1,4 @@
-name: Legacy - Pull Request Build and Deploy
+name: Legacy — Build & Deploy
 
 # Builds and deploys the legacy GeneWeaver app (legacy/) to dev on PRs that
 # touch legacy/. Mirrors geneweaver-legacy's pull-requests pipeline, wired

@@ -1,4 +1,4 @@
-name: UI - Pull Request Build and Deploy
+name: UI v3 — Test, Build & Deploy
 
 # Builds and deploys the monorepo UI (ui/) to dev + sqa on PRs that touch ui/.
 # Mirrors geneweaver-ui's Bitbucket pull-requests pipeline.
