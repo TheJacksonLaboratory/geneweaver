@@ -56,31 +56,59 @@ def run_env(ns, tool, gsids, params_json, timeout):
     return json.loads(m.group(1))
 
 
+UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+COORDS_RE = re.compile(r'coords="[^"]*"')          # HTML image-map pixel coords (layout noise)
+PAREN_LIST_RE = re.compile(r"\(([A-Za-z0-9_,\s]+)\)")  # "(GENE, GENE, ...)" in labels
+
+
+def _norm_text(s):
+    s = UUID_RE.sub("<id>", s)
+    s = COORDS_RE.sub('coords="<xy>"', s)
+
+    def _sort_paren(m):  # order-insensitive gene lists inside parentheses
+        items = [t.strip() for t in m.group(1).split(",")]
+        if len(items) > 1 and all(re.match(r"^[A-Za-z0-9_]+$", t) for t in items):
+            return "(" + ", ".join(sorted(items)) + ")"
+        return m.group(0)
+
+    return PAREN_LIST_RE.sub(_sort_paren, s)
+
+
 def canon(x, key=None):
-    """Recursively canonicalize for diffing."""
+    """Recursively canonicalize for diffing (ignore env-specific noise)."""
     if isinstance(x, dict):
-        return {k: canon(v, k) for k, v in sorted(x.items())
-                if k.lower() not in DROP_KEYS}
+        # Dicts keyed by the internal ode_gene_id (e.g. BooleanAlgebra.bool_results)
+        # were remapped in dev — compare the VALUES as an unordered bag, keys dropped.
+        ks = list(x.keys())
+        if ks and all(isinstance(k, str) and k.lstrip("-").isdigit() for k in ks):
+            vals = [canon(v) for v in x.values()]
+            try:
+                return {"__bag__": sorted(vals, key=lambda v: json.dumps(v, sort_keys=True))}
+            except Exception:
+                return {"__bag__": vals}
+        return {k: canon(v, k) for k, v in sorted(x.items()) if k.lower() not in DROP_KEYS}
     if isinstance(x, list):
         if key and key.lower() in LEN_ONLY_KEYS:
             return {"__len__": len(x)}
+        # Gene record [ode_gene_id:int, symbol:str, ...]: null the volatile internal
+        # id (remapped across envs) but keep symbol / gs_id, which are meaningful.
+        if len(x) >= 2 and isinstance(x[0], int) and isinstance(x[1], str):
+            x = [None] + list(x[1:])
         cv = [canon(v) for v in x]
-        try:  # sort scalar lists so order differences don't matter
+        try:  # sort so element order doesn't matter
             return sorted(cv, key=lambda v: json.dumps(v, sort_keys=True))
         except Exception:
             return cv
     if isinstance(x, float):
         return round(x, 5)
     if isinstance(x, str):
-        # res_data is often a JSON string — parse so we compare structurally
         s = x.strip()
-        if s[:1] in "{[" and s[-1:] in "}]":
+        if s[:1] in "{[" and s[-1:] in "}]":  # res_data is often a JSON string
             try:
                 return canon(json.loads(s), key)
             except Exception:
                 pass
-        # strip the run uuid if it appears embedded in text
-        return re.sub(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "<id>", x)
+        return _norm_text(x)
     return x
 
 
@@ -90,6 +118,19 @@ def diff(a, b, path=""):
         out.append(f"{path or '/'}: type {type(a).__name__} != {type(b).__name__}")
         return out
     if isinstance(a, dict):
+        # Bags (gene-id-keyed dicts) compare as an unordered multiset, so the
+        # report shows only the items that genuinely differ — not positional
+        # misalignment from sorting two sets of different membership.
+        if "__bag__" in a and "__bag__" in b:
+            import collections
+            ca = collections.Counter(json.dumps(v, sort_keys=True) for v in a["__bag__"])
+            cb = collections.Counter(json.dumps(v, sort_keys=True) for v in b["__bag__"])
+            od, os_ = list((ca - cb).elements()), list((cb - ca).elements())
+            if od or os_:
+                out.append(f"{path}: {len(od)} item(s) only in dev, {len(os_)} only in sqa (unordered)")
+                for e in od[:6]: out.append(f"    dev-only: {e[:140]}")
+                for e in os_[:6]: out.append(f"    sqa-only: {e[:140]}")
+            return out
         for k in sorted(set(a) | set(b)):
             if k not in a: out.append(f"{path}/{k}: only in sqa")
             elif k not in b: out.append(f"{path}/{k}: only in dev")
