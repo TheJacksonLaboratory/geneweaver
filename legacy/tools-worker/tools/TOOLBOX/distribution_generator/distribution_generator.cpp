@@ -428,9 +428,15 @@ int main(int argc, char* argv[]) {
                   double *p_values = calculateP_Value(null_distribution);
                   //cout << "set size 1: " << s1 << "\tset size 2: " << s2 << endl;
                   for(int k = 0; k < null_distribution.size(); k++) {
-                     sqlTwo = CreateInsertQuery(s1, s2, null_distribution[k].first, null_distribution[k].second, p_values[k], homologySetting).c_str();
-                     N.exec( sqlTwo );
-                     //printf("\tJaccard_Coefficient: %f\tFrequency: %ld\tP_Value: %f\n", null_distribution[k].first, null_distribution[k].second, p_values[k]);
+                     // Use the prepared-statement insert (same as the lookup branch).
+                     // The previous `sqlTwo = CreateInsertQuery(...).c_str()` dangled —
+                     // it pointed into a temporary std::string freed before N.exec ran,
+                     // sending garbage bytes to Postgres ("invalid byte sequence for UTF8").
+                     executeInsertResult(
+                        s1, s2, null_distribution[k].first,
+                        null_distribution[k].second, p_values[k], homologySetting,
+                        N
+                     );
                   }
                   delete p_values;
                }
