@@ -64,6 +64,7 @@
 #include <unordered_map>
 #include <unistd.h>
 #include <utility>
+#include "db_conn.h"
 
 using namespace std;
 using namespace pqxx;
@@ -367,8 +368,7 @@ int main(int argc, char* argv[]) {
    }
 
    try{
-      connection C("dbname=geneweaver user=odeadmin password=odeadmin \
-      hostaddr=127.0.0.1 port=5432");
+      connection C(gw_conn_string());
       if (C.is_open()) {
          cout << "Opened database successfully: " << C.dbname() << endl;
 

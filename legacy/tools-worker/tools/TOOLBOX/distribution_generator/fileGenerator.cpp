@@ -22,6 +22,7 @@
 #include <math.h>
 #include <algorithm>
 #include <cstring>
+#include "db_conn.h"
 
 
 using namespace std;
@@ -36,8 +37,7 @@ int homologyFileUpdate() {
 	}
 
 	try{
-		connection C("dbname=geneweaver user=odeadmin password=odeadmin \
-      	hostaddr=127.0.0.1 port=5432");
+		connection C(gw_conn_string());
       	if(C.is_open()) {
 
       	} else {
@@ -72,8 +72,7 @@ int geneFileUpdate() {
 	}
 
 	try{
-		connection C("dbname=geneweaver user=odeadmin password=odeadmin \
-      	hostaddr=127.0.0.1 port=5432");
+		connection C(gw_conn_string());
       	if(C.is_open()) {
 
       	} else {

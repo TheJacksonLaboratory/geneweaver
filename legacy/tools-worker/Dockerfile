@@ -25,9 +25,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libgomp1 \
       graphviz \
       imagemagick libmagickcore-dev libmagickwand-dev \
-      libpq-dev libpqxx-dev \
+      libpq-dev \
       libcairo2 libcairo2-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# libpqxx for the TOOLBOX C++ tools (distribution_generator etc.). The legacy
+# sources use the classic <=6 API (connection_base, prepared()(...) invocation),
+# which libpqxx 7 removed — and Debian's apt only ships 7.x. So build 6.4.8 from
+# source into /usr/local (the TOOLBOX makefile already adds -I/usr/local/include
+# and -L/usr/local/lib, so it links against this rather than any system copy).
+RUN curl -sSL https://github.com/jtv/libpqxx/archive/refs/tags/6.4.8.tar.gz -o /tmp/pqxx.tgz \
+ && tar xzf /tmp/pqxx.tgz -C /tmp \
+ && cd /tmp/libpqxx-6.4.8 \
+ && ./configure --disable-documentation --enable-shared \
+ && make -j"$(nproc)" && make install && ldconfig \
+ && rm -rf /tmp/libpqxx-6.4.8 /tmp/pqxx.tgz
 
 RUN python3 -m pip install --upgrade pip && curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="${POETRY_HOME}/bin:${PATH}"

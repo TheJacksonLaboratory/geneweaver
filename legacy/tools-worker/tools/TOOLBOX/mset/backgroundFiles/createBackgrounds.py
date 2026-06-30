@@ -3,6 +3,7 @@
 # Small script to show PostgreSQL and Pyscopg together
 #
 
+import os
 import psycopg2
 import itertools
 import io
@@ -98,13 +99,16 @@ def get_gene_id_by_attribute(attr_id, speciesToInclude, cursor):
     return cursor.fetchall()
 
 try:
-    db = 'geneweaver'
-    user = 'odeadmin'
-    password = 'odeadmin'
-    host = 'crick.ecs.baylor.edu'
-    port = 32769
+    # DB connection from the standard GeneWeaver env vars (same ones the
+    # tools-worker receives from the geneweaver-db secret); fall back to the
+    # historical values when unset.
+    db = os.environ.get('DB_NAME', 'geneweaver')
+    user = os.environ.get('DB_USERNAME', 'odeadmin')
+    password = os.environ.get('DB_PASSWORD', 'odeadmin')
+    host = os.environ.get('DB_HOST', 'crick.ecs.baylor.edu')
+    port = os.environ.get('DB_PORT', 32769)
 
-    cs = "host='%s' dbname='%s' user='%s' password='%s'" % (host, db, user, password)
+    cs = "host='%s' port='%s' dbname='%s' user='%s' password='%s'" % (host, port, db, user, password)
 
     conn = psycopg2.connect(cs)
 
