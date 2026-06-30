@@ -322,7 +322,7 @@ int main(int argc, char* argv[]) {
 
          // Populate genes bucket based on genes.dat file (populated by fileGenerator.cpp)
          ifstream myFile;
-         myFile.open("genes.dat");
+         myFile.open(gw_dist_data_dir() + "/genes.dat");
          if(!myFile) {
             cerr << "genes.dat failed to open." << endl;
             return -1;
@@ -340,7 +340,7 @@ int main(int argc, char* argv[]) {
          myFile.close();
 
 
-         myFile.open("homology.dat");
+         myFile.open(gw_dist_data_dir() + "/homology.dat");
          if(!myFile) {
             cerr << "homology.dat failed to open." << endl;
             return -1;

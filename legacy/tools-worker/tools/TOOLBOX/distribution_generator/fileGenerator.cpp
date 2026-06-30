@@ -30,7 +30,8 @@ using namespace pqxx;
 
 int homologyFileUpdate() {
 	const char *sql;
-	ofstream myFile("/var/www/html/dev-geneweaver/tools/cpp_tools/");
+	gw_mkdir_p(gw_dist_data_dir());
+	ofstream myFile(gw_dist_data_dir() + "/homology.dat");
 	if(!myFile.is_open()) {
 		cerr << "Unable to open file: homology.dat" << endl;
 		return -1;
@@ -65,7 +66,8 @@ int homologyFileUpdate() {
 
 int geneFileUpdate() {
 	const char *sql;
-	ofstream myFile("/var/www/html/dev-geneweaver/tools/cpp_tools/genes.dat");
+	gw_mkdir_p(gw_dist_data_dir());
+	ofstream myFile(gw_dist_data_dir() + "/genes.dat");
 	if(!myFile.is_open()) {
 		cerr << "Unable to open file: genes.dat" << endl;
 		return -1;
