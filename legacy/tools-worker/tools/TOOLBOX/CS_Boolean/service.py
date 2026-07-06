@@ -75,7 +75,8 @@ def group_homologs(homologs, species_ids):
     - For a single species, groups by homolog[1] (ode_gene_id).
     - If homolog[0] is falsy, uses -1 * homolog[1] as the key.
 
-    Each group contains a deduplicated list of [ode_gene_id, ode_ref_id, sp_id, gs_id] lists.
+    Each group contains a deduplicated list of
+    [ode_gene_id, ode_ref_id, sp_id, gs_id, gs_abbreviation] lists.
 
     :param homologs: Iterable of homolog tuples, typically from a database query.
     :param species_ids: List of species IDs used to determine grouping logic.
@@ -90,7 +91,11 @@ def group_homologs(homologs, species_ids):
         elif not homolog[0]:
             key = -1 * homolog[1]
         current_val = bool_results.get(key, [])
-        current_val.append(homolog[1:5])
+        # Keep gs_abbreviation (homolog[5]); the result template renders it as the
+        # geneset name at record index [4] (e.g. the Symmetric Difference heading).
+        # A prior py2->py3 refactor sliced [1:5] and dropped it, which crashed
+        # BooleanAlgebra_result.html on record[4] (GWC-50).
+        current_val.append(homolog[1:6])
         bool_results[key] = current_val
 
     # Robust deduplication: convert to tuple, deduplicate, convert back to list

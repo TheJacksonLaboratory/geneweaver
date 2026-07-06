@@ -404,8 +404,8 @@
                     <div class="row">
                         {% if json_results.type == 'Symmetric Difference' %}
                             <div class="col-md-6">
-                                {% set gs_id = results[gs_group].values()[0][0][3] %}
-                                {% set gs_name = results[gs_group].values()[0][0][4] %}
+                                {% set gs_id = (results[gs_group].values()|list)[0][0][3] %}
+                                {% set gs_name = (results[gs_group].values()|list)[0][0][4] %}
                                 <h2 id="{{ results[gs_group] }}">Distinct Genes in <b>GS{{ gs_id }}</b>: {{ gs_name }}
                                 </h2>
                             </div>
