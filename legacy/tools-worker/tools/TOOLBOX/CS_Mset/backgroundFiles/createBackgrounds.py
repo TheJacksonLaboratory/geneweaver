@@ -4,6 +4,7 @@
 #
 
 import os
+import sys
 import psycopg2
 import itertools
 import io
@@ -106,13 +107,20 @@ try:
     user = os.environ.get('DB_USERNAME', 'odeadmin')
     password = os.environ.get('DB_PASSWORD', 'odeadmin')
     host = os.environ.get('DB_HOST', 'crick.ecs.baylor.edu')
-    port = os.environ.get('DB_PORT', 32769)
+    port = os.environ.get('DB_PORT', '5432')
 
     cs = "host='%s' port='%s' dbname='%s' user='%s' password='%s'" % (host, port, db, user, password)
 
     conn = psycopg2.connect(cs)
 
     cursor = conn.cursor()
+
+    # Output directory for the generated *BG.txt files. Env-driven so they can be
+    # written to a persistent/results volume (see MSET.py GW_MSET_BG_DIR); defaults
+    # to the current directory (in-image backgroundFiles/) for backward compat.
+    outdir = os.environ.get('GW_MSET_BG_DIR') or (sys.argv[1] if len(sys.argv) > 1 else '.')
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
 
     symbol_list = []
 
@@ -141,7 +149,7 @@ try:
 
             raw = get_gene_id_by_attribute(att, id, cursor)
 
-            with io.FileIO(bg_file, "w") as file:
+            with open(os.path.join(outdir, bg_file), "w") as file:
                 i = 0
                 for sym in raw:
                     file.write(str(sym[0]) + '\n')
@@ -165,7 +173,7 @@ try:
 
             raw = get_gene_id_by_gdb_type(type, id, cursor)
 
-            with io.FileIO(bg_file, "w") as file:
+            with open(os.path.join(outdir, bg_file), "w") as file:
                 i = 0
                 for sym in raw:
                     file.write(str(sym[0]) + '\n')
@@ -178,4 +186,4 @@ try:
     conn.close()
 
 except Exception as e:
-    print(str(e.message))
+    print(str(e))

@@ -41,7 +41,16 @@ class MSET(tools.toolbase.GeneWeaverToolBase):
         self.init("MSET")
         self.urlroot=''
         self.mset_dir = os.path.join('TOOLBOX', 'CS_Mset')
-        self.bg_dir = os.path.join(self.TOOL_DIR, self.mset_dir, 'backgroundFiles')
+        # Background files are DB-derived and go stale whenever the gene data is
+        # reloaded (a stale background fails MSETcpp's "list must be a subset of
+        # its background" check). Prefer a per-environment regenerated copy on the
+        # results volume when present (GW_MSET_BG_DIR, else
+        # $APPLICATION_RESULTS/mset_backgrounds); fall back to the in-image copy.
+        _image_bg = os.path.join(self.TOOL_DIR, self.mset_dir, 'backgroundFiles')
+        _pvc_bg = os.environ.get('GW_MSET_BG_DIR') or (
+            os.path.join(os.environ['APPLICATION_RESULTS'], 'mset_backgrounds')
+            if os.environ.get('APPLICATION_RESULTS') else None)
+        self.bg_dir = _pvc_bg if _pvc_bg and os.path.isdir(_pvc_bg) else _image_bg
         self.cpp_path = os.path.join(self.TOOL_DIR, self.mset_dir, 'MSETcpp')
 
     def mainexec(self):

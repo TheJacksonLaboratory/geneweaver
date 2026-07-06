@@ -106,7 +106,7 @@ try:
     user = os.environ.get('DB_USERNAME', 'odeadmin')
     password = os.environ.get('DB_PASSWORD', 'odeadmin')
     host = os.environ.get('DB_HOST', 'crick.ecs.baylor.edu')
-    port = os.environ.get('DB_PORT', 32769)
+    port = os.environ.get('DB_PORT', '5432')
 
     cs = "host='%s' port='%s' dbname='%s' user='%s' password='%s'" % (host, port, db, user, password)
 
@@ -141,7 +141,7 @@ try:
 
             raw = get_gene_id_by_attribute(att, id, cursor)
 
-            with io.FileIO(bg_file, "w") as file:
+            with open(bg_file, "w") as file:
                 i = 0
                 for sym in raw:
                     file.write(str(sym[0]) + '\n')
@@ -165,7 +165,7 @@ try:
 
             raw = get_gene_id_by_gdb_type(type, id, cursor)
 
-            with io.FileIO(bg_file, "w") as file:
+            with open(bg_file, "w") as file:
                 i = 0
                 for sym in raw:
                     file.write(str(sym[0]) + '\n')
