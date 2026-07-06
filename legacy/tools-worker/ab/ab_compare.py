@@ -145,6 +145,20 @@ def diff(a, b, path=""):
     return out
 
 
+def tool_succeeded(d):
+    """A run counts as success only if Celery reported SUCCESS *and* the tool did
+    not log an ERROR. Legacy tools return Celery SUCCESS even when the task body
+    catches an exception and writes 'ERROR - ...' into res_status — so two runs
+    that fail the same way would otherwise look like a MATCH."""
+    if d.get("async_state") != "SUCCESS":
+        return False, f"async_state={d.get('async_state')}"
+    rs = d.get("res_status") or ""
+    if re.search(r"\bERROR\b", rs):
+        errln = next((ln for ln in rs.splitlines() if "ERROR" in ln), "ERROR")
+        return False, f"tool logged: {errln.strip()[:120]}"
+    return True, "ok"
+
+
 def main():
     tool, gsids = sys.argv[1], sys.argv[2]
     params_json = sys.argv[3] if len(sys.argv) > 3 else "{}"
@@ -158,18 +172,30 @@ def main():
         json.dump(d, open(f"{OUTDIR}/{tool}_{env}.json", "w"), indent=2)
         print(f"  {env}: state={d.get('async_state')} runhash={d.get('task_id')[:8]}")
 
-    # sanity: both should have succeeded
-    for env, d in (("dev", dev), ("sqa", sqa)):
-        if d.get("async_state") != "SUCCESS":
-            print(f"  !! {env} did not SUCCEED — res_status tail: "
-                  f"{str(d.get('res_status'))[-200:]}")
+    # Success guard: a MATCH is only meaningful if BOTH runs actually succeeded.
+    # Two identical FAILURES (e.g. both erroring on a missing param) must NOT be
+    # reported as a match.
+    dev_ok, dev_why = tool_succeeded(dev)
+    sqa_ok, sqa_why = tool_succeeded(sqa)
+    print(f"  dev: {'✅ SUCCEEDED' if dev_ok else '❌ FAILED — ' + dev_why}")
+    print(f"  sqa: {'✅ SUCCEEDED' if sqa_ok else '❌ FAILED — ' + sqa_why}")
 
     ca = canon(dev.get("res_data"))
     cb = canon(sqa.get("res_data"))
     d = diff(ca, cb)
+
+    if not (dev_ok and sqa_ok):
+        which = "both runs" if not dev_ok and not sqa_ok else ("dev" if not dev_ok else "sqa")
+        print(f"\n-- ⛔ INVALID COMPARISON — {which} did not succeed --")
+        print("  A diff here is NOT proof of parity: identical failures look identical.")
+        print(f"  ({'outputs identical' if not d else str(len(d)) + ' difference(s)'} — informational only.)")
+        print(f"  Fix the failing run(s) and re-run.")
+        print(f"\n  raw outputs: {OUTDIR}/{tool}_dev.json , {OUTDIR}/{tool}_sqa.json")
+        sys.exit(2)
+
     print(f"\n-- numeric/structural diff (dev vs sqa), gene-IDs & uuids ignored --")
     if not d:
-        print("  ✅ MATCH — dev and sqa produced equivalent results.")
+        print("  ✅ MATCH — dev and sqa both succeeded and produced equivalent results.")
     else:
         print(f"  ⚠️  {len(d)} difference(s):")
         for line in d[:40]:

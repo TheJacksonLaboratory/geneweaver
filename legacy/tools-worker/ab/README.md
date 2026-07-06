@@ -50,3 +50,16 @@ It prints a per-field diff (or `✅ MATCH`) and writes the raw outputs to
 - **Known finding:** JaccardSimilarity p-values differ (dev computes real
   significance from the backfilled `extsrc.jaccard_distribution_results`; sqa
   returns `p = 0`). Jaccard values & overlap counts match.
+
+## Success guard (important)
+A `MATCH` is only reported when **both** runs actually succeeded — otherwise two
+identical *failures* would look like a match. A run counts as success only if
+Celery returned `SUCCESS` **and** the tool did not log `ERROR` into `res_status`
+(legacy tools return Celery `SUCCESS` even when the task body catches an
+exception). If either side fails, the harness prints `❌ FAILED` for that env and
+`⛔ INVALID COMPARISON` (and exits non-zero) instead of a verdict.
+
+Corollary: some tools need real parameters, not `{}`. E.g. **MSET** requires a
+blueprint-built `gs_dict` (two same-species non-microarray genesets + gene
+symbols + a background file) — running it with `{}` fails on both sides and is
+(correctly) reported as an invalid comparison, not a match.
