@@ -146,16 +146,28 @@ def diff(a, b, path=""):
 
 
 def tool_succeeded(d):
-    """A run counts as success only if Celery reported SUCCESS *and* the tool did
-    not log an ERROR. Legacy tools return Celery SUCCESS even when the task body
-    catches an exception and writes 'ERROR - ...' into res_status — so two runs
-    that fail the same way would otherwise look like a MATCH."""
+    """A run counts as success only if Celery reported SUCCESS, the tool did not
+    log an ERROR, and the result payload carries no embedded error. Legacy tools
+    return Celery SUCCESS even when the task body catches an exception:
+      * most write 'ERROR - ...' into res_status;
+      * some (e.g. MSET) instead stash the failure in res_data['error'] and still
+        finish as 'DONE' — invisible to a status-only check.
+    Two runs that fail the same way would otherwise look like a MATCH."""
     if d.get("async_state") != "SUCCESS":
         return False, f"async_state={d.get('async_state')}"
     rs = d.get("res_status") or ""
     if re.search(r"\bERROR\b", rs):
         errln = next((ln for ln in rs.splitlines() if "ERROR" in ln), "ERROR")
         return False, f"tool logged: {errln.strip()[:120]}"
+    # Inspect the result payload for an embedded error (MSET-style silent failure).
+    rd = d.get("res_data")
+    if isinstance(rd, str):
+        try:
+            rd = json.loads(rd)
+        except Exception:
+            rd = None
+    if isinstance(rd, dict) and rd.get("error"):
+        return False, f"res_data.error: {str(rd['error'])[:120]}"
     return True, "ok"
 
 

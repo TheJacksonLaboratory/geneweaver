@@ -54,9 +54,12 @@ It prints a per-field diff (or `✅ MATCH`) and writes the raw outputs to
 ## Success guard (important)
 A `MATCH` is only reported when **both** runs actually succeeded — otherwise two
 identical *failures* would look like a match. A run counts as success only if
-Celery returned `SUCCESS` **and** the tool did not log `ERROR` into `res_status`
-(legacy tools return Celery `SUCCESS` even when the task body catches an
-exception). If either side fails, the harness prints `❌ FAILED` for that env and
+Celery returned `SUCCESS`, the tool did not log `ERROR` into `res_status`, **and**
+the result payload has no embedded `error`. Legacy tools return Celery `SUCCESS`
+even when the task body catches an exception: most write `ERROR - ...` into
+`res_status`, but some (e.g. **MSET**) instead stash the failure in
+`res_data['error']` and still finish as `DONE` — so a status-only check would
+miss it. If either side fails, the harness prints `❌ FAILED` for that env and
 `⛔ INVALID COMPARISON` (and exits non-zero) instead of a verdict.
 
 Corollary: some tools need real parameters, not `{}`. E.g. **MSET** requires a
