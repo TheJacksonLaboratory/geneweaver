@@ -182,6 +182,19 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    the per-env storage, and the whole class of staleness bugs. (Also fold in the createBackgrounds
    py3 fixes: text-mode writes and the correct DB port.)
 
+   **Also fix the universe definition, not just its freshness.** `createBackgrounds.py` builds the
+   universe only from *curated* genesets (`cur_id NOT IN (4,5)`), so a gene that appears **only** in
+   a Tier-IV/V set is absent from the background even when the file is perfectly fresh. A large
+   Tier-IV DEG set can then contain real genes (e.g. lncRNAs / antisense unique to that set) that
+   are "outside" its own universe, and MSETcpp rejects the whole list with
+   `list_2 not subset of its background` (observed on dev for GS 407805 — 131 of 9,623 genes, all
+   real human genes present in no other geneset). This is **not** staleness and not a monorepo
+   regression (the same logic runs in sqa/prod). The correct V3 universe is the **full gene space**
+   for the id-type/species (all such genes GeneWeaver knows, from `extsrc.gene`), not "genes that
+   happen to appear in curated genesets" — then any real gene is in-universe by construction. Until
+   then, MSET fails early with a clear message naming the out-of-universe genes (see
+   `MSET.check_list_in_background`) instead of surfacing the raw C++ stderr.
+
 ## 9. Validation against the legacy tools (local DB)
 
 ABBA, PhenomeMap, HyperGeometric, and DBSCAN were validated against faithful transcriptions

@@ -53,6 +53,37 @@ class MSET(tools.toolbase.GeneWeaverToolBase):
         self.bg_dir = _pvc_bg if _pvc_bg and os.path.isdir(_pvc_bg) else _image_bg
         self.cpp_path = os.path.join(self.TOOL_DIR, self.mset_dir, 'MSETcpp')
 
+    def check_list_in_background(self, genes, bg_path, gsid, label):
+        """Return a user-facing error string if any gene in ``genes`` is absent
+        from the background file at ``bg_path``, else ``None``.
+
+        MSETcpp aborts with "list_N not subset of its background" when a list
+        contains a gene the background (the curated gene universe for the
+        species + gene-identifier type) does not. We detect that here so the
+        user gets a clear, actionable message naming the offending genes rather
+        than the raw C++ stderr. Returns ``None`` when the background file is
+        missing (a different, infra-level failure handled downstream).
+
+        V3 TODO: build the background from the full gene space (all genes of
+        the id-type/species known to GeneWeaver) so real genes are never
+        "outside" it -- see docs/tools/TOOLS_MIGRATION.md.
+        """
+        if not genes or not os.path.isfile(bg_path):
+            return None
+        with open(bg_path) as fh:
+            background = set(fh.read().split())
+        missing = [str(g) for g in genes if str(g) not in background]
+        if not missing:
+            return None
+        shown = ', '.join(missing[:15])
+        more = '' if len(missing) <= 15 else ' (and {} more)'.format(len(missing) - 15)
+        return (
+            '{} (GS{}) cannot be tested with MSET: {} of its {} genes are not in '
+            'the MSET background -- the set of genes GeneWeaver has curated for '
+            'this species and gene identifier type. MSET requires every gene in a '
+            'list to be within its background. Genes outside the background: '
+            '{}{}.'.format(label, gsid, len(missing), len(genes), shown, more))
+
     def mainexec(self):
         output_prefix = self._parameters["output_prefix"]
         gs_dict = self._parameters["gs_dict"]
@@ -77,6 +108,23 @@ class MSET(tools.toolbase.GeneWeaverToolBase):
         list_2 = gs_dict.get("group_2_genes")
         list_2_bg = gs_dict.get("group_2_background")
         bg_2_file_base = os.path.join(self.bg_dir, str(list_2_bg))
+
+        # Fail early with a clear message when a list is not a subset of its
+        # background (MSETcpp would otherwise abort with a cryptic
+        # "list_N not subset of its background" on stderr).
+        subset_error = (
+            self.check_list_in_background(
+                list_1, bg_1_file_base, gs_dict.get('group_1_gsid'), 'List 1')
+            or self.check_list_in_background(
+                list_2, bg_2_file_base, gs_dict.get('group_2_gsid'), 'List 2'))
+        if subset_error:
+            logger.error(subset_error)
+            self._results['error'] = subset_error
+            self._results['gs_dict'] = gs_dict
+            self._results['gs_ids'] = self._gsids
+            self._results['gs_names'] = self._gsnames
+            self._results['parameters'] = self._parameters
+            return
 
         if list_1 and list_2:
             list_1_file = write_gs_to_tempfile(list_1)

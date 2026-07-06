@@ -193,8 +193,16 @@ def view_result(task_id):
     # Return if results not available
     mset_output = async_result.get("mset_data")
     if not mset_output:
-        flask.flash('An error occurred with the request, and your results are not available. '
-                    'Please contact a GeneWeaver administrator for help or try again. {}'.format(async_result.get('error', [])))
+        # Prefer the tool's own error message (e.g. "N genes are not in the MSET
+        # background") over the generic wording, so the user sees something
+        # actionable instead of a raw stderr tuple.
+        err = async_result.get('error')
+        if err:
+            flask.flash('{}'.format(err))
+        else:
+            flask.flash('An error occurred with the request, and your results are not '
+                        'available. Please contact a GeneWeaver administrator for help '
+                        'or try again.')
         referrer = flask.request.referrer or ''
         rurl = referrer if referrer and 'MSET-result' not in referrer else '/analyze'
         return flask.redirect(rurl)
