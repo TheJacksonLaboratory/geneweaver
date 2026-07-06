@@ -5,12 +5,14 @@
 > monorepo so it can replace them.
 >
 > **Branch:** `G3-748-finish-migration-of-geneweaver-to-monorepo`
-> **Status:** ⚠️ **DIRECTION CHANGED (2026-06-03).** The legacy-focused CI/CD was removed.
-> CI/CD now targets the **current platform**: the **API** (`src/geneweaver/api`, via the
-> existing root `pull_requests.yml`/`release.yml`) and the **UI** (`ui/`, via new
-> `ui-*` workflows translated from geneweaver-ui's Bitbucket pipeline). The earlier
-> legacy investigation/sections below are retained as history. See the 2026-06-03 log entry.
-> **Last updated:** 2026-06-03
+> **Status:** ✅ **LEGACY CI/CD RE-INTRODUCED (2026-07-06).** The 2026-06-03 "drop legacy CI/CD"
+> decision was reversed once it was clear the legacy Flask app must keep running in the monorepo
+> alongside — and through the switch to — the V3 platform. Legacy now has both
+> `legacy-pull_requests.yml` (build+deploy to **dev**) and `legacy-release.yml` (**SQA→Stage→Prod**),
+> plus tools-worker fixes that make the TOOLBOX tools actually run in the container, and a dev↔sqa
+> A/B harness. The API + UI pipelines from 2026-06-03 remain. See the **2026-07-06** log entry for
+> the current state. (Earlier legacy sections are retained as history.)
+> **Last updated:** 2026-07-06
 
 ---
 
@@ -367,3 +369,75 @@ the same set Bitbucket used (`$CLUSTER_SA`, `$DEPLOYMENT_BUCKET`, `$CLUSTER_*`).
 
 **Still open:** the monorepo `ui/` is **stale** vs `geneweaver-ui` (missing the search-filters
 feature, PR #20, ~2026-04-30) and has 3 uncommitted local edits — re-sync before retiring Bitbucket.
+
+### 2026-06-29 → 07-01 — Legacy CI/CD re-introduced + tools-worker made to run in-container
+Reverses the 2026-06-03 "drop legacy CI/CD" call: the legacy Flask app has to keep running in
+the monorepo during (and after) the V3 switch, so its pipelines were added back and the
+containerized tools-worker was fixed to actually work. Commits on the branch:
+
+**CI/CD**
+- `90e6bd5a` — root **API** Docker build was still running `poetry install` after the uv
+  migration (and used `python:3.9`, but the code needs 3.10+ PEP-604 unions). Rewritten for uv
+  on `python:3.12`; image builds, API imports (27 routes).
+- `a9944276` — **`legacy-pull_requests.yml`**: on `legacy/**` PRs, build (dev/test registry) →
+  deploy `jax-cluster-dev-10--dev`.
+- `348c2cfd` — deploy the **tools-worker** alongside the legacy web (shares `geneweaver-pvc`).
+- `acf50d85` — rename the PR pipelines by component (**API v3 / UI v3 / Legacy**) and add a
+  `paths:` filter to the API pipeline (stop it running on pure `ui/**` / `legacy/**` PRs).
+- `d76903b5` — **`legacy-release.yml`**: version bump on `legacy/pyproject.toml` →
+  version-detect (Poetry `1.5.x`, `legacy-v*` tags) → build (**prod registry**, the
+  `_skaffold-build` default) → deploy **SQA → Stage → Prod** → GitHub release draft. Pre-release
+  versions stop at SQA; full versions promote through. Each deploy is env-gated by required
+  reviewers. **This is the counterpart of the old standalone `geneweaver-legacy/release.yml`.**
+- UI deploy: the missing per-env `DEPLOYMENT_BUCKET` variables were created on the repo (fixes
+  the `gs://` provider-only-URL upload error) — repo config, not a commit.
+
+**Legacy tools-worker (TOOLBOX C/C++ tools) — the real reason they never worked in a container**
+- `14359acb` — the tools hardcoded `127.0.0.1/odeadmin` DB connections; made them env-driven
+  (`db_conn.h` → `gw_conn_string()` from `DB_*`). **Pinned libpqxx 6.4.8** (built from source in
+  the tools-worker Dockerfile) because the legacy code uses the ≤6 API (`connection_base`,
+  `prepared()(...)`) that Debian's libpqxx 7 removed — so the binaries had silently never
+  compiled. Also made `mset`/`CS_Mset` `createBackgrounds.py` env-driven.
+- `e3e4ad03` — `genes.dat`/`homology.dat` were read from `/srv/...` but written to a nonexistent
+  `/var/www/...`; made both env-driven (`gw_dist_data_dir()`, default `$APPLICATION_RESULTS/dist_data`
+  on the results bucket) and fixed the malformed homology write.
+- `f69400fb` — fixed a dangling-`c_str()` bug in the `distribution_generator` **prepopulation**
+  path (stored `.c_str()` of a temporary → "invalid byte sequence for UTF8"); use the prepared
+  statement, like the lookup path.
+- Operational (not code): **backfilled `extsrc.jaccard_distribution_results` in dev** (set sizes
+  ≤ 50, 1,275 pairs) so Jaccard significance works again.
+
+**Security**
+- `69d86897` — stopped logging the Auth0 `client_secret` in plaintext at CRITICAL on startup.
+  ⚠️ The already-leaked value still needs **rotation** — tracked in
+  `legacy/docs/TODO-auth0-secret-rotation.md` and Jira **G3-761**.
+
+**Verification (`legacy/tools-worker/ab/`)**
+- `5a7e44b3`, `1545471c` — a dev-vs-sqa tool **A/B harness**: dispatches the real Celery task in
+  each env and diffs outputs, canonicalizing away env noise (run uuid, URLs, and the remapped
+  internal `ode_gene_id`s). Result across all active tools: **equivalent**, the only substantive
+  difference being JaccardSimilarity **p-values** — the *intended* effect of the dev distribution
+  backfill (sqa returns `p=0`).
+
+**How this changes the picture vs the old repos**
+- The monorepo now **owns legacy dev** (via `legacy-pull_requests.yml`). sqa/stage/prod are still
+  deployed by the **standalone `geneweaver-legacy` repo's** `release.yml` (image `59d15fb` on the
+  prod registry). `legacy-release.yml` reproduces that promotion chain so the monorepo can take
+  over — but the old repo's `release.yml` must be **frozen first** (both target the same clusters).
+- The sqa/stage/prod namespaces are already provisioned (configmaps, `geneweaver-db`/`redis`/
+  `geneweaver-legacy-secrets`, `geneweaver-pvc`, `gcp-secrets-manager` SecretStore all present),
+  so the first promotion is mainly an image swap (old prod image → monorepo image) — validate in
+  SQA first.
+
+**Jira**
+- Umbrella **G3-748** "Finish migration to the monorepo" now relates to the monorepo-migration
+  tasks (G3-755/756/757/758 done; **G3-760** tools-worker fixes, **G3-761** Auth0 rotation,
+  **G3-762** A/B harness).
+- The **V3** replacement work (reimplementing tools on `packages/tools`) is a *separate* track
+  under new epic **G3-763** "Switch from Geneweaver legacy to Geneweaver V3" (G3-749–753).
+
+**Pre-merge / cutover checklist (unchanged + new)**
+- Freeze the standalone `geneweaver-legacy` `release.yml` (manual-only) before enabling
+  `legacy-release.yml`.
+- Confirm the four GKE Environments carry required-reviewer approval rules (they do).
+- Rotate the exposed Auth0 secret (G3-761).
