@@ -1,6 +1,6 @@
 {
   "name": "geneweaver-legacy-ui",
-  "version": "1.5.27",
+  "version": "1.6.0",
   "private": true,
   "description": "Lint/format tooling for the legacy GeneWeaver first-party UI JavaScript. Mirrors geneweaver-ui (ESLint + Prettier, same versions).",
   "scripts": {
