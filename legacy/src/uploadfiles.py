@@ -300,9 +300,10 @@ def create_new_geneset_for_user(args, user_id):
     user = db.get_user(user_id)
     user_prefs = json.loads(user.prefs)
 
-    # get the user's annotator preference.  if there isn't one in their user
-    # preferences, default to the monarch annotator
-    annotator = user_prefs.get('annotator', 'monarch')
+    # get the user's annotator preference. If there isn't one in their user
+    # preferences, default to the annotator module's default (NCBO -- Monarch's
+    # SciGraph annotator was decommissioned; see GWC-8).
+    annotator = user_prefs.get('annotator', ann.DEFAULT_ANNOTATOR)
     ncbo = True
     monarch = True
     if annotator == 'ncbo':
@@ -445,9 +446,10 @@ def create_new_large_geneset_for_user(args, user_id):
     user = db.get_user(user_id)
     user_prefs = json.loads(user.prefs)
 
-    # get the user's annotator preference.  if there isn't one in their user
-    # preferences, default to the monarch annotator
-    annotator = user_prefs.get('annotator', 'monarch')
+    # get the user's annotator preference. If there isn't one in their user
+    # preferences, default to the annotator module's default (NCBO -- Monarch's
+    # SciGraph annotator was decommissioned; see GWC-8).
+    annotator = user_prefs.get('annotator', ann.DEFAULT_ANNOTATOR)
     ncbo = True
     monarch = True
     if annotator == 'ncbo':

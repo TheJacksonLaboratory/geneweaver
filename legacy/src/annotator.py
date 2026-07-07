@@ -6,6 +6,8 @@ Separate stand-alone versions of these wrappers can be found, for now,
 at bitbucket.org/geneweaver/curation
 """
 import json
+import os
+import traceback
 import urllib
 from urllib.parse import urlencode
 # Upload Fix: Use requests package instead of urrlib
@@ -16,26 +18,33 @@ import geneweaverdb
 from time import sleep
 
 
-NCBO_URL = 'http://data.bioontology.org'
-NCBO_ANNOTATOR = NCBO_URL + '/annotator?'
+# Endpoints and the NCBO API key are read from the environment (with working
+# fallbacks) so infra isn't hardcoded and the key can be rotated without a code
+# change. Never log API_KEY.
+NCBO_URL = os.environ.get('GW_NCBO_URL', 'http://data.bioontology.org')
+# No trailing '?': the annotator call passes params=..., which requests encodes
+# into the query string.
+NCBO_ANNOTATOR = NCBO_URL + '/annotator'
 
-## My NCBO API key (Jeremy's no longer worked). If this ever needs to be
-## replaced, head over to http://bioportal.bioontology.org/accounts/new
-## and register a new account.
-API_KEY = '2709bdd2-c311-4089-b000-56fa3d33307c'
+## NCBO API key. If this ever needs to be replaced, register a new account at
+## http://bioportal.bioontology.org/accounts/new and set GW_NCBO_API_KEY.
+API_KEY = os.environ.get('GW_NCBO_API_KEY', '2709bdd2-c311-4089-b000-56fa3d33307c')
 
 ## NCBO docs are kinda shitty but I _think_ ontology IDs it uses are just the
 ## abbreviations. This seems to work, and nothing else is specified in the
 ## docs about ontology IDs so...
 ONT_IDS = ['MESH', 'GO', 'MP', 'MA']
-MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
+MONARCH_URL = os.environ.get('GW_MONARCH_URL', 'http://scigraph-ontology.monarchinitiative.org/scigraph')
 
 ## Couldn't find this endpoint anywhere in the documentation, but it's buried
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
 
 ANNOTATORS = ['monarch', 'ncbo', 'both', 'none']
-DEFAULT_ANNOTATOR = 'monarch'
+# Monarch's SciGraph annotator (scigraph-ontology.monarchinitiative.org) was
+# decommissioned (the host no longer resolves), so 'ncbo' is the working
+# default. See GWC-8.
+DEFAULT_ANNOTATOR = os.environ.get('GW_DEFAULT_ANNOTATOR', 'ncbo')
 
 def get_geneweaver_ontologies():
     """
@@ -112,7 +121,10 @@ def fetch_ncbo_annotations(text, ncboids):
             # res = res.read()
             # UPLOAD FIX EVEREST
             # Uses requests because of encoding issues
-            req = requests.get(NCBO_ANNOTATOR, data = params)
+            # Must be params= (not data=): for a GET, requests puts `data` in
+            # the request body, so NCBO would receive no text/apikey/ontologies
+            # and return nothing -> silent annotation failure (GWC-8).
+            req = requests.get(NCBO_ANNOTATOR, params=params)
             res = req.text
             # UPLOAD FIX EVEREST
 
