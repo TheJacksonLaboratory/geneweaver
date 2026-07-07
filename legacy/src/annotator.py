@@ -21,7 +21,7 @@ from time import sleep
 # Endpoints and the NCBO API key are read from the environment (with working
 # fallbacks) so infra isn't hardcoded and the key can be rotated without a code
 # change. Never log API_KEY.
-NCBO_URL = os.environ.get('GW_NCBO_URL', 'http://data.bioontology.org')
+NCBO_URL = os.environ.get('GW_NCBO_URL', 'https://data.bioontology.org')
 # No trailing '?': the annotator call passes params=..., which requests encodes
 # into the query string.
 NCBO_ANNOTATOR = NCBO_URL + '/annotator'
@@ -136,27 +136,21 @@ def fetch_ncbo_annotations(text, ncboids):
     ## exception is handled three times.
     for _ in range(3):
         try:
-            # req = urllib.request.Request(NCBO_ANNOTATOR, params)
-            # res = urllib.request.urlopen(req)
-            # res = res.read()
-            # UPLOAD FIX EVEREST
-            # Uses requests because of encoding issues
             # Must be params= (not data=): for a GET, requests puts `data` in
             # the request body, so NCBO would receive no text/apikey/ontologies
             # and return nothing -> silent annotation failure (GWC-8).
-            req = requests.get(NCBO_ANNOTATOR, params=params)
+            # timeout so a hung NCBO can't block the upload request indefinitely.
+            req = requests.get(NCBO_ANNOTATOR, params=params, timeout=30)
+            # requests does NOT raise on non-2xx by itself; without this a 4xx/5xx
+            # error body would fall through to json.loads and be mishandled.
+            req.raise_for_status()
             res = req.text
-            # UPLOAD FIX EVEREST
 
-        except urllib.error.HTTPError as e:
-            print('Failed to retrieve annotation data from NCBO:')
-            print(e)
-            print(e.read())
-            continue
-
-        except Exception as e:
-            print('Unkown error fetching annotations:')
-            print(e)
+        except requests.exceptions.RequestException as e:
+            # Covers HTTP errors (via raise_for_status), timeouts and connection
+            # errors. requests never raises urllib.error.HTTPError.
+            print('Failed to retrieve annotation data from NCBO: %s' % e)
+            sleep(1)
             continue
 
         ## Success

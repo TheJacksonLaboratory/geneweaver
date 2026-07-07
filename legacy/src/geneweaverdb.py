@@ -5633,21 +5633,23 @@ def get_gene_ids_by_spid_type(sp_id, gdb_id):
     ## alias (never a preferred symbol), which excludes a large share of valid
     ## genes on upload (GWC-36; e.g. many lncRNA/renamed symbols).
     ##
-    ## Instead, include aliases too but let the PREFERRED entry win on collision:
-    ## order non-preferred rows first and preferred rows last so the preferred
-    ## ode_gene_id overwrites any alias sharing the same (lowercased) string.
-    ## This keeps the Ccr4/Cnot6 disambiguation while still resolving
-    ## alias-only symbols. (Non-symbol id types were never pref-filtered; the
-    ## ordering is harmless for them.)
+    ## Instead, include aliases too but let the PREFERRED entry win on collision.
+    ## DISTINCT ON returns exactly one row per lower(ode_ref_id), and the ORDER BY
+    ## makes the ode_pref=TRUE row sort first, so the preferred ode_gene_id is the
+    ## one kept (ode_gene_id is a deterministic tie-breaker for ambiguous aliases).
+    ## This keeps the Ccr4/Cnot6 disambiguation while still resolving alias-only
+    ## symbols, and de-duplicates in SQL so only one row per symbol crosses the
+    ## wire. (Non-symbol id types were never pref-filtered; this is harmless there.)
     with PooledCursor() as cursor:
 
         cursor.execute(
             '''
-            SELECT  lower(ode_ref_id), ode_gene_id
+            SELECT DISTINCT ON (lower(ode_ref_id))
+                    lower(ode_ref_id), ode_gene_id
             FROM    extsrc.gene
             WHERE   sp_id = %s AND
                     gdb_id = %s
-            ORDER BY ode_pref ASC NULLS FIRST;
+            ORDER BY lower(ode_ref_id), ode_pref DESC NULLS LAST, ode_gene_id;
             ''',
                 (sp_id, gdb_id)
         )
