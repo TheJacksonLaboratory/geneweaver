@@ -46,6 +46,34 @@ ANNOTATORS = ['monarch', 'ncbo', 'both', 'none']
 # default. See GWC-8.
 DEFAULT_ANNOTATOR = os.environ.get('GW_DEFAULT_ANNOTATOR', 'ncbo')
 
+# NCBO rejects the whole /annotator request (HTTP 404) if the `ontologies`
+# parameter contains any acronym it doesn't recognize. GeneWeaver's ontology
+# list includes prefixes NCBO lacks (e.g. JAX, ORPHA), so we filter the
+# requested set against NCBO's supported acronyms. Cached at module scope to
+# avoid re-fetching on every annotation. See GWC-8.
+_ncbo_acronyms = None
+
+
+def get_ncbo_supported_acronyms():
+    """Return the set of ontology acronyms NCBO supports (cached).
+
+    Returns None if the list can't be fetched, in which case callers should
+    send the requested set unfiltered rather than block annotation.
+    """
+    global _ncbo_acronyms
+    if _ncbo_acronyms is None:
+        try:
+            resp = requests.get(NCBO_URL + '/ontologies',
+                                params={'apikey': API_KEY}, timeout=30)
+            resp.raise_for_status()
+            _ncbo_acronyms = {o['acronym'] for o in resp.json() if 'acronym' in o}
+        except Exception as e:
+            print('Could not fetch NCBO ontology list (%s); '
+                  'sending requested ontologies unfiltered' % e)
+            return None
+    return _ncbo_acronyms
+
+
 def get_geneweaver_ontologies():
     """
     Returns a list of the ontologies currently supported by GeneWeaver.
@@ -77,25 +105,17 @@ def fetch_ncbo_annotations(text, ncboids):
     ncboids = list(ncboids)
     # END upload fix
 
-    ## Currently the DO prefix we use is DO instead of DOID
-    # Upload Fix Everest
-
-    # This is legacy python2 script that will break this function and cause issues
-    # Commented out due to this
-    # for i in range(len(ncboids)):
-    #     if ncboids[i] == 'DO':
-    #         ncboids[i] = 'DOID'
-
-    # Fixed the above commented-out script so that it is compatible with python3 now
-    # The JAX and HPO ontologies do not exist in NCBO and will get a RESPONSE: 404
-    # Removed JAX and HPO IDs
-    for index, item in enumerate(ncboids):
-        if item == 'DO':
-            ncboids[index] = 'DOID'
-        if item == 'JAX':
-            ncboids.pop(index)
-        if item == 'HPO':
-            ncboids.pop(index)
+    ## Normalize GeneWeaver ontology prefixes to NCBO acronyms (GW uses 'DO',
+    ## NCBO uses 'DOID') and drop any acronym NCBO doesn't recognize -- NCBO
+    ## 404s the ENTIRE /annotator request if the ontologies list contains even
+    ## one unknown acronym (e.g. GW's JAX, ORPHA). See GWC-8.
+    ncboids = ['DOID' if item == 'DO' else item for item in ncboids]
+    supported = get_ncbo_supported_acronyms()
+    if supported is not None:
+        dropped = sorted(item for item in ncboids if item not in supported)
+        if dropped:
+            print('Dropping NCBO-unsupported ontologies: %s' % dropped)
+        ncboids = [item for item in ncboids if item in supported]
 
     # END UPLOAD FIX
 
