@@ -1,8 +1,23 @@
-name: Pull Request Test, Build and Deploy
+name: API v3 — Test, Build & Deploy
 
 on:
   pull_request:
     branches: [ main, master ]
+    # Only run the API v3 pipeline for changes that affect it — not pure UI
+    # (ui/**) or legacy (legacy/**) PRs, which have their own workflows.
+    paths:
+      - 'src/**'
+      - 'packages/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Dockerfile'
+      - 'deploy/**'
+      - '.github/workflows/pull_requests.yml'
+      - '.github/workflows/_format-lint-action.yml'
+      - '.github/workflows/_run-tests-action.yml'
+      - '.github/workflows/_check-coverage-action.yml'
+      - '.github/workflows/_skaffold-build-k8s.yml'
+      - '.github/workflows/_skaffold-deploy-k8s.yml'
 
 jobs:
   format-lint:

@@ -11,3 +11,8 @@ skaffold.yaml
 *.pyd
 __pycache__
 .git
+.venv
+**/.venv
+*.egg-info
+.pytest_cache
+.ruff_cache

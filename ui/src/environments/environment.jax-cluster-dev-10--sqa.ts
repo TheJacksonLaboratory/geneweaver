@@ -7,6 +7,7 @@ export const environment: Environment = {
   version: version,
   urls: {
     geneWeaver: 'https://geneweaver-sqa.jax.org',
+    geneWeaverApi: 'https://geneweaver-sqa.jax.org/api',
     pubmed: 'https://pubmed.ncbi.nlm.nih.gov',
   },
 };

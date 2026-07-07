@@ -367,8 +367,10 @@ def test_get_geneset_with_threshold(mock_db_genset_value, mock_db_geneset, gsv_i
 
 
 @patch("geneweaver.api.services.geneset.db_geneset_value")
-def test_get_geneset_gene_values_db_errors(mock_db_geneset_value):
+@patch("geneweaver.api.services.geneset.db_geneset.get")
+def test_get_geneset_gene_values_db_errors(mock_db_geneset_get, mock_db_geneset_value):
     """Test error in get DB call."""
+    mock_db_geneset_get.return_value = [geneset_by_id_resp.get("geneset")]
     mock_db_geneset_value.by_geneset_id.side_effect = RuntimeError("ERROR")
 
     with pytest.raises(RuntimeError):

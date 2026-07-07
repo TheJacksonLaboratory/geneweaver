@@ -5,6 +5,7 @@ export const environment: Environment = {
   ...sqaEnvironment,
   urls: {
     geneWeaver: 'https://geneweaver-dev.jax.org',
+    geneWeaverApi: 'https://geneweaver-dev.jax.org/api',
     pubmed: 'https://pubmed.ncbi.nlm.nih.gov',
   },
 };

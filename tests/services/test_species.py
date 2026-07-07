@@ -61,7 +61,7 @@ def test_get_species_with_error(mock_db_species):
     mock_db_species.get.side_effect = RuntimeError("ERROR")
 
     with pytest.raises(RuntimeError):
-        species_service.get(None)
+        species_service.get_species(None)
 
 
 @patch("geneweaver.api.services.species.db_species")

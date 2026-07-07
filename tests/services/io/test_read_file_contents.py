@@ -36,7 +36,7 @@ from geneweaver.api.services import io
             b"\xce\x93\xce\xb5\xce\xb9\xce\xac \xcf\x83\xce\xbf\xcf\x85, "
             b"\xce\xba\xcf\x8c\xcf\x83\xce\xbc\xce\xbf!",
             "utf-8",
-            "039303b503b903ac 03c303bf03c5, 03ba03cc03c303bc03bf!",
+            "Γειά σου, κόσμο!",  # noqa: RUF001
         ),
         # Non-English characters (Hindi, in this case)
         (

@@ -11,6 +11,8 @@ export const environment: Environment = {
     },
     urls: {
         geneWeaver: 'https://geneweaver-dev.jax.org',
+        // Local dev default (used by `nx serve`): the locally-running API.
+        geneWeaverApi: 'http://127.0.0.1:8000/api',
         pubmed: 'https://pubmed.ncbi.nlm.nih.gov',
     },
     features: {

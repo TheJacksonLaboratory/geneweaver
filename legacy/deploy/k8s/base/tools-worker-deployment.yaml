@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-legacy-tools
+  labels:
+    app: geneweaver-legacy-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-legacy-tools
+  template:
+    metadata:
+      labels:
+        app: geneweaver-legacy-tools
+      annotations:
+        gke-gcsfuse/volumes: "true"
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      volumes:
+        - name: geneweaver-legacy-tools
+          persistentVolumeClaim:
+            claimName: geneweaver-pvc
+      containers:
+        - name: geneweaver-legacy-tools
+          image: geneweaver-legacy-tools
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: geneweaver-legacy-tools
+              mountPath: /var/geneweaver/results
+          env:
+            - name: CELERY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
+            - name: CELERY_RESULT_BACKEND_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
+            # This image keeps the tools under /app/tools-worker/tools (the old
+            # geneweaver-legacy-tools image used /app/src/tools, the config default).
+            # Override the whole `tools` model via its JSON env var so tool_dir and
+            # results resolve correctly; results matches the mounted PVC path.
+            - name: TOOLS
+              value: '{"tool_dir":"/app/tools-worker/tools","results":"/var/geneweaver/results"}'
+            - name: APPLICATION_RESULTS
+              value: "/var/geneweaver/results"
+          envFrom:
+            - configMapRef:
+                name: geneweaver-legacy-tools-config
+            - secretRef:
+                name: geneweaver-db

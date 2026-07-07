@@ -164,14 +164,6 @@ auth0 = oauth.register(
 )
 
 
-logging.critical('Auth0 client_id: ' + config.get('auth', 'client_id'))
-logging.critical('Auth0 client_secret: ' + config.get('auth', 'client_secret'))
-logging.critical('Auth0 domain: ' + config.get('auth', 'domain'))
-logging.critical('Auth0 token_endpoint: ' + config.get('auth', 'token_endpoint'))
-logging.critical('Auth0 auth_endpoint: ' + config.get('auth', 'auth_endpoint'))
-
-
-
 class ListConverter(BaseConverter):
     """
     A class for handling a custom URL converter. Allows lists to be used as

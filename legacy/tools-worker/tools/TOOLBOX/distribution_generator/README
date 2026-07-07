@@ -1,0 +1,24 @@
+DISTRIBUTION GENERATOR README
+
+ABOUT
+
+	later
+
+REQUIREMENTS
+
+	libpqxx 4.0.1: a C++ connector for Postgres.
+
+INSTALLATION
+
+	Retrieve the source for libpqxx, build, and install the library:
+
+		$ wget http://pqxx.org/download/software/libpqxx/libpqxx-4.0.1.tar.gz
+		$ ./configure && make && sudo make install
+	
+	The include and lib files should have been installed to /usr/local/include
+	and /usr/local/lib respectively.
+	After installing installing libpqxx, you can build the distribution
+	generator:
+
+		$ make
+

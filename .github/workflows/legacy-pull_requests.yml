@@ -1,0 +1,31 @@
+name: Legacy — Build & Deploy
+
+# Builds and deploys the legacy GeneWeaver app (legacy/) to dev on PRs that
+# touch legacy/. Mirrors geneweaver-legacy's pull-requests pipeline, wired
+# through the monorepo's reusable skaffold actions via working_directory.
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'legacy/**'
+
+jobs:
+  build:
+    name: "Legacy Build: Dev"
+    uses: ./.github/workflows/_skaffold-build-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: legacy
+      artifact_name: legacy-build
+      default_image_repo: "us-east1-docker.pkg.dev/jax-cs-registry/docker-test/geneweaver"
+
+  deploy:
+    name: "Legacy Deploy: Dev"
+    needs: [ build ]
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: legacy
+      artifact_name: legacy-build
+      environment: "jax-cluster-dev-10--dev"

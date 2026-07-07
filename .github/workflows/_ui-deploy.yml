@@ -1,0 +1,57 @@
+name: 'UI Deploy (GCS + Skaffold)'
+
+# Deploys a pre-built UI artifact to one environment, mirroring geneweaver-ui's
+# Bitbucket deploy step: upload the static build (dist/<env>) to the GCS deployment
+# bucket, then `skaffold deploy --profile <env>` (kustomize) to GKE.
+#
+# Expects a `ui-dist` artifact (uploaded by the build job) containing dist/<env>/.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment / skaffold profile'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download UI build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: ui/dist
+
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCLOUD_CLUSTER_SA_KEY }}'
+
+      - name: Setup Gcloud
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: Upload static build to GCS deployment bucket
+        run: gcloud storage cp --recursive "dist/${{ inputs.environment }}/." "gs://${{ vars.DEPLOYMENT_BUCKET }}"
+
+      - name: Get GKE credentials
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: ${{ vars.CLUSTER_NAME }}
+          location: ${{ vars.CLUSTER_REGION }}
+          project_id: ${{ vars.CLUSTER_PROJECT }}
+
+      - name: Install Skaffold
+        run: |
+          curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 && \
+          sudo install skaffold /usr/local/bin/
+
+      - name: Deploy
+        run: skaffold deploy -f skaffold.yaml --profile ${{ inputs.environment }}

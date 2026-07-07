@@ -11,6 +11,10 @@ build:
       context: .
       docker:
           dockerfile: Dockerfile
+    - image: geneweaver-legacy-tools
+      context: .
+      docker:
+          dockerfile: tools-worker/Dockerfile
   local:
     useBuildkit: true
 profiles:

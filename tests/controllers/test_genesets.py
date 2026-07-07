@@ -1,6 +1,5 @@
 """Tests for geneset API."""
 
-import json
 from unittest.mock import patch
 
 import pytest
@@ -267,9 +266,7 @@ def test_set_geneset_endpoint_response(mock_update_geneset_threshold, client):
     """Test set geneset threshold endpoint."""
     mock_update_geneset_threshold.return_value = {}
 
-    response = client.put(
-        "/api/genesets/1234/threshold", data=json.dumps(geneset_threshold_update_req)
-    )
+    response = client.put("/api/genesets/1234/threshold", json=geneset_threshold_update_req)
     assert response.status_code == 204
 
 
@@ -281,9 +278,7 @@ def test_set_geneset_endpoint_response_errors(mock_update_geneset_threshold, cli
         "message": message.ACCESS_FORBIDDEN,
     }
 
-    response = client.put(
-        "/api/genesets/1234/threshold", data=json.dumps(geneset_threshold_update_req)
-    )
+    response = client.put("/api/genesets/1234/threshold", json=geneset_threshold_update_req)
     assert response.status_code == 403
 
 

@@ -1,0 +1,19 @@
+# Compiled TOOLBOX artifacts — rebuild with `make` in each TOOLBOX/<tool> dir
+*.o
+*.so
+*.a
+# Known compiled ELF binaries (no extension)
+tools/TOOLBOX/DBSCAN/dbscan
+tools/TOOLBOX/biclique_tool/biclique
+tools/TOOLBOX/bicliquer/bicliquer
+tools/TOOLBOX/bk-partite/bk-partite
+tools/TOOLBOX/mset/test
+tools/TOOLBOX/mset/makeTest/makeTest
+
+# Large runtime data (not source; present in the worker image)
+*.dat
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store

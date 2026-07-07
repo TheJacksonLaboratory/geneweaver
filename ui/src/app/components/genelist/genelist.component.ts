@@ -8,6 +8,7 @@ import {HttpParams} from "@angular/common/http";
 import { GeneSet } from '../../models/gene-set';
 import { FormsModule } from '@angular/forms';
 import { EventEmitter } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
 interface IDType {
   name: string;
@@ -35,7 +36,7 @@ export class GeneListComponent implements OnInit {
   constructor(
       private apiBaseServiceFactory: ApiBaseServiceFactory
   ) {
-    this.gwApi = this.apiBaseServiceFactory.create('https://geneweaver.jax.org/api')
+    this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
   }
 
   ngOnInit(): void {

@@ -51,10 +51,13 @@ jobs:
             uv run pytest tests
           fi
 
-          # Package tests: run each with that package as a root on sys.path
+          # Package tests: run each package's UNIT tests only. Integration tests
+          # (packages/*/tests/integration) need external infra — NCBI eutils, a neo4j
+          # container, etc. — and are run separately, not in this gate.
           for pkg in packages/*; do
-            if [ -d "$pkg/tests" ]; then
-              echo "Running tests in "$pkg/tests""
-              uv run pytest "$pkg/tests"
+            if [ -d "$pkg/tests/unit" ]; then
+              echo "Running unit tests in "$pkg/tests/unit""
+              # Run from the package dir so cwd-relative test data paths resolve.
+              ( cd "$pkg" && uv run pytest tests/unit )
             fi
           done

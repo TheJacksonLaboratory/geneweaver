@@ -17,6 +17,7 @@ import { InputGroupModule } from 'primeng/inputgroup';
 
 /* Local Imports */
 import { GeneSet } from "../../models/gene-set";
+import { environment } from "../../../environments/environment";
 
 
 @Component({
@@ -43,7 +44,7 @@ export class SearchBarComponent implements OnInit {
       private router: Router,
       private route: ActivatedRoute
   ) {
-    this.gwApi = this.apiBaseServiceFactory.create('https://geneweaver.jax.org/api')
+    this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
   }
 
   ngOnInit() {

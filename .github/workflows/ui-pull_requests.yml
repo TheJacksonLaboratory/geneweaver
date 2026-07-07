@@ -1,0 +1,54 @@
+name: UI v3 — Test, Build & Deploy
+
+# Builds and deploys the monorepo UI (ui/) to dev + sqa on PRs that touch ui/.
+# Mirrors geneweaver-ui's Bitbucket pull-requests pipeline.
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'ui/**'
+
+jobs:
+  code-integrity:
+    name: "UI Lint and Test"
+    uses: ./.github/workflows/_ui-code-integrity.yml
+
+  build:
+    name: "UI Build: Dev + SQA"
+    needs: [ code-integrity ]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: cp ./src/environments/environment.default.ts ./src/environments/environment.ts
+      - name: Build dev + sqa artifacts
+        run: npm run build:jax-cluster-dev-10
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: ui/dist
+
+  deploy_dev:
+    name: "UI Deploy: Dev"
+    needs: [ build ]
+    uses: ./.github/workflows/_ui-deploy.yml
+    secrets: inherit
+    with:
+      environment: "jax-cluster-dev-10--dev"
+
+  deploy_sqa:
+    name: "UI Deploy: SQA"
+    needs: [ build, deploy_dev ]
+    uses: ./.github/workflows/_ui-deploy.yml
+    secrets: inherit
+    with:
+      environment: "jax-cluster-dev-10--sqa"

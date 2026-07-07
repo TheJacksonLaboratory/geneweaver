@@ -1,0 +1,40 @@
+[project]
+name = "geneweaver-tools"
+version = "0.20.0a0"
+description = "A framework to allow for consistent implementation of tools for the GeneWeaver project."
+readme = "README.md"
+requires-python = ">=3.9,<4.0"
+license = { text = "Apache-2.0" }
+
+authors = [
+    { name = "Jax Data Science", email = "cssc@jax.org" },
+]
+
+dependencies = [
+    "geneweaver-core>=0.20.0a0",
+]
+
+[project.optional-dependencies]
+# In-process (no compiled binary) implementations that use C/C++-backed libraries
+# (scipy/scikit-learn) instead of shelling out to TOOLBOX binaries.
+sklearn = [
+    "scikit-learn>=1.3.0",
+    "scipy>=1.10.0",
+]
+
+[project.urls]
+Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
+Repository = "https://github.com/TheJacksonLaboratory/geneweaver-tools"
+
+[dependency-groups]
+dev = [
+    "pytest>=7.1.3",
+    "pytest-cov>=4.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "geneweaver.tools"

@@ -1,5 +1,6 @@
 """Utility functions for prompting the user related to enums."""
 
+import types
 from collections.abc import Iterable
 from enum import Enum
 from typing import Any, TypeVar, Union, get_args
@@ -25,7 +26,12 @@ def is_enum_union(field_type: Any) -> bool:
     :param field_type: The type to check.
     :return: True if field_type is a union of enum subclasses, False otherwise.
     """
-    if hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
+    # Detect both typing.Union[X, Y] and PEP 604 `X | Y` (types.UnionType, Python 3.10+).
+    # getattr fallback keeps this safe on Python 3.9 where types.UnionType is absent.
+    is_union = isinstance(field_type, getattr(types, "UnionType", ())) or (
+        hasattr(field_type, "__origin__") and field_type.__origin__ is Union
+    )
+    if is_union:
         try:
             return all(issubclass(arg, Enum) for arg in get_args(field_type))
         except TypeError:

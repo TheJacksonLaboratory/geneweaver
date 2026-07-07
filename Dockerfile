@@ -1,22 +1,28 @@
-FROM python:3.9
+FROM python:3.12
 
-ENV PYTHONUNBUFFERED 1
-ENV POETRY_HOME=/opt/poetry, POETRY_VIRTUALENVS_CREATE=false, POETRY_VERSION=1.3.0
+ENV PYTHONUNBUFFERED=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_PYTHON_DOWNLOADS=0 \
+    PATH="/app/.venv/bin:${PATH}"
 
-# Install poetry
-RUN python3 -m pip install --upgrade pip && \
-    curl -sSL https://install.python-poetry.org | python3 -
-
-ENV PATH="${POETRY_HOME}/bin:${PATH}"
+# uv CLI (pinned). The build backend (uv_build) is resolved from PyPI per the
+# pyproject build-system requirement during build isolation.
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /bin/uv
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock README.md /app/
+# Workspace manifests + lockfile + members first, so the dependency layer is
+# cached and only re-resolved when the lock or a package manifest changes.
+COPY pyproject.toml uv.lock README.md ./
+COPY packages ./packages
 
-RUN poetry install --without dev --sync --no-root
+# Install third-party deps + workspace members, but not the root project yet.
+RUN uv sync --frozen --no-dev --no-install-project
 
-COPY /src /app/src
+# Application source, then install the root project (geneweaver-api).
+COPY src ./src
+RUN uv sync --frozen --no-dev
 
-RUN poetry install --only-root
-
-CMD ["poetry", "run", "uvicorn", "geneweaver.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["uvicorn", "geneweaver.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

@@ -1,0 +1,68 @@
+name: UI - Build, Deploy and Release
+
+# Builds all UI environments and promotes sqa -> stage -> prod on pushes to main
+# that touch ui/. Mirrors geneweaver-ui's Bitbucket main-branch pipeline.
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'ui/**'
+
+concurrency:
+  group: ui-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  code-integrity:
+    name: "UI Lint and Test"
+    uses: ./.github/workflows/_ui-code-integrity.yml
+
+  build:
+    name: "UI Build: All Environments"
+    needs: [ code-integrity ]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: cp ./src/environments/environment.default.ts ./src/environments/environment.ts
+      - name: Build dev + sqa artifacts
+        run: npm run build:jax-cluster-dev-10
+      - name: Build stage + prod artifacts
+        run: npm run build:jax-cluster-prod-10
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: ui/dist
+
+  deploy_sqa:
+    name: "UI Deploy: SQA"
+    needs: [ build ]
+    uses: ./.github/workflows/_ui-deploy.yml
+    secrets: inherit
+    with:
+      environment: "jax-cluster-dev-10--sqa"
+
+  deploy_stage:
+    name: "UI Deploy: Stage"
+    needs: [ build, deploy_sqa ]
+    uses: ./.github/workflows/_ui-deploy.yml
+    secrets: inherit
+    with:
+      environment: "jax-cluster-prod-10--stage"
+
+  deploy_prod:
+    name: "UI Deploy: Prod"
+    needs: [ build, deploy_stage ]
+    uses: ./.github/workflows/_ui-deploy.yml
+    secrets: inherit
+    with:
+      environment: "jax-cluster-prod-10--prod"
