@@ -5625,45 +5625,32 @@ def get_gene_ids_by_spid_type(sp_id, gdb_id):
         a dict
     """
 
-    ## There is an issue with gene symbols. Some species have duplicate symbols
-    ## with different ode_gene_ids. One is the correct entry, the other is an
-    ## entry for another gene with the same symbol (incorrectly attributed).
-    ## One e.g. is the mouse Ccr4 gene. There is the true entry for Ccr4, but
-    ## another gene (Cnot6) also has CCR4 as a gene symbol synonym which 
-    ## screws with our case insensitive searches. So, when symbols are
-    ## searched for the ode_pref_tag MUST be used.
-    #gene_types = get_short_gene_types()
-    gene_types = get_gene_id_types()
-    use_pref = False
-
-    for d in gene_types:
-        if d['gdb_shortname'] == 'symbol' and d['gdb_id'] == gdb_id:
-            use_pref = True
-
+    ## Gene symbols have a collision problem: the same symbol string can be the
+    ## preferred symbol for one gene AND a synonym/alias of another (e.g. mouse
+    ## Ccr4 is preferred for Ccr4 but is also a synonym of Cnot6). Previously we
+    ## restricted symbol lookups to ode_pref='t' to resolve those collisions --
+    ## but that also silently DROPPED every gene whose uploaded name is only an
+    ## alias (never a preferred symbol), which excludes a large share of valid
+    ## genes on upload (GWC-36; e.g. many lncRNA/renamed symbols).
+    ##
+    ## Instead, include aliases too but let the PREFERRED entry win on collision:
+    ## order non-preferred rows first and preferred rows last so the preferred
+    ## ode_gene_id overwrites any alias sharing the same (lowercased) string.
+    ## This keeps the Ccr4/Cnot6 disambiguation while still resolving
+    ## alias-only symbols. (Non-symbol id types were never pref-filtered; the
+    ## ordering is harmless for them.)
     with PooledCursor() as cursor:
 
-        if use_pref:
-            cursor.execute(
-                '''
-                SELECT  lower(ode_ref_id), ode_gene_id
-                FROM    extsrc.gene
-                WHERE   sp_id = %s AND
-                        gdb_id = %s AND
-                        ode_pref = 't';
-                ''',
-                    (sp_id, gdb_id)
-            )
-
-        else:
-            cursor.execute(
-                '''
-                SELECT  lower(ode_ref_id), ode_gene_id
-                FROM    extsrc.gene
-                WHERE   sp_id = %s AND
-                        gdb_id = %s;
-                ''',
-                    (sp_id, gdb_id)
-            )
+        cursor.execute(
+            '''
+            SELECT  lower(ode_ref_id), ode_gene_id
+            FROM    extsrc.gene
+            WHERE   sp_id = %s AND
+                    gdb_id = %s
+            ORDER BY ode_pref ASC NULLS FIRST;
+            ''',
+                (sp_id, gdb_id)
+        )
 
         d = {}
 
