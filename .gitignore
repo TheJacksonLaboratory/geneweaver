@@ -53,3 +53,15 @@ Thumbs.db
 *.wmv
 
 legacy/.local/
+
+# Secrets — env files with credentials (plain .env is listed above). Never commit
+# e.g. .env.cloud-dev, which holds a real DB password.
+.env.*
+!.env.example
+
+# Database dumps (e.g. gw-schema.dump) — artifacts, not source
+*.dump
+
+# Compiled native tool artifacts (TOOLBOX binaries are built, not tracked)
+*.o
+legacy/tools-worker/tools/TOOLBOX/CS_Mset/MSETcpp
