@@ -152,6 +152,15 @@
                         <option {% if geneset.threshold_type==5 %} selected="selected"{% endif %} id="gs-tt-effect" label="effect" value="5" style="font-weight:bold;">Effect</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    Threshold:
+                </div>
+                <div class="col-xs-3">
+                    <input id="gs_threshold" class="form-control" type="text" name="gs_threshold"
+                           value="{{ geneset.threshold }}"
+                           title="Cutoff for the selected score type. P-Value/Q-Value: a single value (e.g. 0.05). Binary: 1. Correlation/Effect: min,max (e.g. -1,1)."
+                           onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
+                </div>
             </div>
             <br>
             <div class="row">

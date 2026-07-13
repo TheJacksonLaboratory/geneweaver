@@ -1553,6 +1553,152 @@ def cancel_geneset_edit_by_id(rargs):
             return gs_id
 
 
+## Score-type value domains, for upload validation and threshold recompute
+## (GWC-42 / G3-772). A value is only *plausible* for its score type if it
+## falls in that type's natural domain (e.g. a p-value must be in [0, 1]). This
+## is distinct from the user's threshold cutoff (gsv_in_threshold); here we flag
+## values that can't be that score type at all, so a mislabeled upload -- e.g.
+## p-values tagged "Correlation" -- is caught. Effect sizes are unbounded, so
+## Effect gets only a numeric check.
+SCORE_TYPE_NAMES = {1: 'P-Value', 2: 'Q-Value', 3: 'Binary', 4: 'Correlation', 5: 'Effect'}
+
+
+def value_in_score_type_domain(score_type, value):
+    """
+    Returns True if ``value`` is a plausible value for the given score type.
+
+    Domains: P-Value/Q-Value in [0, 1]; Binary in {0, 1}; Correlation in
+    [-1, 1]; Effect any finite number. A non-numeric, NaN or infinite value is
+    never valid. Unknown score types are not constrained.
+
+    arguments
+        score_type: integer gs_threshold_type (1..5)
+        value:      the gene value (str or number)
+
+    returns
+        a boolean
+    """
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return False
+
+    ## reject NaN / +-inf (NaN != NaN)
+    if v != v or v == float('inf') or v == float('-inf'):
+        return False
+
+    if score_type == 1 or score_type == 2:      # P-Value / Q-Value
+        return 0.0 <= v <= 1.0
+    elif score_type == 3:                        # Binary
+        return v == 0.0 or v == 1.0
+    elif score_type == 4:                        # Correlation
+        return -1.0 <= v <= 1.0
+
+    ## Effect (5) or unknown: any finite number is acceptable
+    return True
+
+
+def score_type_value_warnings(score_type, values, limit=10):
+    """
+    Builds advisory warnings for values that fall outside the score type's
+    valid domain (see value_in_score_type_domain), so a likely score-type /
+    value mismatch is surfaced on upload (GWC-42) without blocking it.
+
+    arguments
+        score_type: integer gs_threshold_type (1..5)
+        values:     iterable of (ref_id, value) pairs
+        limit:      max number of offending identifiers to name in the message
+
+    returns
+        a list of warning strings (empty when everything is in-domain)
+    """
+    name = SCORE_TYPE_NAMES.get(score_type, str(score_type))
+    offenders = [(ref, value) for ref, value in values
+                 if not value_in_score_type_domain(score_type, value)]
+
+    if not offenders:
+        return []
+
+    shown = ', '.join('%s=%s' % (ref, value) for ref, value in offenders[:limit])
+    more = '' if len(offenders) <= limit else ' (and %d more)' % (len(offenders) - limit)
+
+    return [
+        '%d value(s) fall outside the expected range for score type "%s": %s%s. '
+        'Please double-check that the selected score type is correct for this data.'
+        % (len(offenders), name, shown, more)
+    ]
+
+
+def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_threshold):
+    """
+    Recomputes ``gsv_in_threshold`` for every value of a geneset from its score
+    type + threshold, using the same semantics as batch upload
+    (``batch.BatchReader.__check_thresholds``). Must be called whenever a
+    geneset's score type or threshold changes, or tools/views that filter on
+    ``gsv_in_threshold`` will use stale membership (GWC-42).
+
+        P-Value / Q-Value: in-threshold when value <= threshold.
+        Binary:            in-threshold when value >= threshold (default 1).
+        Correlation/Effect: in-threshold when min <= value <= max; if the range
+                            is unset/malformed, all values are in-threshold.
+
+    Runs on the caller's cursor; the caller owns the commit.
+
+    arguments
+        cursor:            an open PooledCursor
+        gs_id:             the geneset id
+        gs_threshold_type: integer gs_threshold_type (1..5)
+        gs_threshold:      the gs_threshold string (single value, or "min,max")
+    """
+    ttype = int(gs_threshold_type)
+
+    ## Easier to reset every row to 'f' and then flag the in-threshold ones.
+    cursor.execute(
+        '''UPDATE extsrc.geneset_value SET gsv_in_threshold='f' WHERE gs_id=%s''',
+        (gs_id,)
+    )
+
+    if ttype == 1 or ttype == 2:  # P-Value / Q-Value
+        try:
+            thresh = float(gs_threshold)
+        except (TypeError, ValueError):
+            thresh = 0.05
+        cursor.execute(
+            '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t'
+               WHERE gs_id=%s AND gsv_value<=%s''',
+            (gs_id, thresh)
+        )
+
+    elif ttype == 4 or ttype == 5:  # Correlation / Effect (min,max range)
+        parts = str(gs_threshold).split(',')
+        try:
+            low, high = float(parts[0]), float(parts[1])
+        except (TypeError, ValueError, IndexError):
+            ## range unset/malformed -> treat everything as in-threshold,
+            ## matching batch's is_threshold_set=False behavior.
+            cursor.execute(
+                '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t' WHERE gs_id=%s''',
+                (gs_id,)
+            )
+            return
+        cursor.execute(
+            '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t'
+               WHERE gs_id=%s AND gsv_value>=%s AND gsv_value<=%s''',
+            (gs_id, low, high)
+        )
+
+    else:  # Binary (3) / unknown
+        try:
+            thresh = float(gs_threshold)
+        except (TypeError, ValueError):
+            thresh = 1.0
+        cursor.execute(
+            '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t'
+               WHERE gs_id=%s AND gsv_value>=%s''',
+            (gs_id, thresh)
+        )
+
+
 def update_geneset(usr_id, form):
     """
     Selectively updates geneset metadata and publication information based on form data.
@@ -1594,6 +1740,7 @@ def update_geneset(usr_id, form):
     gs_description = form.get('gs_description', '').strip()
     gs_name = form.get('gs_name', '').strip()
     gs_threshold_type = int(form.get('gs_threshold_type', 0))
+    gs_threshold = form.get('gs_threshold', '').strip()
     pub_authors = form.get('pub_authors', '').strip()
     pub_title = form.get('pub_title', '').strip()
     pub_abstract = form.get('pub_abstract', '').strip()
@@ -1715,16 +1862,37 @@ def update_geneset(usr_id, form):
         cur_id = current_version.cur_id
         gs_groups = current_version.group_ids
 
+    ## Resolve the threshold value: use the submitted one, otherwise keep the
+    ## geneset's current threshold (GWC-42 -- the edit form now supplies this).
+    if not gs_threshold:
+        gs_threshold = current_version.threshold
+
+    ## Did the score type or threshold actually change? If so we must recompute
+    ## the per-value gsv_in_threshold flags below, or tools/views that filter on
+    ## them will use stale membership (GWC-42).
+    threshold_changed = (
+        int(gs_threshold_type) != int(current_version.threshold_type or 0) or
+        str(gs_threshold) != str(current_version.threshold or '')
+    )
+
     # update geneset with changes
     with PooledCursor() as cursor:
         sql = cursor.mogrify('''
-            UPDATE geneset 
-            SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
-                gs_description = (%s), gs_threshold_type = (%s), cur_id = (%s), gs_groups = (%s)
+            UPDATE geneset
+            SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s),
+                gs_description = (%s), gs_threshold_type = (%s), gs_threshold = (%s),
+                cur_id = (%s), gs_groups = (%s)
             WHERE gs_id = %s;
-            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, cur_id, gs_groups, gs_id)
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type,
+                  gs_threshold, cur_id, gs_groups, gs_id)
                              )
         cursor.execute(sql)
+
+        ## Keep per-value in-threshold membership consistent with the (possibly
+        ## new) score type / threshold.
+        if threshold_changed:
+            recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_threshold)
+
         cursor.connection.commit()
 
     return {'success': True}

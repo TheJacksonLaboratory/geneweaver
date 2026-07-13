@@ -879,6 +879,16 @@ class BatchReader(object):
         else:
             thresh = 1.0
 
+        ## GWC-42: flag values that aren't plausible for the declared score type
+        ## (e.g. a p-value > 1). Advisory only -- surfaced via self.warns, the
+        ## upload is not blocked.
+        domain_warns = gwdb.score_type_value_warnings(
+            ttype, [(ref, value) for ref, _ode, value in gs['geneset_values']]
+        )
+        gs_label = gs.get('gs_name', '')
+        for w in domain_warns:
+            self.warns.append(('GeneSet "%s": %s' % (gs_label, w)) if gs_label else w)
+
         for ref, ode, value in gs['geneset_values']:
             # all gs values should be within threshold if the gs threshold is not set
             if not is_threshold_set:

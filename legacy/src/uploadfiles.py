@@ -248,6 +248,9 @@ def create_new_geneset_for_user(args, user_id):
     missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
 
+    ## GWC-42: advisory warnings if values look implausible for the score type.
+    score_warnings = score_type_value_warnings(gs_threshold_type, gene_data)
+
     try:
         with db.PooledCursor() as cursor:
             cursor.execute('''SELECT production.create_geneset2(%s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -338,7 +341,7 @@ def create_new_geneset_for_user(args, user_id):
     # insert genes associated with geneset into the hom2geneset table
     insert_into_hom2geneset_by_gsid(gs_id)
 
-    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes, 'warnings': score_warnings}
 
 def create_new_large_geneset_for_user(args, user_id):
     '''
@@ -409,6 +412,9 @@ def create_new_large_geneset_for_user(args, user_id):
     gs_count = len(gene_data.split('\n'))
     missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
+
+    ## GWC-42: advisory warnings if values look implausible for the score type.
+    score_warnings = score_type_value_warnings(gs_threshold_type, gene_data)
 
     try:
         with db.PooledCursor() as cursor:
@@ -490,7 +496,7 @@ def create_new_large_geneset_for_user(args, user_id):
     # insert genes associated with geneset into the hom2geneset table
     insert_into_hom2geneset_by_gsid(gs_id)
 
-    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes, 'warnings': score_warnings}
 
 
 def get_default_threshold(gs_threshold_type: str) -> str:
@@ -524,6 +530,32 @@ def get_default_threshold(gs_threshold_type: str) -> str:
         return '-1000,1000'
     else:
         return '0.05'
+
+
+def score_type_value_warnings(gs_threshold_type, gene_data):
+    """
+    Advisory warnings for values outside the selected score type's domain
+    (GWC-42). `gene_data` is the processed "ref\\tvalue\\n" string from
+    process_gene_list. Domain logic is delegated to
+    geneweaverdb.score_type_value_warnings so single upload and batch upload
+    stay consistent.
+
+    :param gs_threshold_type: the score type code (str or int)
+    :param gene_data: processed gene list string
+    :return: a list of warning strings (empty if all values are in-domain)
+    """
+    pairs = []
+    for line in str(gene_data).split('\n'):
+        parts = line.split('\t')
+        if len(parts) >= 2 and parts[0].strip():
+            pairs.append((parts[0].strip(), parts[1].strip()))
+
+    try:
+        stype = int(gs_threshold_type)
+    except (TypeError, ValueError):
+        return []
+
+    return db.score_type_value_warnings(stype, pairs)
 
 
 def process_gene_list(gene_list):
