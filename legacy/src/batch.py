@@ -209,7 +209,7 @@ class BatchReader(object):
             stype = 4
 
             if valid:
-                thresh = match.group(1) + ',' + match.group(2)
+                thresh = match.group(1) + ',' + match.group(3)
             else:
                 thresh = '-1,1'
                 self.warns.append(
@@ -222,7 +222,7 @@ class BatchReader(object):
             stype = 5
 
             if valid:
-                thresh = match.group(1) + ',' + match.group(2)
+                thresh = match.group(1) + ',' + match.group(3)
             else:
                 thresh = '-1000,1000'
                 self.warns.append('Threshold not found or invalid. Default set to -1000, 1000 for effect.')
