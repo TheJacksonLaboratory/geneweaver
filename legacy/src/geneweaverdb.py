@@ -6,6 +6,7 @@ import string
 import random
 import psycopg2
 from psycopg2 import Error
+from psycopg2 import sql
 from psycopg2.extras import execute_values
 from psycopg2.pool import ThreadedConnectionPool
 from tools import toolcommon as tc
@@ -2823,25 +2824,58 @@ def admin_delete(args, keys):
 
 # updates columns for specified key(s)
 def admin_set_edit(args, keys):
+    ## GWC-9: this used to build the UPDATE by string-concatenation with a no-op
+    ## quote "escape" (value.replace("'", "\'") -- in Python "\'" == "'"), so any
+    ## value containing an apostrophe (e.g. a geneset named "Behcet's ...") produced
+    ## malformed SQL, the error was swallowed, and the row was never updated (the
+    ## admin's tier change silently failed). Build a parameterized query instead:
+    ## identifiers via sql.Identifier, values via placeholders/params.
     table = args.get('table', type=str)
 
-    if len(keys) <= 0:
+    if not keys:
         return "Error: No primary key constraints set"
 
-    colmerge = []
-    colkeys = args.keys()
-    for key in colkeys:
-        if key != 'table':
-            value = args.get(key, type=str)
-            if value and value != "None":
-                colmerge.append(key + '=\'' + value.replace("'", "\'") + '\'')
+    ## The caller passes primary keys as "col='value'" strings; split them back
+    ## into (column, value) so the WHERE clause can be parameterized too.
+    where_cols, where_vals = [], []
+    for k in keys:
+        col, _, raw = k.partition('=')
+        col = col.strip()
+        raw = raw.strip()
+        if len(raw) >= 2 and raw[0] == "'" and raw[-1] == "'":
+            raw = raw[1:-1]
+        where_cols.append(col)
+        where_vals.append(raw)
+    key_names = set(where_cols)
 
-    sql = '''UPDATE %s SET %s WHERE %s;''' % (table, ','.join(colmerge), ' AND '.join(keys))
+    set_clauses, params = [], []
+    for key in args.keys():
+        if key == 'table' or key in key_names:
+            continue
+        value = args.get(key, type=str)
+        if value and value != "None":
+            set_clauses.append(sql.SQL("{} = {}").format(sql.Identifier(key), sql.Placeholder()))
+            params.append(value)
 
-    # print sql
+    if not set_clauses:
+        return "Nothing to update"
+
+    where_clauses = [sql.SQL("{} = {}").format(sql.Identifier(c), sql.Placeholder())
+                     for c in where_cols]
+    params.extend(where_vals)
+
+    schema, sep, tbl = table.partition(".")
+    table_ident = sql.Identifier(schema, tbl) if sep else sql.Identifier(schema)
+
+    query = sql.SQL("UPDATE {} SET {} WHERE {}").format(
+        table_ident,
+        sql.SQL(", ").join(set_clauses),
+        sql.SQL(" AND ").join(where_clauses),
+    )
+
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, params)
             cursor.connection.commit()
             return "Edit Successful"
     except Exception as e:
@@ -2850,27 +2884,34 @@ def admin_set_edit(args, keys):
 
 # adds item into db for specified table
 def admin_add(args):
+    ## GWC-9: same class of bug as admin_set_edit -- this built a raw INSERT by
+    ## string-joining values inside quotes, so an apostrophe broke the SQL. Use a
+    ## parameterized INSERT (sql.Identifier columns, placeholder values).
     table = args.get('table', type=str)
-    source_columns = []
-    column_values = []
 
-    keys = args.keys()
+    columns, params = [], []
+    for key in args.keys():
+        if key == 'table':
+            continue
+        value = args.get(key, type=str)
+        if value:
+            columns.append(sql.Identifier(key))
+            params.append(value)
 
-    # sql creation
-    for key in keys:
-        if key != 'table':
-            value = args.get(key, type=str)
-            if value:
-                source_columns.append(key)
-                column_values.append(value)
-
-    if len(source_columns) <= 0:
+    if not columns:
         return "Nothing to insert"
-    sql = 'INSERT INTO %s (%s) VALUES (\'%s\');' % (table, ','.join(source_columns), '\',\''.join(column_values))
-    # print sql
+
+    schema, sep, tbl = table.partition(".")
+    table_ident = sql.Identifier(schema, tbl) if sep else sql.Identifier(schema)
+
+    query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+        table_ident,
+        sql.SQL(", ").join(columns),
+        sql.SQL(", ").join(sql.Placeholder() for _ in params),
+    )
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, params)
             cursor.connection.commit()
             return "Add Successful"
     except Exception as e:
@@ -4013,7 +4054,15 @@ def get_geneset(geneset_id, user_id=None, temp=None):
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
-            LEFT OUTER JOIN gs_to_pub_assignment ON geneset.gs_id = gs_to_pub_assignment.gs_id
+            -- GWC-9: gs_to_pub_assignment's PK is its serial id, not gs_id, so a
+            -- geneset that went through the pub/curation workflow more than once has
+            -- >1 row here. Joining it directly multiplied the result rows, and
+            -- get_geneset returns None unless exactly one row comes back -- so the
+            -- edit view failed ("GeneSet Not Found" / 500). Collapse to one row/gs_id.
+            LEFT OUTER JOIN (
+                SELECT gs_id, min(pub_assign_id) AS pub_assign_id
+                FROM gs_to_pub_assignment GROUP BY gs_id
+            ) gs_to_pub_assignment ON geneset.gs_id = gs_to_pub_assignment.gs_id
             WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s);
             ''',
                 {

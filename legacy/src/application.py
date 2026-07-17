@@ -938,7 +938,10 @@ def render_editgenesets(gs_id, curation_view=False):
     srp = geneweaverdb.get_srp(gs_id)
     gs_update = geneweaverdb.update_geneset_date(gs_id)
     if user_id != 0:
-        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id or geneweaverdb.user_is_assigned_curation(user_id, gs_id) else None
+        # GWC-9: guard against get_geneset() returning None (unreadable/not found) --
+        # dereferencing geneset.user_id here 500'd for non-admin owners; let a None
+        # geneset fall through to the "GeneSet Not Found" template instead.
+        view = 'True' if user_info.is_admin or user_info.is_curator or (geneset is not None and geneset.user_id == user_id) or geneweaverdb.user_is_assigned_curation(user_id, gs_id) else None
     else:
         view = None
 
