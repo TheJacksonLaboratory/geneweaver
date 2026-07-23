@@ -693,7 +693,12 @@
             venn_list.push({sets: key.split(','), size: venn_dict[key]});
         }
 
-        // draw venn diagram
+        // draw venn diagram. GWC-50: venn.js throws for some combinations of 3+
+        // gene sets (a set with no genes unique to it -> missing singleton/pairwise
+        // area in greedyLayout), which used to bubble out of the unguarded
+        // .call(venn.VennDiagram()) and abort this script, silently blanking the
+        // diagram. Catch it and show a note instead (the overlap tables still render).
+        try {
         var div = d3.select(".vis");
         div.datum(venn_list).call(venn.VennDiagram());
 
@@ -732,6 +737,22 @@
                     .style("fill-opacity", d.sets.length == 1 ? .25 : .0)
                     .style("stroke-opacity", 0);
             });
+
+        } catch (e) {
+            // GWC-50: a proportional Venn/Euler diagram can't always be laid out
+            // for 3+ gene sets (venn.js limitation when overlaps aren't
+            // area-proportionally representable). Show a note instead of letting
+            // the exception silently blank the diagram; the gene/overlap tables
+            // below still contain the full results.
+            if (window.console) { console.warn('Venn diagram could not be rendered:', e); }
+            d3.select(".vis").html(
+                '<div class="alert alert-info" style="max-width:640px;margin:0 auto;">' +
+                'A Venn/Euler diagram could not be drawn for this combination of gene ' +
+                'sets (this can happen with 3 or more sets whose overlaps are not ' +
+                'area-proportionally representable). The overlap tables below contain ' +
+                'the full results.</div>'
+            );
+        }
 
 
     }
