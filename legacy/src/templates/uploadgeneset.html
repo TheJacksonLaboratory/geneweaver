@@ -770,6 +770,18 @@
                             'priority': 'warning'
                         }]);
                     }
+                    // GWC-42 (Tessa): surface the score-type value-range warnings
+                    // on single upload too (batch already did). The backend returns
+                    // them in `warnings`; show them like the "missing genes" notice.
+                    if (v['warnings'] && v['warnings'].length > 0) {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [{
+                            'message': '<strong>Score-type check:</strong><br />' +
+                                       v['warnings'].join('<br />'),
+                            'priority': 'warning',
+                            'fade': 0
+                        }]);
+                    }
                 },
                 error: function(){
                     // Hides confirmation after any kind of result (success or
