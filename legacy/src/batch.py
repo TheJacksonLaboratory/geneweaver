@@ -839,20 +839,21 @@ class BatchReader(object):
 
         ## P and Q values
         if ttype == 1 or ttype == 2:
-            if value <= threshold:
-                return True
+            return value <= threshold
 
         ## Correlation and effect scores
         elif ttype == 4 or ttype == 5:
-            if value >= threshold[0] and value <= threshold[1]:
-                return True
+            return value >= threshold[0] and value <= threshold[1]
 
-        ## Binary
+        ## Binary (3): a binary gene set is a membership list -- every gene in it
+        ## is a member, so binary sets are NOT thresholded and all values are
+        ## in-threshold (GWC-44). Previously this returned ``value >= 1``, which
+        ## flagged any 0-valued gene out-of-threshold and made the set unusable
+        ## in tools (all of which filter on gsv_in_threshold). An unknown ttype
+        ## also lands here and is treated as in-threshold. This matches the
+        ## single/large-upload path, which already stores every value in-threshold.
         else:
-            if value >= threshold:
-                return True
-
-        return False
+            return True
 
     def __insert_geneset_values(self, gs):
         """

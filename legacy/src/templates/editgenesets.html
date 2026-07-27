@@ -823,6 +823,25 @@
 
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
+
+        // GWC-44: a binary gene set is a membership list -- it is NOT thresholded,
+        // so the threshold value never includes/excludes genes. Reflect that in the
+        // form: when Binary is selected make the threshold read-only and explain it,
+        // so curators aren't misled into thinking a cutoff applies. Read-only (not
+        // disabled) keeps the field submitting, so update_geneset still gets a value.
+        function syncBinaryThreshold() {
+            var $thresh = $('#gs_threshold');
+            if ($('#gs_threshold_type').val() === '3') {   // Binary
+                $thresh.prop('readonly', true)
+                       .attr('placeholder', 'Not thresholded — all genes are members')
+                       .attr('title', 'Binary gene sets are membership lists and are not thresholded; every gene is included regardless of this value.');
+            } else {
+                $thresh.prop('readonly', false)
+                       .attr('title', 'Cutoff for the selected score type. P-Value/Q-Value: a single value (e.g. 0.05). Correlation/Effect: min,max (e.g. -1,1).');
+            }
+        }
+        syncBinaryThreshold();
+        $('#gs_threshold_type').on('change', syncBinaryThreshold);
     });
 
 

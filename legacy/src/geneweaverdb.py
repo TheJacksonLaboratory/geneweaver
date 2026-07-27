@@ -1639,7 +1639,8 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
     ``gsv_in_threshold`` will use stale membership (GWC-42).
 
         P-Value / Q-Value: in-threshold when value <= threshold.
-        Binary:            in-threshold when value >= threshold (default 1).
+        Binary:            not thresholded -- every value is in-threshold, since
+                           a binary set is a membership list (GWC-44).
         Correlation/Effect: in-threshold when min <= value <= max; if the range
                             is unset/malformed, all values are in-threshold.
 
@@ -1689,14 +1690,12 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
         )
 
     else:  # Binary (3) / unknown
-        try:
-            thresh = float(gs_threshold)
-        except (TypeError, ValueError):
-            thresh = 1.0
+        ## Binary gene sets are membership lists -- every listed gene is a
+        ## member, so they are NOT thresholded and all values are in-threshold
+        ## (GWC-44). (Reset above already cleared them; flag them all back on.)
         cursor.execute(
-            '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t'
-               WHERE gs_id=%s AND gsv_value>=%s''',
-            (gs_id, thresh)
+            '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t' WHERE gs_id=%s''',
+            (gs_id,)
         )
 
 
