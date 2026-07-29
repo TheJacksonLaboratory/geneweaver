@@ -4683,6 +4683,22 @@ def render_search_json():
     ## Used to generate attribution tags
     attribs = geneweaverdb.get_all_attributions()
 
+    ## No matches / error: keyword_paginated_search returns only a STATUS key in
+    ## these cases, so the success render below would KeyError on 'searchresults'
+    ## and 500. Render the wrapper's built-in no-results state instead, mirroring
+    ## render_searchFromHome (G3-778).
+    if search_values.get('STATUS') in ('NO MATCHES', 'ERROR'):
+        return render_template(
+            'search/search_wrapper_contents.html',
+            paginationValues=None,
+            noResults=(search_values.get('STATUS') == 'NO MATCHES'),
+            field_list=userValues['field_list'],
+            userFilters=userValues['userFilters'],
+            sort_by=userValues['sort_by'],
+            sort_ascending=userValues['sort_ascending'],
+            species=species,
+            attribs=attribs)
+
     return render_template(
         'search/search_wrapper_contents.html',
         searchresults=search_values['searchresults'],
