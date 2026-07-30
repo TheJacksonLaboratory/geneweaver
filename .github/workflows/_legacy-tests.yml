@@ -44,4 +44,5 @@ jobs:
             tests.test_threshold_value_validation \
             tests.test_batch_thresholds \
             tests.test_search_filters \
-            tests.test_upload_processing
+            tests.test_upload_processing \
+            tests.db.test_get_genesets_hom_ids
