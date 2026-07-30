@@ -4426,13 +4426,32 @@ def get_genesets_by_hom_id(hom_ids):
 
 
 def get_genesets_hom_ids(gs_ids):
-    """Get all hom_ids for a list of geneset ids.
+    """Get the in-threshold hom_ids for a list of geneset ids.
+
+    This is the *candidate* side of the "Find Similar Genesets" Jaccard
+    computation (calculate_jaccard). It must count only in-threshold genes, the
+    same way get_geneset_hom_ids does for the *viewed* geneset -- otherwise the
+    similarity is asymmetric and inflated (GWC-35 / G3-780).
+
+    It previously read the ``extsrc.geneset2hom`` materialized view, which is
+    built WITHOUT a ``gsv_in_threshold`` filter, so every candidate contributed
+    all of its genes' homologs regardless of threshold. Compute the hom_ids
+    directly instead, mirroring get_geneset_hom_ids (grouped per geneset). A
+    candidate with no in-threshold genes yields no row and is simply omitted.
+
     :param gs_ids: list of geneset ids
-    :returns: dict of key=gs_id, value=list of hom_ids
+    :returns: dict of key=gs_id, value=list of in-threshold hom_ids
     """
     with PooledCursor() as cursor:
         cursor.execute("""
-        SELECT gs_id, hom_id_array FROM extsrc.geneset2hom WHERE gs_id = ANY(%(gs_ids)s)
+        SELECT g.gs_id, array_agg(DISTINCT h.hom_id)
+        FROM extsrc.homology h
+            INNER JOIN extsrc.geneset_value gsv ON h.ode_gene_id = gsv.ode_gene_id
+            INNER JOIN production.geneset g ON gsv.gs_id = g.gs_id
+        WHERE g.gs_status NOT LIKE 'de%%'
+            AND g.gs_id = ANY(%(gs_ids)s)
+            AND gsv.gsv_in_threshold
+        GROUP BY g.gs_id
         """, {"gs_ids": list(gs_ids)})
         if cursor.rowcount == 0:
             return {}
