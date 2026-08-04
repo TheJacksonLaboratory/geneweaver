@@ -38,14 +38,31 @@ class InsertIntoGenesetValueByGsidTests(unittest.TestCase):
         uploadfiles.db.PooledCursor.return_value.__enter__.return_value = self.cursor
 
         uploadfiles.insert_into_geneset_value_by_gsid(self.GS_ID)
-        self.statements = [
-            (call.args[0] if call.args else '') for call in self.cursor.execute.call_args_list
+        self.calls = [
+            ((c.args[0] if c.args else ''), (c.args[1] if len(c.args) > 1 else None))
+            for c in self.cursor.execute.call_args_list
         ]
+        self.statements = [sql for sql, _ in self.calls]
 
     def _find(self, *needles):
         """Statements containing every needle (case-insensitive)."""
         return [s for s in self.statements
                 if all(n.lower() in s.lower() for n in needles)]
+
+    def _index_of(self, *needles):
+        """Position of the first statement containing every needle, or -1."""
+        for i, s in enumerate(self.statements):
+            if all(n.lower() in s.lower() for n in needles):
+                return i
+        return -1
+
+    def _gs_count_update(self):
+        """The (sql, params) call that sets gs_count."""
+        for sql, params in self.calls:
+            low = sql.lower()
+            if 'update' in low and 'gs_count' in low and 'set' in low:
+                return sql, params
+        self.fail('no statement updates gs_count')
 
     def test_gs_count_is_derived_from_geneset_value(self):
         # The UPDATE that sets gs_count must read the real stored rows.
@@ -74,6 +91,39 @@ class InsertIntoGenesetValueByGsidTests(unittest.TestCase):
         inserts = self._find('insert into extsrc.geneset_value')
         self.assertTrue(inserts, 'no insert into extsrc.geneset_value')
         self.assertIn('group by gs_id,ode_gene_id', inserts[0].lower().replace(', ', ','))
+
+    def test_gs_count_update_runs_after_the_insert(self):
+        # Ordering is load-bearing: the count is taken from extsrc.geneset_value,
+        # which is emptied and refilled by the INSERT. Running the UPDATE first
+        # would store the count of the *previous* contents (or 0 on first save).
+        insert_at = self._index_of('insert into extsrc.geneset_value')
+        update_at = self._index_of('update', 'gs_count', 'set')
+        self.assertNotEqual(insert_at, -1, 'no insert into extsrc.geneset_value')
+        self.assertNotEqual(update_at, -1, 'no statement updates gs_count')
+        self.assertLess(insert_at, update_at,
+                        'gs_count is written before the rows it is meant to count')
+
+    def test_count_subquery_is_scoped_to_this_geneset(self):
+        # A subquery without a WHERE would count every row in geneset_value and
+        # write that to one geneset -- still "derived from geneset_value", so the
+        # shape assertions above would not catch it.
+        sql, _ = self._gs_count_update()
+        after_geneset_value = sql.lower().split('geneset_value', 1)[1]
+        self.assertIn('where', after_geneset_value,
+                      'count subquery is not restricted to this gs_id: %r' % sql)
+        self.assertGreaterEqual(
+            after_geneset_value.count('gs_id'), 2,
+            'count subquery does not correlate geneset_value to the geneset row: %r' % sql)
+
+    def test_gs_count_update_is_parameterised(self):
+        # gsid arrives unvalidated from /updateGenesetGenes (request.args['gs_id']),
+        # so it must be bound, not interpolated into the SQL text.
+        sql, params = self._gs_count_update()
+        self.assertNotIn(str(self.GS_ID), sql,
+                         'gsid is interpolated into the SQL instead of bound: %r' % sql)
+        self.assertIn('%s', sql, 'no bind placeholder in the gs_count update')
+        self.assertEqual(params, (self.GS_ID,),
+                         'gsid is not passed as a query parameter')
 
 
 if __name__ == '__main__':
