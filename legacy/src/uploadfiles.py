@@ -835,9 +835,6 @@ def insert_into_geneset_value_by_gsid(gsid):
     :return: 'True' or error msg
     '''
     with db.PooledCursor() as cursor:
-        ## get the latest count of genes from the temp table for updating main table at end of process
-        cursor.execute('''select count(*) from production.temp_geneset_value where gs_id = %s;''' % (gsid,))
-        gs_count = cursor.fetchone()[0]
         cursor.execute('''SELECT gs_id FROM production.temp_geneset_value WHERE gs_id=%s''', (gsid,))
         g = cursor.fetchone()
         if g is not None:
@@ -863,8 +860,17 @@ def insert_into_geneset_value_by_gsid(gsid):
                     ## Update 'delayed' values to 'normal'
                     cursor.execute('''UPDATE geneset SET gs_status='normal' WHERE gs_id=%s;''', (gsid,))
                     cursor.connection.commit()
-                    # update the main geneset table with the new count
-                    cursor.execute('''update production.geneset set gs_count = %s where gs_id = %s;''' % (gs_count, gsid))
+                    # Update the main geneset table with the new count. Derive it from the rows
+                    # actually stored, NOT from a count of temp_geneset_value: the INSERT above
+                    # groups by ode_gene_id, so two source identifiers resolving to the same gene
+                    # (aliases/synonyms, or a symbol listed twice) collapse into one row. Counting
+                    # the staged rows therefore over-counted, leaving gs_count above the real gene
+                    # count — search showed the inflated number while the geneset page, which does
+                    # its own count(*), showed the true one (GWC-34 / G3-782).
+                    cursor.execute('''UPDATE production.geneset gs
+                                         SET gs_count = (SELECT count(*) FROM extsrc.geneset_value gv
+                                                          WHERE gv.gs_id = gs.gs_id)
+                                       WHERE gs.gs_id = %s;''', (gsid,))
                     cursor.connection.commit()
 
                     return {'error': 'None'}
