@@ -21,6 +21,23 @@ durable engineering guardrails learned from real incidents. Full context in
 - Keep a file's **write path and read path consistent** (one env-derived
   location), and create the directory before writing.
 
+### Database
+- **Parameterise SQL — never `%`-interpolate a query string.** Use
+  `cursor.execute(sql, (a, b))`, not `cursor.execute(sql % (a, b))`. Route values
+  reach these unvalidated: `gsid` arrives as `request.args['gs_id']` in
+  `/updateGenesetGenes` and was interpolated straight into an `UPDATE`. ~42
+  occurrences remain in `legacy/src` (`geneweaverdb.py`, `genesetblueprint.py`,
+  `uploadfiles.py`) — fix the line you are touching rather than adding another.
+- **Derive a denormalized count or cache from the rows it describes, not from a
+  parallel count of something else.** Where the write path aggregates (`GROUP BY`,
+  `DISTINCT`, a filter), a separately computed count is a *different number* by
+  construction. `gs_count` was set from the staged rows in `temp_geneset_value`
+  while the INSERT stored one row per distinct `ode_gene_id`, so two identifiers
+  for the same gene inflated it — search (which reads `gs_count`) and the geneset
+  page (which counts live) then disagreed. Compute it *after* the rows exist:
+  `SET gs_count = (SELECT count(*) FROM extsrc.geneset_value WHERE gs_id = …)`.
+  (GWC-34 / G3-782.)
+
 ### Build / CI
 - **Do not swallow build or compile failures.** Avoid `... || echo "WARN: ..."`
   around critical steps — it produces a green build with a missing artifact that
