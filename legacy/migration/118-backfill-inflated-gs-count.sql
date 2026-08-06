@@ -110,11 +110,25 @@ WHERE gs.gs_count IS DISTINCT FROM v.real_rows
 
 COMMIT;
 
--- Search serves gs_count out of the Sphinx/Manticore index, not the table, so the
--- corrected numbers only reach search results once the index is rebuilt. The search
--- sidecar runs `indexer --all` at pod start, so run this migration BEFORE the
--- environment's deploy and the rollout picks the new values up automatically.
--- Timing on dev: ~18s end to end, 33 rows updated.
+-- Search serves gs_count out of the Sphinx/Manticore index, where it is a materialised
+-- attribute (`sql_attr_uint = gs_count`), not a live read of this table. The corrected
+-- numbers therefore only reach search results once the index is rebuilt.
+--
+-- It must be a FULL rebuild (`indexer --all`). A *delta* reindex will NOT pick these
+-- genesets up: geneset_delta_src selects `gs_updated >= sphinxcounters.last_update`, and
+-- this migration deliberately does not touch gs_updated -- that column is the geneset's
+-- user-visible "last modified" time, and bumping it would claim the geneset's contents
+-- changed when only a miscounted cached total was repaired, disturbing curation views and
+-- recently-updated sorting. The trade-off is that the delta path cannot see the change.
+--
+-- In the current deployment the search sidecar runs `indexer --all` at container start and
+-- nothing schedules a delta run, so running this migration BEFORE the environment's deploy
+-- means the rollout rebuilds the index and republishes the corrected values automatically.
+-- If you run it WITHOUT a following deploy, restart the search sidecar, or search will keep
+-- serving the old numbers indefinitely. Confirmed on dev: after the backfill GS407872 read
+-- 1538 in the database while the still-running index served 1901.
+--
+-- Timing on dev: ~20s end to end, 33 rows updated.
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Rollback

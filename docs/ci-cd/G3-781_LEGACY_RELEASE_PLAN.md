@@ -436,10 +436,27 @@ outside the transaction and batch the `UPDATE` by `gs_id` range.
 rollback statement is at the foot of the migration file. Keep the audit table until the environment
 has been signed off.
 
-**Ordering.** `gs_count` reaches search through the Sphinx/Manticore index, not the table. The search
-sidecar runs `indexer --all` at pod start, so run the migration **before** approving that
-environment's deploy and the rollout republishes the corrected numbers. My Genesets reads the table
-directly and updates immediately.
+**Ordering, and the reindex trap.** `gs_count` is a *materialised attribute* in the Sphinx/Manticore
+index (`sql_attr_uint = gs_count`), not a live read of the table. Corrected values reach search only
+when the index is rebuilt, and it must be a **full** `indexer --all`:
+
+- A **delta** reindex will not see them. `geneset_delta_src` selects `gs_updated >=
+  sphinxcounters.last_update`, and the migration deliberately leaves `gs_updated` alone — it is the
+  geneset's user-visible "last modified" time, and bumping it would assert the contents changed when
+  only a cached total was repaired. So do not assume a delta run is sufficient.
+- The search sidecar runs `indexer --all` at container start, and nothing schedules a delta, so
+  running the migration **before** approving that environment's deploy means the rollout rebuilds the
+  index and republishes the corrected values. If the migration is run *without* a following deploy,
+  restart the `geneweaver-legacy-search` container or search keeps serving the old numbers.
+
+Verified on dev: after the backfill GS407872 read 1538 in the database while the still-running index
+served 1901.
+
+**Where the fix is visible immediately.** My Genesets reads `gs_count` straight from the table, so it
+is correct the moment the migration commits — no reindex needed. That is the page GWC-34 was reported
+from, so it is the fastest way for the reporter to confirm. Note also that genesets created *after*
+the last index build are absent from search entirely until a rebuild, so a freshly uploaded test
+geneset should be checked on My Genesets, not in search results.
 
 ## 6. Per-environment verification (do all of these in each env)
 
