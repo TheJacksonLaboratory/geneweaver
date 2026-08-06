@@ -27,9 +27,18 @@ for the promotion and cutover procedure.
   be applied to each environment's database **before** that environment's deploy, or the UI upload
   path keeps producing unusable binary gene sets. Idempotent; the backfill is not reversible without
   capturing pre-state first (see the release plan §5.1).
+* **Database migration 118** — `legacy/migration/118-backfill-inflated-gs-count.sql` corrects the
+  `gs_count` values already stored wrong. Not required for the code to be correct — the code fix
+  stops *new* drift — but without it the reporter still sees the original symptom on existing
+  genesets. Idempotent, and reversible via the audit table it captures. **Applied to dev
+  2026-08-06** (33 genesets, 1,792 phantom genes; GS407881 9 → 4); pending SQA/Stage/Prod. It scans
+  `extsrc.geneset_value` (~20s over 35M rows on dev, larger on prod), so time it on Stage first —
+  Stage and Prod share a Cloud SQL instance. Procedure and per-environment status: release plan §5.4.
+  To check any environment (read-only, safe any time) or to detect a later recurrence, run
+  `legacy/migration/checks/gwc34-gs-count-drift.sql`.
 * No Sphinx reindex step is needed — the search sidecar runs `indexer --all` at pod start, so a
-  rollout rebuilds the index automatically. Apply the migration *before* the deploy so the rebuilt
-  index picks up corrected values.
+  rollout rebuilds the index automatically. Apply both migrations *before* the deploy so the
+  rebuilt index picks up corrected values.
 
 ### Fixed — curation & upload
 
@@ -50,13 +59,26 @@ for the promotion and cutover procedure.
   Binary (membership) sets had their genes marked out-of-threshold, making them unusable in every
   analysis tool. The stored procedure now always treats `gs_threshold_type = 3` as in-threshold, and
   migration 117 backfills existing sets.
-* **Search-result gene counts disagreed with the geneset page** (GWC-34 / G3-782) — `a133bd2b` ·
-  `branch`
-  On a geneset edit or delayed upload, the stored `gs_count` was taken from the number of submitted
-  lines while only one row per *distinct gene* is stored — so two identifiers for the same gene
-  (an alias plus its official symbol, or a repeated symbol) inflated the count. Search shows the
-  stored count and the geneset page counts live, hence the mismatch. Now derived from the rows
-  actually stored. **See Known issues** — existing genesets are not yet corrected.
+* **Search-result gene counts disagreed with the geneset page** (GWC-34 / G3-782) — `a133bd2b`,
+  `3ddd38a5` · `branch` · **backfill migration 118**
+  Search and the My Genesets Count column render the stored `gs_count`; the geneset page counts
+  live. Three write paths stored a count that was never derived from the genes actually saved, so
+  the two disagreed — always in the direction of over-counting:
+  * **Plain UI upload** — `gs_count` was `len(gene_data.split('\n'))`, i.e. submitted *lines* plus
+    the trailing blank one, handed to `create_geneset2`, which stores it verbatim and only then
+    calls `reparse_geneset_file()` to resolve identifiers. Identifiers matching no gene are dropped
+    and identifiers for the same gene collapse, and nothing reconciled the count afterwards.
+    Verified on dev: GS407881 submitted 8 identifiers, stored `gs_count` 9, saved 4 genes.
+  * **Geneset edit / delayed upload** (`a133bd2b`) — counted staged rows in `temp_geneset_value`
+    while the INSERT groups by `ode_gene_id`, so alias/duplicate identifiers inflated it.
+  * **Tool-generated genesets** (`genesetblueprint`) — counted
+    `geneset_value NATURAL JOIN gene WHERE ode_pref`, one row per *preferred identifier* a gene
+    carries rather than one per gene (avg ~2 on dev), roughly doubling the count; it also raised
+    `TypeError` on an empty geneset because `GROUP BY gs_id` returned no row.
+
+  All three now derive the count from `extsrc.geneset_value` after the rows exist. Note this makes
+  the count *honest*, not larger — where identifiers failed to resolve the displayed number will
+  drop (GS407881: 9 → 4). Genes are still being dropped on upload; that is GWC-36, not this ticket.
 * **Admin-page tier change and geneset edit view** (GWC-9 / G3-775) — `35e47977` · `branch`
   Changing a geneset's tier from the admin page had no effect, and some genesets returned a 500
   when opening the edit view.
@@ -143,12 +165,12 @@ for the promotion and cutover procedure.
 
 ### Known issues
 
-* **`gs_count` backfill outstanding** (G3-782) — the fix corrects genesets edited from now on;
-  genesets already carrying an inflated count keep showing it in search until a one-off data
-  correction is run. Until then the geneset page is the number to trust.
-* **Genesets with a count but no genes** (G3-782) — roughly 1.6% of live genesets carry a non-zero
-  `gs_count` with no gene rows at all, and are searchable. Cause not yet established; deliberately
-  excluded from the backfill above pending a decision.
+* **Genesets with a count but no genes** (G3-782) — 2,920 live genesets on dev (~1.5%) carry a
+  non-zero `gs_count` with no gene rows at all, and are searchable; the worst claims 13,190 genes.
+  Cause not yet established; deliberately **excluded from migration 118** pending a decision, since
+  zeroing them changes what search returns. Raised with the reporter on GWC-34, unanswered. Until
+  it is decided, a user can still hit a geneset whose search count does not match its page — it
+  will be one of these empty ones rather than a miscount.
 * **MSET rejects Tier-IV/V gene sets** whose genes fall outside the curated background (GWC-51 /
   G3-783). By design for now; the V3 tools port should define the background as the full gene space.
 * **NCBO API key is still hardcoded** (G3-770) — deliberately retained in this release to avoid

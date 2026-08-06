@@ -60,7 +60,7 @@ covers the branch work only.
 | G3-778 | Search robustness (3 bugs) | `4fee2bb4` | **Ready for Testing** | — |
 | G3-780 / GWC-35 | Find Similar thresholds only one side | `ac0a986c` | **Ready for Testing** | — |
 | G3-779 | Regression suite (48 unit tests) + legacy CI gate | `f7196d77`, `e3d6fdde`, `3908c1cd` | In Progress | — |
-| G3-782 / GWC-34 | Inflated `gs_count` on geneset edit / delayed upload | `a133bd2b`, `3908c1cd` | In Progress | backfill pending (§5.4) |
+| G3-782 / GWC-34 | Inflated `gs_count` — geneset edit / delayed upload, **plain UI upload**, and tool-generated genesets | `a133bd2b`, `3908c1cd`, `3ddd38a5` | In Progress | **migration 118** (§5.4); applied to dev 2026-08-06, pending SQA/Stage/Prod |
 | G3-783 / GWC-51 | MSET cryptic error for Tier-IV genesets outside the background | `0ba54c0a` **(set 2 — already in `main`)** | In Testing | — |
 
 Also on the branch and shipping with it: version bump to 1.6.0 (`e888036d`), the batch paste-box
@@ -375,6 +375,72 @@ approving each environment's deploy.
 - **Search (G3-778)** — Sphinx index unchanged; no reindex required. Confirm the search sidecar
   (`geneweaver-legacy-search`, second container in the web Deployment) comes up healthy after rollout.
 
+### 5.4 Migration 118 (GWC-34) — `gs_count` backfill, recommended in SQA, Stage, Prod
+
+`legacy/migration/118-backfill-inflated-gs-count.sql` resets `production.geneset.gs_count` from the
+rows actually present in `extsrc.geneset_value`, for genesets where the two disagree.
+
+Not required for the code to be correct — the code fixes stop *new* drift — but without it the
+genesets that are already wrong keep displaying the old number, which is exactly what the reporter
+sees. Apply it per environment alongside the deploy.
+
+**What it corrects:** genesets that hold at least one gene but whose stored count is wrong.
+**What it deliberately does not touch:** genesets with `gs_count > 0` and *zero* gene rows. Those are
+a separate, unresolved problem (source files uploaded comma-separated where TSV was expected;
+identifiers for species whose gene data is not loaded) and re-running the resolver restores nothing —
+verified on dev. Zeroing them would change what search returns, so it is a pending product decision.
+See the CHANGELOG "Known issues".
+
+**Status by environment**
+
+| Env | Applied | Result |
+|---|---|---|
+| dev (`geneweaver-dev`) | **2026-08-06** | 33 genesets corrected, 1,792 phantom genes removed; GS407881 9 → 4. Verified 0 remaining |
+| sqa (`geneweaver-sqa`) | not yet | |
+| stage (`geneweaver-stage`) | not yet | |
+| prod (`geneweaver-prod`) | not yet | |
+
+**1 — Detect first (read-only, safe any time, including Prod in hours)**
+
+```bash
+cloud-sql-proxy <project>:<region>:<instance> --port 5433 &
+psql "host=127.0.0.1 port=5433 dbname=<db> user=<admin>" \
+     -f legacy/migration/checks/gwc34-gs-count-drift.sql
+```
+
+Section 1 of that report is the number migration 118 will fix; section 2 is the empty-geneset
+population it will not; section 3 says whether the backfill has already run in that database. The
+same script is how you detect a **recurrence** later — if section 1 is non-zero in an environment
+where 118 has already run, do not just re-run the backfill: check that the deployed image actually
+contains the `uploadfiles.py` / `genesetblueprint.py` fixes first, or it will drift straight back.
+
+**2 — Apply**
+
+```bash
+psql "host=127.0.0.1 port=5433 dbname=<db> user=<admin>" \
+     -v ON_ERROR_STOP=1 -f legacy/migration/118-backfill-inflated-gs-count.sql
+```
+
+Note the `geneweaver-legacy` pods have **no psql client**, so the `kubectl exec … psql` route used
+for migration 117 in §5.1 does not work for this one. Use the proxy, or drive the statements through
+the pod's Python + psycopg2 (the pod does carry the `DB_*` environment).
+
+**Scale.** The migration aggregates `extsrc.geneset_value` once (~35M rows / ~20s on dev; Prod is
+larger). It runs as a single transaction. Time it on Stage before Prod — Stage and Prod share the
+Cloud SQL instance `jax-prod-10-promoted-owl`, so a long Stage run can affect Prod. If the
+transaction is too long for a Prod maintenance window, run the sizing and audit-capture steps
+outside the transaction and batch the `UPDATE` by `gs_id` range.
+
+**Idempotent?** Yes — it only rewrites rows that currently disagree, so a second run matches nothing.
+**Reversible?** Yes — step 1 captures pre-state into `production.gwc34_118_gs_count_audit`; the
+rollback statement is at the foot of the migration file. Keep the audit table until the environment
+has been signed off.
+
+**Ordering.** `gs_count` reaches search through the Sphinx/Manticore index, not the table. The search
+sidecar runs `indexer --all` at pod start, so run the migration **before** approving that
+environment's deploy and the rollout republishes the corrected numbers. My Genesets reads the table
+directly and updates immediately.
+
 ## 6. Per-environment verification (do all of these in each env)
 
 | Fix | Check | Pass |
@@ -389,7 +455,7 @@ approving each environment's deploy.
 | GWC-50 / G3-765 | BooleanAlgebra Symmetric Difference on 3+ sets → 200 + Venn diagram renders | |
 | GWC-45 / G3-766 | MSET run on two same-species sets → completes without "not a subset of its background" | |
 | GWC-51 / G3-783 | MSET on a **Tier-IV** set whose genes fall outside the curated background → a readable message naming the count and the offending genes, **not** a generic 500 with raw C++ stderr. Note the expected outcome is the clear error, *not* a successful run — MSET still refuses such sets by design (dev reference: GS218676 + GS407805, 63 of 5,319 genes outside the background) | |
-| G3-782 / GWC-34 | Edit a geneset's genes, submitting two identifiers for the same gene (an alias and its official symbol) → the search-result count matches the count on the geneset page. Pre-existing genesets stay wrong until the backfill runs (§5.4) | |
+| G3-782 / GWC-34 | Three paths, all must agree with the geneset page: (a) **plain upload** — upload a list ending in a newline that contains a couple of identifiers GeneWeaver won't recognise → My Genesets shows the number *stored*, not the number submitted (expect it to be **lower** than your input; that is correct); (b) **edit** — submit an alias and its official symbol for the same gene; (c) **tool output** — create a geneset from e.g. BooleanAlgebra Union. Then run `legacy/migration/checks/gwc34-gs-count-drift.sql` → section 1 reports 0. Pre-existing genesets stay wrong until migration 118 runs (§5.4) | |
 | Worker health | `kubectl -n <ns> logs deploy/geneweaver-legacy-tools --tail=100` — worker registered its tasks, no import/binary errors | |
 
 Log check after each rollout:
