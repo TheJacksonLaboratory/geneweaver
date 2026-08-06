@@ -283,10 +283,12 @@ def create_new_geneset_for_user(args, user_id):
     except psycopg2.Error as err:
         return {'error': str(err)}
 
-    # Some genesets contain no genes. We need to remove those genesets
     with db.PooledCursor() as cursor:
         cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s''', (gs_id,))
-        if cursor.fetchone()[0] < 1:
+        stored_gene_count = cursor.fetchone()[0]
+
+        # Some genesets contain no genes. We need to remove those genesets
+        if stored_gene_count < 1:
             cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
             error_string = (
@@ -298,6 +300,19 @@ def create_new_geneset_for_user(args, user_id):
             )
             return{'error': error_string}
 
+        # Correct gs_count to the number of genes actually stored. create_geneset2
+        # writes the gs_count handed to it verbatim and only afterwards calls
+        # reparse_geneset_file() to resolve identifiers, so the value it stored is a
+        # count of submitted *lines* -- including the trailing blank line that
+        # split('\n') yields for text ending in a newline. Lines are not genes:
+        # identifiers matching nothing in extsrc.gene are dropped, and identifiers
+        # resolving to the same gene collapse (reparse groups by ode_gene_id). Search
+        # and My Genesets render gs_count while the geneset page runs its own count(*)
+        # (get_genecount_in_geneset), so the two disagreed -- GS407881 stored 9 for 8
+        # submitted identifiers of which 4 resolved (GWC-34 / G3-782).
+        cursor.execute('''UPDATE production.geneset SET gs_count=%s WHERE gs_id=%s;''',
+                       (stored_gene_count, gs_id,))
+        cursor.connection.commit()
 
     # need to get user's preference for annotation tool
     user = db.get_user(user_id)
