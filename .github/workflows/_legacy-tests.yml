@@ -46,4 +46,6 @@ jobs:
             tests.test_search_filters \
             tests.test_upload_processing \
             tests.db.test_get_genesets_hom_ids \
-            tests.test_geneset_count_maintenance
+            tests.test_geneset_count_maintenance \
+            tests.db.test_gene_id_mapping \
+            tests.db.test_get_genesets_w_threshold_counts

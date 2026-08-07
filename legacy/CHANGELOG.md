@@ -149,10 +149,30 @@ for the promotion and cutover procedure.
 
 *No runtime impact.*
 
-* **Legacy regression suite + CI gate** (G3-779) — `f7196d77`, `e3d6fdde`, `3908c1cd` · `branch`
-  48 pure unit tests covering the fixes above, gating both the PR build and the release.
+* **Legacy regression suite + CI gate** (G3-779) — `f7196d77`, `e3d6fdde`, `3908c1cd`, _this branch_
+  · `branch`
+  74 pure unit tests covering the fixes above, gating both the PR build and the release.
   Note `_legacy-tests.yml` enumerates test modules explicitly — a new test file must be added there
-  or CI silently skips it.
+  or CI silently skips it. Two additions closing gaps found by auditing coverage against the full
+  release contents:
+  * **GWC-36 / G3-768 was untested.** The fix lives in `get_gene_ids_by_spid_type`, and no test
+    referenced that function — the suite's only GWC-36 mention covers `process_gene_list`, a
+    different function. `tests/db/test_gene_id_mapping.py` now pins both halves of the fix: that
+    `ode_pref` no longer filters rows (or alias-only symbols are silently dropped again) and that it
+    still leads the `ORDER BY` so the preferred gene wins a symbol collision. Verified to fail
+    against the pre-fix code, and against a simulated re-introduction of the `ode_pref` filter.
+  * **`tests/db/test_get_genesets_w_threshold_counts.py` could never have run.** It imported a
+    function name that does not exist and asserted a list-of-dicts shape where the real function
+    returns `{gs_id: count}`, so all four tests failed on import; being outside the gate, nothing
+    reported it. Rewritten against the real signature and added to the gate. It also pins that
+    genesets with no in-threshold genes are *absent* from the mapping rather than mapping to `0`,
+    which G3-785 has to handle.
+
+  Still uncovered after this pass, in rough priority: the `render_search_json` no-results guard
+  (1 of the 3 bugs in G3-778), the GWC-8 annotator, GWC-9, and the whole already-in-`main` set —
+  MSET (Python 2→3, Tier-IV messaging, worker crash), DBSCAN, graphviz, the C++ `c_str()` fix and
+  the Auth0 secret-logging fix. §1 of the release plan flags that set as where release risk
+  concentrates.
 * **dev-vs-sqa tool A/B harness** — `5a7e44b3`, `1545471c`, `eec91092`, `b567a7d0` · `main`
   Compares tool output across environments; tolerant of remapped `ode_gene_id`s, and only reports a
   match when both runs actually succeeded.
