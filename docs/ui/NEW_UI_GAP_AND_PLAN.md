@@ -3,7 +3,11 @@
 > Comparison of the **legacy** GeneWeaver web app (`legacy/` — Flask + Jinja + Celery) against
 > the **new** UI (`ui/` — Angular 18 / Nx, served at `/next`), and the plan to close the gap.
 > The new UI is currently an early **read-only search experiment**; most of the legacy product
-> is not yet built. **Last updated:** 2026-06-16
+> is not yet built. **Last updated:** 2026-08-10
+>
+> **Status:** this roadmap is now broken into tracked work under epic
+> [G3-786](https://jacksonlaboratory.atlassian.net/browse/G3-786) — see §9 for the story map.
+> Phases 0–3 are filed; Phases 4–5 remain documented here only.
 
 ---
 
@@ -20,7 +24,13 @@ API calls made: `GET /genesets/search`, `/genesets/{id}`, `/genesets/{id}/public
 
 **Not present at all:** global nav/app-shell, authentication, gene-set management/editing, upload, projects, groups, **analysis tools**, results, curation, publications workflow, notifications, account settings, admin, info/help pages, advanced search.
 
-Known structural shortcuts to address: API base URL is **hard-coded** in components (not env-driven); no service layer (HTTP calls live in components); no auth service/guard; species & score-type maps hard-coded client-side; the one feature flag (`geneSetDetailsPage`) is unused.
+Known structural shortcuts to address: no service layer — each component builds its own
+`ApiBaseService` from `jax-apiutils` and issues raw path strings; no auth service, guard or
+interceptor (auth0 config sits unused in the environment files); score-type map hard-coded in
+`geneset.component.ts`; the one feature flag (`geneSetDetailsPage`) is unused.
+
+*Fixed since the first version of this document:* the API base URL is no longer hard-coded — it
+comes from `environment.urls.geneWeaverApi`, with per-cluster environment files (G3-756).
 
 ---
 
@@ -62,8 +72,8 @@ Status legend: ✅ done · 🟡 partial · ❌ missing.
 | B3 | Similar gene sets / overlap viewer | ✅ | — | ❌ | new endpoints + viz |
 | C1 | Gene-set detail (read) | ✅ | ✅ | ✅ | exists |
 | C2 | Edit gene-set metadata / genes / threshold / annotations / delete | ✅ | — | ❌ | **write endpoints (none today)** |
-| A | Auth: login/SSO, account settings, API keys | ✅ | — | ❌ | auth0 wiring (API has config, no enforcement) |
-| D | Upload: single + batch `.gw`, ID transpose | ✅ | — | ❌ | `batch` controller is a stub |
+| A | Auth: login/SSO, account settings, API keys | ✅ | — | ❌ | **UI-side gap only** — the API already enforces per-endpoint (`Security(deps.full_user)`) |
+| D | Upload: single + batch `.gw`, ID transpose | ✅ | — | ❌ | `batch` controller is a stub **and is not mounted** in `controller/api.py` |
 | E | Projects | ✅ | — | ❌ | **project endpoints (none)**; `production.project` exists |
 | F | Groups & sharing | ✅ | — | ❌ | group endpoints (none) |
 | G | **Analysis tools + launcher + results** | ✅ (13 tools) | — | ❌ | **tools endpoints + job model (none)** — see §6 |
@@ -74,7 +84,8 @@ Status legend: ✅ done · 🟡 partial · ❌ missing.
 | L | Admin | ✅ | — | ❌ | admin endpoints |
 | M | Info/help pages | ✅ | — | ❌ | static (no backend) |
 
-**Bottom line:** ~2 of ~15 areas implemented (search + read-only detail). The two largest missing products are **analysis tools** (G/I, the core scientific value) and **gene-set management/upload/projects** (C2/D/E). Most areas are blocked on **backend endpoints that don't exist yet** (the API today exposes only `genes/genesets/publications/species/search/monitors/batch`).
+**Bottom line:** ~2 of ~15 areas implemented (search + read-only detail). The two largest missing products are **analysis tools** (G/I, the core scientific value) and **gene-set management/upload/projects** (C2/D/E). Most areas are blocked on **backend endpoints that don't exist yet** (the API today mounts only `genesets`, `genes`, `publications`, `species`, `search` and
+`monitors` — `batch.py` exists but is neither finished nor registered).
 
 ---
 
@@ -83,9 +94,9 @@ Status legend: ✅ done · 🟡 partial · ❌ missing.
 These aren't user features but are prerequisites the current code lacks:
 
 1. **App shell & navigation** — persistent header/nav matching the legacy IA (Manage GeneSets / Analyze / Curation / account / notifications), router layout, breadcrumbs, responsive sidenav. Today there is no nav at all.
-2. **Authentication** — auth0 integration (login, token attach via HTTP interceptor, route guards, logout, account menu). The API has auth0 *config* but no enforced auth; the UI has none. Required before any per-user feature (projects, upload, tools, curation).
+2. **Authentication** — auth0 integration (login, token attach via HTTP interceptor, route guards, logout, account menu). The API *does* enforce auth per-endpoint already (`Auth0(auto_error=False)` in `dependencies.py`, with `Security(deps.full_user)` on protected routes and `optional_full_user` where anonymous access is allowed) — the gap is entirely on the UI side. Required before any per-user feature (projects, upload, tools, curation).
 3. **API service layer** — replace in-component HTTP + hard-coded base URL with generated/typed services and an env-driven base URL + auth interceptor. Consider generating a client from the API's OpenAPI (`/api/openapi.json`).
-4. **Environment config** — move the API base URL into `environment.*.ts`; make `localhost` a real config, not a hand-edit.
+4. ~~**Environment config** — move the API base URL into `environment.*.ts`; make `localhost` a real config, not a hand-edit.~~ **Done (G3-756).**
 5. **Shared UI kit & state** — a "selection basket" of gene sets (the legacy *project/analyze* concept) shared across pages; toast/error handling; loading/skeleton conventions; reusable tables, tag components (species/tier/ontology already exist — generalize).
 6. **Reference data from API** — species and score-type maps are hard-coded client-side; source them from the API (`species` exists).
 
@@ -157,8 +168,40 @@ This is the heaviest area and has its own layered breakdown (the pure tools take
 
 ## 8. Quick reference — what to build next (smallest useful increments)
 
-1. Foundations: app-shell + nav, auth0 login + interceptor + guards, env-driven API base + service layer.
+1. Foundations: app-shell + nav, auth0 login + interceptor + guards, service layer (env-driven API base is done).
 2. "My Gene Sets" list (read) — reuses existing detail page; first authenticated feature.
 3. One tool vertical slice (UpSet/HyperGeometric) end-to-end to prove the tools pattern.
 4. Gene-set edit + upload.
 5. Projects + analyze launcher over the basket; then fan out the remaining tools + result views.
+
+---
+
+## 9. Story map
+
+Phases 0–3 are tracked under epic **[G3-786](https://jacksonlaboratory.atlassian.net/browse/G3-786)
+— New GeneWeaver UI: feature parity with the legacy app**. Phases 4–5 are documented in §5 but
+not yet broken into stories.
+
+| Phase | Story | Covers |
+|---|---|---|
+| 0 | [G3-787](https://jacksonlaboratory.atlassian.net/browse/G3-787) — app shell & primary navigation | §4.1 |
+| 0 | [G3-788](https://jacksonlaboratory.atlassian.net/browse/G3-788) — Auth0 login, token interceptor, route guards | §4.2 |
+| 0 | [G3-789](https://jacksonlaboratory.atlassian.net/browse/G3-789) — typed API service layer from OpenAPI | §4.3 |
+| 0 | [G3-790](https://jacksonlaboratory.atlassian.net/browse/G3-790) — selection basket + error/loading conventions | §4.5 |
+| 0 | [G3-791](https://jacksonlaboratory.atlassian.net/browse/G3-791) — species & score-type reference data from the API | §4.6 |
+| 1 | [G3-792](https://jacksonlaboratory.atlassian.net/browse/G3-792) — API: gene-set write endpoints | §3 C2 |
+| 1 | [G3-793](https://jacksonlaboratory.atlassian.net/browse/G3-793) — API: annotation & publication endpoints | §3 C2 |
+| 1 | [G3-794](https://jacksonlaboratory.atlassian.net/browse/G3-794) — UI: "My Gene Sets" + edit experience | §5 P1 |
+| 2 | [G3-795](https://jacksonlaboratory.atlassian.net/browse/G3-795) — API: batch controller (upload, `.gw`, transpose) | §3 D |
+| 2 | [G3-796](https://jacksonlaboratory.atlassian.net/browse/G3-796) — API: projects & groups, sharing | §3 E, F |
+| 2 | [G3-797](https://jacksonlaboratory.atlassian.net/browse/G3-797) — UI: upload wizard, projects, groups | §5 P2 |
+| 3 | [G3-798](https://jacksonlaboratory.atlassian.net/browse/G3-798) — `packages/db`: tool input resolvers | §6.1 |
+| 3 | [G3-799](https://jacksonlaboratory.atlassian.net/browse/G3-799) — **vertical slice**: one in-process tool end-to-end | §6 |
+| 3 | [G3-800](https://jacksonlaboratory.atlassian.net/browse/G3-800) — API: async job model + Redis queue | §6.2 |
+| 3 | [G3-801](https://jacksonlaboratory.atlassian.net/browse/G3-801) — API: tool run endpoints | §6.3 |
+| 3 | [G3-802](https://jacksonlaboratory.atlassian.net/browse/G3-802) — UI: `/analyze` launcher + results management | §6.4 |
+| 3 | [G3-803](https://jacksonlaboratory.atlassian.net/browse/G3-803) — UI: per-tool result visualisations | §6.4 |
+| 3 | [G3-804](https://jacksonlaboratory.atlassian.net/browse/G3-804) — tool runtime & binary packaging (incl. `biclique` SIGTRAP) | §6.5 |
+
+Start with G3-787 → G3-789 (nothing else can be built cleanly without them), then G3-799 as the
+earliest demonstrable end-to-end capability.
