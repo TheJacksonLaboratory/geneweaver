@@ -4425,29 +4425,77 @@ def get_genesets_by_hom_id(hom_ids):
     return list(set(geneset_list))
 
 
-def get_genesets_hom_ids(gs_ids):
-    """Get the in-threshold hom_ids for a list of geneset ids.
+# Membership key for one in-threshold gene in the "Find Similar Genesets" Jaccard.
+#
+# Genes that have a homolog are keyed by hom_id, so homologous genes across species
+# count as one member -- that is what makes Find Similar cross-species. Genes with NO
+# row in extsrc.homology are keyed by their own ode_gene_id instead of being dropped
+# (GWC-35 / G3-805).
+#
+# The keys are text, not integers: ode_gene_id can be negative, so an integer
+# surrogate such as -ode_gene_id could collide with a real hom_id.
+_SIMILARITY_KEY_SQL = """CASE WHEN h.hom_id IS NULL
+                              THEN 'g' || gsv.ode_gene_id
+                              ELSE 'h' || h.hom_id END"""
 
-    This is the *candidate* side of the "Find Similar Genesets" Jaccard
-    computation (calculate_jaccard). It must count only in-threshold genes, the
-    same way get_geneset_hom_ids does for the *viewed* geneset -- otherwise the
-    similarity is asymmetric and inflated (GWC-35 / G3-780).
 
-    It previously read the ``extsrc.geneset2hom`` materialized view, which is
-    built WITHOUT a ``gsv_in_threshold`` filter, so every candidate contributed
-    all of its genes' homologs regardless of threshold. Compute the hom_ids
-    directly instead, mirroring get_geneset_hom_ids (grouped per geneset). A
-    candidate with no in-threshold genes yields no row and is simply omitted.
+def get_geneset_similarity_keys(gs_id):
+    """Get the in-threshold membership keys for the *viewed* geneset.
 
-    :param gs_ids: list of geneset ids
-    :returns: dict of key=gs_id, value=list of in-threshold hom_ids
+    This is the viewed side of the "Find Similar Genesets" Jaccard computation
+    (calculate_jaccard); get_genesets_similarity_keys is the candidate side, and
+    the two must agree on how membership is defined.
+
+    Do NOT use this to *discover* candidate genesets -- that path needs real
+    hom_ids to look up extsrc.hom2geneset, so it uses get_geneset_hom_ids.
+
+    :param gs_id: geneset id
+    :returns: list of membership keys, or 0 if the geneset has no in-threshold genes
     """
     with PooledCursor() as cursor:
         cursor.execute("""
-        SELECT g.gs_id, array_agg(DISTINCT h.hom_id)
-        FROM extsrc.homology h
-            INNER JOIN extsrc.geneset_value gsv ON h.ode_gene_id = gsv.ode_gene_id
+        SELECT DISTINCT """ + _SIMILARITY_KEY_SQL + """
+        FROM extsrc.geneset_value gsv
             INNER JOIN production.geneset g ON gsv.gs_id = g.gs_id
+            LEFT JOIN extsrc.homology h ON h.ode_gene_id = gsv.ode_gene_id
+        WHERE g.gs_status NOT LIKE 'de%%'
+            AND g.gs_id = %s
+            AND gsv.gsv_in_threshold
+        """, (gs_id,))
+        if cursor.rowcount == 0:
+            return 0
+        else:
+            return [r[0] for r in cursor.fetchall()]
+
+
+def get_genesets_similarity_keys(gs_ids):
+    """Get the in-threshold membership keys for a list of candidate genesets.
+
+    This is the *candidate* side of the "Find Similar Genesets" Jaccard
+    computation (calculate_jaccard). It must define membership exactly as
+    get_geneset_similarity_keys does for the viewed geneset, or the similarity is
+    asymmetric.
+
+    Two bugs have been fixed here, both of which inflated the similarity:
+
+    * It read the ``extsrc.geneset2hom`` materialized view, which is built
+      WITHOUT a ``gsv_in_threshold`` filter, so every candidate contributed all of
+      its genes regardless of threshold (GWC-35 / G3-780).
+    * Both sides INNER JOINed ``extsrc.homology``, so an in-threshold gene with no
+      homology record vanished from the set, shrinking the union but never the
+      intersection (GWC-35 follow-up / G3-805).
+
+    A candidate with no in-threshold genes yields no row and is simply omitted.
+
+    :param gs_ids: list of geneset ids
+    :returns: dict of key=gs_id, value=list of membership keys
+    """
+    with PooledCursor() as cursor:
+        cursor.execute("""
+        SELECT g.gs_id, array_agg(DISTINCT """ + _SIMILARITY_KEY_SQL + """)
+        FROM extsrc.geneset_value gsv
+            INNER JOIN production.geneset g ON gsv.gs_id = g.gs_id
+            LEFT JOIN extsrc.homology h ON h.ode_gene_id = gsv.ode_gene_id
         WHERE g.gs_status NOT LIKE 'de%%'
             AND g.gs_id = ANY(%(gs_ids)s)
             AND gsv.gsv_in_threshold

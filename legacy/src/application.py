@@ -4082,16 +4082,21 @@ def jaccard(a, b):
 def calculate_jaccard(gs_id, genesets):
     """Calculate Jaccard similarity between a target geneset and multiple comparison genesets.
     
-    Retrieves homologous gene IDs for the target geneset and compares them
-    against a list of other genesets to compute pairwise Jaccard similarities.
-    
+    Retrieves the in-threshold membership keys for the target geneset and compares
+    them against a list of other genesets to compute pairwise Jaccard similarities.
+
+    Membership is keyed by hom_id where a gene has a homolog, and by the gene itself
+    where it has none -- see geneweaverdb.get_geneset_similarity_keys. Both sides use
+    the same definition, which is what makes this agree with the Jaccard Similarity
+    tool (at Homology = Included, Pairwise Deletion = Disabled).
+
     Args:
         gs_id (int): Target geneset ID used as the seed for comparisons.
         genesets (list): List of geneset IDs to compare against the target.
-        
+
     Returns:
         dict: Dictionary mapping geneset IDs to their Jaccard similarity values.
-        
+
     Example:
         >>> target_gs = 12345
         >>> comparison_genesets = [12346, 12347, 12348]
@@ -4099,8 +4104,8 @@ def calculate_jaccard(gs_id, genesets):
         >>> print(similarities)  # {12346: 0.25, 12347: 0.67, 12348: 0.33}
     """
     jaccards = {}
-    gs1 = geneweaverdb.get_geneset_hom_ids(gs_id)
-    gs2s = geneweaverdb.get_genesets_hom_ids(genesets)
+    gs1 = geneweaverdb.get_geneset_similarity_keys(gs_id)
+    gs2s = geneweaverdb.get_genesets_similarity_keys(genesets)
     for g in genesets:
         if g in gs2s:
             jaccards[g] = jaccard(gs1, gs2s[g])
