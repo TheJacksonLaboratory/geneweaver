@@ -21,8 +21,10 @@ name: Docs — Publish
 # Pages served from here is reachable only by the org. That is accepted while
 # the docs ride on dev. It must be made public — repo visibility, GitHub Pages
 # visibility on Enterprise Cloud, or a public host / custom domain — before the
-# app's Help links (docs/repoint-docs-urls-to-monorepo) reach prod, or external
-# users of geneweaver.org get an org login instead of the documentation.
+# app's Help links reach prod, or external users of geneweaver.org get an org
+# login instead of the documentation. Those links are repointed in this same
+# change (legacy/src/templates/{header,footer,index}.html and the /help/
+# redirect in legacy/src/application.py).
 #
 # The published URL changes with the repo name:
 #   old  https://thejacksonlaboratory.github.io/geneweaver-docs/
