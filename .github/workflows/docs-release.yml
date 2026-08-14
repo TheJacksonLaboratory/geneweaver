@@ -1,18 +1,28 @@
 name: Docs — Publish
 
 # Publishes the documentation site to GitHub Pages on pushes to main that touch
-# the docs sources.
+# the docs sources. This monorepo owns the documentation site; the standalone
+# TheJacksonLaboratory/geneweaver-docs repo it replaces is to be archived.
 #
-# NOTE: this must not be enabled while the standalone
-# TheJacksonLaboratory/geneweaver-docs repo still publishes, or the two pipelines
-# will fight over the published site. Freeze/archive that repo first — the same
-# ordering constraint the legacy release migration has (G3-781).
+# PRECONDITION: geneweaver-docs must be archived (or its mkdocs_deploy.yml
+# removed) before this merges to main. Both repos publish a gh-pages site, and
+# while both pipelines are armed whichever runs last wins. As of 2026-08-14 that
+# repo is NOT yet archived — it is merely dormant (last push 2025-01-07), so it
+# only redeploys if someone pushes to its main.
+#
+# ALSO REQUIRED: this repo has no GitHub Pages site configured and no gh-pages
+# branch (checked 2026-08-14). The first run of this workflow creates the branch;
+# Pages must then be turned on with its source set to gh-pages, or the deploy
+# succeeds while nothing is served. Settings > Pages, or:
+#   gh api -X POST repos/TheJacksonLaboratory/geneweaver/pages \
+#     -f 'source[branch]=gh-pages' -f 'source[path]=/'
 #
 # The published URL changes with the repo name:
 #   old  https://thejacksonlaboratory.github.io/geneweaver-docs/
 #   new  https://thejacksonlaboratory.github.io/geneweaver/
-# Existing links (including [project.urls].Homepage in pyproject.toml, and badges
-# in docs/README.md) point at the old location and need updating or redirecting.
+# Archiving leaves the old site served read-only, so existing links keep working
+# but go stale. [project.urls].Homepage in pyproject.toml and the badges in
+# docs/README.md still point at the old location.
 
 on:
   push:
