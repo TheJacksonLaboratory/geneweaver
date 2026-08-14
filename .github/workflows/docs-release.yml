@@ -17,6 +17,13 @@ name: Docs — Publish
 #   gh api -X POST repos/TheJacksonLaboratory/geneweaver/pages \
 #     -f 'source[branch]=gh-pages' -f 'source[path]=/'
 #
+# SITE VISIBILITY: geneweaver-docs is a public repo; this one is internal, so
+# Pages served from here is reachable only by the org. That is accepted while
+# the docs ride on dev. It must be made public — repo visibility, GitHub Pages
+# visibility on Enterprise Cloud, or a public host / custom domain — before the
+# app's Help links (docs/repoint-docs-urls-to-monorepo) reach prod, or external
+# users of geneweaver.org get an org login instead of the documentation.
+#
 # The published URL changes with the repo name:
 #   old  https://thejacksonlaboratory.github.io/geneweaver-docs/
 #   new  https://thejacksonlaboratory.github.io/geneweaver/
