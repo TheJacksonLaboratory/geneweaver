@@ -1,0 +1,58 @@
+name: 'Docs Site Definition'
+
+# Builds (and optionally publishes) the MkDocs documentation site from mkdocs.yml
+# + docs/. Replaces the standalone TheJacksonLaboratory/geneweaver-docs pipeline,
+# which ran the same steps under Poetry; this repo uses uv.
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to set up'
+        required: false
+        default: '3.9'
+        type: string
+      deploy:
+        description: 'Publish the built site to the gh-pages branch'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    # Permissions are deliberately NOT set here; they come from the caller.
+    # A called workflow cannot request more than its caller grants -- pinning
+    # `contents: write` here would fail the build-only PR job, which grants
+    # read. docs-release.yml grants write (gh-deploy pushes to gh-pages);
+    # docs-pull_requests.yml grants read.
+    steps:
+      # gh-deploy needs the full history to commit onto gh-pages.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies with uv
+        run: uv sync --only-group docs
+
+      # --strict turns MkDocs warnings (broken internal links, files missing from
+      # the nav) into build failures, so a bad link fails the PR instead of
+      # silently shipping.
+      - name: Build MkDocs site
+        run: uv run --only-group docs mkdocs build --strict
+
+      - name: Publish to GitHub Pages
+        if: ${{ inputs.deploy }}
+        run: uv run --only-group docs mkdocs gh-deploy --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

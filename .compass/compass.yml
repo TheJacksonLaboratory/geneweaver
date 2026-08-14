@@ -16,7 +16,7 @@ links:
     url: 'https://jacksonlaboratory.atlassian.net/browse/G3'
   - name: ''
     type: DOCUMENT
-    url: 'https://thejacksonlaboratory.github.io/geneweaver-docs/'
+    url: 'https://thejacksonlaboratory.github.io/geneweaver/'
   - name: Swagger Page
     type: OTHER_LINK
     url: 'https://geneweaver.jax.org/api/docs'

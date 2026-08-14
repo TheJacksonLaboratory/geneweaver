@@ -65,3 +65,6 @@ legacy/.local/
 # Compiled native tool artifacts (TOOLBOX binaries are built, not tracked)
 *.o
 legacy/tools-worker/tools/TOOLBOX/CS_Mset/MSETcpp
+# MkDocs build output (docs site is built by .github/workflows/docs-*.yml)
+/site/
+.cache/

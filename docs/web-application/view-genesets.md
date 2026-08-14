@@ -130,14 +130,30 @@ Click here to start now". There also is a button on the page that allows you to 
 Similar GeneSets" if the analysis is old.
 
 The "Export GeneSets" button will create a "csv" file of all the similar GeneSets. The
-columns include: geneset id, name, number of genes, and Jaccard Similarity score.
+columns include: geneset id, name, number of genes, and Jaccard Similarity score (with
+homology included).
+
+!!! note "How the Jaccard Similarity score is calculated"
+
+    Similar Genesets always includes homology in the calculation, the same as running the
+    [Jaccard Similarity](../analysis-tools/jaccard-similarity.md) analysis tool with
+    **Homology = Included**. Genes that are homologous across species count as a single
+    gene, and a gene with no homolog counts as itself. Only genes within the geneset's
+    threshold are counted, on both the geneset you are viewing and each geneset it is
+    compared against.
+
+    Unlike the analysis tool, Similar Genesets has no homology option — it is always on.
+    It also has no *Pairwise Deletion* option, so to reproduce a score shown here using
+    the Jaccard Similarity tool, run the tool with **Homology = Included** and **Pairwise
+    Deletion = Disabled**.
 
 ![](../assets/images/Similar_genesets_01.png)
 
 ![](../assets/images/Similar_genesets_02.png)
 
 Scroll down to see the list of similar genesets. You may select between 10 and 100 to
-display per page. This list will be sorted by the Jaccard Similarity. Click on any
+display per page. This list will be sorted by the Jaccard Similarity (with homology
+included). Click on any
 column to change the sort order. The tier, species and attribution columns allow
 selecting a filter in order to limit the number of genesets. You may also enter a string
 of characters into the "Search" box to filter the list by the geneset name.

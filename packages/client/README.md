@@ -47,7 +47,7 @@ auth.get_access_token()
 ```
 
 #### Complete Example
-See the [Geneweaver Docs](https://thejacksonlaboratory.github.io/geneweaver-docs/tutorial/nci_60_example_01/)
+See the [Geneweaver Docs](https://thejacksonlaboratory.github.io/geneweaver/tutorial/nci_60_example_01/)
 
 
 ### As a command line tool

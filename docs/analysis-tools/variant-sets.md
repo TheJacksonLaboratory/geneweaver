@@ -9,4 +9,4 @@ The Variant Set utilizes different colors to indicate different genes and differ
 
 The radius bar is used to customize the size of the node. This visualization supports mouse-hovering to highlight the genes of interest.
 
-![](images/raw_variant.png)
+![](../assets/images/raw_variant.png)

@@ -123,6 +123,23 @@ version (`1.6.0`) that should not be coupled to the API's uv/PyPI publish or `0.
   `geneweaver-core/db/client`, and Bitbucket `geneweaver-ui` after a final mirror).
   Update `Repository` URLs in `pyproject.toml` (root still points at `geneweaver-api`).
 - **B8.** Land all of it on `G3-748-finish-migration-of-geneweaver-to-monorepo`.
+- **B9.** Documentation site: `docs/` and `mkdocs.yml` were copied over during the
+  migration but publishing stayed in `geneweaver-docs`, so the site people edit was not
+  the site being served. Build/publish workflows now live here
+  (`docs-pull_requests.yml`, `docs-release.yml`, `_docs-action.yml`), so
+  `geneweaver-docs` can be archived. The old site stays served read-only at
+  `/geneweaver-docs/`; the new one is `/geneweaver/`.
+
+    **⚠ Release gate — GitHub Pages must be public before the legacy app reaches prod.**
+    `geneweaver-docs` is a public repo; this monorepo is internal, so Pages served from
+    here is reachable only by the org. That is accepted while the docs ride on dev. The
+    app's Help and per-tool documentation links now point at the new URL, so shipping
+    them to prod while Pages is still internal sends every external geneweaver.org user
+    to an org login instead of the documentation. Resolve by making the repo public,
+    setting Pages visibility to public (Enterprise Cloud), or moving the site to a
+    public host / custom domain. Check this alongside the other prod prerequisites in
+    the G3-781 promotion. The "open in Colab" links in `docs/tutorial/*.ipynb` also
+    need a public repo to resolve.
 
 ## 6. Open decisions
 - **Separate vs unified deploy:** legacy gets its own version/release cadence and image
