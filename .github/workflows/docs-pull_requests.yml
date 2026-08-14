@@ -17,6 +17,9 @@ on:
 jobs:
   build:
     name: "Docs Build"
+    # Build only — no write access needed, and none granted.
+    permissions:
+      contents: read
     uses: ./.github/workflows/_docs-action.yml
     with:
       deploy: false

@@ -47,6 +47,12 @@ on:
 jobs:
   publish:
     name: "Docs Publish: GitHub Pages"
+    # Required: this repo's default GITHUB_TOKEN is read-only, and a called
+    # workflow cannot hold permissions the caller does not. Without this,
+    # _docs-action.yml's `contents: write` is capped to read and gh-deploy's
+    # push to gh-pages fails with a 403.
+    permissions:
+      contents: write
     uses: ./.github/workflows/_docs-action.yml
     with:
       deploy: true

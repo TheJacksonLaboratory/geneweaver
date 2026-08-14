@@ -21,9 +21,11 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    permissions:
-      # gh-deploy pushes the built site to the gh-pages branch.
-      contents: write
+    # Permissions are deliberately NOT set here; they come from the caller.
+    # A called workflow cannot request more than its caller grants -- pinning
+    # `contents: write` here would fail the build-only PR job, which grants
+    # read. docs-release.yml grants write (gh-deploy pushes to gh-pages);
+    # docs-pull_requests.yml grants read.
     steps:
       # gh-deploy needs the full history to commit onto gh-pages.
       - uses: actions/checkout@v4
