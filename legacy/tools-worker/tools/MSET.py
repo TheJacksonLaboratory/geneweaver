@@ -82,7 +82,11 @@ class MSET(tools.toolbase.GeneWeaverToolBase):
             'the MSET background -- the set of genes GeneWeaver has curated for '
             'this species and gene identifier type. MSET requires every gene in a '
             'list to be within its background. Genes outside the background: '
-            '{}{}.'.format(label, gsid, len(missing), len(genes), shown, more))
+            '{}{}. This is not something you can correct yourself: the background '
+            'is built from curated gene sets, and only a GeneWeaver administrator '
+            'can change a gene set\'s curation tier. Please contact the GeneWeaver '
+            'team if you need this gene set analysed with '
+            'MSET.'.format(label, gsid, len(missing), len(genes), shown, more))
 
     def mainexec(self):
         output_prefix = self._parameters["output_prefix"]
