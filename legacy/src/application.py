@@ -5520,7 +5520,7 @@ def update_geneset_identifier():
 
 @app.route('/help/')
 def render_help():
-    return redirect('https://thejacksonlaboratory.github.io/geneweaver-docs/')
+    return redirect('https://thejacksonlaboratory.github.io/geneweaver/')
 
 
 @app.route('/about')
