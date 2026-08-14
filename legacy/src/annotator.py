@@ -54,6 +54,25 @@ DEFAULT_ANNOTATOR = os.environ.get('GW_DEFAULT_ANNOTATOR', 'ncbo')
 _ncbo_acronyms = None
 
 
+def describe_request_error(exc, endpoint):
+    """Describe a requests failure without leaking the API key.
+
+    ``str(exc)`` on a requests exception embeds the fully prepared URL --
+    including ``?apikey=...`` and the annotated text -- so logging the exception
+    directly would write the NCBO key (and user content) to pod stdout and
+    Cloud Logging. Report only the exception type, the HTTP status when there is
+    one, and the bare endpoint, which carries no query string.
+
+    :param exc: the caught exception
+    :param endpoint: the endpoint URL *without* a query string
+    :returns: a log-safe one-line description
+    """
+    status = getattr(getattr(exc, 'response', None), 'status_code', None)
+    if status is not None:
+        return '%s: HTTP %s from %s' % (type(exc).__name__, status, endpoint)
+    return '%s from %s' % (type(exc).__name__, endpoint)
+
+
 def get_ncbo_supported_acronyms():
     """Return the set of ontology acronyms NCBO supports (cached).
 
@@ -69,7 +88,8 @@ def get_ncbo_supported_acronyms():
             _ncbo_acronyms = {o['acronym'] for o in resp.json() if 'acronym' in o}
         except Exception as e:
             print('Could not fetch NCBO ontology list (%s); '
-                  'sending requested ontologies unfiltered' % e)
+                  'sending requested ontologies unfiltered'
+                  % describe_request_error(e, NCBO_URL + '/ontologies'))
             return None
     return _ncbo_acronyms
 
@@ -149,7 +169,8 @@ def fetch_ncbo_annotations(text, ncboids):
         except requests.exceptions.RequestException as e:
             # Covers HTTP errors (via raise_for_status), timeouts and connection
             # errors. requests never raises urllib.error.HTTPError.
-            print('Failed to retrieve annotation data from NCBO: %s' % e)
+            print('Failed to retrieve annotation data from NCBO: %s'
+                  % describe_request_error(e, NCBO_ANNOTATOR))
             sleep(1)
             continue
 

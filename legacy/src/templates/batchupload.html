@@ -270,6 +270,7 @@
 
 {% endif %}
 
+<script type="text/javascript" src="/static/js/geneweaver/escapeHtml.js"></script>
 <script>
     $(document).ready(function () {
         $('#selectGroup').click(function(){
@@ -447,7 +448,7 @@
                         // The data is returned already parsed out of JSON
                         if ('error' in data && data.error.length > 0) {
 
-                            var errors = data.error.join('<br />');
+                            var errors = gwEscapeHtmlJoin(data.error, '<br />');
                             errors = '<strong>There were some errors with your ' +
                                     'batch file.</strong><br />' + errors;
 
@@ -462,7 +463,7 @@
 
                         if ('warn' in data && data.warn.length > 0) {
 
-                            var warns = data.warn.join('<br />')
+                            var warns = gwEscapeHtmlJoin(data.warn, '<br />')
                             warns = '<strong>There were some non-critical issues ' +
                                     'with your batch file.</strong><br />' + warns;
 
