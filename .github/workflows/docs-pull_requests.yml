@@ -1,0 +1,22 @@
+name: Docs — Build Check
+
+# Builds the documentation site on PRs that touch the docs sources, so broken
+# links or nav entries fail review rather than the deploy.
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/docs-*.yml'
+      - '.github/workflows/_docs-action.yml'
+
+jobs:
+  build:
+    name: "Docs Build"
+    uses: ./.github/workflows/_docs-action.yml
+    with:
+      deploy: false

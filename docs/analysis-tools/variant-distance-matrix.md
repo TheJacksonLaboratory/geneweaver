@@ -6,7 +6,7 @@ The Variant Distance Matrix tool calculates the disimilarity between variant set
 
 The Variant Distance Matrix tool makes one assumption when calculating the distance between variant sets: the genome is static within the same species. In other words, the variant distance matrix tool assumes that any two variant sets for which the distance is calculated have the same reference genome. This allows the tool to assume that the distance between two variant sets is only a function of the differences between the variants in the variant sets and not any other outside variables. Since both variant sets have the same static genome, the distance is calculated using the following formula:
 
-![variant distance equation](images/variant_distance_equation.png)
+![variant distance equation](../assets/images/variant_distance_equation.png)
 
 Using the Variant Distance Matrix Tool
 --------------------------

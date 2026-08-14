@@ -1,0 +1,35 @@
+name: Docs — Publish
+
+# Publishes the documentation site to GitHub Pages on pushes to main that touch
+# the docs sources.
+#
+# NOTE: this must not be enabled while the standalone
+# TheJacksonLaboratory/geneweaver-docs repo still publishes, or the two pipelines
+# will fight over the published site. Freeze/archive that repo first — the same
+# ordering constraint the legacy release migration has (G3-781).
+#
+# The published URL changes with the repo name:
+#   old  https://thejacksonlaboratory.github.io/geneweaver-docs/
+#   new  https://thejacksonlaboratory.github.io/geneweaver/
+# Existing links (including [project.urls].Homepage in pyproject.toml, and badges
+# in docs/README.md) point at the old location and need updating or redirecting.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/docs-*.yml'
+      - '.github/workflows/_docs-action.yml'
+  # Allows a manual publish without waiting for a docs change to land.
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: "Docs Publish: GitHub Pages"
+    uses: ./.github/workflows/_docs-action.yml
+    with:
+      deploy: true

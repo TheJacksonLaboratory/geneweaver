@@ -36,9 +36,19 @@ theme:
     - content.tabs.link
 extra_css:
   - stylesheets/extra.css
-repo_name: TheJacksonLaboratory/geneweaver-docs
-repo_url: https://github.com/TheJacksonLaboratory/geneweaver-docs
+repo_name: TheJacksonLaboratory/geneweaver
+repo_url: https://github.com/TheJacksonLaboratory/geneweaver
 edit_uri: edit/main/docs/
+
+# Internal engineering notes that live under docs/ but are NOT part of the public
+# documentation site: CI/CD workflow copies and migration plans, tool migration and
+# benchmark write-ups, new-UI planning, and the docs README. Excluded rather than
+# added to the nav, so `mkdocs build --strict` stays clean without publishing them.
+exclude_docs: |
+  README.md
+  ci-cd/
+  tools/
+  ui/
 extra:
   generator: true
   social:

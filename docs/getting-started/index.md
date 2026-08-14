@@ -46,7 +46,7 @@ If you find that you need more information, head back to this website and keep r
     [Geneweaver Web Application Documentation](https://geneweaver.org/help/).
 
     General documentation on the available analysis tools can be found on the 
-    [Analysis Tools](../reference/available-tools.md) page.
+    [Analysis Tools](../analysis-tools/index.md) page.
 
     If you want to run the analysis tools on your local computer, you can find more
     information in the [Running Tools Locally](./running-tools-locally.md) section.
