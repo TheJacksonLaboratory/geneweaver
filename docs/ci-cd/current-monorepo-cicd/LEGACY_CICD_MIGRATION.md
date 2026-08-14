@@ -37,7 +37,7 @@ geneweaver/                     ← uv workspace, builds as "geneweaver-api" v0.
 │   └── client/                 ← geneweaver-client  (was its own PyPI lib)
 ├── ui/                         ← the UI (was geneweaver-ui / Bitbucket)
 │                                  — still carries bitbucket-pipelines.yml + own skaffold.yaml
-├── legacy/                     ← OLD GeneWeaver platform (Flask) "geneweaver-legacy" v1.5.27
+├── legacy/                     ← OLD GeneWeaver platform (Flask) "geneweaver-legacy" v1.6.0
 │   └── .github/                ← ⚠️ NESTED .github — does NOT run on GitHub
 ├── .github/workflows/          ← the real monorepo CI/CD (API + packages only)
 ├── skaffold.yaml               ← builds image "geneweaver-api"
@@ -98,7 +98,7 @@ GCS-bucket deploy + skaffold to dev/sqa/stage/prod.
 **Recommendation:** keep **legacy as a separately-built/deployed image with its own
 root-level workflows**, not folded into the API's jobs. Legacy is a different stack
 (Poetry/Flask/Py3.9/gunicorn), a different image (`geneweaver-legacy`), and an independent
-version (`1.5.27`) that should not be coupled to the API's uv/PyPI publish or `0.20.x` gate.
+version (`1.6.0`) that should not be coupled to the API's uv/PyPI publish or `0.20.x` gate.
 
 ### Phase A — Make legacy CI reflect the api CI (in the monorepo root)
 - **A1.** Delete the dead `legacy/.github/` tree (workflows + disabled_workflows).

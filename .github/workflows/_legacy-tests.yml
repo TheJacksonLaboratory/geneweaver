@@ -1,0 +1,52 @@
+name: 'Legacy Tests Definition'
+
+# Reusable workflow: runs the legacy pure-unit test suite.
+#
+# These tests mock the DB/search/Flask deps (geneweaverdb opens a connection
+# pool at import, so it is mocked before importing src.*), so they need only the
+# Python standard library and run fast as a PR / release gate.
+#
+# DB-backed integration tests (tests/test_application.py, tests/test_genesets.py,
+# tests/test_group_tasks_unit_tests.py, tests/db/*) are NOT run here -- they need
+# a live database and are run separately.
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to set up'
+        required: false
+        default: '3.9'
+        type: string
+      runner-os:
+        description: 'Runner OS'
+        required: false
+        default: 'ubuntu-latest'
+        type: string
+
+jobs:
+  unit:
+    name: "Legacy unit tests"
+    runs-on: ${{ inputs.runner-os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Run legacy unit tests
+        working-directory: legacy
+        run: |
+          set -euo pipefail
+          python -m unittest -v \
+            tests.test_threshold_value_validation \
+            tests.test_batch_thresholds \
+            tests.test_search_filters \
+            tests.test_upload_processing \
+            tests.db.test_get_genesets_hom_ids \
+            tests.test_geneset_count_maintenance \
+            tests.db.test_gene_id_mapping \
+            tests.db.test_get_genesets_w_threshold_counts \
+            tests.tools.test_mset_background_check

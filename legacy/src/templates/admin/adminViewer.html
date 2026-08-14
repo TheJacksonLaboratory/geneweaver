@@ -52,7 +52,12 @@ var editor;
                 $(this).parent().find("td").each(function() {
                 var item = $(this).html();
                 var key = columns[j]["name"];
-                    data[key]= item;  
+                    // GWC-9: skip derived/huge columns (e.g. gs_tsvector, _searchtext)
+                    // so the edit GET URL doesn't blow the request-line limit and fail
+                    // to open; these aren't editable on the edit form anyway.
+                    if (key !== '_searchtext' && !/_tsvector$/.test(key)) {
+                        data[key] = item;
+                    }
                 j++;
             });
 

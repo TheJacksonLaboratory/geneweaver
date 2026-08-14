@@ -340,9 +340,12 @@
                         <div class="row">
                             <label for="annotation_pref"><h4>Text Annotator</h4>
                                 <select class="form-control" id="annotation_pref">
-                                    <option value='monarch'>Monarch</option>
+                                    <!-- GWC-8: Monarch's SciGraph host is decommissioned, so the
+                                         "Monarch" and "Both" annotators don't work. Hidden for now
+                                         (NCBO is the working default). -->
+                                    <!-- <option value='monarch'>Monarch</option> -->
                                     <option value='ncbo'>NCBO</option>
-                                    <option value='both'>Both</option>
+                                    <!-- <option value='both'>Both</option> -->
                                     <option value='none'>None</option>
                                 </select>
                             </label>

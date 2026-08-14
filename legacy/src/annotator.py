@@ -6,6 +6,8 @@ Separate stand-alone versions of these wrappers can be found, for now,
 at bitbucket.org/geneweaver/curation
 """
 import json
+import os
+import traceback
 import urllib
 from urllib.parse import urlencode
 # Upload Fix: Use requests package instead of urrlib
@@ -16,26 +18,81 @@ import geneweaverdb
 from time import sleep
 
 
-NCBO_URL = 'http://data.bioontology.org'
-NCBO_ANNOTATOR = NCBO_URL + '/annotator?'
+# Endpoints and the NCBO API key are read from the environment (with working
+# fallbacks) so infra isn't hardcoded and the key can be rotated without a code
+# change. Never log API_KEY.
+NCBO_URL = os.environ.get('GW_NCBO_URL', 'https://data.bioontology.org')
+# No trailing '?': the annotator call passes params=..., which requests encodes
+# into the query string.
+NCBO_ANNOTATOR = NCBO_URL + '/annotator'
 
-## My NCBO API key (Jeremy's no longer worked). If this ever needs to be
-## replaced, head over to http://bioportal.bioontology.org/accounts/new
-## and register a new account.
-API_KEY = '2709bdd2-c311-4089-b000-56fa3d33307c'
+## NCBO API key. If this ever needs to be replaced, register a new account at
+## http://bioportal.bioontology.org/accounts/new and set GW_NCBO_API_KEY.
+API_KEY = os.environ.get('GW_NCBO_API_KEY', '2709bdd2-c311-4089-b000-56fa3d33307c')
 
 ## NCBO docs are kinda shitty but I _think_ ontology IDs it uses are just the
 ## abbreviations. This seems to work, and nothing else is specified in the
 ## docs about ontology IDs so...
 ONT_IDS = ['MESH', 'GO', 'MP', 'MA']
-MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
+MONARCH_URL = os.environ.get('GW_MONARCH_URL', 'http://scigraph-ontology.monarchinitiative.org/scigraph')
 
 ## Couldn't find this endpoint anywhere in the documentation, but it's buried
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
 
 ANNOTATORS = ['monarch', 'ncbo', 'both', 'none']
-DEFAULT_ANNOTATOR = 'monarch'
+# Monarch's SciGraph annotator (scigraph-ontology.monarchinitiative.org) was
+# decommissioned (the host no longer resolves), so 'ncbo' is the working
+# default. See GWC-8.
+DEFAULT_ANNOTATOR = os.environ.get('GW_DEFAULT_ANNOTATOR', 'ncbo')
+
+# NCBO rejects the whole /annotator request (HTTP 404) if the `ontologies`
+# parameter contains any acronym it doesn't recognize. GeneWeaver's ontology
+# list includes prefixes NCBO lacks (e.g. JAX, ORPHA), so we filter the
+# requested set against NCBO's supported acronyms. Cached at module scope to
+# avoid re-fetching on every annotation. See GWC-8.
+_ncbo_acronyms = None
+
+
+def describe_request_error(exc, endpoint):
+    """Describe a requests failure without leaking the API key.
+
+    ``str(exc)`` on a requests exception embeds the fully prepared URL --
+    including ``?apikey=...`` and the annotated text -- so logging the exception
+    directly would write the NCBO key (and user content) to pod stdout and
+    Cloud Logging. Report only the exception type, the HTTP status when there is
+    one, and the bare endpoint, which carries no query string.
+
+    :param exc: the caught exception
+    :param endpoint: the endpoint URL *without* a query string
+    :returns: a log-safe one-line description
+    """
+    status = getattr(getattr(exc, 'response', None), 'status_code', None)
+    if status is not None:
+        return '%s: HTTP %s from %s' % (type(exc).__name__, status, endpoint)
+    return '%s from %s' % (type(exc).__name__, endpoint)
+
+
+def get_ncbo_supported_acronyms():
+    """Return the set of ontology acronyms NCBO supports (cached).
+
+    Returns None if the list can't be fetched, in which case callers should
+    send the requested set unfiltered rather than block annotation.
+    """
+    global _ncbo_acronyms
+    if _ncbo_acronyms is None:
+        try:
+            resp = requests.get(NCBO_URL + '/ontologies',
+                                params={'apikey': API_KEY}, timeout=30)
+            resp.raise_for_status()
+            _ncbo_acronyms = {o['acronym'] for o in resp.json() if 'acronym' in o}
+        except Exception as e:
+            print('Could not fetch NCBO ontology list (%s); '
+                  'sending requested ontologies unfiltered'
+                  % describe_request_error(e, NCBO_URL + '/ontologies'))
+            return None
+    return _ncbo_acronyms
+
 
 def get_geneweaver_ontologies():
     """
@@ -68,25 +125,17 @@ def fetch_ncbo_annotations(text, ncboids):
     ncboids = list(ncboids)
     # END upload fix
 
-    ## Currently the DO prefix we use is DO instead of DOID
-    # Upload Fix Everest
-
-    # This is legacy python2 script that will break this function and cause issues
-    # Commented out due to this
-    # for i in range(len(ncboids)):
-    #     if ncboids[i] == 'DO':
-    #         ncboids[i] = 'DOID'
-
-    # Fixed the above commented-out script so that it is compatible with python3 now
-    # The JAX and HPO ontologies do not exist in NCBO and will get a RESPONSE: 404
-    # Removed JAX and HPO IDs
-    for index, item in enumerate(ncboids):
-        if item == 'DO':
-            ncboids[index] = 'DOID'
-        if item == 'JAX':
-            ncboids.pop(index)
-        if item == 'HPO':
-            ncboids.pop(index)
+    ## Normalize GeneWeaver ontology prefixes to NCBO acronyms (GW uses 'DO',
+    ## NCBO uses 'DOID') and drop any acronym NCBO doesn't recognize -- NCBO
+    ## 404s the ENTIRE /annotator request if the ontologies list contains even
+    ## one unknown acronym (e.g. GW's JAX, ORPHA). See GWC-8.
+    ncboids = ['DOID' if item == 'DO' else item for item in ncboids]
+    supported = get_ncbo_supported_acronyms()
+    if supported is not None:
+        dropped = sorted(item for item in ncboids if item not in supported)
+        if dropped:
+            print('Dropping NCBO-unsupported ontologies: %s' % dropped)
+        ncboids = [item for item in ncboids if item in supported]
 
     # END UPLOAD FIX
 
@@ -107,24 +156,22 @@ def fetch_ncbo_annotations(text, ncboids):
     ## exception is handled three times.
     for _ in range(3):
         try:
-            # req = urllib.request.Request(NCBO_ANNOTATOR, params)
-            # res = urllib.request.urlopen(req)
-            # res = res.read()
-            # UPLOAD FIX EVEREST
-            # Uses requests because of encoding issues
-            req = requests.get(NCBO_ANNOTATOR, data = params)
+            # Must be params= (not data=): for a GET, requests puts `data` in
+            # the request body, so NCBO would receive no text/apikey/ontologies
+            # and return nothing -> silent annotation failure (GWC-8).
+            # timeout so a hung NCBO can't block the upload request indefinitely.
+            req = requests.get(NCBO_ANNOTATOR, params=params, timeout=30)
+            # requests does NOT raise on non-2xx by itself; without this a 4xx/5xx
+            # error body would fall through to json.loads and be mishandled.
+            req.raise_for_status()
             res = req.text
-            # UPLOAD FIX EVEREST
 
-        except urllib.error.HTTPError as e:
-            print('Failed to retrieve annotation data from NCBO:')
-            print(e)
-            print(e.read())
-            continue
-
-        except Exception as e:
-            print('Unkown error fetching annotations:')
-            print(e)
+        except requests.exceptions.RequestException as e:
+            # Covers HTTP errors (via raise_for_status), timeouts and connection
+            # errors. requests never raises urllib.error.HTTPError.
+            print('Failed to retrieve annotation data from NCBO: %s'
+                  % describe_request_error(e, NCBO_ANNOTATOR))
+            sleep(1)
             continue
 
         ## Success

@@ -502,15 +502,21 @@ def create_temp_geneset():
             gs_threshold_type = 5
             gs_threshold = "\'" + str(Min) + "," + str(Max) + "\'"
 
-        # gets gene count for the geneset
+        # gets gene count for the geneset -- count the rows actually inserted above,
+        # which are one per distinct ode_gene_id. The previous formula counted gene
+        # *identifier rows* instead of genes: `geneset_value NATURAL JOIN gene WHERE
+        # ode_pref` yields one row per preferred identifier a gene carries, and genes
+        # routinely carry more than one (avg ~2 on dev), so it roughly doubled the
+        # count -- for GS403415 it returns 48 against 25 stored genes. `GROUP BY gs_id`
+        # also returned no row at all when the geneset ended up empty, so
+        # fetchone()[0] raised. Search and My Genesets render gs_count while the
+        # geneset page runs its own count(*) (get_genecount_in_geneset), so drift here
+        # surfaces as the two disagreeing (GWC-34 / G3-782).
         gs_count = 0
         with geneweaverdb.PooledCursor() as cursor:
-            gs_count_sql = '''SELECT count(ode_ref_id) FROM extsrc.geneset_value NATURAL JOIN extsrc.gene WHERE ode_pref AND gs_id=%s GROUP BY gs_id;''' % (
-            gs_id)
-            # gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)
-            cursor.execute(gs_count_sql)
+            cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s;''',
+                           (gs_id,))
             gs_count = cursor.fetchone()[0]
-            print(gs_count_sql)
 
         # if gs_count == None:
         # print error
@@ -765,15 +771,21 @@ def create_geneset():
             gs_threshold_type = 5
             gs_threshold = "\'" + str(Min) + "," + str(Max) + "\'"
 
-        # gets gene count for the geneset
+        # gets gene count for the geneset -- count the rows actually inserted above,
+        # which are one per distinct ode_gene_id. The previous formula counted gene
+        # *identifier rows* instead of genes: `geneset_value NATURAL JOIN gene WHERE
+        # ode_pref` yields one row per preferred identifier a gene carries, and genes
+        # routinely carry more than one (avg ~2 on dev), so it roughly doubled the
+        # count -- for GS403415 it returns 48 against 25 stored genes. `GROUP BY gs_id`
+        # also returned no row at all when the geneset ended up empty, so
+        # fetchone()[0] raised. Search and My Genesets render gs_count while the
+        # geneset page runs its own count(*) (get_genecount_in_geneset), so drift here
+        # surfaces as the two disagreeing (GWC-34 / G3-782).
         gs_count = 0
         with geneweaverdb.PooledCursor() as cursor:
-            gs_count_sql = '''SELECT count(ode_ref_id) FROM extsrc.geneset_value NATURAL JOIN extsrc.gene WHERE ode_pref AND gs_id=%s GROUP BY gs_id;''' % (
-            gs_id)
-            # gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)
-            cursor.execute(gs_count_sql)
+            cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s;''',
+                           (gs_id,))
             gs_count = cursor.fetchone()[0]
-            print(gs_count_sql)
 
         # if gs_count == None:
         # print error

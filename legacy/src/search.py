@@ -142,15 +142,17 @@ def getUserFiltersFromApplicationRequest(form):
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields = ','.join(search_fields)
 
-    ## Check to see if the user wants to sort search results
+    ## Check to see if the user wants to sort search results.
+    ## Initialise both up front: previously, a request with no 'sortBy' left
+    ## sort_ascending unassigned and the return below raised UnboundLocalError
+    ## (G3-778). The UI always sends a sort value, but the API must not 500 when
+    ## it's absent.
+    sort_by = None
+    sort_ascending = None
     if (form.get('sortBy')):
         sort_by = form.get('sortBy')
         if (form.get('sortAscending')):
             sort_ascending = (form.get('sortAscending') == 'true')
-        else:
-            sort_ascending = None
-    else:
-        sort_by = None
 
     return {'userFilters': userFilters, 'search_term': search_term,
             'pagination_page': pagination_page, 'search_fields': search_fields,
@@ -446,7 +448,12 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
         if (userFilters['tierList']['tier5'] == 'yes'):
             curationLevels.append(5)
 
-        client.SetFilter('cur_id', curationLevels)
+        ## Only restrict when at least one tier is selected. An empty value list
+        ## makes Sphinx match nothing (empty IN()), so unchecking every tier used
+        ## to zero all results; treat "none selected" as "no tier restriction"
+        ## (G3-778).
+        if curationLevels:
+            client.SetFilter('cur_id', curationLevels)
     '''
     Set the filters for the selected species ID's
 
@@ -461,7 +468,9 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
             if (userFilters['speciesList']['sp' + str(sp_id)] == 'yes'):
                 speciesIDs.append(sp_id)
 
-        client.SetFilter('sp_id', speciesIDs)
+        ## Only restrict when a species is selected (empty IN() matches nothing) -- G3-778
+        if speciesIDs:
+            client.SetFilter('sp_id', speciesIDs)
 
     '''
     Set the filters for the selected attribution ID's
@@ -479,7 +488,9 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
         # TODO remove this after updating the DB
         if (userFilters['attributionsList']['at0'] == 'yes'):
             attributionIDs.append(0)
-        client.SetFilter('attribution', attributionIDs)
+        ## Only restrict when an attribution is selected (empty IN() matches nothing) -- G3-778
+        if attributionIDs:
+            client.SetFilter('attribution', attributionIDs)
 
     '''
     Set the filters for geneset size

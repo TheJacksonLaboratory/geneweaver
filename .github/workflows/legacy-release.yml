@@ -72,9 +72,15 @@ jobs:
           echo "schedule_prod_release=$SCHEDULE_PROD_RELEASE" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
+  test:
+    name: "Legacy Tests"
+    needs: [ version ]
+    if: ${{ needs.version.outputs.should_release == 'true' }}
+    uses: ./.github/workflows/_legacy-tests.yml
+
   build:
     name: "Legacy Build"
-    needs: [ version ]
+    needs: [ version, test ]
     if: ${{ needs.version.outputs.should_release == 'true' }}
     uses: ./.github/workflows/_skaffold-build-k8s.yml
     secrets: inherit

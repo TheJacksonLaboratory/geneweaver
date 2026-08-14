@@ -447,6 +447,7 @@
 
 {% endif %}
 
+<script type="text/javascript" src="/static/js/geneweaver/escapeHtml.js"></script>
 <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 <script>
     // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
@@ -765,9 +766,21 @@
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
                         $(document).trigger("add-alerts", [{
                             'message': 'The following gene identifiers are ' +
-                                       'not present in GeneWeaver: ' + 
-                                       v['missing'].join(', '),
+                                       'not present in GeneWeaver: ' +
+                                       gwEscapeHtmlJoin(v['missing'], ', '),
                             'priority': 'warning'
+                        }]);
+                    }
+                    // GWC-42 (Tessa): surface the score-type value-range warnings
+                    // on single upload too (batch already did). The backend returns
+                    // them in `warnings`; show them like the "missing genes" notice.
+                    if (v['warnings'] && v['warnings'].length > 0) {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [{
+                            'message': '<strong>Score-type check:</strong><br />' +
+                                       gwEscapeHtmlJoin(v['warnings'], '<br />'),
+                            'priority': 'warning',
+                            'fade': 0
                         }]);
                     }
                 },

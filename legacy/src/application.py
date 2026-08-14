@@ -938,7 +938,10 @@ def render_editgenesets(gs_id, curation_view=False):
     srp = geneweaverdb.get_srp(gs_id)
     gs_update = geneweaverdb.update_geneset_date(gs_id)
     if user_id != 0:
-        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id or geneweaverdb.user_is_assigned_curation(user_id, gs_id) else None
+        # GWC-9: guard against get_geneset() returning None (unreadable/not found) --
+        # dereferencing geneset.user_id here 500'd for non-admin owners; let a None
+        # geneset fall through to the "GeneSet Not Found" template instead.
+        view = 'True' if user_info.is_admin or user_info.is_curator or (geneset is not None and geneset.user_id == user_id) or geneweaverdb.user_is_assigned_curation(user_id, gs_id) else None
     else:
         view = None
 
@@ -4079,16 +4082,21 @@ def jaccard(a, b):
 def calculate_jaccard(gs_id, genesets):
     """Calculate Jaccard similarity between a target geneset and multiple comparison genesets.
     
-    Retrieves homologous gene IDs for the target geneset and compares them
-    against a list of other genesets to compute pairwise Jaccard similarities.
-    
+    Retrieves the in-threshold membership keys for the target geneset and compares
+    them against a list of other genesets to compute pairwise Jaccard similarities.
+
+    Membership is keyed by hom_id where a gene has a homolog, and by the gene itself
+    where it has none -- see geneweaverdb.get_geneset_similarity_keys. Both sides use
+    the same definition, which is what makes this agree with the Jaccard Similarity
+    tool (at Homology = Included, Pairwise Deletion = Disabled).
+
     Args:
         gs_id (int): Target geneset ID used as the seed for comparisons.
         genesets (list): List of geneset IDs to compare against the target.
-        
+
     Returns:
         dict: Dictionary mapping geneset IDs to their Jaccard similarity values.
-        
+
     Example:
         >>> target_gs = 12345
         >>> comparison_genesets = [12346, 12347, 12348]
@@ -4096,8 +4104,8 @@ def calculate_jaccard(gs_id, genesets):
         >>> print(similarities)  # {12346: 0.25, 12347: 0.67, 12348: 0.33}
     """
     jaccards = {}
-    gs1 = geneweaverdb.get_geneset_hom_ids(gs_id)
-    gs2s = geneweaverdb.get_genesets_hom_ids(genesets)
+    gs1 = geneweaverdb.get_geneset_similarity_keys(gs_id)
+    gs2s = geneweaverdb.get_genesets_similarity_keys(genesets)
     for g in genesets:
         if g in gs2s:
             jaccards[g] = jaccard(gs1, gs2s[g])
@@ -4679,6 +4687,22 @@ def render_search_json():
 
     ## Used to generate attribution tags
     attribs = geneweaverdb.get_all_attributions()
+
+    ## No matches / error: keyword_paginated_search returns only a STATUS key in
+    ## these cases, so the success render below would KeyError on 'searchresults'
+    ## and 500. Render the wrapper's built-in no-results state instead, mirroring
+    ## render_searchFromHome (G3-778).
+    if search_values.get('STATUS') in ('NO MATCHES', 'ERROR'):
+        return render_template(
+            'search/search_wrapper_contents.html',
+            paginationValues=None,
+            noResults=(search_values.get('STATUS') == 'NO MATCHES'),
+            field_list=userValues['field_list'],
+            userFilters=userValues['userFilters'],
+            sort_by=userValues['sort_by'],
+            sort_ascending=userValues['sort_ascending'],
+            species=species,
+            attribs=attribs)
 
     return render_template(
         'search/search_wrapper_contents.html',

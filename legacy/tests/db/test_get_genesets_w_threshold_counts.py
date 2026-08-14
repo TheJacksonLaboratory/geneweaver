@@ -1,112 +1,106 @@
-# File: tests/db/test_get_genesets_w_threshold_counts.py
 """
-Unit tests for the `get_geneset_ids_with_threshold_counts` function.
+Unit tests for geneweaverdb.get_genesets_with_threshold_counts.
 
-This test file uses the `unittest` framework to validate the behavior of the function.
-The database interactions are mocked using `unittest.mock` to isolate the function logic.
+The function returns the number of in-threshold genes for each of the given
+genesets. It backs the "134 (12)" display on the Analyze Genesets and geneset
+overlap pages, and is what G3-785 will reuse to put the same figure in search
+results.
 
-Mocking:
-- The `PooledCursor` class is mocked to avoid actual database calls.
-- The `tools` module is mocked to resolve the `ModuleNotFoundError`.
+    get_genesets_with_threshold_counts([1, 2]) -> {1: 10, 2: 20}
 
-Usage:
-Run this test file using the `unittest` framework:
-    `python -m unittest tests/db/test_get_genesets_w_threshold_counts.py`
+NOTE ON THIS FILE'S HISTORY. It previously could not run at all, and was invisible
+because it is not in the CI gate (.github/workflows/_legacy-tests.yml). It
+imported `get_geneset_ids_with_threshold_counts`, which does not exist -- the
+function is `get_genesets_with_threshold_counts` -- and then called a third name
+it never imported. Its assertions were also written against an imagined API,
+expecting a list of dicts like [{"geneset_id": 1, "threshold_count": 10}] where
+the function returns a plain {gs_id: count} dict, so all four tests would have
+failed even once the import was corrected. Rewritten here against the real
+signature and added to the CI gate so it cannot rot unnoticed again.
+
+Pure unit tests -- no database. Run from legacy/:
+    python -m unittest tests.db.test_get_genesets_w_threshold_counts
 """
-
 import unittest
 from unittest.mock import patch, MagicMock
-import sys
-from src.geneweaverdb import get_geneset_ids_with_threshold_counts
 
-class TestGetGenesetIdsWithThresholdCounts(unittest.TestCase):
+from tests.db import _shims
+
+_shims.install()
+from src.geneweaverdb import get_genesets_with_threshold_counts  # noqa: E402
+
+
+class GetGenesetsWithThresholdCountsTests(unittest.TestCase):
     def setUp(self):
-        """
-        Sets up the test environment by mocking the `PooledCursor` class and the `tools` module.
-        """
-        # Mock the PooledCursor
-        self.patcher_cursor = patch('src.geneweaverdb.PooledCursor')
-        self.mock_pooled_cursor = self.patcher_cursor.start()
-        self.mock_cursor_instance = MagicMock()
-        self.mock_pooled_cursor.return_value.__enter__.return_value = self.mock_cursor_instance
-
-        # Mock the tools module and its attributes
-        self.mock_tools = MagicMock()
-        self.mock_tools.toolcommon = MagicMock()
-        sys.modules['tools'] = self.mock_tools
+        self.patcher = patch('src.geneweaverdb.PooledCursor')
+        mock_pc = self.patcher.start()
+        self.cursor = MagicMock()
+        self.cursor.fetchall.return_value = []
+        mock_pc.return_value.__enter__.return_value = self.cursor
 
     def tearDown(self):
-        """
-        Cleans up the test environment by stopping the mocks.
-        """
-        self.patcher_cursor.stop()
-        sys.modules.pop('tools', None)
+        self.patcher.stop()
 
-    def test_valid_geneset_ids(self):
-        """
-        Tests the function with a list of valid geneset IDs.
-        Verifies that the returned counts match the mocked database response.
-        """
-        self.mock_cursor_instance.fetchall.return_value = [
-            (1, 10),
-            (2, 20),
-            (3, -1)
-        ]
+    def _sql(self):
+        return ' '.join(self.cursor.execute.call_args[0][0].lower().split())
 
-        geneset_ids = [1, 2, 3]
-        result = get_genesets_with_threshold_counts(geneset_ids)
+    def _params(self):
+        args = self.cursor.execute.call_args[0]
+        return args[1] if len(args) > 1 else None
 
-        expected_result = [
-            {"geneset_id": 1, "threshold_count": 10},
-            {"geneset_id": 2, "threshold_count": 20},
-            {"geneset_id": 3, "threshold_count": -1}
-        ]
-        self.assertEqual(result, expected_result)
+    # --- return shape -------------------------------------------------------
 
-    def test_empty_geneset_ids(self):
-        """
-        Tests the function with an empty list of geneset IDs.
-        Ensures the function returns an empty list.
-        """
-        self.mock_cursor_instance.fetchall.return_value = []
+    def test_returns_gs_id_to_count_mapping(self):
+        self.cursor.fetchall.return_value = [(1, 10), (2, 20), (3, 5)]
+        self.assertEqual(get_genesets_with_threshold_counts([1, 2, 3]),
+                         {1: 10, 2: 20, 3: 5})
 
-        geneset_ids = []
-        result = get_genesets_with_threshold_counts(geneset_ids)
+    def test_no_rows_returns_empty_dict(self):
+        self.cursor.fetchall.return_value = []
+        self.assertEqual(get_genesets_with_threshold_counts([9999]), {})
 
-        self.assertEqual(result, [])
+    def test_empty_id_list_returns_empty_dict(self):
+        self.cursor.fetchall.return_value = []
+        self.assertEqual(get_genesets_with_threshold_counts([]), {})
 
-    def test_invalid_geneset_ids(self):
-        """
-        Tests the function with geneset IDs that do not exist in the database.
-        Verifies that the function returns an empty list.
-        """
-        self.mock_cursor_instance.fetchall.return_value = []
+    def test_genesets_with_no_in_threshold_genes_are_absent_not_zero(self):
+        # Load-bearing for callers. The query is a LEFT JOIN, but the WHERE
+        # clause tests gv.gsv_in_threshold, which discards the NULL-extended rows
+        # and makes it behave as an inner join -- so a geneset with no
+        # in-threshold genes produces no row and is simply missing from the dict
+        # rather than mapping to 0. viewGenesetSummaryPartial.html subscripts this
+        # dict directly, so callers must default the missing keys (G3-785).
+        self.cursor.fetchall.return_value = [(1, 10)]
+        result = get_genesets_with_threshold_counts([1, 2])
+        self.assertEqual(result, {1: 10})
+        self.assertNotIn(2, result)
+        self.assertEqual(result.get(2, 0), 0, 'callers should default to 0')
 
-        geneset_ids = [9999]  # IDs that do not exist
-        result = get_genesets_with_threshold_counts(geneset_ids)
+    # --- the query -----------------------------------------------------------
 
-        self.assertEqual(result, [])
+    def test_counts_only_in_threshold_values(self):
+        get_genesets_with_threshold_counts([1])
+        self.assertIn('gsv_in_threshold', self._sql(),
+                      'must count only in-threshold genes, not every gene')
 
-    def test_threshold_type_edge_cases(self):
-        """
-        Tests the function with edge cases for threshold types.
-        Validates the counts for different threshold types, including binary (-1) and range-based counts.
-        """
-        self.mock_cursor_instance.fetchall.return_value = [
-            (1, 0),
-            (2, -1),
-            (3, 100)
-        ]
+    def test_scoped_to_the_requested_genesets(self):
+        get_genesets_with_threshold_counts([1, 2])
+        sql = self._sql()
+        self.assertIn('where', sql)
+        self.assertIn('gs.gs_id =', sql,
+                      'query is not restricted to the requested genesets: %r' % sql)
 
-        geneset_ids = [1, 2, 3]
-        result = get_genesets_with_threshold_counts(geneset_ids)
+    def test_query_is_parameterised(self):
+        # geneset_ids reach this from request data on the project/overlap pages.
+        get_genesets_with_threshold_counts([1, 2, 3])
+        self.assertEqual(self._params(), ([1, 2, 3],))
+        self.assertNotIn('9999', self._sql())
 
-        expected_result = [
-            {"geneset_id": 1, "threshold_count": 0},
-            {"geneset_id": 2, "threshold_count": -1},
-            {"geneset_id": 3, "threshold_count": 100}
-        ]
-        self.assertEqual(result, expected_result)
+    def test_issues_a_single_query(self):
+        get_genesets_with_threshold_counts([1, 2, 3])
+        self.assertEqual(self.cursor.execute.call_count, 1,
+                         'must not query per geneset')
+
 
 if __name__ == '__main__':
     unittest.main()

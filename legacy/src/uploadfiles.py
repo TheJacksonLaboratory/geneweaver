@@ -248,6 +248,9 @@ def create_new_geneset_for_user(args, user_id):
     missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
 
+    ## GWC-42: advisory warnings if values look implausible for the score type.
+    score_warnings = score_type_value_warnings(gs_threshold_type, gene_data)
+
     try:
         with db.PooledCursor() as cursor:
             cursor.execute('''SELECT production.create_geneset2(%s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -280,10 +283,12 @@ def create_new_geneset_for_user(args, user_id):
     except psycopg2.Error as err:
         return {'error': str(err)}
 
-    # Some genesets contain no genes. We need to remove those genesets
     with db.PooledCursor() as cursor:
         cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s''', (gs_id,))
-        if cursor.fetchone()[0] < 1:
+        stored_gene_count = cursor.fetchone()[0]
+
+        # Some genesets contain no genes. We need to remove those genesets
+        if stored_gene_count < 1:
             cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
             error_string = (
@@ -295,14 +300,28 @@ def create_new_geneset_for_user(args, user_id):
             )
             return{'error': error_string}
 
+        # Correct gs_count to the number of genes actually stored. create_geneset2
+        # writes the gs_count handed to it verbatim and only afterwards calls
+        # reparse_geneset_file() to resolve identifiers, so the value it stored is a
+        # count of submitted *lines* -- including the trailing blank line that
+        # split('\n') yields for text ending in a newline. Lines are not genes:
+        # identifiers matching nothing in extsrc.gene are dropped, and identifiers
+        # resolving to the same gene collapse (reparse groups by ode_gene_id). Search
+        # and My Genesets render gs_count while the geneset page runs its own count(*)
+        # (get_genecount_in_geneset), so the two disagreed -- GS407881 stored 9 for 8
+        # submitted identifiers of which 4 resolved (GWC-34 / G3-782).
+        cursor.execute('''UPDATE production.geneset SET gs_count=%s WHERE gs_id=%s;''',
+                       (stored_gene_count, gs_id,))
+        cursor.connection.commit()
 
     # need to get user's preference for annotation tool
     user = db.get_user(user_id)
     user_prefs = json.loads(user.prefs)
 
-    # get the user's annotator preference.  if there isn't one in their user
-    # preferences, default to the monarch annotator
-    annotator = user_prefs.get('annotator', 'monarch')
+    # get the user's annotator preference. If there isn't one in their user
+    # preferences, default to the annotator module's default (NCBO -- Monarch's
+    # SciGraph annotator was decommissioned; see GWC-8).
+    annotator = user_prefs.get('annotator', ann.DEFAULT_ANNOTATOR)
     ncbo = True
     monarch = True
     if annotator == 'ncbo':
@@ -337,7 +356,7 @@ def create_new_geneset_for_user(args, user_id):
     # insert genes associated with geneset into the hom2geneset table
     insert_into_hom2geneset_by_gsid(gs_id)
 
-    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes, 'warnings': score_warnings}
 
 def create_new_large_geneset_for_user(args, user_id):
     '''
@@ -409,6 +428,9 @@ def create_new_large_geneset_for_user(args, user_id):
     missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
 
+    ## GWC-42: advisory warnings if values look implausible for the score type.
+    score_warnings = score_type_value_warnings(gs_threshold_type, gene_data)
+
     try:
         with db.PooledCursor() as cursor:
             cursor.execute('''SELECT production.create_geneset_for_queue(%s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -445,9 +467,10 @@ def create_new_large_geneset_for_user(args, user_id):
     user = db.get_user(user_id)
     user_prefs = json.loads(user.prefs)
 
-    # get the user's annotator preference.  if there isn't one in their user
-    # preferences, default to the monarch annotator
-    annotator = user_prefs.get('annotator', 'monarch')
+    # get the user's annotator preference. If there isn't one in their user
+    # preferences, default to the annotator module's default (NCBO -- Monarch's
+    # SciGraph annotator was decommissioned; see GWC-8).
+    annotator = user_prefs.get('annotator', ann.DEFAULT_ANNOTATOR)
     ncbo = True
     monarch = True
     if annotator == 'ncbo':
@@ -488,7 +511,7 @@ def create_new_large_geneset_for_user(args, user_id):
     # insert genes associated with geneset into the hom2geneset table
     insert_into_hom2geneset_by_gsid(gs_id)
 
-    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes, 'warnings': score_warnings}
 
 
 def get_default_threshold(gs_threshold_type: str) -> str:
@@ -522,6 +545,32 @@ def get_default_threshold(gs_threshold_type: str) -> str:
         return '-1000,1000'
     else:
         return '0.05'
+
+
+def score_type_value_warnings(gs_threshold_type, gene_data):
+    """
+    Advisory warnings for values outside the selected score type's domain
+    (GWC-42). `gene_data` is the processed "ref\\tvalue\\n" string from
+    process_gene_list. Domain logic is delegated to
+    geneweaverdb.score_type_value_warnings so single upload and batch upload
+    stay consistent.
+
+    :param gs_threshold_type: the score type code (str or int)
+    :param gene_data: processed gene list string
+    :return: a list of warning strings (empty if all values are in-domain)
+    """
+    pairs = []
+    for line in str(gene_data).split('\n'):
+        parts = line.split('\t')
+        if len(parts) >= 2 and parts[0].strip():
+            pairs.append((parts[0].strip(), parts[1].strip()))
+
+    try:
+        stype = int(gs_threshold_type)
+    except (TypeError, ValueError):
+        return []
+
+    return db.score_type_value_warnings(stype, pairs)
 
 
 def process_gene_list(gene_list):
@@ -801,9 +850,6 @@ def insert_into_geneset_value_by_gsid(gsid):
     :return: 'True' or error msg
     '''
     with db.PooledCursor() as cursor:
-        ## get the latest count of genes from the temp table for updating main table at end of process
-        cursor.execute('''select count(*) from production.temp_geneset_value where gs_id = %s;''' % (gsid,))
-        gs_count = cursor.fetchone()[0]
         cursor.execute('''SELECT gs_id FROM production.temp_geneset_value WHERE gs_id=%s''', (gsid,))
         g = cursor.fetchone()
         if g is not None:
@@ -829,8 +875,17 @@ def insert_into_geneset_value_by_gsid(gsid):
                     ## Update 'delayed' values to 'normal'
                     cursor.execute('''UPDATE geneset SET gs_status='normal' WHERE gs_id=%s;''', (gsid,))
                     cursor.connection.commit()
-                    # update the main geneset table with the new count
-                    cursor.execute('''update production.geneset set gs_count = %s where gs_id = %s;''' % (gs_count, gsid))
+                    # Update the main geneset table with the new count. Derive it from the rows
+                    # actually stored, NOT from a count of temp_geneset_value: the INSERT above
+                    # groups by ode_gene_id, so two source identifiers resolving to the same gene
+                    # (aliases/synonyms, or a symbol listed twice) collapse into one row. Counting
+                    # the staged rows therefore over-counted, leaving gs_count above the real gene
+                    # count — search showed the inflated number while the geneset page, which does
+                    # its own count(*), showed the true one (GWC-34 / G3-782).
+                    cursor.execute('''UPDATE production.geneset gs
+                                         SET gs_count = (SELECT count(*) FROM extsrc.geneset_value gv
+                                                          WHERE gv.gs_id = gs.gs_id)
+                                       WHERE gs.gs_id = %s;''', (gsid,))
                     cursor.connection.commit()
 
                     return {'error': 'None'}
