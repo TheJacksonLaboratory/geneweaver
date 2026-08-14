@@ -130,16 +130,32 @@ version (`1.6.0`) that should not be coupled to the API's uv/PyPI publish or `0.
   `geneweaver-docs` can be archived. The old site stays served read-only at
   `/geneweaver-docs/`; the new one is `/geneweaver/`.
 
+    **Status (2026-08-14):** live. `docs-release.yml` runs on merges to `main`, and the
+    Pages site is enabled with source `gh-pages` / `/`. 66 pages published; the internal
+    notes under `ci-cd/`, `tools/`, `ui/` and this `README` are correctly excluded.
+
     **⚠ Release gate — GitHub Pages must be public before the legacy app reaches prod.**
-    `geneweaver-docs` is a public repo; this monorepo is internal, so Pages served from
-    here is reachable only by the org. That is accepted while the docs ride on dev. The
-    app's Help and per-tool documentation links now point at the new URL, so shipping
-    them to prod while Pages is still internal sends every external geneweaver.org user
-    to an org login instead of the documentation. Resolve by making the repo public,
-    setting Pages visibility to public (Enterprise Cloud), or moving the site to a
-    public host / custom domain. Check this alongside the other prod prerequisites in
-    the G3-781 promotion. The "open in Colab" links in `docs/tutorial/*.ipynb` also
-    need a public repo to resolve.
+    `geneweaver-docs` is a public repo; this monorepo is internal, and **GitHub does not
+    serve an internal repo's Pages at the predictable org URL**. Verified behaviour today:
+
+    ```
+    https://thejacksonlaboratory.github.io/geneweaver/   → 301
+    https://cautious-adventure-5wymmqe.pages.github.io/  → GitHub sign-in page
+    ```
+
+    GitHub assigns a randomised `*.pages.github.io` host for private/internal Pages, and
+    the org URL redirects to it; unauthenticated visitors land on a login page, not the
+    docs. Note this returns HTTP 200 — the login page is a real response — so a naive
+    availability check will report the site as up while no user can read it.
+
+    The app's Help and per-tool documentation links already point at
+    `https://thejacksonlaboratory.github.io/geneweaver/`. That URL is correct and needs
+    no change: it starts serving the docs as soon as the repo (or its Pages visibility)
+    becomes public. Until then, shipping those links to prod sends every external
+    geneweaver.org user to a GitHub login. Resolve by making the repo public, setting
+    Pages visibility to public (Enterprise Cloud), or moving the site to a public host /
+    custom domain. Check this alongside the other prod prerequisites in the G3-781
+    promotion. The "open in Colab" links in `docs/tutorial/*.ipynb` need the same.
 
 ## 6. Open decisions
 - **Separate vs unified deploy:** legacy gets its own version/release cadence and image
