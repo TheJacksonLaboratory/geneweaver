@@ -4,11 +4,12 @@ name: Docs — Publish
 # the docs sources. This monorepo owns the documentation site; the standalone
 # TheJacksonLaboratory/geneweaver-docs repo it replaces is to be archived.
 #
-# PRECONDITION: geneweaver-docs must be archived (or its mkdocs_deploy.yml
-# removed) before this merges to main. Both repos publish a gh-pages site, and
-# while both pipelines are armed whichever runs last wins. As of 2026-08-14 that
-# repo is NOT yet archived — it is merely dormant (last push 2025-01-07), so it
-# only redeploys if someone pushes to its main.
+# RETIRING THE OLD SITE: this does NOT contend with geneweaver-docs. Each repo's
+# gh-deploy pushes to its own gh-pages branch and serves its own project path
+# (/geneweaver-docs/ versus /geneweaver/), so there is no race and archiving is
+# not a precondition for merging this. Archiving that repo is still worth doing,
+# to retire a second, diverging copy of the docs rather than to avoid a clash.
+# As of 2026-08-14 it is not archived, merely dormant (last push 2025-01-07).
 #
 # ALSO REQUIRED: this repo has no GitHub Pages site configured and no gh-pages
 # branch (checked 2026-08-14). The first run of this workflow creates the branch;
