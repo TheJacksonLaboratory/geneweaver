@@ -2589,11 +2589,26 @@ displayed if a similarity analysis needs to be run on the geneset with an option
 Click here to start now". There also is a button on the page that allows you to "Refresh
 Similar GeneSets" if the analysis is old.</p>
 <p>The "Export GeneSets" button will create a "csv" file of all the similar GeneSets. The
-columns include: geneset id, name, number of genes, and Jaccard Similarity score.</p>
+columns include: geneset id, name, number of genes, and Jaccard Similarity score (with
+homology included).</p>
+<div class="admonition note">
+<p class="admonition-title">How the Jaccard Similarity score is calculated</p>
+<p>Similar Genesets always includes homology in the calculation, the same as running the
+<a href="../../analysis-tools/jaccard-similarity/">Jaccard Similarity</a> analysis tool with
+<strong>Homology = Included</strong>. Genes that are homologous across species count as a single
+gene, and a gene with no homolog counts as itself. Only genes within the geneset's
+threshold are counted, on both the geneset you are viewing and each geneset it is
+compared against.</p>
+<p>Unlike the analysis tool, Similar Genesets has no homology option — it is always on.
+It also has no <em>Pairwise Deletion</em> option, so to reproduce a score shown here using
+the Jaccard Similarity tool, run the tool with <strong>Homology = Included</strong> and <strong>Pairwise
+Deletion = Disabled</strong>.</p>
+</div>
 <p><img alt="" src="../../assets/images/Similar_genesets_01.png" /></p>
 <p><img alt="" src="../../assets/images/Similar_genesets_02.png" /></p>
 <p>Scroll down to see the list of similar genesets. You may select between 10 and 100 to
-display per page. This list will be sorted by the Jaccard Similarity. Click on any
+display per page. This list will be sorted by the Jaccard Similarity (with homology
+included). Click on any
 column to change the sort order. The tier, species and attribution columns allow
 selecting a filter in order to limit the number of genesets. You may also enter a string
 of characters into the "Search" box to filter the list by the geneset name.</p>
