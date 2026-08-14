@@ -1,0 +1,61 @@
+name: Docs — Publish
+
+# Publishes the documentation site to GitHub Pages on pushes to main that touch
+# the docs sources. This monorepo owns the documentation site; the standalone
+# TheJacksonLaboratory/geneweaver-docs repo it replaces is to be archived.
+#
+# RETIRING THE OLD SITE: this does NOT contend with geneweaver-docs. Each repo's
+# gh-deploy pushes to its own gh-pages branch and serves its own project path
+# (/geneweaver-docs/ versus /geneweaver/), so there is no race and archiving is
+# not a precondition for merging this. Archiving that repo is still worth doing,
+# to retire a second, diverging copy of the docs rather than to avoid a clash.
+# As of 2026-08-14 it is not archived, merely dormant (last push 2025-01-07).
+#
+# ALSO REQUIRED: this repo has no GitHub Pages site configured and no gh-pages
+# branch (checked 2026-08-14). The first run of this workflow creates the branch;
+# Pages must then be turned on with its source set to gh-pages, or the deploy
+# succeeds while nothing is served. Settings > Pages, or:
+#   gh api -X POST repos/TheJacksonLaboratory/geneweaver/pages \
+#     -f 'source[branch]=gh-pages' -f 'source[path]=/'
+#
+# SITE VISIBILITY: geneweaver-docs is a public repo; this one is internal, so
+# Pages served from here is reachable only by the org. That is accepted while
+# the docs ride on dev. It must be made public — repo visibility, GitHub Pages
+# visibility on Enterprise Cloud, or a public host / custom domain — before the
+# app's Help links reach prod, or external users of geneweaver.org get an org
+# login instead of the documentation. Those links are repointed in this same
+# change (legacy/src/templates/{header,footer,index}.html and the /help/
+# redirect in legacy/src/application.py).
+#
+# The published URL changes with the repo name:
+#   old  https://thejacksonlaboratory.github.io/geneweaver-docs/
+#   new  https://thejacksonlaboratory.github.io/geneweaver/
+# Archiving leaves the old site served read-only, so existing links keep working
+# but go stale. [project.urls].Homepage in pyproject.toml and the badges in
+# docs/README.md still point at the old location.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/docs-*.yml'
+      - '.github/workflows/_docs-action.yml'
+  # Allows a manual publish without waiting for a docs change to land.
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: "Docs Publish: GitHub Pages"
+    # Required: this repo's default GITHUB_TOKEN is read-only, and a called
+    # workflow cannot hold permissions the caller does not. Without this,
+    # _docs-action.yml's `contents: write` is capped to read and gh-deploy's
+    # push to gh-pages fails with a 403.
+    permissions:
+      contents: write
+    uses: ./.github/workflows/_docs-action.yml
+    with:
+      deploy: true

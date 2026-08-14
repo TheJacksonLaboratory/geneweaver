@@ -53,3 +53,7 @@ Thumbs.db
 *.wmv
 
 legacy/.local/
+
+# MkDocs build output (docs site is built by .github/workflows/docs-*.yml)
+/site/
+.cache/

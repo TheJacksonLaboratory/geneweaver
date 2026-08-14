@@ -1,4 +1,4 @@
-The full contribution guide can be found at [Geneweaver Documentation](https://thejacksonlaboratory.github.io/geneweaver-docs/reference/contributing-guide/).
+The full contribution guide can be found at [Geneweaver Documentation](https://thejacksonlaboratory.github.io/geneweaver/reference/contributing-guide/).
 
 This package is developed and maintained by the Computational Sciences department at 
 the Jackson Laboratory.

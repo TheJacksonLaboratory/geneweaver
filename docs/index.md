@@ -55,7 +55,7 @@
 
     GeneWeaver is open source and available on [GitHub](https://github.com/orgs/TheJacksonLaboratory/repositories?q=geneweaver).
 
-    [:octicons-arrow-right-24: License](https://github.com/TheJacksonLaboratory/geneweaver-docs/blob/main/LICENSE)
+    [:octicons-arrow-right-24: License](https://github.com/TheJacksonLaboratory/geneweaver/blob/main/LICENSE)
 
     [:octicons-arrow-right-24: Our GitHub Repositories](https://github.com/orgs/TheJacksonLaboratory/repositories?q=geneweaver)
 

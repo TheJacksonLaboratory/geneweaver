@@ -21,7 +21,7 @@ Options
 
 Visualization
 --------------------------
-![Scheme](images/hierarchy.png)
+![Scheme](../assets/images/hierarchy.png)
 
 The result of Similar Variant Set tool is visualized in a hierarchy graph. From computing with UPGMA algorithm, the relations between each variant will be constructed and sent to the visualization pipeline. 
 This hierarchy relation is simply visualized by the color: for each connection, the blue end is parent, and the red end is child. The hierarchy could be traced from each variant’s name as well: we use (A,B) to denote the parent of variant A and variant B. Additionally, user could hover on the links or nodes of interest to see a highlighted version on that part.

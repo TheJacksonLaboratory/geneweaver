@@ -36,6 +36,14 @@ dev = [
     # Shared pytest fixtures imported by packages/*/tests (geneweaver.testing.fixtures).
     "geneweaver-testing>=0.1.2",
 ]
+# Documentation site (mkdocs.yml + docs/). Previously lived in the standalone
+# TheJacksonLaboratory/geneweaver-docs repo, which this replaces.
+# mkdocs >=1.6 is required for the `exclude_docs` key used in mkdocs.yml.
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5.11",
+    "mkdocs-jupyter>=0.24.2",
+]
 
 [tool.uv]
 # geneweaver-testing pins ruff<0.3 for its own lint command, which is unsatisfiable
