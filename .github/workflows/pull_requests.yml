@@ -24,7 +24,7 @@ jobs:
     name: "Format and Lint"
     uses: ./.github/workflows/_format-lint-action.yml
     with:
-      python-version: '3.9'
+      python-version: '3.10'
 
   version-check:
     name: "Version Sync Check"
@@ -73,7 +73,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
     uses: ./.github/workflows/_run-tests-action.yml
     with:
       runner-os: ${{ matrix.os }}

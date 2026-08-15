@@ -3,7 +3,7 @@ name = "geneweaver-tools"
 version = "0.20.0a0"
 description = "A framework to allow for consistent implementation of tools for the GeneWeaver project."
 readme = "README.md"
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.10,<4.0"
 license = { text = "Apache-2.0" }
 
 authors = [
