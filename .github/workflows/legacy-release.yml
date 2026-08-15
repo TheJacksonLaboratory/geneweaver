@@ -31,6 +31,13 @@ permissions:
 jobs:
   version:
     name: "Verify Tag Matches Version"
+    # A push event is ALSO delivered when a tag is deleted (the payload carries
+    # deleted: true), and on a deletion the run's SHA reverts to the default
+    # branch. Without this guard `git push --delete origin v1.6.0` would run this
+    # workflow against main, the tag-vs-pyproject comparison would very likely
+    # match, and deleting a tag would start a real SQA -> Stage -> Prod release.
+    # Every other job needs this one, so skipping it skips the whole pipeline.
+    if: ${{ !github.event.deleted }}
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.version_check.outputs.should_release }}
