@@ -152,3 +152,179 @@
 | Stop at prod's RBAC denial rather than route around it | `pods/exec`, `portforward` and `secrets` are all denied on prod; the remaining routes meant pulling prod DB credentials into the session | Reported the block; used sqa instead |
 | G3-784 requires *both* halves (DB-resolved **and** full gene space) | Resolving from the DB still rejects Tier-IV sets; widening the universe still goes stale | Story G3-784 under epic G3-763 |
 | Retrospective G3 ticket for an already-fixed, already-merged bug | GWC-51 had no G3 counterpart, so it was absent from the umbrella and the release verification list and would have shipped unverified | G3-783 |
+
+---
+
+# Round 3 — GWC-34 upload path, G3-805 homology, docs ownership, PR #2 security review
+
+> Extracted: 2026-08-16
+> Source: same branch (`fix/G3-769-legacy-bug-fixes-and-improvements`), merged as PR #2
+>   on 2026-08-14, plus PR #3 (docs consolidation) and PR #4 (GWC-35 note).
+>   Commit range `0d36c639..77161d1b` — the work after Round 2's cutoff.
+> Campaign file: none. Postmortem: none. Telemetry: none (`.planning/telemetry/` absent).
+
+## Successful Patterns (cont.)
+
+### 14. Fix *every* writer of a denormalized value, not the one you reproduced
+- **Description:** Round 2 fixed `gs_count` in `insert_into_geneset_value_by_gsid()` and the
+  bug stayed live, because that path only runs on curator edits and delayed commits — a plain
+  new upload never reaches it. Three separate writers held the same fault, each with a
+  *different* wrong formula: `len(gene_data.split('\n'))` (submitted lines, plus the trailing
+  blank line `split` yields), a `geneset_value NATURAL JOIN gene WHERE ode_pref` count (one row
+  per preferred identifier a gene carries, ~2× on dev — 48 against 25 stored for GS403415),
+  and the staged-rows count already fixed. Only enumerating the writers closed it.
+- **Evidence:** commit 3ddd38a5; GS407881 showed 9 in My Genesets against 4 on the geneset page
+  *after* the Round 2 fix shipped.
+- **Applies when:** any denormalized column. Grep for every assignment to it before closing —
+  the path that reproduces is rarely the only one, and per-path formulas drift independently.
+
+### 15. Reproduce a stored-procedure bug inside a rolled-back transaction
+- **Description:** Rather than reasoning about `create_geneset2`, the real procedure was called
+  on dev inside a transaction that was rolled back: 8 identifiers in → `gs_count` 9, 4 rows in
+  `geneset_value`. The reconstructed input reproduced the stored `file_contents` byte for byte,
+  which is what proved the probe matched the user's actual upload rather than a lookalike.
+- **Evidence:** commit 3ddd38a5, dev reproduction 2026-08-06.
+- **Applies when:** the logic lives in a stored procedure. Rollback makes exercising production
+  code on a real database cheap; byte-comparing the reconstructed input is what makes it *evidence*.
+
+### 16. Quantify a scoring bug's direction and magnitude, not just its existence
+- **Description:** G3-805 could have been reported as "Find Similar drops genes." Instead it was
+  characterised: the error runs in **both** directions — a dropped gene present in only one set
+  shrinks the union and *inflates* the score; one shared by both sets is dropped from the
+  intersection too and *deflates* it, since `(c-k)/(u-k) < c/u`. Measured on 40 same-species
+  pairs sharing a non-homologous gene: 24 inflated, 16 deflated. Blast radius on a 2,000-geneset
+  sample: 8.6% of in-threshold memberships on dev, 8.4% on sqa.
+- **Evidence:** commit 5c79bb0d; verified against the deployed tool on 46 pairs covering both cases.
+- **Applies when:** a numeric disagreement between two features. "Which way, how far, how often"
+  turns a bug report into a decision about whether to backfill, and catches the case where you
+  assumed a one-directional error.
+
+### 17. Pick a surrogate key that cannot collide with the real one
+- **Description:** Keying membership by `hom_id` where a homolog exists and by the gene itself
+  where it does not needs a namespace: `ode_gene_id` can be **negative**, so an integer surrogate
+  like `-ode_gene_id` could collide with a genuine `hom_id`. Keys are text, `'h'`/`'g'` prefixed.
+- **Evidence:** commit 5c79bb0d.
+- **Applies when:** unioning two identifier spaces into one key. Check the actual domain of both
+  (signs, ranges, reuse) before assuming an arithmetic trick separates them.
+
+### 18. Split a dual-purpose query instead of leaving a near-duplicate
+- **Description:** The homology fix was correct for *scoring* and wrong for *discovery* —
+  `dynamic_jaccard` feeds hom_ids to `get_genesets_by_hom_id`, which looks up
+  `extsrc.hom2geneset` and can only match real hom_ids. `get_geneset_hom_ids` therefore keeps its
+  INNER JOIN and integer ids, while `get_genesets_hom_ids` (one caller) *became* the scoring
+  function rather than being left beside it as a near-duplicate that would drift.
+- **Evidence:** commit 5c79bb0d; `geneweaverdb.py:4405` (discovery) vs `:4460`/`:4498` (scoring).
+- **Applies when:** one query serves two callers with different correctness requirements. Split by
+  purpose and delete the redundant one — two similar queries with different semantics is a latent bug.
+
+### 19. Verify the *visibility* path of a data migration, not just the data
+- **Description:** Migration 118 corrected `gs_count` in the database and search kept serving the
+  old number: `gs_count` is a materialised Sphinx index attribute (`sql_attr_uint`), not a live
+  read. Worse, a **delta** reindex can never pick these up — `geneset_delta_src` selects on
+  `gs_updated >= sphinxcounters.last_update`, and the backfill deliberately does not touch
+  `gs_updated` (it is the user-visible last-modified time; bumping it would assert the contents
+  changed). Only `indexer --all` republishes them. Checked against the running dev sidecar:
+  GS407872 read 1538 in the DB while the index served 1901.
+- **Evidence:** commit 93ae3aa1.
+- **Applies when:** any backfill of a column that something else caches, indexes, or materialises.
+  Ask what republishes it and whether the incremental path can even see your change.
+
+### 20. Fix the reported instance, then sweep for the defect class
+- **Description:** Copilot flagged one stored-XSS sink (`uploadgeneset.html:780`). The same defect
+  was in three more places — missing-gene identifiers and score-type warnings in
+  `uploadgeneset.html`, batch parse errors and warnings in `batchupload.html` — all rendering
+  user-file content through `.html()`. Fixing only the reported line would have left the hole open.
+  The rest of both upload paths were then checked: the only other `.join()` writes to an input's
+  `.value`, which is not an injection path.
+- **Evidence:** commit f11ae9fb; `static/js/geneweaver/escapeHtml.js` (`gwEscapeHtml`/`gwEscapeHtmlJoin`).
+- **Applies when:** any review finding with a shape (a sink, a call form, a missing guard). Grep
+  the shape; report both what you fixed and what you checked and cleared.
+
+### 21. Prove content parity by hash before replacing a publishing pipeline
+- **Description:** Before moving the docs site into the monorepo, parity was established rather
+  than assumed: all 271 files under `geneweaver-docs/docs` exist here, every asset hashes
+  identically, and the only differences are three tutorial notebooks whose cell *sources* differ
+  by formatting alone (quote style, import order, wrapping) from having been formatted after
+  import. The monorepo is a strict superset — which is what made archiving the old repo safe.
+- **Evidence:** commit d9fa4e67.
+- **Applies when:** retiring a source of truth. "We copied it over once" is not parity; hash it.
+
+### 22. Turn on `--strict` and treat what it surfaces as real breakage
+- **Description:** The new docs build runs `--strict`, which the old pipeline did not. It surfaced
+  eight pre-existing broken links — seven images referenced as `images/*.png` that live in
+  `docs/assets/images/`, and a link to a page moved to `analysis-tools/index.md`. All were live
+  user-visible breakage on the published site, invisible because the old build tolerated them.
+- **Evidence:** commit d9fa4e67.
+- **Applies when:** adopting a stricter build. The first run is a free audit of the old one — budget
+  for fixing what it finds rather than relaxing the flag.
+
+### 23. Reason about CI permission caps before the first run, not after the 403
+- **Description:** A called reusable workflow cannot hold permissions its caller does not grant,
+  and requesting *more* than the caller grants is an error. With the repo default
+  `default_workflow_permissions: read`, `_docs-action.yml`'s `contents: write` would have been
+  capped and `gh-deploy`'s push rejected. The grant went on the callers
+  (`docs-release.yml: write`, `docs-pull_requests.yml: read`) rather than into the shared action,
+  because pinning it inside would have broken the build-only PR job.
+- **Evidence:** commit e1ac74aa. Explicitly left unverified: whether an org-level Actions policy
+  also caps escalation — reading that needs org admin, and it was named as the next thing to check
+  if the publish still 403s.
+- **Applies when:** shared/reusable CI workflows. Permissions intersect downward; put the grant at
+  the caller and record what you could not verify.
+
+### 24. Name a constraint a *release* gate when it is not a merge gate
+- **Description:** Repointing the app's Help links to the monorepo docs is safe on dev and breaks
+  prod: the monorepo is internal, so its Pages site is org-only, and external geneweaver.org users
+  would hit an org login where documentation used to be. Rather than blocking the merge or leaving
+  a comment in a workflow file, it was recorded as a numbered release precondition (B9) beside the
+  other G3-781 prod prerequisites, so it is checked at the same moment as everything else.
+- **Evidence:** commits 5a712ad8, d35f8aec, 3f34285b, d2a853a6.
+- **Applies when:** a change is correct for the current environment and wrong for a later one.
+  A gate recorded where the promotion checklist lives gets checked; a code comment does not.
+
+### 25. Make a test independent of collection order rather than renaming around it
+- **Description:** `tests/db/test_get_genesets_hom_ids` shims `tools` as a `MagicMock` so
+  `geneweaverdb` imports without psycopg2 — which made `from tools.MSET import ...` resolve against
+  that mock when it ran first: the new test passed alone and failed in the suite. Fixed by dropping
+  foreign `tools` entries before importing and restoring them afterwards, then verifying in **both**
+  orders.
+- **Evidence:** commit 5651bbcd (`tests/tools/test_mset_background_check.py`); gate green at 89 tests.
+- **Applies when:** a suite where any module mutates `sys.modules` at import time. Fix the coupling
+  and prove it with both orderings — ordering-dependent passes are noise that later reads as flake.
+
+### 26. Tell the user what they cannot fix themselves
+- **Description:** The MSET background message named the offending genes and stopped, so users
+  reasonably assumed it was theirs to correct. It is not — the background is built from curated
+  gene sets and only an administrator can change a curation tier. The message now says so and
+  directs them to the team.
+- **Evidence:** commit 5651bbcd (QA feedback on GWC-51); tests cover the contact direction, gene
+  names and counts, truncation past 15 genes, silence on a clean list and on a missing background
+  file, and that raw C++ stderr never reaches the user.
+- **Applies when:** writing a user-facing error for a condition the user has no permission to fix.
+  Accuracy about the cause is not the same as telling them what to do next.
+
+### 27. Accept the review point that contradicts your own document
+- **Description:** PR #3's review disputed a precondition the author had written — that archiving
+  `geneweaver-docs` prevents a publish race. It does not: each repo's `gh-deploy` pushes to its own
+  `gh-pages` and serves its own project path, so the two cannot overwrite each other. Recorded
+  plainly as "this was my error — the old wording would have blocked the rollout for no reason,"
+  and the constraint reworded to what it actually is (retiring a second, diverging copy).
+- **Evidence:** commit d2a853a6, point 1.
+- **Applies when:** review challenges a constraint you authored. A precondition that is not one
+  costs real delay; verify the mechanism rather than defending the sentence.
+
+## Key Decisions (cont.)
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Correct `gs_count` *after* `create_geneset2` rather than fix the value passed in | The proc stores the count verbatim and only afterwards calls `reparse_geneset_file()`; nothing reconciled them. Deriving post-hoc is immune to how the proc resolves identifiers | 3ddd38a5, `uploadfiles.py:287-313`; probe stores 4, agreeing with `get_genecount_in_geneset` |
+| Migration 118 excludes genesets that claim genes but hold none | 2,920 on dev, one claiming 13,190; re-running the resolver restores nothing (source files uploaded comma-separated where TSV was expected, or species whose gene data is not loaded). Zeroing them changes search results | Left as a product decision; read-only drift report added at `migration/checks/gwc34-gs-count-drift.sql` |
+| State plainly that the fix makes counts *smaller* | The correction reduces counts where identifiers failed to resolve; without saying so it reads as a fix for GWC-36 (dropped genes), which it is not | CHANGELOG rewritten in 4e074beb; verification row expects a count *below* the number of identifiers submitted |
+| Leave the batch path unchanged | `BatchReader.__map_gene_identifiers` already returns the resolved, deduped count — consistent with all 192,261 bulk-loaded genesets on dev being exact while every interactively created one drifted | 3ddd38a5 |
+| Keep `gs_updated` untouched in the backfill | It is the user-visible last-modified time; bumping it would assert the contents changed when only a cached total was repaired, disturbing curation views and recently-updated sorting | 93ae3aa1; accepted cost is that only `indexer --all` republishes |
+| Promote two guardrails from `.planning/knowledge` into `CLAUDE.md` | Citadel gitignores `.claude/harness.json` as local state, so harness rules only protect whoever runs Citadel; `CLAUDE.md` is the version the team actually gets | 33e327e2 (SQL parameterisation, denormalized counts) |
+| Commit `.planning/knowledge/` to the repo | `CLAUDE.md:5` pointed at it for the evidence behind the guardrails, but it had never been tracked — so for anyone cloning, the reference went nowhere | 5e1aea86; contents checked first (incident text and config key names only, no secret values) |
+| Deliberately **not** sweep `[project.urls].Homepage` in pyproject files | Those publish to PyPI; pointing public package metadata at an org-only Pages site is worse than pointing at the old public site, which stays served read-only after archiving | Recorded under B9 to move when Pages becomes public (d2a853a6) |
+| Rewrite the carried-over issue template instead of copying it byte-for-byte | The original was `feature_request.md` with only the front-matter name changed — its `about` and body still asked about feature requests under a "Documentation request" heading | 02a615ea; offered to revert to byte-identical if preferred |
+| Grant `contents: write` at the callers, not in the shared action | Permissions intersect downward *and* a callee requesting more than its caller grants is an error — pinning it inside would have failed the build-only PR job | e1ac74aa |
+| Ship Help links to an internal Pages site now, gate on prod | Acceptable while the docs ride on dev; must be public (or moved to a custom domain) before prod or external users hit an org login | 5a712ad8 + B9 in `LEGACY_CICD_MIGRATION.md` |
+| Document *both* settings needed to reproduce a Similar Genesets score | Homology = Included **and** Pairwise Deletion = Disabled. Documenting only the homology half would set up the same confusion again — Find Similar has no pairwise-deletion equivalent | 26f173f2 (GWC-35, requested by Tessa Nichols-Meade); verified by building the site and checking the rendered page |
