@@ -16,9 +16,14 @@
 
 ## 1. What is being promoted
 
-All of it is **on dev only** today — but it is **not** just the G3-769 branch.
+⚠️ **Status update (2026-08-21).** **PR #2 merged on 2026-08-14** — the branch is fully in `main`
+(`origin/main..fix/G3-769-…` is now 0 commits), so the set-1/set-2 split below is historical. The
+release is now a single set: **51 `legacy/` commits on `main` since 2026-06-01**, not the ~41 stated
+below — the count drifted again after 2026-08-06 (G3-805, the security fix, the MSET message, the
+Help-link repoint and the test work all landed since). Re-derive it rather than trusting a number in
+this document. Everything is still **deployed to dev only**; SQA/Stage/Prod have had none of it.
 
-⚠️ **Scope correction (2026-08-05).** An earlier version of this section said "one commit range:
+⚠️ **Scope correction (2026-08-05, superseded by the note above).** An earlier version of this section said "one commit range:
 `origin/main..fix/G3-769-…` (20 commits)". That understates the release by about half, because
 **two** sets of legacy changes reach SQA/Stage/Prod for the first time in this release:
 
@@ -48,44 +53,83 @@ first-time-managed-by-the-monorepo — so this is where the release risk actuall
 **Before approving SQA, walk that list and decide what needs verifying**; the per-fix table below
 covers the branch work only.
 
-| Ticket | Fix | Commits | Jira status (2026-08-05) | DB change |
+| Ticket | Fix | Commits | Jira status (2026-08-21, verified on the board) | DB change |
 |---|---|---|---|---|
 | G3-765 / GWC-50 | BooleanAlgebra Symmetric-Difference 500 + Venn blanking | `1ad89158`, `3d1f67b9` | Done | — |
 | G3-766 / GWC-45 | MSET stale-background subset error | `b82688d1` | Done | dev-only data refresh (§5.3) |
 | G3-767 / GWC-8 | Annotation generator broken since ~Jun 2025 | `456d0147`, `c2be6326` | Done | — |
-| G3-768 / GWC-36 | Genes silently dropped on upload (alias symbols) | `4680637b`, `519d45a1` | **Ready for Testing** | — |
+| G3-768 / GWC-36 | Genes silently dropped on upload (alias symbols) | `4680637b`, `519d45a1` | Done | — |
 | G3-772 / GWC-42 | Score-type validation + editable score type | `cedfee9e`, `53c29cfd`, `e07015e0` | Done | — |
 | G3-775 / GWC-9 | Admin-page tier change; geneset edit view | `35e47977` | Done | — |
-| G3-776 / GWC-44 | Binary gene sets thresholded → unusable in tools | `2e737f01` | **Ready for Testing** | ⚠️ **migration 117** |
-| G3-778 | Search robustness (3 bugs) | `4fee2bb4` | **Ready for Testing** | — |
-| G3-780 / GWC-35 | Find Similar thresholds only one side | `ac0a986c` | **Ready for Testing** | — |
-| G3-779 | Regression suite (48 unit tests) + legacy CI gate | `f7196d77`, `e3d6fdde`, `3908c1cd` | In Progress | — |
-| G3-782 / GWC-34 | Inflated `gs_count` — geneset edit / delayed upload, **plain UI upload**, and tool-generated genesets | `a133bd2b`, `3908c1cd`, `3ddd38a5` | In Progress | **migration 118** (§5.4); applied to dev 2026-08-06, pending SQA/Stage/Prod |
-| G3-783 / GWC-51 | MSET cryptic error for Tier-IV genesets outside the background | `0ba54c0a` **(set 2 — already in `main`)** | In Testing | — |
+| G3-776 / GWC-44 | Binary gene sets thresholded → unusable in tools | `2e737f01` | Done | ⚠️ **migration 117** |
+| G3-778 | Search robustness (3 bugs) | `4fee2bb4` | Done | — |
+| G3-780 / GWC-35 | Find Similar thresholds only one side | `ac0a986c` | Done | — |
+| G3-779 | Regression suite (**89** unit tests) + legacy CI gate | `f7196d77`, `e3d6fdde`, `3908c1cd` | Done | — |
+| G3-782 / GWC-34 | Inflated `gs_count` — geneset edit / delayed upload, **plain UI upload**, and tool-generated genesets | `a133bd2b`, `3908c1cd`, `3ddd38a5` | Done | **migration 118** (§5.4); applied to dev 2026-08-06, pending SQA/Stage/Prod |
+| G3-783 / GWC-51 | MSET cryptic error for Tier-IV genesets outside the background | `0ba54c0a` **(set 2 — already in `main`)** | Done | — |
+| G3-805 / GWC-35 follow-up | Find Similar dropped genes with **no homology record**, skewing Jaccard in both directions | `5c79bb0d` | Done | — |
 
 Also on the branch and shipping with it: version bump to 1.6.0 (`e888036d`), the batch paste-box
 upload improvement (`29b9338b`), gitignore/CLAUDE.md chores, and the G3-770 NCBO-key TODO doc
 (`53731db1`).
 
-## 2. Release gate — testing not finished
+## 2. Release gate — CLEARED 2026-08-21
 
-Four of the fixes are **Ready for Testing** and awaiting the curation scientist (Tessa); three are
-actively being tested. **Do not start §4 until those come back Done.** If one fails, it is far
-cheaper to fix it before the first monorepo legacy release than to hot-fix across three
-environments afterwards.
+✅ **This gate is met. §4 can start.**
 
-Recommended: hold the merge (not just the deploy). See §4.2 for why merging is itself the release
-trigger.
+The gate previously held the release because four fixes were *Ready for Testing* and three were
+in testing. All of it is now Done, verified on the board rather than read from this document:
+
+- **All ten GWC tickets** are Done — including GWC-36, GWC-35 and GWC-51, which earlier versions of
+  the §1 table still showed as pending.
+- **The G3-769 umbrella itself** is Done.
+- **G3-805** (the Find Similar homology follow-up, the last one outstanding) moved to Done on
+  2026-08-21.
+
+Historical note on why the gate existed: if a fix failed curation testing it would be far cheaper
+to correct before the first monorepo legacy release than to hot-fix across three environments
+afterwards. That risk is now retired, and it is the last row of §9.
+
+**Still open, but neither blocks the release:**
+
+- **G3-770** — remove/rotate the hardcoded NCBO API key — is `To Do`. It is §8.4's open decision
+  (ship the key to prod, or land the secret first). Note the ticket is **under-scoped**: a second
+  copy of the same key is hardcoded at `legacy/curation-server/ncbo.py:29` with no environment
+  override at all, so rotating only `annotator.py` silently breaks the curation server.
+- **G3-809** — `gsv_in_threshold` is written by three implementations that disagree, and the
+  tool-output geneset routes (`/createtempgeneset`, `/creategeneset.html`) bypass
+  `process_thresholds` entirely. Found while verifying §5.2 against the code. **Does not affect
+  Binary** (accidentally correct there), so it does not reopen GWC-44 or change the migration plan.
+
+⚠️ **The merge has already happened — see §3 and §4.2.** PR #2 merged 2026-08-14, which under the
+then-current trigger fired a real prod-bound release run (cancelled). **PR #6 has since merged
+(2026-08-21, `bd157765`)**, moving the trigger to a pushed `v*.*.*` tag, so a merge can no longer do
+that. Starting the release is now an explicit `git tag v1.6.0 && git push origin v1.6.0`.
 
 ## 3. Release mechanics (as actually configured)
 
+✅ **Updated 2026-08-21 — PR #6 merged (`bd157765`).** The trigger is now a pushed tag. Verified
+against `.github/workflows/legacy-release.yml` on `main`.
+
+
 `.github/workflows/legacy-release.yml`:
 
-- **Trigger:** push to `main` that touches **`legacy/pyproject.toml`**. Nothing else fires it.
-- **Version logic:** reads `tool.poetry.version`; skips if tag `legacy-v<version>` already exists;
-  a version containing a letter (`1.6.0a0`) ⇒ **pre-release ⇒ SQA only**; a plain version
-  (`1.6.0`) ⇒ **full ⇒ SQA → Stage → Prod** + a **draft** GitHub release tagged `legacy-v1.6.0`.
-- **Jobs:** `version` → `test` (`_legacy-tests.yml`, the 42 unit tests) → `build` → `deploy_sqa`
+- **Trigger:** pushing a version tag matching **`v*.*.*`** — e.g. `git tag v1.6.0 && git push origin v1.6.0`.
+  Nothing else fires it. **Merging a version bump no longer releases anything** (that is the whole
+  point of the change; see §4.2 for the run it prevents).
+- **Tag must match the code.** The `version` job fails the run if the tag does not equal
+  `tool.poetry.version` in `legacy/pyproject.toml`, so a release can never ship an image whose
+  version does not describe its contents.
+- **Tag deletion cannot release.** The `version` job carries
+  `if: ${{ !github.event.deleted }}`; a push event is also delivered on tag deletion, and on a
+  deletion the run's SHA reverts to the default branch — without the guard,
+  `git push --delete origin v1.6.0` would have started a real SQA → Stage → Prod run. Every other
+  job `needs: version`, so skipping it skips the pipeline.
+- **Version logic:** a version containing a letter (`1.6.0a0`) ⇒ **pre-release ⇒ SQA only**; a plain
+  version (`1.6.0`) ⇒ **full ⇒ SQA → Stage → Prod** + a **draft** GitHub release. ⚠️ The draft is now
+  tagged with **the tag you pushed** (`tag_name: ${{ github.ref_name }}`, i.e. `v1.6.0`) — *not*
+  `legacy-v1.6.0` as earlier versions of this plan stated.
+- **Jobs:** `version` → `test` (`_legacy-tests.yml`, **89** unit tests across 9 enumerated modules — the gate lists modules explicitly rather than discovering them, so a new test file must be added to that list or CI silently skips it) → `build` → `deploy_sqa`
   → `deploy_stage` → `deploy_prod` → `release`.
 - **One artifact, promoted:** `build` runs `skaffold build` once against the **prod** registry
   `us-docker.pkg.dev/jax-cs-registry/docker/geneweaver` and each deploy consumes the same
@@ -104,7 +148,17 @@ image-level checks in §4.3 must run against the release build, not against what
 
 ## 4. Sequence
 
-### 4.1 Freeze the standalone pipeline — hard prerequisite
+### 4.1 Freeze the standalone pipeline — ✅ DONE (verified 2026-08-21)
+
+**`TheJacksonLaboratory/geneweaver-legacy` is archived** (`isArchived: true`, last push 2026-02-23).
+An archived repo is read-only, so its workflows cannot fire — this is stronger than the workflow
+disable described below, and it retires the double-deploy risk in §9. The procedure below is kept
+for the record and for the rollback path.
+
+⚠️ **Rollback caveat:** the "keep it deployable-in-anger" advice at the end of this section no longer
+holds as written — re-enabling now means **un-archiving the repo first**, not one click on a
+workflow. Factor that into the §7 decision to fall back to a 1.5.28 release from the standalone repo.
+
 
 `geneweaver-legacy`'s `release.yml` triggers on push to `main` touching `pyproject.toml`, and
 deploys to the **same** GitHub environment names / clusters / namespaces (`jax-cluster-dev-10--sqa`,
@@ -124,7 +178,37 @@ gh workflow list -R TheJacksonLaboratory/geneweaver-legacy   # confirm: disabled
 Keep the standalone repo **deployable-in-anger** (workflow re-enable is one click) until prod has
 run on the monorepo build for a few days.
 
-### 4.2 Merge PR #2 — this *is* the release trigger
+### 4.2 Merge PR #2 — ⚠️ ALREADY DONE 2026-08-14, and it fired a release run
+
+**This section describes a step that has happened.** PR #2 merged on 2026-08-14 and, exactly as
+warned below, immediately started a full release run: workflow `legacy-release.yml`, run
+`31839201644`, event `push`, branch `main`, 2026-08-14T20:43:22Z. It was **cancelled** rather than
+allowed to proceed to the environment gates.
+
+That incident is why PR #6 exists — it moves the trigger to a pushed `v*.*.*` tag so merging a
+version bump can never again start a prod-bound run.
+
+**Where that leaves the release today (2026-08-21).** PR #6 has now merged (`bd157765`), so the
+version-bump trigger is gone and this can no longer recur. `legacy/pyproject.toml` on `main` is
+already `1.6.0` and **no `v1.6.0` tag exists**, so:
+
+> **The release is now started by one deliberate action:**
+> `git tag v1.6.0 && git push origin v1.6.0`
+>
+> The `version` job will check `v1.6.0` against `legacy/pyproject.toml` (`1.6.0`) — they match — and
+> the run will stop at *Legacy Deploy: SQA* awaiting approval. **Do not push the tag until §5's
+> migrations are applied to SQA** (G3-806); the deploy gate is the only thing between the tag and an
+> environment.
+
+Verified after the PR #6 merge: it did **not** start a release run. The only `legacy-release.yml` run
+in the repo's history remains the cancelled one above.
+
+Option B below (pre-release `1.6.0a0` first) would now require reverting the version bump already on
+`main`, or tagging `v1.6.0a0` against a `pyproject.toml` that says `1.6.0` — which the version job
+would reject. Take A.
+
+The original guidance follows, for the record.
+
 
 PR #2 changes `legacy/pyproject.toml` (1.5.27 → 1.6.0). **Merging it to `main` immediately starts a
 full release run** — tests, build, then SQA/Stage/Prod deploy jobs queued behind their reviewer
@@ -339,7 +423,11 @@ WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
 SELECT pg_get_functiondef('production.process_thresholds(bigint)'::regprocedure) LIKE '%WHEN gs_threshold_type=3 THEN%TRUE%' AS proc_patched;
 ```
 
-Connecting (either route):
+Connecting:
+
+⚠️ **The `kubectl exec … psql` route below does NOT work** — the `geneweaver-legacy` pods carry no
+psql client. Use the Cloud SQL Auth proxy (the first command), or drive the statements through the
+pod's Python + psycopg2, which does have the `DB_*` environment. Same correction as §5.4.
 
 ```bash
 # Cloud SQL Auth proxy
@@ -393,12 +481,16 @@ See the CHANGELOG "Known issues".
 
 **Status by environment**
 
-| Env | Applied | Result |
-|---|---|---|
-| dev (`geneweaver-dev`) | **2026-08-06** | 33 genesets corrected, 1,792 phantom genes removed; GS407881 9 → 4. Verified 0 remaining |
-| sqa (`geneweaver-sqa`) | not yet | |
-| stage (`geneweaver-stage`) | not yet | |
-| prod (`geneweaver-prod`) | not yet | |
+Per-environment application is tracked on **G3-806 (SQA)**, **G3-807 (Stage)** and **G3-808 (Prod)**,
+children of G3-781. Record the result in both places — the ticket is where it gets signed off, this
+table is where the release reads it. Migration 117 (§5.1) is tracked on the same three tickets.
+
+| Env | Applied | Result | Ticket |
+|---|---|---|---|
+| dev (`geneweaver-dev`) | **2026-08-06** | 33 genesets corrected, 1,792 phantom genes removed; GS407881 9 → 4. Verified 0 remaining | — |
+| sqa (`geneweaver-sqa`) | not yet | | **G3-806** |
+| stage (`geneweaver-stage`) | not yet | | **G3-807** |
+| prod (`geneweaver-prod`) | not yet | | **G3-808** |
 
 **1 — Detect first (read-only, safe any time, including Prod in hours)**
 
@@ -471,8 +563,12 @@ geneset should be checked on My Genesets, not in search results.
 | GWC-35 / G3-780 | Find Similar Genesets on a thresholded set → candidate list reflects candidate-side thresholding (spot-check one candidate's in-threshold count) | |
 | GWC-50 / G3-765 | BooleanAlgebra Symmetric Difference on 3+ sets → 200 + Venn diagram renders | |
 | GWC-45 / G3-766 | MSET run on two same-species sets → completes without "not a subset of its background" | |
-| GWC-51 / G3-783 | MSET on a **Tier-IV** set whose genes fall outside the curated background → a readable message naming the count and the offending genes, **not** a generic 500 with raw C++ stderr. Note the expected outcome is the clear error, *not* a successful run — MSET still refuses such sets by design (dev reference: GS218676 + GS407805, 63 of 5,319 genes outside the background) | |
+| GWC-51 / G3-783 | MSET on a **Tier-IV** set whose genes fall outside the curated background → a readable message naming the count and the offending genes, **not** a generic 500 with raw C++ stderr. **Updated by `5651bbcd`:** the message must also end by directing the user to contact the GeneWeaver team and state that only an administrator can change a curation tier — a message that merely explains the failure is the pre-`5651bbcd` text and is a fail. Note the expected outcome is the clear error, *not* a successful run — MSET still refuses such sets by design (dev reference: GS218676 + GS407805, 63 of 5,319 genes outside the background) | |
 | G3-782 / GWC-34 | Three paths, all must agree with the geneset page: (a) **plain upload** — upload a list ending in a newline that contains a couple of identifiers GeneWeaver won't recognise → My Genesets shows the number *stored*, not the number submitted (expect it to be **lower** than your input; that is correct); (b) **edit** — submit an alias and its official symbol for the same gene; (c) **tool output** — create a geneset from e.g. BooleanAlgebra Union. Then run `legacy/migration/checks/gwc34-gs-count-drift.sql` → section 1 reports 0. Pre-existing genesets stay wrong until migration 118 runs (§5.4) | |
+| **G3-805 / GWC-35 follow-up** | Find Similar vs the Jaccard Similarity **tool** must now agree. Pick a geneset pair where at least one in-threshold gene has no `extsrc.homology` row, run Find Similar, then run the Jaccard Similarity tool on the same pair at **Homology = Included AND Pairwise Deletion = Disabled** → the two scores match. Both settings matter: Find Similar has no pairwise-deletion equivalent, so with it enabled the tool restricts both sets to a platform reference population and returns a different number. Note this fix **changes existing scores** (8.6% of in-threshold memberships on dev, 8.4% on sqa) in *both* directions, so a changed score is expected, not a regression | |
+| **Security — `f11ae9fb`** | Two checks. (a) **No key in logs:** trigger an NCBO failure (e.g. annotate while the key is invalid) → the log line names the exception type, HTTP status and bare endpoint, and contains **no `apikey=`** and none of the user's submitted text. (b) **Upload warnings still render:** upload a file whose gene identifiers include `<img src=x onerror=alert(1)>` → the warning displays the identifier as **literal text**, no script executes, and the message is not mangled or double-escaped (`&amp;lt;`). Do this on **both** single upload and batch upload — four sinks were fixed. Confirm `static/js/geneweaver/escapeHtml.js` is actually served by the release image (404 = broken warnings) | |
+| **Help links — `5a712ad8`** | Click the header **?**, the footer **Help**, the frontpage Help panel and the quickstart PDF → each resolves to the monorepo docs site, not the retired `geneweaver-docs` site. ⚠️ **Prod gate, not a merge gate:** the monorepo is internal, so its Pages site is org-only. Verify **as a logged-out/external user** before Prod — otherwise every external geneweaver.org user hits a GitHub org login where the documentation used to be. Tracked as B9 in `docs/ci-cd/current-monorepo-cicd/LEGACY_CICD_MIGRATION.md` | |
+| **Tools-worker (set 2)** | §1 flags that ~21 already-merged `legacy/` commits reach SQA/Stage/Prod for the first time in this release and are **not otherwise covered by this table** — MSET Python 2→3 (`fa492116`), MSET worker crash / wrong list-2 background (`1ecba34a`), DBSCAN no-clusters crash (`bd30502b`), graphviz `dot` resolution (`7416c3dc`), tools-worker containerisation (`c3b1b489`) and its k8s Deployment (`348c2cfd`). Run **one tool per affected family** (MSET, DBSCAN, a graphviz-rendering tool) and confirm each completes | |
 | Worker health | `kubectl -n <ns> logs deploy/geneweaver-legacy-tools --tail=100` — worker registered its tasks, no import/binary errors | |
 
 Log check after each rollout:
@@ -515,8 +611,13 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 
 ## 8. Open decisions
 
-1. **Release shape** — A (merge 1.6.0, gate on approvals) or B (`1.6.0a0` to SQA first)? §4.2.
-2. **Standalone freeze timing** — disable before merging PR #2 (recommended) or before approving SQA?
+1. ~~**Release shape**~~ — **resolved 2026-08-21.** PR #6 merged, so the release is option A via a
+   deliberate tag: `git tag v1.6.0 && git push origin v1.6.0`. The version already matches
+   `legacy/pyproject.toml`, and option B (`1.6.0a0`) is no longer available without reverting the
+   bump on `main`. **Remaining decision is only *when* to push the tag** — it must be after SQA's
+   migrations (G3-806), since the deploy gate is all that stands between the tag and SQA. §4.2.
+2. ~~**Standalone freeze timing**~~ — **resolved.** `geneweaver-legacy` is archived (§4.1). Note
+   this also makes the §7 fallback slower: un-archiving is required before it can release again.
 3. **Tools-worker in shared envs** — replace the existing prod worker with the monorepo-built image
    in this release, or deploy web-only first and cut the worker over separately? (Kustomize base
    includes it, so "web-only" would need a temporary overlay exclusion.) §4.3.1
@@ -529,7 +630,7 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Double-deploy from both pipelines | Medium | High | §4.1 freeze before merge |
+| ~~Double-deploy from both pipelines~~ **Retired** — `geneweaver-legacy` archived, verified 2026-08-21 | ~~Medium~~ None | High | §4.1 |
 | Tools-worker duplicated in prod (two workers racing the queue) | ~~Medium~~ **None** — measured 2026-08-04: all four namespaces already run a Deployment of the same name, so this is a replace-in-place | High | Resolved; §4.3.1 |
 | Prod replica counts change on deploy: tools-worker **2 → 1**, web **2 → 4** | High — this is what the manifests say today | High (worker throughput halves) | §4.3.1 — patch the prod overlay or accept deliberately, **before** approving Prod |
 | A TOOLBOX binary silently missing (`\|\| echo WARN`) | Low — dev build `30553972874` shows all 7 required binaries compiling; only unused `mset/` fails | High | §4.3.2 assert on the release image (the release rebuilds, so dev's result does not carry over) |
@@ -537,4 +638,6 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 | Migration 117 slow or lock-heavy on the shared prod instance | Low | Medium | §5.1 size first, batch, transaction |
 | Backfill not reversible | Low | High | §5.1 audit table |
 | SQA inherits base `AUTH_CLIENTID` | Low | Medium | §4.3.5 confirm intended |
-| A Ready-for-Testing fix fails curation testing after release | Medium | Medium | §2 hold the merge until testing is Done |
+| ~~A Ready-for-Testing fix fails curation testing after release~~ **Retired** — all fixes Done, verified on the board 2026-08-21 | ~~Medium~~ None | Medium | §2 |
+| ~~A version-bump merge starts an unintended prod-bound run~~ **Retired** — occurred 2026-08-14 (run `31839201644`, cancelled); PR #6 merged 2026-08-21 moved the trigger to a deliberate `v*.*.*` tag | ~~Medium~~ None | High | §3, §4.2 |
+| **`gsv_in_threshold` written by three divergent implementations** (G3-809); tool-output routes bypass `process_thresholds` | High (present in code) | Medium — does **not** affect Binary, so it does not reopen GWC-44 | Out of scope for 1.6.0; tracked on G3-809 |
