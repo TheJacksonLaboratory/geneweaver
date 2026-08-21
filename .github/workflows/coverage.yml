@@ -7,7 +7,12 @@ jobs:
   check-coverage:
     uses: ./.github/workflows/_check-coverage-action.yml
     secrets: inherit
+    # A permissions block REPLACES the defaults rather than adding to them, so
+    # contents: read must be listed explicitly -- the check_coverage job runs
+    # actions/checkout and without it the checkout fails with the misleading
+    # "Repository not found" (an inaccessible internal repo reports as missing).
     permissions:
+      contents: read
       pull-requests: write
     with:
       required-coverage: ${{ vars.REQUIRED_COVERAGE }}
