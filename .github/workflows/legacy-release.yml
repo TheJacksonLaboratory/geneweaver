@@ -1,10 +1,20 @@
 name: Legacy — Release (SQA → Stage → Prod)
 
 # Promotes the legacy GeneWeaver app (legacy/) through sqa → stage → prod,
-# mirroring the standalone geneweaver-legacy repo's release pipeline. Triggered
-# by a version bump in legacy/pyproject.toml on main. A pre-release version
-# (contains a letter, e.g. 1.5.28a0) deploys to SQA only; a full version
-# (e.g. 1.5.28) promotes through Stage + Prod and drafts a GitHub release.
+# mirroring the standalone geneweaver-legacy repo's release pipeline.
+#
+# TRIGGER: pushing a version tag, e.g. `git tag v1.6.0 && git push origin v1.6.0`.
+# The tag is the release decision. Merging a version bump to main deliberately
+# does NOT release -- that fired an unintended prod-bound run when a branch
+# carrying a bump was merged, which is why this moved off a push/paths trigger.
+#
+# The tag must match the version in legacy/pyproject.toml; the version job fails
+# the run if they disagree, so a release can never ship an image whose version
+# does not match the code it was built from.
+#
+# A pre-release version (contains a letter, e.g. 1.6.1a0) deploys to SQA only; a
+# full version (e.g. 1.6.1) promotes through Stage + Prod and drafts a GitHub
+# release.
 #
 # Builds ONE image (to the prod registry, the _skaffold-build default) and
 # deploys that same artifact to each environment. Each deploy is gated by its
@@ -12,16 +22,22 @@ name: Legacy — Release (SQA → Stage → Prod)
 
 on:
   push:
-    branches: [ main, master ]
-    paths:
-      - 'legacy/pyproject.toml'
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: write
 
 jobs:
   version:
-    name: "Detect Version Change"
+    name: "Verify Tag Matches Version"
+    # A push event is ALSO delivered when a tag is deleted (the payload carries
+    # deleted: true), and on a deletion the run's SHA reverts to the default
+    # branch. Without this guard `git push --delete origin v1.6.0` would run this
+    # workflow against main, the tag-vs-pyproject comparison would very likely
+    # match, and deleting a tag would start a real SQA -> Stage -> Prod release.
+    # Every other job needs this one, so skipping it skips the whole pipeline.
+    if: ${{ !github.event.deleted }}
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.version_check.outputs.should_release }}
@@ -29,47 +45,50 @@ jobs:
       version: ${{ steps.version_check.outputs.version }}
       schedule_prod_release: ${{ steps.version_check.outputs.schedule_prod_release }}
     steps:
-      - name: Check out code
+      - name: Check out the tagged commit
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0      # need history + tags to test whether this version was already released
-          fetch-tags: true
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install dependencies
         run: pip install toml
-      - name: Check for version change
+      - name: Verify tag matches legacy/pyproject.toml
         id: version_check
         run: |
-          version=$(python -c "import toml; print(toml.load('legacy/pyproject.toml')['tool']['poetry']['version'])")
-          echo "Version=$version"
-          echo "version=$version" >> $GITHUB_OUTPUT
+          set -euo pipefail
 
-          # Legacy tags are namespaced (legacy-v*) so they don't collide with
-          # the API/UI release tags that also live in this monorepo.
-          if git rev-parse "legacy-v$version" >/dev/null 2>&1; then
-            echo "Version already released"; SHOULD_RELEASE=false
-          else
-            echo "New version detected"; SHOULD_RELEASE=true
+          tag="${GITHUB_REF_NAME}"
+          tag_version="${tag#v}"
+          code_version=$(python -c "import toml; print(toml.load('legacy/pyproject.toml')['tool']['poetry']['version'])")
+
+          echo "Tag           : $tag  (version $tag_version)"
+          echo "pyproject.toml: $code_version"
+
+          # The tag is the release decision, but the image is built from the
+          # code. If they disagree we would ship an artifact whose version does
+          # not describe its contents, so fail loudly rather than guess.
+          if [[ "$tag_version" != "$code_version" ]]; then
+            echo "::error::Tag $tag implies version $tag_version but legacy/pyproject.toml is $code_version. \
+          Bump legacy/pyproject.toml and re-tag, or tag the commit that carries the matching version."
+            exit 1
           fi
 
-          if [[ $version =~ [a-zA-Z] ]]; then
-            echo "Pre-release version detected"; PRERELEASE=true
+          echo "version=$code_version" >> $GITHUB_OUTPUT
+
+          # Pushing the tag IS the intent to release; nothing else to detect.
+          echo "should_release=true" >> $GITHUB_OUTPUT
+
+          if [[ $code_version =~ [a-zA-Z] ]]; then
+            echo "Pre-release version -- SQA only"
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "schedule_prod_release=false" >> $GITHUB_OUTPUT
           else
-            echo "Full release version detected"; PRERELEASE=false
+            echo "Full release version -- SQA, then Stage + Prod"
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "schedule_prod_release=true" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "$SHOULD_RELEASE" == "true" && "$PRERELEASE" == "false" ]]; then
-            SCHEDULE_PROD_RELEASE=true
-          else
-            SCHEDULE_PROD_RELEASE=false
-          fi
-
-          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
-          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
-          echo "schedule_prod_release=$SCHEDULE_PROD_RELEASE" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
   test:
@@ -134,9 +153,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: legacy-v${{ needs.version.outputs.version }}
+          # Attach the release to the tag that triggered this run, rather than
+          # minting a second, differently-named tag for the same release.
+          tag_name: ${{ github.ref_name }}
           name: Legacy v${{ needs.version.outputs.version }}
           draft: true
           prerelease: ${{ needs.version.outputs.prerelease }}
           body: |
             Legacy GeneWeaver release v${{ needs.version.outputs.version }}
+
+            Built from ${{ github.ref_name }} (${{ github.sha }}).
