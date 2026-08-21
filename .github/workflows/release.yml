@@ -26,7 +26,10 @@ jobs:
     name: "Check Coverage"
     needs: [format-lint]
     uses: ./.github/workflows/_check-coverage-action.yml
+    # See coverage.yml: this block replaces the workflow-level permissions above
+    # for this job, so contents: read must be repeated or checkout fails.
     permissions:
+      contents: read
       pull-requests: write
     with:
       required-coverage: ${{ vars.REQUIRED_COVERAGE }}
