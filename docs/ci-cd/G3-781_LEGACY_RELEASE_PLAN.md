@@ -192,20 +192,27 @@ version bump can never again start a prod-bound run.
 version-bump trigger is gone and this can no longer recur. `legacy/pyproject.toml` on `main` is
 already `1.6.0` and **no `v1.6.0` tag exists**, so:
 
-> **The release is now started by one deliberate action:**
-> `git tag v1.6.0 && git push origin v1.6.0`
+> **Superseded 2026-08-24 — the release is SQA-only via a pre-release tag.** PR #11 bumps
+> `legacy/pyproject.toml` to `1.6.0a`, so:
 >
-> The `version` job will check `v1.6.0` against `legacy/pyproject.toml` (`1.6.0`) — they match — and
-> the run will stop at *Legacy Deploy: SQA* awaiting approval. **Do not push the tag until §5's
-> migrations are applied to SQA** (G3-806); the deploy gate is the only thing between the tag and an
-> environment.
+> `git tag v1.6.0a && git push origin v1.6.0a`
+>
+> The `version` job checks `v1.6.0a` against `legacy/pyproject.toml` (`1.6.0a`) — they match — sets
+> `prerelease=true` / `schedule_prod_release=false`, and the run stops at *Legacy Deploy: SQA*
+> awaiting approval. **`deploy_stage`, `deploy_prod` and the draft-release job skip entirely**, so no
+> prod-bound run is left open. See §8.1 for why, and for the artifact-identity cost.
+>
+> §5's migrations **are** applied to SQA as of 2026-08-24 (§5.4), which is what unblocked the tag.
 
 Verified after the PR #6 merge: it did **not** start a release run. The only `legacy-release.yml` run
 in the repo's history remains the cancelled one above.
 
-Option B below (pre-release `1.6.0a0` first) would now require reverting the version bump already on
-`main`, or tagging `v1.6.0a0` against a `pyproject.toml` that says `1.6.0` — which the version job
-would reject. Take A.
+⚠️ **The "take A" conclusion below is superseded.** It reasoned that option B would require
+reverting the bump on `main` — which is precisely what PR #11 does, deliberately, because Stage's and
+Prod's migrations cannot be applied yet (§5.1). **Option B is the chosen route**; the table's warning
+about it is still accurate and is the cost being accepted: SQA validates one image, Stage and Prod
+will get another. Tag `v1.6.0a`, not `v1.6.0a0` — the version job compares against a raw `toml.load`
+with no PEP 440 normalisation.
 
 The original guidance follows, for the record.
 
@@ -443,7 +450,26 @@ kubectl -n prod exec -it deploy/geneweaver-legacy -- bash -lc \
 
 Run it inside a transaction on Stage/Prod and time it; if the row count is large, batch by `gs_id`
 to keep WAL and lock duration bounded — note that Stage and Prod share one Cloud SQL instance, so a
-heavy Stage run can affect Prod.
+heavy Stage run can affect Prod. **The file carries no transaction control of its own** (unlike 118),
+so wrap it or use `psql -1`.
+
+✅ **Recorded sizes (2026-08-24).** 117 previously had no row count in any environment. SQA:
+**5,956 rows across 22 binary genesets**, 17.8s to apply, on a 34.1M-row `extsrc.geneset_value`.
+The sizing query itself is the expensive part (~25s, one sequential scan). Stage/Prod are larger but
+this is a small backfill, not a windowed operation.
+
+✅ **Access route, settled per environment (2026-08-24).**
+- **SQA** — `kubectl exec` works and the pod carries Python + psycopg2 + the `DB_*` environment, so
+  **no proxy and no local credentials are needed**:
+  `kubectl -n sqa exec -i deploy/geneweaver-legacy -c geneweaver-legacy -- python - < script.py`.
+  The app's own role `geneweaver-sqa` **owns** `production.process_thresholds`, holds `CREATE` on
+  schema `production`, and is a member of `cloudsqlsuperuser` — no separate admin account required.
+- **Stage / Prod** — that route is **closed**: RBAC denies `pods/exec`, `secrets/get` *and*
+  `pods/portforward` on both namespaces (`kubectl auth can-i`, verified 2026-08-24). The Cloud SQL
+  Auth proxy is the only route, and since the `geneweaver-stage` / `geneweaver-prod` users are
+  `BUILT_IN` (no IAM DB auth on that instance) **a password is required** — it lives in the
+  `geneweaver-db` k8s secret, which is exactly what RBAC denies, and it is not in Secret Manager.
+  **Getting that credential, or an operator who has it, is the real prerequisite for G3-807/G3-808.**
 
 ### 5.2 Order matters
 
@@ -488,7 +514,7 @@ table is where the release reads it. Migration 117 (§5.1) is tracked on the sam
 | Env | Applied | Result | Ticket |
 |---|---|---|---|
 | dev (`geneweaver-dev`) | **2026-08-06** | 33 genesets corrected, 1,792 phantom genes removed; GS407881 9 → 4. Verified 0 remaining | — |
-| sqa (`geneweaver-sqa`) | not yet | | **G3-806** |
+| sqa (`geneweaver-sqa`) | **2026-08-24** | **117:** 5,956 rows / 22 binary genesets backfilled (17.8s apply); audit captured 5,956 = sizing, `proc_patched` true, `should_be_zero` 0. **118:** 807 genesets corrected, 5,178,672 phantom genes removed (11.7s apply); drift section 1 now 0, audit table 807 rows. ⚠️ 422 of the 807 were *under*-counted — a direction this migration's header says does not occur (all are deprecated 2012 HPO sets with a 1–4 gene gap); only **12** of the 807 were user-visible (`normal`). Both audit tables retained | **G3-806** |
 | stage (`geneweaver-stage`) | not yet | | **G3-807** |
 | prod (`geneweaver-prod`) | not yet | | **G3-808** |
 
@@ -611,11 +637,23 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 
 ## 8. Open decisions
 
-1. ~~**Release shape**~~ — **resolved 2026-08-21.** PR #6 merged, so the release is option A via a
-   deliberate tag: `git tag v1.6.0 && git push origin v1.6.0`. The version already matches
-   `legacy/pyproject.toml`, and option B (`1.6.0a0`) is no longer available without reverting the
-   bump on `main`. **Remaining decision is only *when* to push the tag** — it must be after SQA's
-   migrations (G3-806), since the deploy gate is all that stands between the tag and SQA. §4.2.
+1. ~~**Release shape**~~ — **re-resolved 2026-08-24: option B, SQA-only.** An earlier note here said
+   option B was "no longer available without reverting the bump on `main`". That is now what happened:
+   **PR #11** bumps `legacy/pyproject.toml` to **`1.6.0a`**, which the `version` job reads as a
+   pre-release (`=~ [a-zA-Z]`), so `deploy_stage`, `deploy_prod` and the draft-release job are all
+   gated off by `schedule_prod_release` and **skip entirely** rather than queueing on their reviewer
+   gates. The release therefore starts with `git tag v1.6.0a && git push origin v1.6.0a`.
+
+   **Why the switch.** SQA's migrations are applied (§5.4) but Stage's and Prod's cannot be — the
+   credential is unreachable (§5.1, §8.6) — so a plain `1.6.0` would leave a prod-bound run open
+   for however long that takes to resolve. Option B's known cost applies and must be accepted:
+   **artifact identity is lost.** SQA validates the `1.6.0a` image; Stage and Prod will get a
+   *different*, freshly rebuilt image from a later `1.6.0` tag, so **§4.3.2's TOOLBOX binary
+   assertion has to be re-run against that second image** — SQA's sign-off does not carry over.
+
+   Note the tag is `v1.6.0a`, not `v1.6.0a0`: the `version` job compares the tag against a raw
+   `toml.load` of the file with no PEP 440 normalisation. Poetry normalises it to `1.6.0a0` when it
+   installs the package, which is harmless. §4.2.
 2. ~~**Standalone freeze timing**~~ — **resolved.** `geneweaver-legacy` is archived (§4.1). Note
    this also makes the §7 fallback slower: un-archiving is required before it can release again.
 3. **Tools-worker in shared envs** — replace the existing prod worker with the monorepo-built image
@@ -623,8 +661,12 @@ Without that audit table the backfill cannot be distinguished from legitimately 
    includes it, so "web-only" would need a temporary overlay exclusion.) §4.3.1
 4. **NCBO key (G3-770)** — ship the hardcoded key to prod, or land the secret first? §4.3.6
 5. **Maintenance window** — Prod deploy + migration timing, and who approves the environment gates.
-6. **DB names/credentials** — confirm `geneweaver-sqa` / `geneweaver-stage` / `geneweaver-prod` and
-   who holds the admin role that can `CREATE OR REPLACE` in `production`.
+6. ~~**DB names**~~ — **resolved 2026-08-24.** All three confirmed against Cloud SQL:
+   `geneweaver-sqa` on `jax-compsci-nc-dev-01:us-east1:jax-dev-10-guided-jay`; `geneweaver-stage` and
+   `geneweaver-prod` on `jax-compsci-nc-prod-01:us-east1:jax-prod-10-promoted-owl`. All PostgreSQL 15.
+   **The role question is resolved for SQA** (the app role owns the function — see §5.1) and **still
+   open for Stage/Prod**: the built-in `geneweaver-stage` / `geneweaver-prod` passwords are in a k8s
+   secret RBAC denies, so G3-807/G3-808 need either that credential or an operator who holds it.
 
 ## 9. Risk register
 
