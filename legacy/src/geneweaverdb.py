@@ -4760,27 +4760,51 @@ def get_genes_by_gs_id(geneset_id):
 
 def transpose_genes_by_species(attr):
     """
-    Return a list of genes based on a new ID and gbd_id
-    :param attr:
-    :return:
+    Resolve a list of input gene identifiers to preferred Gene Symbols (gdb_id=7) in
+    the requested species -- used when a geneset is created from a tool result and the
+    user picks a reference species for it.
+
+    Two paths, UNIONed (G3-815):
+
+      1. Direct -- an input gene that already belongs to ``newSpecies`` is returned by
+         its own preferred symbol. No homology involved.
+      2. Homology -- an input gene from a *different* species is transposed to its
+         Homologene homolog's preferred symbol in ``newSpecies``.
+
+    Previously only path 2 existed, so every gene with no ``extsrc.homology`` row was
+    silently dropped -- even on a same-species "transpose" where nothing needs
+    transposing. Riken clones, lncRNAs and other genes Homologene omits vanished from
+    the created geneset with no warning (measured: 6 of 115 on the C5 sign-off case).
+
+    :param attr: request form with 'genes' (JSON list), 'gene_id_type', 'newSpecies'
+    :return: list of preferred Gene Symbols in ``newSpecies``
     """
     genes = json.loads(attr['genes'])
     gene_id_type = attr['gene_id_type']
     if gene_id_type == '':
+        gene_id_type = 'ode_ref_id'
+    # gene_id_type names the gene column the input identifiers are matched against and is
+    # interpolated into the SQL below, so restrict it to the two columns this ever uses
+    # rather than trusting the request (CLAUDE.md: never build a query from unvalidated input).
+    if gene_id_type not in ('ode_gene_id', 'ode_ref_id'):
         gene_id_type = 'ode_ref_id'
     g = []
     for i in genes:
         g.append(str(i))
     newSpecies = json.loads(attr['newSpecies'])
 
-    sql = '''SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
+    sql = '''SELECT ode_ref_id FROM gene
+                            WHERE {col} IN %(genelist)s
+                              AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7
+             UNION
+             SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
                             (SELECT distinct h2.ode_gene_id FROM homology h1
                                 NATURAL JOIN homology h2
                                 NATURAL JOIN gene
                                 WHERE h2.hom_source_name='Homologene'
                                       AND h1.hom_source_id=h2.hom_source_id
-                                      AND {} IN %(genelist)s)
-                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;'''.format(gene_id_type)
+                                      AND {col} IN %(genelist)s)
+                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;'''.format(col=gene_id_type)
 
 
     with PooledCursor() as cursor:
