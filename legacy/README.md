@@ -74,6 +74,38 @@ skaffold run -p jax-cluster-dev-10--dev
 You should never need to run these commands on your own. They are intended to be run
 through CICD.
 
+### Search index freshness (the `geneweaver-legacy-search` sidecar)
+
+Search is served by a Sphinx sidecar (`geneweaver-legacy-search`) whose entry point is
+`sample-configs/k8s/sphinx/start_sphinx.sh` (baked to `/app/sphinx/start_sphinx.sh`). It
+cold-builds the full index at container start, then `searchd` serves it. The index lives on
+the container's local filesystem (`path = /app/sphinx/geneset_idx` in `sphinx.conf`), so it
+is ephemeral and per-pod.
+
+`start_sphinx.sh` also runs a background reindexer (G3-814), using the main+delta indexes
+already configured in `sphinx.conf`:
+
+- **delta**, every `SPHINX_DELTA_INTERVAL` seconds (default 900 = 15 min):
+  `indexer --rotate geneset_delta` reindexes genesets whose `gs_updated` is newer than the
+  last full build, so a newly created or edited geneset appears in search within the
+  interval — no pod event required.
+- **full**, once a day at **00:00 America/New_York**: `indexer --rotate --all`, which also
+  resets the delta watermark. The full rebuild is still needed because some changes (e.g.
+  migration 118's `gs_count` backfill) deliberately do not bump `gs_updated`, so the delta
+  cannot see them.
+
+`--rotate` swaps the freshly built index into the running `searchd` via its `pid_file` with
+no query downtime. The schedule is evaluated in Eastern time: the deployment sets
+`TZ=America/New_York` on the sidecar and the image installs `tzdata`, so midnight stays
+correct across the EST/EDT change (a hardcoded UTC hour would drift by an hour half the
+year).
+
+Before G3-814 the index was rebuilt **only** at container start, so freshness was incidental
+to pod lifecycle — a geneset created on a stable pod could stay invisible to search for
+weeks. (The `sphinxsearch` Debian package ships an `@daily` reindex cron at
+`/etc/cron.d/sphinxsearch`, but nothing runs a cron daemon in this image, so it never fired;
+the Dockerfile now removes it to avoid misleading readers.)
+
 
 ## Manual Setup (DEPRECATED)
 
