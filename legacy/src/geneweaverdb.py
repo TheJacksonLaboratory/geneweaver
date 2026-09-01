@@ -1699,6 +1699,32 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
         )
 
 
+def get_geneset_values_for_score_check(gs_id):
+    """
+    Return a geneset's stored values as (identifier, value) pairs, the shape
+    score_type_value_warnings expects.
+
+    One pair per extsrc.geneset_value row: the identifier is the first stored
+    source id (falling back to the internal ode_gene_id) and is used only to name
+    offenders in the advisory message -- value_in_score_type_domain looks at the
+    value. Used by the geneset-edit score-type change path (G3-812), which
+    reinterprets values that already exist rather than ones being uploaded.
+
+    arguments
+        gs_id: the geneset id
+
+    returns
+        a list of (identifier, value) tuples
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT COALESCE(gsv_source_list[1], ode_gene_id::text), gsv_value
+               FROM extsrc.geneset_value WHERE gs_id = %s''',
+            (gs_id,)
+        )
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+
 def update_geneset(usr_id, form):
     """
     Selectively updates geneset metadata and publication information based on form data.
@@ -1870,8 +1896,9 @@ def update_geneset(usr_id, form):
     ## Did the score type or threshold actually change? If so we must recompute
     ## the per-value gsv_in_threshold flags below, or tools/views that filter on
     ## them will use stale membership (GWC-42).
+    score_type_changed = int(gs_threshold_type) != int(current_version.threshold_type or 0)
     threshold_changed = (
-        int(gs_threshold_type) != int(current_version.threshold_type or 0) or
+        score_type_changed or
         str(gs_threshold) != str(current_version.threshold or '')
     )
 
@@ -1895,7 +1922,21 @@ def update_geneset(usr_id, form):
 
         cursor.connection.commit()
 
-    return {'success': True}
+    result = {'success': True}
+
+    ## GWC-42 half-gap (G3-812): the edit page can now change the score type, but
+    ## only the upload paths ran the value-domain check. On an edit the user is
+    ## reinterpreting values that already exist under a new type, so run the same
+    ## score_type_value_warnings helper against the geneset's stored values and
+    ## surface any warnings. Advisory only -- the change is already saved (this
+    ## mirrors the upload behaviour: warn, do not block).
+    if score_type_changed:
+        warnings = score_type_value_warnings(
+            gs_threshold_type, get_geneset_values_for_score_check(gs_id))
+        if warnings:
+            result['warnings'] = warnings
+
+    return result
 
 
 def byteify(input):

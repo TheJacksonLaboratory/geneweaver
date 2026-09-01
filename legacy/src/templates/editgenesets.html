@@ -881,11 +881,29 @@
 
                 if (result.success === true) {
 
-                    {% if curation_view %}
-                        window.location = '/curategenesetgenes/' + gsID;
-                    {% else %}
-                        window.location = '/editgenesetgenes/' + gsID;
-                    {% endif %}
+                    // G3-812: the save may return advisory value-domain warnings
+                    // (e.g. the score type was changed to one the existing values
+                    // do not fit). The change IS saved; show the warnings and stay
+                    // on the page instead of redirecting, so the curator sees them.
+                    // Build the alert with .text() so gene identifiers can never
+                    // inject markup (same XSS lesson as the upload warnings).
+                    if (result.warnings && result.warnings.length) {
+                        $("html, body").animate({ scrollTop: 0 }, "slow");
+                        var $alert = $('<div class="alert alert-warning fade in"></div>');
+                        $alert.append('<button type="button" class="close" ' +
+                            'data-dismiss="alert" aria-hidden="true">x</button>');
+                        $alert.append($('<div></div>').text('GeneSet updated.'));
+                        $.each(result.warnings, function(i, w) {
+                            $alert.append($('<div></div>').text(w));
+                        });
+                        $("#result").empty().append($alert);
+                    } else {
+                        {% if curation_view %}
+                            window.location = '/curategenesetgenes/' + gsID;
+                        {% else %}
+                            window.location = '/editgenesetgenes/' + gsID;
+                        {% endif %}
+                    }
 
                 } else {
 
