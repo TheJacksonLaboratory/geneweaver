@@ -404,11 +404,12 @@ is safe. **Reversible?** The function is (§7); the backfill is **not**, unless 
 captured first. So:
 
 ```sql
--- 0) Size it first (prod may be large; if this is in the millions, batch by gs_id).
-SELECT count(*) AS rows_to_change, count(DISTINCT gv.gs_id) AS binary_sets
-FROM extsrc.geneset_value gv
-JOIN production.geneset gs ON gs.gs_id = gv.gs_id
-WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
+-- 0) Size it and read the current state with the read-only check (GWC-44 / G3-810):
+--      section 1 = rows_to_change / binary_sets, section 2 = proc_patched,
+--      section 3 = whether the backfill audit is present.
+--    If section 1's rows_to_change is in the millions, batch the step-1 capture and the
+--    migration itself by gs_id.
+\i legacy/migration/checks/gwc44-binary-threshold-drift.sql
 
 -- 1) Capture the pre-state so the backfill can be undone (do this in every environment).
 CREATE TABLE IF NOT EXISTS production.gwc44_117_backfill_audit AS
@@ -416,18 +417,13 @@ SELECT gv.gs_id, gv.ode_gene_id, gv.gsv_in_threshold AS prev_in_threshold, now()
 FROM extsrc.geneset_value gv
 JOIN production.geneset gs ON gs.gs_id = gv.gs_id
 WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
-SELECT count(*) FROM production.gwc44_117_backfill_audit;   -- must equal step 0
+SELECT count(*) FROM production.gwc44_117_backfill_audit;   -- must equal section 1's rows_to_change
 
 -- 2) Apply.
 \i legacy/migration/117-fix-binary-threshold-not-thresholded.sql
 
--- 3) Verify: no binary set has an out-of-threshold value, and the proc is the new one.
-SELECT count(*) AS should_be_zero
-FROM extsrc.geneset_value gv
-JOIN production.geneset gs ON gs.gs_id = gv.gs_id
-WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
-
-SELECT pg_get_functiondef('production.process_thresholds(bigint)'::regprocedure) LIKE '%WHEN gs_threshold_type=3 THEN%TRUE%' AS proc_patched;
+-- 3) Verify by re-running the check: section 1 must now be zero and section 2 (proc_patched) TRUE.
+\i legacy/migration/checks/gwc44-binary-threshold-drift.sql
 ```
 
 Connecting:
