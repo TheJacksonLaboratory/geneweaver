@@ -184,24 +184,31 @@ class BatchReader(object):
             thresh = '1'
 
         elif s.lower().find('p-value') != -1:
-            # validate value with p-value pattern
-            valid, match = self.validate_pq_value(s.lower())
             stype = 1
-
-            if valid:
-                thresh = match.group(1)
-            else:
-                self.warns.append('Invalid threshold. Using p < 0.05.')
+            # Extract the numeric portion after '<' before validating (G3-811). The
+            # documented form is "P-Value < 0.05", but validate_pq_value matches a bare
+            # number (^...$), so passing the whole line never validated -- every
+            # thresholded p-value line fell through and the requested cutoff was
+            # silently replaced with 0.05. A bare "P-Value" (no '<') legitimately
+            # requests the default, so it keeps 0.05 without a warning.
+            parts = s.lower().split('<', 1)
+            if len(parts) > 1:
+                valid, match = self.validate_pq_value(parts[1].strip())
+                if valid:
+                    thresh = match.group(1)
+                else:
+                    self.warns.append('Invalid threshold. Using p < 0.05.')
 
         elif s.lower().find('q-value') != -1:
-            # validate value with q-value pattern
-            valid, match = self.validate_pq_value(s.lower())
             stype = 2
-
-            if valid:
-                thresh = match.group(1)
-            else:
-                self.warns.append('Invalid threshold. Using q < 0.05.')
+            # Same as p-value above (G3-811).
+            parts = s.lower().split('<', 1)
+            if len(parts) > 1:
+                valid, match = self.validate_pq_value(parts[1].strip())
+                if valid:
+                    thresh = match.group(1)
+                else:
+                    self.warns.append('Invalid threshold. Using q < 0.05.')
 
         elif s.lower().find('correlation') != -1:
             # validate correlation range

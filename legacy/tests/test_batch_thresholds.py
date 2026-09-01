@@ -138,6 +138,31 @@ class ParseScoreTypeTests(unittest.TestCase):
         stype, _ = self._parse('q-value')
         self.assertEqual(stype, 2)
 
+    # G3-811: the documented "P-Value < 0.05" form must round-trip the requested
+    # threshold instead of being silently replaced with 0.05. The bug was that the
+    # whole line was passed to a bare-number validator, so it never matched.
+    def test_pvalue_threshold_roundtrips(self):
+        stype, thresh = self._parse('P-Value < 0.01')
+        self.assertEqual((stype, thresh), (1, '0.01'))
+        self.assertFalse(self.reader.warns)
+
+    def test_qvalue_threshold_roundtrips(self):
+        stype, thresh = self._parse('Q-Value < 0.001')
+        self.assertEqual((stype, thresh), (2, '0.001'))
+        self.assertFalse(self.reader.warns)
+
+    def test_pvalue_bare_keyword_defaults_without_warning(self):
+        # No threshold requested -> default 0.05, and no spurious "invalid" warning.
+        stype, thresh = self._parse('p-value')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertFalse(self.reader.warns)
+
+    def test_pvalue_out_of_range_warns_and_defaults(self):
+        # A value outside [0, 1] is a real error: warn and fall back to 0.05.
+        stype, thresh = self._parse('p-value < 1.5')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertTrue(self.reader.warns)
+
     def test_unknown_score_type_records_error(self):
         self._parse('nonsense')
         self.assertTrue(self.reader.errors)
