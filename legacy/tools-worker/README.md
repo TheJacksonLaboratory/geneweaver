@@ -5,14 +5,22 @@ actually executes the GeneWeaver analysis tools. The legacy Flask app (in `../sr
 dispatches jobs to this worker via Celery (`toolcommon.celery_app.send_task(...)`).
 
 ## Provenance — why this is here
-This source was **not in version control**. The production worker image
-(`us-docker.pkg.dev/jax-cs-registry/docker/geneweaver-legacy-tools:555b16a-dirty`) was built
-from an **uncommitted working tree** — commit `555b16a` exists in no repo or branch
-(`geneweaver-legacy`, all branches, checked). The image was the only copy of this code.
-
-It was recovered by extracting `/app/src/tools` from the **prod** image
+At recovery time this source appeared to be **not in version control**: the production
+worker image (`us-docker.pkg.dev/jax-cs-registry/docker/geneweaver-legacy-tools:555b16a-dirty`)
+was built from an **uncommitted working tree**, and commit `555b16a` could not be found in
+the repos then accessible (`geneweaver-legacy`, all branches, checked). The image looked like
+the only copy, so it was recovered by extracting `/app/src/tools` from the **prod** image
 (digest `sha256:f4aea726a6b452b877cf664faba7030f9f78a7392e393e4b286b811910bdd35a`) and
-committed here to close that gap (read-only registry pull; no impact on the running worker).
+committed here (read-only registry pull; no impact on the running worker).
+
+**Update (2026-06):** the canonical **`geneweaver-legacy-tools`** GitHub repo
+(`github.com/TheJacksonLaboratory/geneweaver-legacy-tools`) *does* have `555b16a` as its
+`HEAD` (the `G3-712-ABBA-Tiers` merge) — so the gap is closed: the source is git-tracked there.
+A full tree diff confirms this recovered copy is **byte-identical** to that repo for all
+Python tools (the 14 tool modules + `toolbase`/`celeryapp`/`config`) and the `TOOLBOX` C/C++
+*source*; the only differences are build artifacts (`*.o`, ELF binaries) and large `*.dat`
+data — i.e. the `-dirty` delta in the image did not touch the tool source. This copy is kept
+as a self-contained, in-monorepo reference snapshot.
 
 ## Contents
 - `tools/celeryapp.py` — the Celery app (`geneweaver.tools`) that registers each tool task.
@@ -32,6 +40,13 @@ committed here to close that gap (read-only registry pull; no impact on the runn
   `homology.dat` (~1.7 MB) — sourced at runtime; available in the worker image if needed.
 
 ## Status
-Preserved here as the recovered **source of truth** for the running tools. The
-next-generation reimplementation onto the `geneweaver-tools` `AbstractTool` framework
-lives in `packages/tools` (in progress).
+Preserved here as the recovered **source of truth** the reimplementation was validated
+against. The next-generation port lives in the monorepo:
+- **`packages/tools`** — 9 tools on the `AbstractTool` framework (BooleanAlgebra, Combine,
+  JaccardSimilarity, DBSCAN, HyperGeometric, JaccardClustering, UpSet, MSET, PhenomeMap).
+- **`packages/db`** — ABBA & SimilarGenesets (DB query/aggregation, not in-memory tools).
+- **Flagged / not ported** — GeneSetViewer (UI rendering), TricliqueViewer (incomplete
+  scaffold), PhenomeMap permutation add-on.
+
+See `docs/tools/TOOLS_MIGRATION.md` and `docs/tools/TOOLS_BENCHMARKS.md` for the per-tool
+status, validation against this source, and benchmarks.
