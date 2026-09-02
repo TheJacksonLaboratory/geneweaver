@@ -600,6 +600,53 @@ kubectl -n <ns> logs deploy/geneweaver-legacy --tail=200 | grep -iE "traceback|e
 kubectl -n <ns> logs deploy/geneweaver-legacy-tools --tail=200 | grep -iE "traceback|error|not found" | head
 ```
 
+### 6.1 SQA — machine-verifiable rows, checked 2026-08-31
+
+The 1.6.0a pre-release deployed to SQA on 2026-08-24 (run `32744456037`; Stage and
+Prod skipped as designed). Both namespaces' pods run `…:3265bff`. The rows below
+were verified against the **running SQA pods and the `geneweaver-sqa` database**,
+read-only. The rest of §6 needs a browser and a logged-in curator, and is **not**
+covered here — see the list at the end of this subsection.
+
+| §6 row | Result | Evidence |
+|---|---|---|
+| §4.3.2 TOOLBOX binaries (pre-flight, was never recorded) | **PASS** | All 7 present, executable and ELF in the *release* image: `biclique`, `dbscan`, `CS_Mset/MSETcpp`, `bstrap`, `bicliquer`, `bk-partite`, `distribution_generator.o`. `mset/` holds only a Makefile — expected, nothing execs it |
+| Worker health | **PASS** | `celery@…ksljc ready`, all 12 tasks registered, zero errors in 400 lines |
+| Web log check | **PASS** | No traceback/error/critical in 400 lines |
+| GWC-44 / G3-776 (DB half) | **PASS** | All 22 binary genesets from the 117 audit have every value row in-threshold and `gs_count == count(geneset_value)`. Live `production.process_thresholds` type-3 branch reads `THEN TRUE` — the fix, not the pre-fix comparison. *UI half (upload a Binary set, run a tool) still needs a curator* |
+| G3-782 / GWC-34 | **PASS end-to-end** | Drift check §1 = `0/0/0/0`. Both audit tables retained at exactly the recorded sizes (117: 5,956 rows / 22 genesets; 118: 807). All 12 user-visible corrections hold, and **the Sphinx index serves the corrected number** — spot-checked 6 (e.g. GS408060 4,640 → 4,464; GS408061 1,074 → 897) via `sphinxapi` against the live `geneset` index. `indexer --all` ran on the rollout: 261,142 docs, 260,252 attr values. *The three write paths (upload / edit / tool output) still need a curator* |
+| G3-778 | **PASS** | `POST /searchFilter.json` returns **200** for: a zero-result term, zero-result + sort, a missing `sortBy`, an empty species facet, and a tier-only filter. Zero-result body is 21.5 KB with **0** result rows vs 307 KB / 25 rows for a real term — the no-results wrapper, not a 500 |
+| Security `f11ae9fb` (b) prerequisite | **PASS** | `static/js/geneweaver/escapeHtml.js` is served: HTTP 200, 1,867 bytes. *The actual XSS-render check on single + batch upload still needs a curator* |
+| Help links `5a712ad8` | **PASS — and the prod gate is clear** | Every docs link in the deployed templates points at `thejacksonlaboratory.github.io/geneweaver/…`. Fetched **unauthenticated** from outside the org: `/` and `/analysis-tools/mset/` both return **200** with the real page (`<title>MSET - GeneWeaver</title>`), not a GitHub login. So the Pages site is public and **B9 is not a prod blocker** — recheck once before Prod, but the assumption it was org-only does not hold |
+| MSET `5651bbcd` text | **PASS (code)** | Deployed worker's `MSET.py` carries the new wording ("…can change a gene set's curation tier. Please contact the GeneWeaver…"). *The end-to-end Tier-IV run still needs a curator* |
+| G3-805 / GWC-35 follow-up, GWC-9, GWC-42, GWC-36, GWC-8, GWC-50, GWC-45, GWC-51, Tools-worker set 2 | **code present, behaviour unverified** | `/app/src/geneweaverdb.py` and `/app/src/application.py` in the running pod are **byte-identical (md5) to `main` at `3265bff0`**, so every merged fix is in the image. Behaviour is the open half |
+
+**Still needs a human in the UI** — a curator, on SQA: GWC-9 (tier change / edit
+view), GWC-42 (score warnings), GWC-36 (alias-only batch upload), GWC-8 (NCBO
+annotations), GWC-50 (Symmetric Difference Venn), GWC-45 and GWC-51 (MSET runs),
+G3-805 (Find Similar vs the Jaccard tool at Homology=Included + Pairwise
+Deletion=Disabled), the `f11ae9fb` XSS render, the three GWC-34 write paths, the
+GWC-44 binary upload, and one tool per family for tools-worker set 2. §8.5 (who
+approves) is still unresolved, and this is the work it gates.
+
+**Two corrections to earlier findings:**
+
+1. **`genes.dat` / `homology.dat` (§4.3.3)** — the readiness research recorded the
+   old worker holding 134-byte **unresolved LFS pointers** and *no* built
+   `distribution_generator.o`. On the release image the pointers are gone (the files
+   are absent entirely) but `distribution_generator.o` **is** built and ELF. So the
+   release fixes the binary half and leaves the data half missing: JaccardSimilarity's
+   p-value fallback stays broken on SQA exactly as before — still a pre-existing
+   defect needing its own ticket, not a release regression. `GW_DIST_DATA_DIR` is
+   unset and `$APPLICATION_RESULTS/dist_data` (`/var/geneweaver/results/dist_data`)
+   does not exist.
+2. **`/searchFilter.json` 500s when `searchbar` is absent** — `search.py:556`
+   builds `'@(' + search_fields + ') ' + t` with `t = form.get('searchbar')`, so a
+   POST without that field raises `TypeError: can only concatenate str (not
+   "NoneType")`. Outside G3-778's scope (that was zero-results and a missing
+   `sortBy`) and the UI always sends the field, so it is not a release blocker —
+   but it is the same missing-guard shape and worth a follow-up ticket.
+
 ## 7. Rollback
 
 **Code / image** (fastest, per namespace):
