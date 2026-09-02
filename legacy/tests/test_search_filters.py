@@ -8,11 +8,18 @@ Regression tests for legacy search filter parsing (G3-778).
   unselected facet: an empty tier/species/attribution selection used to match
   nothing and zero the whole result set. An unselected facet must add no filter
   (i.e. "no restriction").
+* render_search_json must check STATUS before indexing search_values. On a
+  no-match or errored search, keyword_paginated_search returns ONLY a STATUS key,
+  so reading search_values['searchresults'] raised KeyError -> HTTP 500 from
+  /searchFilter.json. (The third of the three G3-778 bugs; the two above were
+  covered from the start, this one was not.)
 
 Pure unit tests: geneweaverdb / sphinxapi / config / flask are mocked (no DB, no
 search daemon), and apply_user_restrictions is stubbed so only the facet-filter
 logic is exercised.  Run from legacy/:  python -m unittest tests.test_search_filters
 """
+import ast
+import os
 import sys
 import unittest
 from unittest.mock import MagicMock
@@ -136,6 +143,75 @@ class BuildFilterEmptyFacetTests(unittest.TestCase):
         at = [f for f in client.filters if f[0] == 'attribution']
         self.assertEqual(len(at), 1)
         self.assertIn(10, at[0][1])
+
+
+class SearchNoResultsGuardTests(unittest.TestCase):
+    """The zero-result guard in application.py's two search render paths.
+
+    These are asserted structurally, on the parsed AST, rather than by calling the
+    views. src/application.py is 6,330 lines with 59 top-level imports (flask_admin
+    among them) and builds the Flask app at import, so it cannot be imported in a
+    pure unit test without mocking a long and brittle tail of packages. What
+    actually broke was control flow -- an unguarded subscript -- and that is
+    checkable directly: the STATUS guard must appear, must return, and must come
+    before anything reads search_values['searchresults'].
+    """
+
+    SOURCE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          'src', 'application.py')
+
+    @classmethod
+    def setUpClass(cls):
+        with open(cls.SOURCE) as fh:
+            cls.src = fh.read()
+        cls.functions = {n.name: n for n in ast.walk(ast.parse(cls.src))
+                         if isinstance(n, ast.FunctionDef)}
+
+    def _segment(self, node):
+        return ast.get_source_segment(self.src, node) or ''
+
+    def _guard_line(self, func):
+        """First line of an `if ... STATUS ...:` that returns out of the function."""
+        lines = [n.lineno for n in ast.walk(func)
+                 if isinstance(n, ast.If)
+                 and 'STATUS' in self._segment(n.test)
+                 and any(isinstance(c, ast.Return) for c in ast.walk(n))]
+        return min(lines) if lines else None
+
+    def _searchresults_line(self, func):
+        """First line that subscripts search_values with 'searchresults'."""
+        lines = []
+        for n in ast.walk(func):
+            if isinstance(n, ast.Subscript):
+                seg = self._segment(n).replace('"', "'")
+                if seg.startswith('search_values[') and "'searchresults'" in seg:
+                    lines.append(n.lineno)
+        return min(lines) if lines else None
+
+    def _assert_guarded(self, name):
+        self.assertIn(name, self.functions, '%s no longer exists' % name)
+        func = self.functions[name]
+        guard = self._guard_line(func)
+        access = self._searchresults_line(func)
+        self.assertIsNotNone(
+            guard,
+            '%s has no STATUS check that returns early; a no-match search will '
+            'KeyError on search_values and 500 (G3-778)' % name)
+        self.assertIsNotNone(access, '%s no longer reads searchresults' % name)
+        self.assertLess(
+            guard, access,
+            '%s reads search_values[\'searchresults\'] at line %s before its STATUS '
+            'guard at line %s -- a no-match search 500s (G3-778)' % (name, access, guard))
+
+    def test_search_json_guards_no_matches_before_reading_results(self):
+        # /searchFilter.json -- the bug. Every filter change, sort and page click
+        # goes through here, so an unguarded no-match search 500s the whole page.
+        self._assert_guarded('render_search_json')
+
+    def test_search_page_guards_no_matches_before_reading_results(self):
+        # /search/ -- already guarded; the json route was fixed to mirror it.
+        # Locked in so the pair cannot drift apart again.
+        self._assert_guarded('render_searchFromHome')
 
 
 if __name__ == '__main__':
