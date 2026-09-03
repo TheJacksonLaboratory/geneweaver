@@ -572,6 +572,53 @@ from, so it is the fastest way for the reporter to confirm. Note also that genes
 the last index build are absent from search entirely until a rebuild, so a freshly uploaded test
 geneset should be checked on My Genesets, not in search results.
 
+### 5.5 Migration 119 (G3-809) — Correlation/Effect signed membership
+
+`legacy/migration/119-fix-correlation-effect-abs-threshold.sql`. `production.process_thresholds`
+computed type-4/5 (Correlation/Effect) membership as `ABS(gsv_value) BETWEEN lo AND hi`, while
+`recompute_geneset_value_thresholds` and `batch.BatchReader.__check_thresholds` both use the signed
+value — so the same geneset's membership depended on which write path last ran. Replaces the
+procedure with the signed form and backfills the rows that differ.
+
+**Already applied to dev and sqa.** Verified read-only 2026-09-03: no `ABS(` in the live procedure,
+type-4/5 reads signed `BETWEEN`, `production.g3809_119_threshold_abs_audit` present, and the
+backfill complete (zero remaining disagreement) in both. Audit sizes: dev 82,192 rows,
+sqa 111,493 rows. **Stage and Prod have not had it.**
+
+Needs no reindex — `gsv_in_threshold` is read live by the tools and is not a Sphinx attribute, and
+`gs_count` counts all value rows regardless of threshold, so search counts do not move.
+
+### 5.6 Migration 120 (G3-809) — inclusive P/Q boundary ⚠️ needs a curation decision first
+
+`legacy/migration/120-fix-pq-threshold-boundary-inclusive.sql`. The third face of the same bug: the
+procedure treats the P/Q cutoff as **exclusive** (`gsv_value < threshold`) while both Python paths
+treat it as **inclusive** (`<=`), so a p-value of exactly 0.05 in a `P-Value < 0.05` set is a member
+or not depending on which writer last ran. Makes the procedure inclusive and backfills.
+
+**Run after 119** — 120's procedure body is 119's with one line changed, so applying it first would
+silently revert 119's Correlation/Effect fix. dev and sqa need only 120; Stage and Prod need
+119 then 120.
+
+**Measured population** (read-only, 2026-09-03) — rows sitting exactly on their cutoff, which flip
+`FALSE → TRUE`:
+
+| environment | rows | gene sets |
+|---|---|---|
+| `geneweaver-dev` | 14,431 | 590 |
+| `geneweaver-sqa` | 28,205 | 601 |
+| Stage / Prod | unmeasured (RBAC) — run step 0 first | |
+
+That is **more gene sets than 119 touched**, so it carries its own audit table
+(`production.g3809_120_pq_boundary_audit`) and its own approval.
+
+⚠️ **This is a semantics decision about published membership, not a code cleanup, and it is not
+settled.** Inclusive was chosen because two of the three implementations, the
+`recompute_geneset_value_thresholds` docstring and the existing unit test all say inclusive. But the
+user-facing batch syntax reads `P-Value < 0.05`, which argues exclusive. If curation prefers
+exclusive, the correct change is the mirror — keep `<` in the procedure *and* change `<=` → `<` in
+both Python paths and the test — not leaving the three writers divergent. **Confirm with the
+curation scientist before running this in Stage or Prod.**
+
 ## 6. Per-environment verification (do all of these in each env)
 
 | Fix | Check | Pass |
@@ -725,4 +772,4 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 | SQA inherits base `AUTH_CLIENTID` | Low | Medium | §4.3.5 confirm intended |
 | ~~A Ready-for-Testing fix fails curation testing after release~~ **Retired** — all fixes Done, verified on the board 2026-08-21 | ~~Medium~~ None | Medium | §2 |
 | ~~A version-bump merge starts an unintended prod-bound run~~ **Retired** — occurred 2026-08-14 (run `31839201644`, cancelled); PR #6 merged 2026-08-21 moved the trigger to a deliberate `v*.*.*` tag | ~~Medium~~ None | High | §3, §4.2 |
-| **`gsv_in_threshold` written by three divergent implementations** (G3-809); tool-output routes bypass `process_thresholds` | High (present in code) | Medium — does **not** affect Binary, so it does not reopen GWC-44 | Out of scope for 1.6.0; tracked on G3-809 |
+| **`gsv_in_threshold` written by three divergent implementations** (G3-809); tool-output routes bypass `process_thresholds` | High (present in code) | Medium — does **not** affect Binary, so it does not reopen GWC-44 | **No longer out of scope** — fixed on `fix/legacy-post-signoff-bugfixes` (PR #12): code routes tool output through the shared implementation, migration 119 (§5.5) fixes Correlation/Effect, migration 120 (§5.6) the P/Q boundary. 119 is already applied to dev and sqa |
