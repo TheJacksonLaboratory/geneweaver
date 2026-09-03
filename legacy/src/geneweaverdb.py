@@ -1904,11 +1904,18 @@ def update_geneset(usr_id, form):
 
     # update geneset with changes
     with PooledCursor() as cursor:
+        # gs_updated is bumped here, in the same statement as the edit (G3-814). It is
+        # what the Sphinx delta index selects on (geneset_delta_src: gs_updated >= the
+        # last full-build watermark), and it used to be written only by
+        # update_geneset_date() when the edit page was *opened* -- so a page left open
+        # across the nightly full rebuild produced a save with a gs_updated older than
+        # the watermark, invisible to every delta and stale in search until the next
+        # full rebuild. Setting it on the save closes that window.
         sql = cursor.mogrify('''
             UPDATE geneset
             SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s),
                 gs_description = (%s), gs_threshold_type = (%s), gs_threshold = (%s),
-                cur_id = (%s), gs_groups = (%s)
+                cur_id = (%s), gs_groups = (%s), gs_updated = NOW()
             WHERE gs_id = %s;
             ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type,
                   gs_threshold, cur_id, gs_groups, gs_id)
