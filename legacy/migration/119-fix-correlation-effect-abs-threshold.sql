@@ -33,6 +33,33 @@
 -- membership. Symmetric ranges (e.g. `-1,1`) are unaffected -- ABS and signed agree there.
 --
 ------------------------------------------------------------------------------------------------------------------------
+-- SECOND DIVERGENCE, same shape: the P/Q boundary (score types 1 & 2)
+------------------------------------------------------------------------------------------------------------------------
+--
+-- Raised in review of PR #12. The same three implementations also disagree on whether a
+-- value exactly EQUAL to its cutoff is in-threshold:
+--
+--   * production.process_thresholds (this proc, pre-fix):  gsv_value <  threshold   (exclusive)
+--   * geneweaverdb.recompute_geneset_value_thresholds:     gsv_value <= threshold   (inclusive)
+--   * batch.BatchReader.__check_thresholds:                value    <= threshold    (inclusive)
+--
+-- So a p-value of exactly 0.05 in a `P-Value < 0.05` set is a member or not depending on
+-- which path last wrote the row -- the identical class of bug this migration exists to fix,
+-- and leaving it would mean a fix that only half-converges the three writers.
+--
+-- Resolved toward INCLUSIVE (`<=`), because that is what two of the three implementations
+-- already do, what recompute_geneset_value_thresholds documents in its own docstring
+-- ("P-Value / Q-Value: in-threshold when value <= threshold"), and what the existing unit
+-- test asserts as intended behaviour (tests/test_batch_thresholds.py: `self._in(1, 0.05,
+-- '0.05')` is True, commented "boundary inclusive").
+--
+-- NOTE the counter-argument, so this can be reversed knowingly: the user-facing batch syntax
+-- is written `P-Value < 0.05`, which reads exclusive. If the curation team wants exclusive
+-- instead, the correct change is the mirror of this one -- `<` in the proc AND `<=` -> `<` in
+-- both Python paths and the test -- not leaving the three as they are. This is a semantics
+-- decision, not a code-style one; it is called out in the PR rather than settled silently.
+--
+------------------------------------------------------------------------------------------------------------------------
 -- SCOPE  -- read before running
 ------------------------------------------------------------------------------------------------------------------------
 --
@@ -43,6 +70,12 @@
 -- the range filter excludes on SQA are 3 with an empty ('') threshold -- no threshold set --
 -- which are a separate malformed-data case (the proc reads all such rows out-of-threshold
 -- while the Python recompute reads them all in; not reconciled here).
+--
+-- The P/Q boundary change affects only score-type 1/2 rows whose value is EXACTLY equal to
+-- the set's cutoff (those flip FALSE -> TRUE); every other type-1/2 row keeps the membership
+-- it has. That population was NOT measured before writing this -- exact-equality on a numeric
+-- cutoff is usually a handful of rows, but "usually" is not a number. Step 0b below reports it
+-- per environment; read it before running, and batch by gs_id if it is unexpectedly large.
 --
 -- gsv_in_threshold is NOT a materialised search attribute (unlike gs_count in migration 118),
 -- so this needs no reindex: the analysis tools read it live from extsrc.geneset_value, and
@@ -78,12 +111,33 @@ WHERE gs.gs_threshold_type IN (4, 5)
 CREATE UNIQUE INDEX ON g3809_t45 (gs_id);
 ANALYZE g3809_t45;
 
+-- Same idea for the type-1/2 cutoff: a single well-formed numeric (not a range). The regex is
+-- the single-value form of the one above, so it accepts everything the proc's
+-- cast(gs_threshold as numeric) accepts and skips only a non-numeric/empty threshold.
+CREATE TEMP TABLE g3809_t12 ON COMMIT DROP AS
+SELECT gs.gs_id,
+       gs.gs_threshold::numeric AS cutoff
+FROM production.geneset gs
+WHERE gs.gs_threshold_type IN (1, 2)
+  AND gs.gs_threshold ~ '^\s*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$';
+
+CREATE UNIQUE INDEX ON g3809_t12 (gs_id);
+ANALYZE g3809_t12;
+
 -- 0) Size it: rows whose membership flips when ABS is dropped.
 SELECT count(*)                            AS rows_to_change,
        count(DISTINCT gv.gs_id)            AS sets_affected
 FROM extsrc.geneset_value gv
 JOIN g3809_t45 t ON t.gs_id = gv.gs_id
 WHERE gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value BETWEEN t.lo AND t.hi, FALSE);
+
+-- 0b) Size the P/Q boundary change: type-1/2 rows whose membership flips when the cutoff
+--     becomes inclusive. These are rows sitting exactly ON the cutoff.
+SELECT count(*)                            AS rows_to_change,
+       count(DISTINCT gv.gs_id)            AS sets_affected
+FROM extsrc.geneset_value gv
+JOIN g3809_t12 t ON t.gs_id = gv.gs_id
+WHERE gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value <= t.cutoff, FALSE);
 
 -- 1) Capture the pre-state so the backfill can be undone (do this in every environment).
 --    Not a TEMP table -- it must outlive the transaction to be useful for rollback.
@@ -105,7 +159,18 @@ JOIN g3809_t45 t ON t.gs_id = gv.gs_id
 WHERE gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value BETWEEN t.lo AND t.hi, FALSE)
 ON CONFLICT (gs_id, ode_gene_id) DO NOTHING;
 
-SELECT count(*) FROM production.g3809_119_threshold_abs_audit;   -- must equal step 0's rows_to_change
+-- The same audit table carries the type-1/2 rows; a gs_id cannot be both 1/2 and 4/5, so the
+-- two populations are disjoint and one rollback artefact covers both.
+INSERT INTO production.g3809_119_threshold_abs_audit
+    (gs_id, ode_gene_id, prev_in_threshold, new_in_threshold, captured_at)
+SELECT gv.gs_id, gv.ode_gene_id, gv.gsv_in_threshold,
+       COALESCE(gv.gsv_value <= t.cutoff, FALSE), now()
+FROM extsrc.geneset_value gv
+JOIN g3809_t12 t ON t.gs_id = gv.gs_id
+WHERE gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value <= t.cutoff, FALSE)
+ON CONFLICT (gs_id, ode_gene_id) DO NOTHING;
+
+SELECT count(*) FROM production.g3809_119_threshold_abs_audit;   -- must equal step 0 + step 0b
 
 -- 2a) Replace the stored procedure: Correlation/Effect uses the SIGNED value, not ABS.
 --     Body is migration 117's (binary/type-3 -> always in-threshold) with the single
@@ -130,8 +195,14 @@ BEGIN
    geneset_value.gs_id=gsv.gs_id AND geneset_value.ode_gene_id = gsv.ode_gene_id AND
    gsv.gs_id = gsvt.gs_id AND gsv.ode_gene_id = gsvt.ode_gene_id AND
    -- return true when in thresholds
+   -- p-value / q-value: INCLUSIVE of the cutoff, matching
+   -- recompute_geneset_value_thresholds (`gsv_value<=%s`, and its docstring) and
+   -- batch.__check_thresholds (`value <= threshold`, asserted boundary-inclusive in
+   -- test_batch_thresholds). Was a strict `<` here, so a value exactly on the cutoff was a
+   -- member or not depending on which of the three writers last ran. See this migration's
+   -- header for the direction choice and how to reverse it.
    CASE WHEN (gs_threshold_type=1 OR gs_threshold_type=2) THEN
-        gsv.gsv_value<cast(gsvt.gs_threshold as numeric)
+        gsv.gsv_value<=cast(gsvt.gs_threshold as numeric)
 
    -- binary thresholds (GWC-44): a binary gene set is a membership list, so it is
    -- NOT thresholded -- every listed gene is a member and is in-threshold.
@@ -165,26 +236,90 @@ UPDATE extsrc.geneset_value gv
  WHERE gv.gs_id = t.gs_id
    AND gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value BETWEEN t.lo AND t.hi, FALSE);
 
--- 3) Verify: this must return zero rows.
+-- 2c) Backfill existing type-1/2 sets to the inclusive cutoff (only rows that differ).
+UPDATE extsrc.geneset_value gv
+   SET gsv_in_threshold = COALESCE(gv.gsv_value <= t.cutoff, FALSE)
+  FROM g3809_t12 t
+ WHERE gv.gs_id = t.gs_id
+   AND gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value <= t.cutoff, FALSE);
+
+-- 3) Verify: both of these must return zero rows.
 SELECT count(*) AS should_be_zero
 FROM extsrc.geneset_value gv
 JOIN g3809_t45 t ON t.gs_id = gv.gs_id
 WHERE gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value BETWEEN t.lo AND t.hi, FALSE);
+
+SELECT count(*) AS should_be_zero_pq
+FROM extsrc.geneset_value gv
+JOIN g3809_t12 t ON t.gs_id = gv.gs_id
+WHERE gv.gsv_in_threshold IS DISTINCT FROM COALESCE(gv.gsv_value <= t.cutoff, FALSE);
 
 COMMIT;
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Rollback
 ------------------------------------------------------------------------------------------------------------------------
--- 1) Restore membership from the audit table:
+--
+-- READ THIS FIRST -- the audit table is a snapshot, not a substitute for recomputation.
+--
+-- It holds the rows that differed *at migration time* only. Once the application resumes
+-- writing, two things stop being true:
+--
+--   * a type-4/5 or type-1/2 set created or edited after the migration is not in the audit at
+--     all, so restoring from it leaves that set on the NEW rule while the proc goes back to
+--     the old one -- the exact split this migration exists to remove; and
+--   * an audited set whose gs_threshold changed after the migration has had its membership
+--     legitimately recomputed since, so `prev_in_threshold` is stale for it and restoring
+--     would write values that match neither the old nor the current threshold.
+--
+-- So there are two rollback paths. Restore the proc FIRST in both, so that anything writing
+-- concurrently is already using the rule you are rolling back to.
+--
+-- Step 1 (both paths) -- restore the old proc: re-run migration 117. Its type-4/5 branch is
+--   the ABS version and its type-1/2 branch is the strict `<`, and it also carries the
+--   binary/type-3 fix this migration preserves, so it is the correct rollback target.
+--
+-- Path A -- IMMEDIATE rollback, writes quiesced (the application scaled to 0, or no geneset
+--   upload/edit/threshold change since the migration committed). The audit is exact, and the
+--   guard below keeps it honest: it only restores rows still holding the value this migration
+--   wrote, and reports any row that has moved since so you can inspect it instead of
+--   overwriting it.
+--
 -- BEGIN;
+-- -- rows written by something else since the migration; must be empty to proceed blindly
+-- SELECT count(*) AS changed_since_migration
+--   FROM production.g3809_119_threshold_abs_audit a
+--   JOIN extsrc.geneset_value gv
+--     ON gv.gs_id = a.gs_id AND gv.ode_gene_id = a.ode_gene_id
+--  WHERE gv.gsv_in_threshold IS DISTINCT FROM a.new_in_threshold;
+--
 -- UPDATE extsrc.geneset_value gv
 --    SET gsv_in_threshold = a.prev_in_threshold
 --   FROM production.g3809_119_threshold_abs_audit a
---  WHERE gv.gs_id = a.gs_id AND gv.ode_gene_id = a.ode_gene_id;
+--  WHERE gv.gs_id = a.gs_id AND gv.ode_gene_id = a.ode_gene_id
+--    AND gv.gsv_in_threshold IS NOT DISTINCT FROM a.new_in_threshold;
 -- COMMIT;
 -- DROP TABLE production.g3809_119_threshold_abs_audit;
 --
--- 2) Restore the ABS form of the proc: re-run migration 117 (its type-4/5 branch is the
---    ABS version). 117 is the correct rollback target because it also carries the
---    binary/type-3 fix this migration preserves.
+-- Path B -- rollback AFTER writes resumed. Do not restore from the audit; recompute every
+--   currently well-formed set under the old rules, which is correct regardless of what was
+--   created or edited in between. After step 1 has restored the proc, the cheapest correct
+--   way is to let the proc do it -- it is the definition of the old rule:
+--
+-- BEGIN;
+-- DO $$
+-- DECLARE r record;
+-- BEGIN
+--   FOR r IN SELECT gs_id FROM production.geneset
+--             WHERE gs_threshold_type IN (1,2,4,5)
+--               AND gs_status <> 'deleted'
+--               AND gs_threshold <> ''
+--   LOOP
+--     PERFORM production.process_thresholds(r.gs_id);
+--   END LOOP;
+-- END $$;
+-- COMMIT;
+-- DROP TABLE production.g3809_119_threshold_abs_audit;
+--
+--   Size Path B first (`SELECT count(*) FROM production.geneset WHERE ...`) -- it is one proc
+--   call per gene set, so on prod it should be run in batches rather than one transaction.
