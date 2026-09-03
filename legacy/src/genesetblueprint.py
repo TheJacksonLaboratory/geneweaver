@@ -335,14 +335,20 @@ def _store_tool_geneset_values(gs_id, unique_gene_ids, all_results):
 
         # Membership is computed below by recompute_geneset_value_thresholds once the
         # score type is known; store a False placeholder here.
+        #
+        # Fully parameterised: psycopg2 adapts the Python lists to PostgreSQL arrays
+        # itself. Hand-building the array literals here (joining `sources` with '","')
+        # broke on any stored reference identifier containing a quote or backslash --
+        # a malformed array literal, or worse -- and interpolating a query string is
+        # exactly what the repo guardrail forbids on a line being touched.
         gs_value_sql = (
             "INSERT INTO extsrc.geneset_value"
             "(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) "
-            "VALUES (%s,%s,'%s','{\"%s\"}','{%s}',%s,%s);"
-        ) % (gs_id, ode_gene_id, avg, '\",\"'.join(sources),
-             ','.join(str(v) for v in values), 0, False)
+            "VALUES (%s,%s,%s,%s,%s,%s,%s);"
+        )
         with geneweaverdb.PooledCursor() as cursor:
-            cursor.execute(gs_value_sql)
+            cursor.execute(gs_value_sql,
+                           (gs_id, ode_gene_id, avg, sources, values, 0, False))
             cursor.connection.commit()
 
     gs_threshold_type, gs_threshold = derive_score_type(min_val, max_val)
