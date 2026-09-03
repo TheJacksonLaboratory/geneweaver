@@ -38,6 +38,22 @@ durable engineering guardrails learned from real incidents. Full context in
   `SET gs_count = (SELECT count(*) FROM extsrc.geneset_value WHERE gs_id = …)`.
   (GWC-34 / G3-782.)
 
+- **Never amend a migration that has already been applied — add the next number.**
+  Check the live database before editing one; applied state does not follow from
+  ticket scope. Migration 119 was edited to also fix the P/Q threshold boundary,
+  but dev and sqa had already run it, so those environments sat at a version that
+  no longer matched the file and had no path to the new half. Split into 120, which
+  every environment can apply wherever it starts. Where two migrations
+  `CREATE OR REPLACE` the same function, say so in both: applying them out of order
+  silently reverts the earlier fix, and rolling the earlier one back reverts the
+  later one.
+- **A membership/threshold rule change is a semantics decision, not a cleanup.**
+  Converging divergent implementations means picking a rule, and that changes
+  published data. Measure the affected population before proposing it (the P/Q
+  boundary was assumed to be "a handful of rows"; it was 590 gene sets on dev and
+  601 on sqa), give it its own audit table and approval, and put the decision to
+  the curation scientist with the counter-argument written down.
+
 ### Build / CI
 - **Do not swallow build or compile failures.** Avoid `... || echo "WARN: ..."`
   around critical steps — it produces a green build with a missing artifact that
