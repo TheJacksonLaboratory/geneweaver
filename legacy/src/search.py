@@ -121,7 +121,15 @@ def getUserFiltersFromApplicationRequest(form):
     # Search term is given from the searchbar in the form
     search_term = form.get('searchbar')
     # pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
-    pagination_page = int(form.get('pagination_page'))
+    ## G3-818: `int(form.get('pagination_page'))` 500s the same way when the field is
+    ## absent (int(None) -> TypeError) or non-numeric (ValueError). The UI always
+    ## sends it, so this is only reachable by a direct or malformed POST -- but it is
+    ## the same missing-field crash on the same route, so it defaults instead.
+    raw_pagination_page = form.get('pagination_page')
+    try:
+        pagination_page = int(raw_pagination_page)
+    except (TypeError, ValueError):
+        pagination_page = 1
     # Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
     # Associate the correct fields with each option given by the user
     field_list = {'searchGenesets': False, 'searchGenes': False, 'searchAbstracts': False, 'searchOntologies': False}
@@ -550,6 +558,20 @@ def keyword_paginated_search(terms, pagination_page,
     offset = resultsPerPage * (pagination_page - 1)
     limit = resultsPerPage
     queries = []
+
+    ## Terms the request did not actually supply are dropped here (G3-818). A POST to
+    ## /searchFilter.json without a `searchbar` field reached the concatenation below
+    ## with t = None and raised `TypeError: can only concatenate str (not "NoneType")`
+    ## -> HTTP 500. Both callers already handle a STATUS-only return, so an absent or
+    ## blank search term is reported as no matches instead, which is the state
+    ## render_search_json and render_searchFromHome were taught to render in G3-778.
+    ##
+    ## This is deliberately in the shared sink rather than in one route: the page
+    ## route guards blank terms before calling (application.py), the json route did
+    ## not, and a third caller would have inherited the same crash.
+    terms = [t for t in terms if t]
+    if not terms:
+        return {'STATUS': 'NO MATCHES'}
 
     ## For each search term, build them into sphinx queries
     for t in terms:
