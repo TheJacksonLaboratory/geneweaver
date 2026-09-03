@@ -157,6 +157,30 @@ class ParseScoreTypeTests(unittest.TestCase):
         self.assertEqual((stype, thresh), (1, '0.05'))
         self.assertFalse(self.reader.warns)
 
+    # G3-811 follow-up (PR #12 review): only an EXACT bare keyword may default
+    # silently. A wrong or missing operator is a malformed header, and treating it like
+    # the bare keyword replaced the user's cutoff with 0.05 with no signal at all.
+    def test_pvalue_wrong_operator_warns_and_defaults(self):
+        stype, thresh = self._parse('P-Value > 0.01')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertTrue(self.reader.warns)
+
+    def test_pvalue_missing_operator_warns_and_defaults(self):
+        stype, thresh = self._parse('P-Value 0.01')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertTrue(self.reader.warns)
+
+    def test_qvalue_wrong_operator_warns_and_defaults(self):
+        stype, thresh = self._parse('Q-Value > 0.01')
+        self.assertEqual((stype, thresh), (2, '0.05'))
+        self.assertTrue(self.reader.warns)
+
+    def test_pvalue_bare_keyword_with_whitespace_still_silent(self):
+        # Trailing whitespace is still a bare keyword, not a malformed header.
+        stype, thresh = self._parse('  P-Value  ')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertFalse(self.reader.warns)
+
     def test_pvalue_out_of_range_warns_and_defaults(self):
         # A value outside [0, 1] is a real error: warn and fall back to 0.05.
         stype, thresh = self._parse('p-value < 1.5')

@@ -189,26 +189,24 @@ class BatchReader(object):
             # documented form is "P-Value < 0.05", but validate_pq_value matches a bare
             # number (^...$), so passing the whole line never validated -- every
             # thresholded p-value line fell through and the requested cutoff was
-            # silently replaced with 0.05. A bare "P-Value" (no '<') legitimately
-            # requests the default, so it keeps 0.05 without a warning.
-            parts = s.lower().split('<', 1)
-            if len(parts) > 1:
-                valid, match = self.validate_pq_value(parts[1].strip())
-                if valid:
-                    thresh = match.group(1)
-                else:
-                    self.warns.append('Invalid threshold. Using p < 0.05.')
+            # silently replaced with 0.05.
+            #
+            # Only an EXACT bare "P-Value" legitimately requests the default, so only
+            # that keeps 0.05 without a warning. Testing for the absence of '<' instead
+            # would treat every malformed header the same way -- "P-Value > 0.01" and
+            # "P-Value 0.01" would silently store 0.05, replacing the cutoff the user
+            # asked for with no signal at all. Anything trailing the keyword must parse
+            # as "< <number>" or it warns.
+            thresh, stype_warn = self.__parse_pq_threshold(s, 'p-value', 'p', thresh)
+            if stype_warn:
+                self.warns.append(stype_warn)
 
         elif s.lower().find('q-value') != -1:
             stype = 2
             # Same as p-value above (G3-811).
-            parts = s.lower().split('<', 1)
-            if len(parts) > 1:
-                valid, match = self.validate_pq_value(parts[1].strip())
-                if valid:
-                    thresh = match.group(1)
-                else:
-                    self.warns.append('Invalid threshold. Using q < 0.05.')
+            thresh, stype_warn = self.__parse_pq_threshold(s, 'q-value', 'q', thresh)
+            if stype_warn:
+                self.warns.append(stype_warn)
 
         elif s.lower().find('correlation') != -1:
             # validate correlation range
@@ -238,6 +236,38 @@ class BatchReader(object):
             self.errors.append('An unknown score type (%s) was provided.' % s)
 
         return (stype, thresh)
+
+    def __parse_pq_threshold(self, s, keyword, label, default):
+        """
+        Parses the threshold out of a P-Value / Q-Value score-type header (G3-811).
+
+        The documented form is "P-Value < 0.05". An exact bare keyword ("P-Value")
+        requests the default cutoff and is not a warning. Anything else trailing the
+        keyword must be "< <number in [0,1]>"; a wrong or missing operator, or a value
+        outside the range, is a malformed header and warns rather than silently
+        substituting the default.
+
+        arguments
+            s:       the score-type string, e.g. "P-Value < 0.01"
+            keyword: 'p-value' or 'q-value' (lowercase)
+            label:   'p' or 'q', used only in the warning text
+            default: threshold to keep when the header is a bare keyword or malformed
+
+        returns
+            a (threshold, warning) tuple; warning is None when nothing is wrong
+        """
+        rest = s.lower().split(keyword, 1)[1].strip()
+
+        ## Exact bare keyword -- the default cutoff was requested deliberately.
+        if not rest:
+            return default, None
+
+        if rest.startswith('<'):
+            valid, match = self.validate_pq_value(rest[1:].strip())
+            if valid:
+                return match.group(1), None
+
+        return default, 'Invalid threshold. Using %s < %s.' % (label, default)
 
     @staticmethod
     def validate_pq_value(value: str) -> Tuple[bool, Union[Match, None]]:
