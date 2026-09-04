@@ -875,8 +875,13 @@ class BatchReader(object):
         value = float(value)
 
         ## P and Q values
+        ## G3-819: the P/Q boundary is EXCLUSIVE (`value < threshold`), matching
+        ## production.process_thresholds and therefore what every environment -- Prod
+        ## included -- has always stored. Measured 2026-09-04: of the type-1/2 rows sitting
+        ## exactly on their cutoff, zero were in-threshold in dev or sqa, so the exclusive
+        ## rule is the published behaviour and this Python path was the outlier.
         if ttype == 1 or ttype == 2:
-            return value <= threshold
+            return value < threshold
 
         ## Correlation and effect scores
         elif ttype == 4 or ttype == 5:

@@ -240,6 +240,10 @@ COMMIT;
 --   Size Path B first -- it is one proc call per gene set, so batch it on prod rather than
 --   running it as one transaction.
 --
--- NOTE: rolling this back does NOT roll back migration 120 (the P/Q boundary). 120 replaces
--- this proc body with the inclusive type-1/2 branch, so if 120 has been applied, re-running
--- 117 here reverts the P/Q fix as a side effect. Roll 120 back on its own terms first.
+-- NOTE on the P/Q boundary: the type-1/2 branch in this proc is a strict `<` (exclusive), and
+-- that is deliberate -- it is what process_thresholds has always done and therefore what every
+-- environment, Prod included, has stored. A migration 120 was drafted to make it inclusive and
+-- was then dropped: measured 2026-09-04, every type-1/2 row sitting exactly on its cutoff was
+-- already out-of-threshold in dev and sqa, so switching would have retroactively added members
+-- to ~600 published gene sets across every curation tier, some created in 2007. The Python
+-- paths were aligned down to `<` instead (G3-819). Do not "fix" this branch to `<=`.

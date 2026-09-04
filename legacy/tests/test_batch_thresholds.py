@@ -59,15 +59,24 @@ class PQThresholdTests(unittest.TestCase):
     def _in(self, ttype, threshold, value):
         return self.reader._BatchReader__check_thresholds(ttype, threshold, value)
 
-    def test_pvalue_at_or_below_threshold_in(self):
+    def test_pvalue_below_threshold_in(self):
         self.assertTrue(self._in(1, 0.05, '0.01'))
-        self.assertTrue(self._in(1, 0.05, '0.05'))   # boundary inclusive
+
+    def test_pvalue_on_the_boundary_is_out(self):
+        # EXCLUSIVE (G3-819). This asserted True ("boundary inclusive") until
+        # 2026-09-04, when the deployed behaviour was measured: every type-1/2 row
+        # sitting exactly on its cutoff was out-of-threshold in both readable
+        # environments, because production.process_thresholds uses `<` and is the
+        # effective writer. The decision was to match Prod rather than change
+        # published membership, so this path was the outlier, not the proc.
+        self.assertFalse(self._in(1, 0.05, '0.05'))
+        self.assertFalse(self._in(2, 0.05, '0.05'))
 
     def test_pvalue_above_threshold_out(self):
         self.assertFalse(self._in(1, 0.05, '0.06'))
 
     def test_qvalue_behaves_like_pvalue(self):
-        self.assertTrue(self._in(2, 0.05, '0.05'))
+        self.assertTrue(self._in(2, 0.05, '0.01'))
         self.assertFalse(self._in(2, 0.05, '0.10'))
 
 

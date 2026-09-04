@@ -2391,7 +2391,11 @@ def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
             for gsv_value in gsv_values:
                 value = list(gsv_value.values())[0]
                 value = float(value)
-                if value >= 0 and value <= threshold:
+                ## Exclusive, matching membership (G3-819) and this function's own
+                ## docstring ("fall below given thresholds"). It was `<=` while
+                ## process_thresholds stored `<`, so the /setthreshold page could
+                ## promise more genes than the geneset would end up holding.
+                if value >= 0 and value < threshold:
                     threshold_gene_counts[threshold] += 1
 
     return threshold_gene_counts

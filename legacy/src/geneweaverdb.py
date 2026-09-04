@@ -1638,7 +1638,7 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
     geneset's score type or threshold changes, or tools/views that filter on
     ``gsv_in_threshold`` will use stale membership (GWC-42).
 
-        P-Value / Q-Value: in-threshold when value <= threshold.
+        P-Value / Q-Value: in-threshold when value < threshold (EXCLUSIVE, G3-819).
         Binary:            not thresholded -- every value is in-threshold, since
                            a binary set is a membership list (GWC-44).
         Correlation/Effect: in-threshold when min <= value <= max; if the range
@@ -1667,7 +1667,7 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
             thresh = 0.05
         cursor.execute(
             '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t'
-               WHERE gs_id=%s AND gsv_value<=%s''',
+               WHERE gs_id=%s AND gsv_value<%s''',
             (gs_id, thresh)
         )
 
