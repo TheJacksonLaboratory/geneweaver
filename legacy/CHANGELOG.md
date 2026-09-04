@@ -1,11 +1,187 @@
 # GeneWeaver Legacy — Changelog
 
 Changes to the legacy GeneWeaver application (`legacy/`), released from the monorepo via
-`.github/workflows/legacy-release.yml` and tagged `legacy-v<version>`.
+`.github/workflows/legacy-release.yml` and tagged **`v<version>`** (e.g. `v1.6.0a`).
+
+**Pushing the tag is the release decision** — merging a version bump to `main` deliberately does
+*not* release (`cb61c111`; a merged branch carrying a bump once fired an unintended prod-bound run).
+The tag must match `legacy/pyproject.toml` or the run fails. A version containing a letter is a
+pre-release and deploys to **SQA only**; a plain version promotes through Stage and Prod.
 
 ---
 
-## 1.6.0 — unreleased
+## 1.6.0b — unreleased
+
+The post-sign-off fix set. Everything here was found **after** 1.6.0a was signed off on SQA — six
+findings raised while running the §6 verification list, two more just after, plus a fourth
+threshold divergence found in code review. A **pre-release, SQA only.**
+
+> **Scope note.** No database migration is required for this release, and no gene set's membership
+> changes anywhere. Migration 119 is carried over from 1.6.0a's follow-up work and is already
+> applied to dev and sqa; Stage and Prod still need it (G3-821, G3-822). A migration 120 was drafted
+> and then **deleted** — see *Decided* below.
+
+### Fixed — curation & upload
+
+* **Tool-generated gene sets bypassed threshold processing entirely** (G3-809) — `56152dc2`,
+  `e4d976dc`. `/createtempgeneset` and `/creategeneset.html` each carried a byte-identical inline
+  block that flagged `gsv_in_threshold` from a hardcoded `avg in [-1, 1]` rule — a rule matching no
+  score type, evaluated *before* `gs_threshold_type` was known — and never called
+  `process_thresholds` or `recompute_geneset_value_thresholds`. So tool-created sets carried
+  membership that agreed with nothing, and migration 117 and the Python threshold fixes never
+  reached them. Both routes now go through the one shared implementation. The extracted helper's
+  `geneset_value` INSERT is also fully parameterised: it had been hand-building PostgreSQL array
+  literals, which breaks on any reference identifier containing a quote or backslash.
+* **A batch P-Value/Q-Value threshold could never validate** (G3-811) — `b3a23de2`, `1128fece`.
+  `validate_pq_value` matches a bare number, but the whole line (`P-Value < 0.05`) was passed to it,
+  so every thresholded line fell through and the user's cutoff was silently replaced with `0.05`.
+  Now parsed correctly — and only an *exact* bare keyword defaults silently: `P-Value > 0.01` and
+  `P-Value 0.01` used to be treated as a deliberate default rather than the malformed headers they
+  are, so they replaced the cutoff with no warning at all.
+* **Changing a score type ran no value-domain check** (G3-812) — `0adc51c5`. The GWC-42 half-gap:
+  the upload paths validated values against the score type, but the after-the-fact change did not,
+  so a curator could reinterpret existing values under a new type with no signal they were
+  nonsensical. Advisory, matching the upload behaviour — it warns, it does not block.
+* **Creating a gene set from a tool result silently dropped genes with no Homologene row**
+  (G3-815) — `50783c21`. `transpose_genes_by_species` resolved the gene list *through*
+  `extsrc.homology`, so a gene absent from Homologene could not survive the join — even on a
+  same-species transpose where nothing needs transposing. Measured on SQA during sign-off: 6 of 115
+  genes lost, with no warning anywhere in the UI. Unchanged since April 2018.
+
+### Fixed — search
+
+* **The Sphinx index was only ever built when a pod was replaced** (G3-814) — `f939aba6`,
+  `bc4a5103`, `9a51273e`. `start_sphinx.sh` ran `indexer --all` once at container start and then
+  `searchd` took over the process, so index freshness was incidental to pod lifecycle — a new gene
+  set could be missing from search for weeks. The main+delta machinery was fully configured and
+  already queried by `search.py`; only a scheduler was missing. Now a delta rebuild every
+  `SPHINX_DELTA_INTERVAL` (default 15 min) plus a full rebuild at 00:00 America/New_York, with
+  `tzdata` installed and `TZ` set so the schedule holds across the EST/EDT transition. Three
+  related fixes: the cold build is now **fatal** (it fell through to `searchd`, which then served an
+  absent index while looking healthy to Kubernetes); each replica keys its watermark rows
+  separately, because the prod overlay runs `replicas: 4` against two shared
+  `production.sphinxcounters` rows and interleaved rebuilds could leave the delta reading a NULL
+  watermark and silently indexing nothing; and **`update_geneset` now bumps `gs_updated`**, which
+  was previously written only when the edit page was *opened*, so a page held open across the
+  nightly rebuild produced a save no delta could ever see. The inert packaged
+  `/etc/cron.d/sphinxsearch` is removed rather than left to mislead.
+* **`/searchFilter.json` 500 on a request with no `searchbar` field** (G3-818) — `f5d0d0d0`. The
+  fourth crash in this route after G3-778's three: `render_search_json` passed
+  `[form.get('searchbar')]` straight through, so an absent field reached
+  `'@(' + search_fields + ') ' + t` with `t = None`. Guarded in the shared sink rather than the
+  route — the page route already checked, the JSON route did not, and a third caller would have
+  inherited it. An empty search now degrades to the no-results state both routes already render.
+  `int(form.get('pagination_page'))` on the same route failed the same way and now defaults to 1.
+
+### Security
+
+* **The admin data-table endpoints were SQL-injectable** (G3-816) — `628cb904`. They built SQL by
+  `%`-interpolating request parameters and ran it with no bound parameters; psycopg2's `execute`
+  hands the string to libpq `PQexec`, so statements stacked after a `;` also ran — write and DDL,
+  not read-only. Values are now bound, and table and column names are resolved against an allowlist
+  of the eleven tables the admin viewer actually offers (validating against `information_schema`
+  alone would still permit `table=production.usr&columns[0][name]=apikey`, which was one of the
+  vectors).
+
+  Two of the four routes turned out **not** to be admin-gated at all:
+  `/getServersideGenesetsdb` and `/getServersideResultsdb` have no decorator and no `is_admin`
+  check, and `before_request` only *looks up* the user without gating — so `search[value]` there was
+  an **unauthenticated** injection. Both also took the `user_id` to filter on straight from the
+  request, letting anyone list any user's gene sets or tool results by guessing an id; they now
+  require a session user and use that id. Also parameterised `get_primary_keys` (request-fed from
+  both admin write routes), `admin_get_data`, `get_all_columns`, `get_required_columns` and
+  `get_nullable_columns`, and extended the table allowlist to `admin_set_edit` and `admin_add`,
+  which were injection-safe but would write to any table the request named.
+
+### Decided — the P/Q threshold boundary stays exclusive (G3-819)
+
+* `271f6e90`, and migration 120 **deleted**. A fourth divergence in the G3-809 family, found in
+  review: `process_thresholds` treated the P/Q cutoff as exclusive (`<`) while
+  `recompute_geneset_value_thresholds` and `batch.__check_thresholds` treated it as inclusive
+  (`<=`), so a value exactly on its cutoff was a member or not depending on which path last wrote
+  it.
+
+  The code's intent read inclusive, but the deployed behaviour decided it: of the type-1/2 rows
+  sitting exactly on their cutoff, **none** were in-threshold — 0 of 28,205 across 601 gene sets on
+  sqa, 0 of 14,431 across 590 on dev. No mixture, because the procedure is the effective writer for
+  all of them. Exclusive is what every environment including Prod has always stored. Going inclusive
+  would have retroactively added members to ~600 published gene sets per environment across every
+  curation tier, some created in 2007 (GS407228 +13,440 genes; GS793 +45%) — a change to the
+  scientific record, not a fix. **So the Python paths came down to `<` and the databases were left
+  untouched.** `application.calc_genes_count_in_threshold` — the `/setthreshold` preview count shown
+  to curators — was also `<=` while membership was `<`, so the page could promise more genes than
+  the set would hold; now consistent with its own docstring. Two-sided score types
+  (Correlation/Effect) remain inclusive everywhere; that was never in question.
+
+### Added
+
+* **A read-only drift check for migration 117** (G3-810) — `948c5f7e`.
+  `legacy/migration/checks/gwc44-binary-threshold-drift.sql` reports rows to change, whether the
+  procedure is patched, and whether the backfill audit is present. Safe to run in any environment at
+  any time.
+
+### Infrastructure & operations
+
+* **Migration 119** (G3-809) — `2cd5ffc6`, `f1faafa8`.
+  `legacy/migration/119-fix-correlation-effect-abs-threshold.sql`. `process_thresholds` computed
+  Correlation/Effect (types 4/5) membership as `ABS(gsv_value) BETWEEN lo AND hi` while both Python
+  paths used the signed value, so membership depended on which path last ran. `ABS` only diverges on
+  *asymmetric* ranges, and there it is wrong twice over: for `6.0 < Effect < 22.50` it silently also
+  admits the −22.50..−6.0 band, and for an auto-derived type-5 set it excludes the most-negative
+  genes that *defined* the minimum. **Already applied to dev and sqa** (audits at 82,192 and 111,493
+  rows, backfill complete, zero rows still disagreeing); Stage and Prod outstanding — G3-821,
+  G3-822.
+* **JaccardSimilarity's distribution caches** (G3-817) — no code change; an operational step per
+  environment. `genes.dat` / `homology.dat` are regenerable sampling caches on the results PVC, not
+  image content (`e3e4ad03`). They were absent on SQA, so `distribution_generator` returned `-1`
+  without inserting and JaccardSimilarity reported `p = 0` for any set-size pair not already cached.
+  **Generated and verified end-to-end on sqa 2026-09-04**; dev has had them since 30 June. Stage and
+  Prod each need the same one-off step — procedure in the release plan §4.3.3, and note the GCSFuse
+  guardrail: generate to local disk and bulk-copy, never write the ~200 MB file straight to the
+  mount.
+
+### Testing & developer tooling
+
+* Regression cover for the review findings and the third G3-778 bug — `f33c3c68`, `bb6403c2`, and
+  the tests landing with each fix above. The legacy suite goes **87 → 150** and the CI module list
+  9 → 15 (measured against `main`, not the 48 an older note recorded — tests landed between that
+  note and the 1.6.0a cut). Every module is wired into the explicit list in `_legacy-tests.yml`; a
+  new module is invisible to CI until it is added there. The G3-816 and G3-809 tests are
+  mutation-checked: reintroducing the interpolation makes them fail.
+
+### Documentation
+
+* Release plan §5.5 (migration 119), §5.6 (the boundary decision), §4.3.3 (the distribution-cache
+  step, whose documented command was wrong — `fileGenerator -g -h` silently does `-g` only, since
+  `main()` reads `argv[1]` and ignores the rest), and §6.1's SQA verification record — `9c0b9171`,
+  `d57b1ffd`, `5c38f46d`, `8110a0fa`, `590097e9`.
+* CLAUDE.md guardrails — `4ac04579`: never amend a migration that has already been applied (check
+  the live database, not ticket scope), and treat a membership/threshold rule change as a semantics
+  decision needing measurement and approval rather than a cleanup.
+
+### Known issues
+
+* **G3-813 is closeable, and is *not* a Prod gate.** It was raised on the assumption that the
+  monorepo's Pages site is org-only. It is not: fetched unauthenticated from outside the org, `/`
+  and `/analysis-tools/mset/` both return HTTP 200 with the real page. Recheck once before Prod.
+* The 1.6.0a known issues below still stand — the empty-gene-set population (G3-782), MSET's
+  Tier-IV/V rejection (GWC-51 / G3-783) and the hardcoded NCBO key (G3-770) are unchanged by this
+  release.
+* **v3 divergence, deliberately left alone.** `packages/core`'s `one_sided_threshold` is `<=`, with
+  boundary tests asserting it, and now disagrees with legacy's `<`. Out of scope for this legacy
+  release; whoever runs the v3 switchover must reconcile it, or v3 will silently change membership
+  for every set with an on-cutoff value.
+
+### Version
+
+* `legacy/pyproject.toml` 1.6.0a → **1.6.0b**. A pre-release (the letter is what marks it), so the
+  release workflow deploys to **SQA only**. Release with `git tag v1.6.0b && git push origin
+  v1.6.0b` on the commit carrying this bump — the bump alone does not release. The app footer will
+  read `1.6.0b0`; Poetry normalises the version, exactly as `1.6.0a` rendered `1.6.0a0`.
+
+---
+
+## 1.6.0a — released to SQA 2026-08-24
 
 First legacy release cut from the **monorepo**. Previous releases (through 1.5.27) came from the
 standalone `geneweaver-legacy` repo; see [`docs/ci-cd/G3-781_LEGACY_RELEASE_PLAN.md`](../docs/ci-cd/G3-781_LEGACY_RELEASE_PLAN.md)
@@ -14,7 +190,7 @@ for the promotion and cutover procedure.
 > **Scope note.** SQA / Stage / Prod last received a build from the standalone repo at **1.5.27**, so
 > this release promotes *two* bodies of work at once:
 >
-> * **`branch`** — the G3-769 bug-fix set, on `fix/G3-769-legacy-bug-fixes-and-improvements` (PR #2, not yet merged).
+> * **`branch`** — the G3-769 bug-fix set, on `fix/G3-769-legacy-bug-fixes-and-improvements` (PR #2, merged `77161d1b`).
 > * **`main`** — monorepo-migration-era work already merged to `main` via the G3-748 migration PR, which has **never** reached SQA/Stage/Prod.
 >
 > Each entry below is tagged accordingly. The `main` set is easy to overlook because it does not
@@ -198,8 +374,10 @@ for the promotion and cutover procedure.
 
 ### Version
 
-* `legacy/pyproject.toml` 1.5.27 → 1.6.0 (`e888036d` · `branch`). Pushing this version bump to `main`
-  is what triggers the release workflow.
+* `legacy/pyproject.toml` 1.5.27 → 1.6.0 (`e888036d` · `branch`), then **cut as the pre-release
+  `1.6.0a`** (`f3447c46`) and tagged `v1.6.0a` — deployed to SQA on 2026-08-24 (run `32744456037`),
+  with Stage and Prod skipped as designed. Note the release trigger moved to the tag in `cb61c111`;
+  pushing a version bump to `main` does **not** release.
 
 ---
 
