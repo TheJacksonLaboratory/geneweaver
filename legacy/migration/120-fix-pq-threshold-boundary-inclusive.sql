@@ -18,19 +18,39 @@
 -- which path last wrote the row. Migrations 117 and 119 both carried the exclusive form
 -- forward unchanged, so converging the writers needs this third step.
 --
--- Which is correct: INCLUSIVE (`<=`). Two of the three implementations already do it that
--- way; recompute_geneset_value_thresholds documents it in its own docstring ("P-Value /
--- Q-Value: in-threshold when value <= threshold"); and the existing unit test asserts it as
--- intended behaviour (legacy/tests/test_batch_thresholds.py -- `self._in(1, 0.05, '0.05')` is
--- True, commented "boundary inclusive").
+-- Which is correct: INCLUSIVE (`<=`). This is settled by the repo, not a judgement call --
+-- the v3 reimplementation states the rule explicitly and tests it at the boundary:
 --
--- ⚠ THE COUNTER-ARGUMENT, so this can be reversed knowingly: the user-facing batch syntax is
--- written `P-Value < 0.05`, which reads exclusive. If the curation team wants exclusive, the
--- correct change is the MIRROR of this migration -- keep `<` in the proc AND change `<=` ->
--- `<` in recompute_geneset_value_thresholds, batch.__check_thresholds and the test -- not
--- leaving the three writers as they are. This is a semantics decision about published
--- membership, not a code-style one. It is deliberately called out rather than settled
--- quietly; confirm with curation before running this in Stage or Prod.
+--   * packages/core .../parse/threshold.py -- `one_sided_threshold()` (the function
+--     check_threshold() dispatches P_VALUE and Q_VALUE to) is `return value <= threshold`,
+--     and its docstring spells it out: "if the threshold is 0.05, then this function will
+--     return True if the value is less than or equal to 0.05".
+--   * packages/core tests .../threshold/test_one_sided_threshold.py enumerates the boundary
+--     DELIBERATELY, three times, each with a comment:
+--         (0.05, 0.05, True)   # Test case where value is equal to threshold
+--         (0.0,  0.0,  True)   # Test case where value is equal to zero threshold
+--         (-0.1, -0.1, True)   # Test case where value is equal to negative threshold
+--   * legacy geneweaverdb.recompute_geneset_value_thresholds -- `gsv_value<=%s`, docstring
+--     "P-Value / Q-Value: in-threshold when value <= threshold".
+--   * legacy batch.BatchReader.__check_thresholds -- `value <= threshold`, asserted
+--     boundary-inclusive in legacy/tests/test_batch_thresholds.py.
+--
+-- Inclusive is also the house rule for the two-sided score types everywhere (BETWEEN in this
+-- proc and in packages/db; `threshold_low <= value <= threshold` in packages/core), so the
+-- one-sided strict `<` is the odd one out in both codebases rather than a considered choice.
+--
+-- The user-facing batch syntax is written `P-Value < 0.05`, which reads exclusive, and that is
+-- the only thing on the other side. It is a label for the score type, not an operator spec,
+-- and it is outweighed by an explicitly documented and boundary-tested implementation. Worth a
+-- heads-up to curation before Stage/Prod because it moves membership in ~600 published gene
+-- sets per environment -- but as a notification, not a decision to be made.
+--
+-- ⚠ SAME BUG EXISTS IN v3: packages/db .../query/threshold.py builds the one-sided branch as
+-- `WHEN gsv_value < %(threshold_high)s THEN TRUE` -- exclusive, contradicting packages/core in
+-- the same repo. Its test asserts only that the SQL contains `%(threshold_high)s`, `WHEN`,
+-- `THEN TRUE` etc., never the operator, so the `<` is unasserted rather than intended. Fixing
+-- it there is out of scope for this legacy migration but must not be forgotten, or v3 will
+-- reintroduce exactly the divergence this migration removes.
 --
 ------------------------------------------------------------------------------------------------------------------------
 -- SCOPE  -- read before running
