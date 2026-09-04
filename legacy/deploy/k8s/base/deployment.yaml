@@ -54,4 +54,11 @@ spec:
           envFrom:
             - secretRef:
                 name: geneweaver-db
+          env:
+            # The sidecar's nightly full reindex runs at 00:00 America/New_York
+            # (start_sphinx.sh, G3-814). The container clock is UTC, so set the zone
+            # explicitly; TZ (with tzdata in the image) keeps midnight correct across
+            # the EST/EDT change, which a hardcoded UTC hour would not.
+            - name: TZ
+              value: America/New_York
           command: ["/bin/bash", "-c", "/app/sphinx/start_sphinx.sh"]

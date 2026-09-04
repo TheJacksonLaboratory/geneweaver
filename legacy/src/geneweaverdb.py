@@ -1638,7 +1638,7 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
     geneset's score type or threshold changes, or tools/views that filter on
     ``gsv_in_threshold`` will use stale membership (GWC-42).
 
-        P-Value / Q-Value: in-threshold when value <= threshold.
+        P-Value / Q-Value: in-threshold when value < threshold (EXCLUSIVE, G3-819).
         Binary:            not thresholded -- every value is in-threshold, since
                            a binary set is a membership list (GWC-44).
         Correlation/Effect: in-threshold when min <= value <= max; if the range
@@ -1667,7 +1667,7 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
             thresh = 0.05
         cursor.execute(
             '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t'
-               WHERE gs_id=%s AND gsv_value<=%s''',
+               WHERE gs_id=%s AND gsv_value<%s''',
             (gs_id, thresh)
         )
 
@@ -1697,6 +1697,32 @@ def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_thre
             '''UPDATE extsrc.geneset_value SET gsv_in_threshold='t' WHERE gs_id=%s''',
             (gs_id,)
         )
+
+
+def get_geneset_values_for_score_check(gs_id):
+    """
+    Return a geneset's stored values as (identifier, value) pairs, the shape
+    score_type_value_warnings expects.
+
+    One pair per extsrc.geneset_value row: the identifier is the first stored
+    source id (falling back to the internal ode_gene_id) and is used only to name
+    offenders in the advisory message -- value_in_score_type_domain looks at the
+    value. Used by the geneset-edit score-type change path (G3-812), which
+    reinterprets values that already exist rather than ones being uploaded.
+
+    arguments
+        gs_id: the geneset id
+
+    returns
+        a list of (identifier, value) tuples
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT COALESCE(gsv_source_list[1], ode_gene_id::text), gsv_value
+               FROM extsrc.geneset_value WHERE gs_id = %s''',
+            (gs_id,)
+        )
+        return [(row[0], row[1]) for row in cursor.fetchall()]
 
 
 def update_geneset(usr_id, form):
@@ -1870,18 +1896,26 @@ def update_geneset(usr_id, form):
     ## Did the score type or threshold actually change? If so we must recompute
     ## the per-value gsv_in_threshold flags below, or tools/views that filter on
     ## them will use stale membership (GWC-42).
+    score_type_changed = int(gs_threshold_type) != int(current_version.threshold_type or 0)
     threshold_changed = (
-        int(gs_threshold_type) != int(current_version.threshold_type or 0) or
+        score_type_changed or
         str(gs_threshold) != str(current_version.threshold or '')
     )
 
     # update geneset with changes
     with PooledCursor() as cursor:
+        # gs_updated is bumped here, in the same statement as the edit (G3-814). It is
+        # what the Sphinx delta index selects on (geneset_delta_src: gs_updated >= the
+        # last full-build watermark), and it used to be written only by
+        # update_geneset_date() when the edit page was *opened* -- so a page left open
+        # across the nightly full rebuild produced a save with a gs_updated older than
+        # the watermark, invisible to every delta and stale in search until the next
+        # full rebuild. Setting it on the save closes that window.
         sql = cursor.mogrify('''
             UPDATE geneset
             SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s),
                 gs_description = (%s), gs_threshold_type = (%s), gs_threshold = (%s),
-                cur_id = (%s), gs_groups = (%s)
+                cur_id = (%s), gs_groups = (%s), gs_updated = NOW()
             WHERE gs_id = %s;
             ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type,
                   gs_threshold, cur_id, gs_groups, gs_id)
@@ -1895,7 +1929,21 @@ def update_geneset(usr_id, form):
 
         cursor.connection.commit()
 
-    return {'success': True}
+    result = {'success': True}
+
+    ## GWC-42 half-gap (G3-812): the edit page can now change the score type, but
+    ## only the upload paths ran the value-domain check. On an edit the user is
+    ## reinterpreting values that already exist under a new type, so run the same
+    ## score_type_value_warnings helper against the geneset's stored values and
+    ## surface any warnings. Advisory only -- the change is already saved (this
+    ## mirrors the upload behaviour: warn, do not block).
+    if score_type_changed:
+        warnings = score_type_value_warnings(
+            gs_threshold_type, get_geneset_values_for_score_check(gs_id))
+        if warnings:
+            result['warnings'] = warnings
+
+    return result
 
 
 def byteify(input):
@@ -2289,62 +2337,117 @@ def update_threshold_values(rargs):
             return {'error': 'None'}
 
 
-def get_server_side_genesets(rargs):
-    user_id = rargs.get('user_id', type=int)
+## G3-816: the admin data-table endpoints below take the table and column names to
+## query straight from the request. Identifiers cannot be bound as parameters, so
+## they are resolved against an allowlist instead of being interpolated.
+##
+## This is the set of tables the admin viewer actually offers -- keep it in step with
+## the `table = ...` assignments in adminviews.py. Validating against
+## information_schema alone would still allow any table in the database, which is one
+## of the vectors being closed (columns[0][name]=apikey&table=production.usr).
+_ADMIN_VIEWER_TABLES = frozenset([
+    'production.usr',
+    'production.publication',
+    'production.grp',
+    'production.project',
+    'production.geneset',
+    'production.geneset_info',
+    'production.file',
+    'extsrc.gene',
+    'extsrc.gene_info',
+    'extsrc.geneset_value',
+    'odestatic.news_feed',
+])
 
+
+def _admin_table_ident(table):
+    """Resolve a request-supplied "schema.table" against the admin viewer allowlist.
+
+    Returns a psycopg2.sql.Identifier for the table, or None when the name is not one
+    the admin UI offers. Callers must treat None as a rejected request -- it is the
+    only thing keeping an arbitrary FROM out of the query (G3-816).
+    """
+    if not table or table not in _ADMIN_VIEWER_TABLES:
+        return None
+    schema, _, tbl = table.partition('.')
+    return sql.Identifier(schema, tbl)
+
+
+def _admin_table_columns(table):
+    """The real column names of a table, as a set, for validating requested columns.
+
+    Only call this with a table that _admin_table_ident has already accepted.
+    """
+    schema, _, tbl = table.partition('.')
+    with PooledCursor() as cursor:
+        cursor.execute(
+            'SELECT column_name FROM information_schema.columns '
+            'WHERE table_schema = %s AND table_name = %s;', (schema, tbl))
+        return set(row[0] for row in cursor.fetchall())
+
+
+def get_server_side_genesets(rargs, user_id):
+    ## G3-816: `search[value]` was %-interpolated inside a LIKE literal and the query
+    ## then ran with no bound parameters, so a quote in the search box closed the
+    ## string and psycopg2 (execute -> libpq PQexec) executed anything stacked after
+    ## a `;`. Every value is bound now; the LIKE pattern is passed as data.
+    ##
+    ## user_id is the caller's OWN id, passed in by the route from the session. It
+    ## used to be read straight from the request on a route with no authentication at
+    ## all (/getServersideGenesetsdb has no decorator and no is_admin check), so
+    ## anyone could list any user's gene sets by guessing an id. mygenesets.html only
+    ## ever sends the logged-in user's id, so the UI is unaffected.
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
     select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, GS.gs_id, gs_name, gs_abbreviation, gs_description,
-					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
+					to_char(gs_created, 'YYYY-MM-DD'), to_char(gs_updated, 'YYYY-MM-DD'), curation_group, grp_name FROM geneset GS
 					LEFT OUTER JOIN curation_assignments CA ON CA.gs_id = GS.gs_id
 					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
-					WHERE gs_status NOT LIKE 'dep%%' AND gs_status != 'deleted' AND usr_id=%s""" % \
-                    ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
+					WHERE gs_status NOT LIKE 'dep%%' AND gs_status != 'deleted' AND usr_id=%s"""
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
                       'cast(gs.gs_id as text)', 'cast(gs_name as text)']
 
-    # Paging
-    iDisplayStart = rargs.get('start', type=int)
-    iDisplayLength = rargs.get('length', type=int)
-    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
-        if (iDisplayStart is not None and iDisplayLength != -1) \
-        else ''
+    ## Bound values, in the order their placeholders appear in the assembled query.
+    params = [user_id]
 
     # searching
     search_value = rargs.get('search[value]')
-    search_clauses = []
     if search_value:
-        for i in range(len(source_columns)):
-            search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
-        search_clause = 'OR '.join(search_clauses)
+        ## source_columns are fixed expressions defined above, not request data --
+        ## only the pattern is bound.
+        search_clause = ' OR '.join(col + ' LIKE %s' for col in source_columns)
+        where_clause = ' AND (' + search_clause + ') '
+        search_params = ['%' + search_value + '%'] * len(source_columns)
     else:
-        search_clause = ''
+        where_clause = ''
+        search_params = []
+    params.extend(search_params)
 
-    # Sorting
-    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    # Sorting -- index into the fixed list above, so an out-of-range or missing
+    # order[0][column] leaves the results unsorted instead of raising.
+    order_index = rargs.get('order[0][column]', type=int)
+    sorting_col = None
+    if order_index is not None and 0 <= order_index < len(select_columns):
+        sorting_col = select_columns[order_index]
     sorting_direction = rargs.get('order[0][dir]', type=str)
     sort_dir = 'ASC NULLS LAST' \
         if sorting_direction == 'asc' \
         else 'DESC NULLS LAST'
     order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
 
-    # joins all clauses together as a query
-    if search_clause:
-        where_clause = ' AND (%s' % search_clause
-        where_clause += ') '
-
+    # Paging
+    iDisplayStart = rargs.get('start', type=int)
+    iDisplayLength = rargs.get('length', type=int)
+    if iDisplayStart is not None and iDisplayLength != -1:
+        limit_clause = 'LIMIT %s OFFSET %s'
+        params.extend([iDisplayLength, iDisplayStart])
     else:
-        where_clause = ''
+        limit_clause = ''
 
-    # print where_clause
-    sql = ' '.join([select_clause,
-                    where_clause,
-                    order_clause,
-                    limit_clause]) + ';'
+    query = ' '.join([select_clause, where_clause, order_clause, limit_clause]) + ';'
 
     with PooledCursor() as cursor:
-        # cursor.execute(sql, ac_patterns + pc_patterns)
-        cursor.execute(sql)
+        cursor.execute(query, params)
         things = cursor.fetchall()
 
         sEcho = rargs.get('sEcho', type=int)
@@ -2352,15 +2455,14 @@ def get_server_side_genesets(rargs):
         # Count of all values in table
         cursor.execute("SELECT COUNT(*) FROM geneset "
                        "WHERE gs_status NOT LIKE 'dep%%' AND gs_status != 'deleted' "
-                       "AND usr_id = %d" % user_id)
+                       "AND usr_id = %s", (user_id,))
         iTotalRecords = cursor.fetchone()[0]
 
         # Count of all values that satisfy WHERE clause
         iTotalDisplayRecords = iTotalRecords
         if where_clause:
-            sql = ' '.join([select_clause, where_clause]) + ';'
-            # cursor.execute(sql, ac_patterns + pc_patterns)
-            cursor.execute(sql)
+            cursor.execute(' '.join([select_clause, where_clause]) + ';',
+                           [user_id] + search_params)
             iTotalDisplayRecords = cursor.rowcount
 
         response = {'sEcho': sEcho,
@@ -2372,277 +2474,76 @@ def get_server_side_genesets(rargs):
         return response
 
 
-def get_server_side_grouptasks(rargs):
-    group_id = rargs.get('group_id', type=int)
-    sEcho = rargs.get('sEcho', type=int)
-    response = {'sEcho': sEcho,
-                'iTotalRecords': 0,
-                'iTotalDisplayRecords': 0,
-                'aaData': []
-                }
-    if group_id:
-        select_columns = ['full_name', 'task_id', 'task', 'task_type', 'updated', 'task_status', 'reviewer', 'pubmedid',
-                          'geneset_count']
-        # The GeneSet half of the query
-        select_clause = """
-          SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
-                 gs.gs_id AS task_id,
-                 'GS' || gs.gs_id AS task,
-                 'GeneSet' AS task_type,
-                 to_char(ca.updated, 'YYYY-MM-DD') AS updated,
-                 ca.curation_state AS task_status,
-                 ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer,
-                 p.pub_pubmed AS pubmedid,
-                 0 AS geneset_count,
-                 pa.id AS pub_assign_id
-        """
-
-        # The publication half of the query
-        union_select = """
-          SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
-                 pa.id AS task_id,
-                 p.pub_pubmed AS task,
-                 'Publication' AS task_type,
-                 to_char(pa.updated, 'YYYY-MM-DD') AS updated,
-                 pa.assignment_state AS task_status,
-                 ur1.usr_last_name || ', ' || ur1.usr_first_name AS reviewer,
-                 null AS pubmedid,
-                 count(gpa.gs_id) AS geneset_count,
-                 null AS pub_assign_id
-        """
-
-        # Separate FROM and WHERE for counting purposes
-        # GeneSet where clause
-        from_where = """
-          FROM production.grp g,
-               production.geneset gs,
-               production.curation_assignments ca
-               LEFT OUTER JOIN production.usr uc ON ca.curator = uc.usr_id
-               LEFT OUTER JOIN production.usr ur ON ca.reviewer = ur.usr_id
-               LEFT OUTER JOIN production.gs_to_pub_assignment gpa ON ca.gs_id = gpa.gs_id
-               LEFT OUTER JOIN production.pub_assignments pa ON gpa.pub_assign_id = pa.id
-               and pa.curation_group = ca.curation_group
-               LEFT OUTER JOIN production.publication p ON pa.pub_id = p.pub_id
-          WHERE g.grp_id = %s
-            AND g.grp_id = ca.curation_group
-            AND ca.gs_id = gs.gs_id
-        """ % (group_id)
-
-        # Publication where clause
-        union_where = """
-          FROM production.grp g1,
-               production.publication p,
-               production.pub_assignments pa
-               LEFT OUTER JOIN production.usr uc1 ON pa.assignee = uc1.usr_id
-               LEFT OUTER JOIN production.usr ur1 ON pa.assigner = ur1.usr_id
-               LEFT OUTER JOIN production.gs_to_pub_assignment gpa ON pa.id = gpa.pub_assign_id
-          WHERE g1.grp_id = %s
-            AND g1.grp_id = pa.curation_group
-            AND pa.pub_id = p.pub_id
-        """ % (group_id)
-
-        group_by = """
-          GROUP BY full_name, task_id, task, task_type, updated, task_status, reviewer
-        """
-
-        search_columns = ['cast(uc.usr_first_name as text)',
-                          'cast(uc.usr_last_name as text)',
-                          'cast(gs.gs_id as text)',
-                          'cast(ca.updated as text)',
-                          'cast(ca.curation_state as text)',
-                          'cast(ur.usr_first_name as text)',
-                          'cast(ur.usr_last_name as text)']
-
-        union_columns  = ['cast(uc1.usr_first_name as text)',
-                          'cast(uc1.usr_last_name as text)',
-                          'cast(p.pub_pubmed as text)',
-                          'cast(pa.updated as text)',
-                          'cast(pa.assignment_state as text)',
-                          'cast(ur1.usr_first_name as text)',
-                          'cast(ur1.usr_last_name as text)']
-
-        # Paging
-        iDisplayStart = rargs.get('start', type=int)
-        iDisplayLength = rargs.get('length', type=int)
-        limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
-            if (iDisplayStart is not None and iDisplayLength != -1) \
-            else ''
-
-        # Searching
-        search_value = rargs.get('search[value]')
-        search_clause = ''
-        union_clause = ''
-        cte_clause = ''
-        try:
-            search_field, search_value = search_value.split('=', 1)
-        except ValueError:
-            search_field = ''
-        if 'status' == search_field:
-            search_clause = "{0} = '{1}' ".format(search_columns[4], search_value)
-            union_clause = "{0} = '{1}' ".format(union_columns[4], search_value)
-        elif 'full_name' == search_field:
-            search_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
-                              format(search_columns[i], search_value) for i in range(0, 2)]
-            union_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
-                             format(union_columns[i], search_value) for i in range(0, 2)]
-            search_clause = 'OR '.join(search_clauses)
-            union_clause = 'OR '.join(union_clauses)
-        elif 'task' == search_field:
-            # TODO account for the 'GS' that gets appended in the query (CTE?)
-            cte_clause = "LOWER(task) LIKE LOWER('%{0}%') ".format(search_value)
-        elif 'task_type' == search_field:
-            # The task_type field is assigned within each separate SELECT in the UNION.
-            # Therefore, we can't have a filter for this in either of the WHERE clauses.
-            # Instead, lets wrap the whole finished query in a common table expression (CTE)
-            # and apply another WHERE clause to that.
-            cte_clause = "LOWER(task_type) LIKE LOWER('%{0}%') ".format(search_value)
-        elif 'updated' == search_field:
-            # this regex extracts the operator and the date out of the search value
-            operator, date_value = re.match(r'^(<|>|=|<=|>=)?\s*(\d{4}-\d{2}-\d{2})', search_value).groups()
-            if not operator:
-                operator = '='
-            cte_clause = "updated {1} '{2}' ".format(search_columns[3], operator, date_value)
-        elif 'reviewer' == search_field:
-            search_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
-                              format(search_columns[i], search_value) for i in range(5, 7)]
-            union_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
-                             format(union_columns[i], search_value) for i in range(5, 7)]
-            search_clause = 'OR '.join(search_clauses)
-            union_clause = 'OR '.join(union_clauses)
-        elif 'pubmedid' == search_field:
-            cte_clause = "pubmedid LIKE LOWER('%{0}%') ".format(search_value)
-
-        # this last one accommodates the search box above the table
-        elif search_value:
-            search_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
-                              format(search_columns[i], search_value) for i in range(len(search_columns))]
-            union_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
-                                 format(union_columns[i], search_value) for i in range(len(union_columns))]
-            search_clause = 'OR '.join(search_clauses)
-            union_clause = 'OR '.join(union_clauses)
-
-        search_where_clause = ''
-        union_where_clause = ''
-
-        if search_clause:
-            search_where_clause = ' AND (%s' % search_clause
-            search_where_clause += ') '
-
-        if union_clause:
-            union_where_clause = ' AND (%s' % union_clause
-            union_where_clause += ') '
-
-        # Sorting
-        sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
-        sorting_direction = rargs.get('order[0][dir]', type=str)
-        sort_dir = 'ASC NULLS FIRST' \
-            if sorting_direction == 'asc' \
-            else 'DESC NULLS FIRST'
-        order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
-
-        # Joins all clauses together as a query
-        sql = ' '.join([select_clause,
-                        from_where,
-                        search_where_clause,
-                        " UNION ",
-                        union_select,
-                        union_where,
-                        union_where_clause,
-                        group_by,
-                        order_clause])
-
-        # for the task and task_type filters, we have to wrap the SQL query in a common table expression
-        if cte_clause:
-
-            sql = "WITH chunk as (" + sql + ") SELECT * FROM chunk WHERE " + cte_clause
-
-
-        with PooledCursor() as cursor:
-            cursor.execute(' '.join([sql, limit_clause]))
-            limited = cursor.fetchall()
-
-            cursor.execute(sql)
-            iTotalDisplayRecords = cursor.rowcount
-
-            # Count of all records in the unfiltered set
-            iTotalRecords = iTotalDisplayRecords
-            if search_where_clause or cte_clause:
-                sql = ' '.join([select_clause, from_where, "UNION", union_select, union_where, group_by]) + ';'
-                cursor.execute(sql)
-                iTotalRecords = cursor.rowcount
-
-            response = {'sEcho': sEcho,
-                        'iTotalRecords': iTotalRecords,
-                        'iTotalDisplayRecords': iTotalDisplayRecords,
-                        'aaData': limited
-                        }
-
-    return response
-
-
-def get_server_side_results(rargs):
-    user_id = rargs.get('user_id', type=int)
-
+def get_server_side_results(rargs, user_id):
+    ## G3-816: same two problems as get_server_side_genesets, same fix --
+    ## `search[value]` broke out of its LIKE literal on a query run with no bound
+    ## parameters, and user_id came from the request on a route
+    ## (/getServersideResultsdb) with no authentication, so anyone could list any
+    ## user's tool results. user_id is now the session user, passed by the route, and
+    ## every value is bound. results.html only ever sends the logged-in user's id.
     select_columns = ['temp', 'res_name', 'res_created', 'res_description', 'res_id', 'res_runhash', 'res_duration']
     ## res_name doesn't exist in the result table...
     select_clause = """SELECT cast(to_char((select now() - res_created), 'DDD') as int) as temp, res_name,
-					to_char(res_created, '%s') as res_created, res_description, res_id, res_runhash,
-					to_char(age(res_completed, res_created), '%s') as res_duration FROM result
-					WHERE usr_id=%s """ % ('YYYY-MM-DD', 'HH24:MI:SS', user_id,)
+					to_char(res_created, 'YYYY-MM-DD') as res_created, res_description, res_id, res_runhash,
+					to_char(age(res_completed, res_created), 'HH24:MI:SS') as res_duration FROM result
+					WHERE usr_id=%s """
     source_columns = ['cast(res_id as text)', 'cast(res_runhash as text)', 'cast(res_created as text)',
                       'cast(res_name as text)', 'cast(res_description as text)']
 
-    # Paging
-    iDisplayStart = rargs.get('start', type=int)
-    iDisplayLength = rargs.get('length', type=int)
-    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
-        if (iDisplayStart is not None and iDisplayLength != -1) \
-        else ''
+    ## Bound values, in the order their placeholders appear in the assembled query.
+    params = [user_id]
 
     # searching
     search_value = rargs.get('search[value]')
-    search_clauses = []
     if search_value:
-        for i in range(len(source_columns)):
-            search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
-        search_clause = 'OR '.join(search_clauses)
+        ## source_columns are fixed expressions defined above, not request data --
+        ## only the pattern is bound.
+        search_clause = ' OR '.join(col + ' LIKE %s' for col in source_columns)
+        where_clause = ' AND (' + search_clause + ') '
+        search_params = ['%' + search_value + '%'] * len(source_columns)
     else:
-        search_clause = ''
+        where_clause = ''
+        search_params = []
+    params.extend(search_params)
 
-    # Sorting
-    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    # Sorting -- index into the fixed list above, so an out-of-range or missing
+    # order[0][column] leaves the results unsorted instead of raising.
+    order_index = rargs.get('order[0][column]', type=int)
+    sorting_col = None
+    if order_index is not None and 0 <= order_index < len(select_columns):
+        sorting_col = select_columns[order_index]
     sorting_direction = rargs.get('order[0][dir]', type=str)
     sort_dir = 'ASC NULLS LAST' \
         if sorting_direction == 'asc' \
         else 'DESC NULLS LAST'
     order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
 
-    # joins all clauses together as a query
-    where_clause = ' AND %s' % search_clause if search_clause else ''
-    # print where_clause
-    sql = ' '.join([select_clause,
-                    where_clause,
-                    order_clause,
-                    limit_clause]) + ';'
-    # print sql
+    # Paging
+    iDisplayStart = rargs.get('start', type=int)
+    iDisplayLength = rargs.get('length', type=int)
+    if iDisplayStart is not None and iDisplayLength != -1:
+        limit_clause = 'LIMIT %s OFFSET %s'
+        params.extend([iDisplayLength, iDisplayStart])
+    else:
+        limit_clause = ''
+
+    query = ' '.join([select_clause, where_clause, order_clause, limit_clause]) + ';'
 
     with PooledCursor() as cursor:
-        # cursor.execute(sql, ac_patterns + pc_patterns)
-        cursor.execute(sql)
+        cursor.execute(query, params)
         things = cursor.fetchall()
 
         sEcho = rargs.get('sEcho', type=int)
 
         # Count of all values in table
-        cursor.execute('SELECT COUNT(*) FROM result WHERE usr_id = %d' % user_id)
+        cursor.execute('SELECT COUNT(*) FROM result WHERE usr_id = %s', (user_id,))
         iTotalRecords = cursor.fetchone()[0]
 
         # Count of all values that satisfy WHERE clause
         iTotalDisplayRecords = iTotalRecords
         if where_clause:
-            sql = ' '.join([select_clause, where_clause]) + ';'
-            # cursor.execute(sql, ac_patterns + pc_patterns)
-            cursor.execute(sql)
+            cursor.execute(' '.join([select_clause, where_clause]) + ';',
+                           [user_id] + search_params)
             iTotalDisplayRecords = cursor.rowcount
 
         response = {'sEcho': sEcho,
@@ -2655,83 +2556,102 @@ def get_server_side_results(rargs):
 
 
 def get_server_side(rargs):
+    ## G3-816: every clause here was %-interpolated from request args and then run
+    ## with no bound parameters, so three request values reached the query text
+    ## unescaped: `table` was an arbitrary FROM, `columns[N][name]` an arbitrary
+    ## scalar expression (it lands inside cast(... as text)), and `search[value]`
+    ## broke out of the LIKE literal. psycopg2's execute() hands the string to
+    ## libpq PQexec, so statements stacked after a `;` ran too -- this was write and
+    ## DDL access, not just read.
+    ##
+    ## Identifiers cannot be bound as parameters, so they are resolved against an
+    ## allowlist; every value is bound. Same approach as admin_set_edit / admin_add
+    ## (GWC-9).
     source_table = rargs.get('table', type=str)
-    user_id = rargs.get('user_id', type=int)
-    source_columns = []
+    sEcho = rargs.get('sEcho', type=int)
+
+    def _rejected(reason):
+        return {'sEcho': sEcho, 'iTotalRecords': 0, 'iTotalDisplayRecords': 0,
+                'aaData': [], 'error': reason}
+
+    table_ident = _admin_table_ident(source_table)
+    if table_ident is None:
+        return _rejected('Unknown table')
+
+    ## adminViewer.html builds its column list from get_all_columns(table), so every
+    ## name it sends is a real column of that table. Anything else is rejected
+    ## outright rather than filtered out -- filtering would shift the positions that
+    ## order[0][column] indexes into.
+    known_columns = _admin_table_columns(source_table)
     select_columns = []
-
-    # print source_table
-
     i = 0
     temp = rargs.get('columns[%d][name]' % i)
     while temp is not None:
-        col_name = 'cast(' + temp + ' as text)'
-        source_columns.append(col_name)
+        if temp not in known_columns:
+            return _rejected('Unknown column')
         select_columns.append(temp)
         i = i + 1
         temp = rargs.get('columns[%d][name]' % i)
 
-    # select and from clause creation
-    select_clause = 'SELECT %s ' % ','.join(select_columns)
-    from_clause = 'FROM %s' % source_table
+    if not select_columns:
+        return _rejected('No columns requested')
+
+    select_clause = sql.SQL('SELECT {}').format(
+        sql.SQL(', ').join(sql.Identifier(c) for c in select_columns))
+    from_clause = sql.SQL('FROM {}').format(table_ident)
 
     # Paging
     iDisplayStart = rargs.get('start', type=int)
     iDisplayLength = rargs.get('length', type=int)
-    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
-        if (iDisplayStart is not None and iDisplayLength != -1) \
-        else ''
+    paged = iDisplayStart is not None and iDisplayLength != -1
 
-    # searching
+    # searching -- the pattern is a bound value, so a quote in it is data
     search_value = rargs.get('search[value]')
-    search_clauses = []
+    search_params = []
     if search_value:
-        for i in range(len(source_columns)):
-            search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
-        search_clause = 'OR '.join(search_clauses)
-    # if source_table == 'production.result':
-    #	  search_clause += ' AND usr_id = %d ' % user_id
+        search_clause = sql.SQL(' OR ').join(
+            sql.SQL('cast({} as text) LIKE {}').format(sql.Identifier(c), sql.Placeholder())
+            for c in select_columns)
+        where_clause = sql.SQL('WHERE ({})').format(search_clause)
+        search_params = ['%' + search_value + '%'] * len(select_columns)
     else:
-        # if source_table == 'production.result':
-        #	  search_clause = "usr_id = %d " % user_id
-        # else:
-        search_clause = ''
+        where_clause = sql.SQL('')
 
-    # Sorting
-    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    # Sorting -- the column is one of the validated names, picked by index
+    order_index = rargs.get('order[0][column]', type=int)
+    sorting_col = None
+    if order_index is not None and 0 <= order_index < len(select_columns):
+        sorting_col = select_columns[order_index]
     sorting_direction = rargs.get('order[0][dir]', type=str)
-    sort_dir = 'ASC NULLS LAST' \
+    sort_dir = sql.SQL('ASC NULLS LAST') \
         if sorting_direction == 'asc' \
-        else 'DESC NULLS LAST'
-    order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+        else sql.SQL('DESC NULLS LAST')
+    order_clause = sql.SQL('ORDER BY {} {}').format(sql.Identifier(sorting_col), sort_dir) \
+        if sorting_col else sql.SQL('')
 
-    # joins all clauses together as a query
-    where_clause = 'WHERE %s' % search_clause if search_clause else ''
-    # print where_clause
-    sql = ' '.join([select_clause,
-                    from_clause,
-                    where_clause,
-                    order_clause,
-                    limit_clause]) + ';'
-    # print sql
+    limit_clause = sql.SQL('LIMIT {} OFFSET {}').format(
+        sql.Placeholder(), sql.Placeholder()) if paged else sql.SQL('')
+
+    query = sql.SQL(' ').join([select_clause, from_clause, where_clause,
+                               order_clause, limit_clause])
+    params = list(search_params)
+    if paged:
+        params.extend([iDisplayLength, iDisplayStart])
 
     with PooledCursor() as cursor:
-        # cursor.execute(sql, ac_patterns + pc_patterns)
-        cursor.execute(sql)
+        cursor.execute(query, params)
         things = cursor.fetchall()
 
-        sEcho = rargs.get('sEcho', type=int)
-
         # Count of all values in table
-        cursor.execute(' '.join(['SELECT COUNT(*)', from_clause]) + ';')
+        cursor.execute(sql.SQL('SELECT COUNT(*) {}').format(from_clause))
         iTotalRecords = cursor.fetchone()[0]
 
         # Count of all values that satisfy WHERE clause
         iTotalDisplayRecords = iTotalRecords
-        if where_clause:
-            sql = ' '.join([select_clause, from_clause, where_clause]) + ';'
-            # cursor.execute(sql, ac_patterns + pc_patterns)
-            cursor.execute(sql)
+        if search_params:
+            cursor.execute(
+                sql.SQL(' ').join([select_clause, from_clause, where_clause]),
+                search_params)
             iTotalDisplayRecords = cursor.rowcount
 
         response = {'sEcho': sEcho,
@@ -2744,22 +2664,33 @@ def get_server_side(rargs):
 
 
 def get_all_columns(table):
-    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s';''' % (
-        table.split(".")[1], table.split(".")[0])
+    ## G3-816: parameterised. Every caller passes a hard-coded table (adminviews.py),
+    ## so this was not reachable with request data -- but it is the same
+    ## %-interpolation shape as the sinks above and would become a sink the moment
+    ## someone passed it a request value.
+    query = ('SELECT column_name FROM information_schema.columns '
+             'WHERE table_name = %s AND table_schema = %s;')
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, (table.split(".")[1], table.split(".")[0]))
             return list(dictify_cursor(cursor))
     except Exception as e:
         return str(e)
 
 
 def get_primary_keys(table):
-    sql = '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (
-        table)
+    ## G3-816: this is request-fed -- application.py's adminEdit and adminDelete
+    ## routes call it with form['table'].split(".")[1] -- and the name went into
+    ## '%s'::regclass verbatim, so a quote in it broke out of the literal. Bound
+    ## instead; PostgreSQL casts the parameter to regclass and a name that is not a
+    ## real relation simply raises, which the caller already handles.
+    query = ('SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute '
+             'WHERE pg_class.oid = %s::regclass AND indrelid = pg_class.oid '
+             'AND pg_attribute.attrelid = pg_class.oid '
+             'AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;')
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, (table,))
             return list(dictify_cursor(cursor))
     except Exception as e:
         return str(e)
@@ -2767,11 +2698,19 @@ def get_primary_keys(table):
 
 # get all columns for a table that aren't auto increment and can't be null
 def get_required_columns(table):
-    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s' AND is_nullable='NO' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (
-        table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
+    ## G3-816: parameterised for the same reason as get_all_columns -- every caller
+    ## passes a hard-coded table today, but this is the interpolation shape that made
+    ## the endpoints above injectable.
+    query = ('SELECT column_name FROM information_schema.columns '
+             'WHERE table_name = %s AND table_schema = %s AND is_nullable = \'NO\' '
+             'AND column_name NOT IN ('
+             '  SELECT column_name FROM information_schema.columns '
+             '  WHERE table_name = %s AND column_default LIKE %s AND table_schema = %s);')
+    query_params = (table.split(".")[1], table.split(".")[0],
+                    table.split(".")[1], "%nextval(%", table.split(".")[0])
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, query_params)
             return list(dictify_cursor(cursor))
     except Exception as e:
         return str(e)
@@ -2779,12 +2718,17 @@ def get_required_columns(table):
 
 # gets all columns for a table that aren't auto increment and can be null
 def get_nullable_columns(table):
-    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND table_schema='%s' AND is_nullable='YES' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (
-        table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
-    # print sql
+    ## G3-816: parameterised alongside get_required_columns / get_all_columns.
+    query = ('SELECT column_name FROM information_schema.columns '
+             'WHERE table_name = %s AND table_schema = %s AND is_nullable = \'YES\' '
+             'AND column_name NOT IN ('
+             '  SELECT column_name FROM information_schema.columns '
+             '  WHERE table_name = %s AND column_default LIKE %s AND table_schema = %s);')
+    query_params = (table.split(".")[1], table.split(".")[0],
+                    table.split(".")[1], "%nextval(%", table.split(".")[0])
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, query_params)
             return list(dictify_cursor(cursor))
     except Exception as e:
         return str(e)
@@ -2792,11 +2736,43 @@ def get_nullable_columns(table):
 
 # gets values for columns of specified key(s)
 def admin_get_data(table, cols, keys):
-    sql = '''SELECT %s FROM %s WHERE %s;''' % (','.join(cols), table, ' AND '.join(keys))
-    # print sql
+    ## G3-816: currently has NO callers anywhere in the tree -- but it was a
+    ## ready-made `SELECT <cols> FROM <table> WHERE <keys>` built entirely by string
+    ## interpolation, i.e. an injection the moment anyone wires it to a request.
+    ## Given the same treatment as admin_delete rather than left as a trap: table and
+    ## columns allowlisted, key values bound. Keys arrive as "col='value'" strings,
+    ## the same convention admin_set_edit and admin_delete use.
+    table_ident = _admin_table_ident(table)
+    if table_ident is None:
+        return "Error: Unknown table"
+
+    known_columns = _admin_table_columns(table)
+    if not cols or any(c not in known_columns for c in cols):
+        return "Error: Unknown column"
+
+    where_cols, params = [], []
+    for k in keys:
+        col, _, raw = k.partition('=')
+        col = col.strip()
+        raw = raw.strip()
+        if len(raw) >= 2 and raw[0] == "'" and raw[-1] == "'":
+            raw = raw[1:-1]
+        where_cols.append(col)
+        params.append(raw)
+
+    if not where_cols or any(c not in known_columns for c in where_cols):
+        return "Error: Unknown primary key column"
+
+    query = sql.SQL("SELECT {} FROM {} WHERE {}").format(
+        sql.SQL(", ").join(sql.Identifier(c) for c in cols),
+        table_ident,
+        sql.SQL(" AND ").join(
+            sql.SQL("{} = {}").format(sql.Identifier(c), sql.Placeholder())
+            for c in where_cols),
+    )
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, params)
             return list(dictify_cursor(cursor))
     except Exception as e:
         return str(e)
@@ -2804,17 +2780,47 @@ def admin_get_data(table, cols, keys):
 
 # removes item from db that has specified primary key(s)
 def admin_delete(args, keys):
+    ## G3-816: this built `DELETE FROM <table> WHERE <k>='<v>' AND ...` by string
+    ## concatenation, with `table` verbatim from the request and each primary-key
+    ## value inside hand-written quotes that a quote in the value escapes. A crafted
+    ## key value widened the WHERE and deleted the whole table
+    ## (`\' OR \'1\'=\'1` -> `WHERE pk=\'\' OR \'1\'=\'1\'`). Parameterised the same
+    ## way as admin_set_edit / admin_add (GWC-9): the table is allowlisted, columns
+    ## become identifiers, values become bound parameters.
     table = args.get('table', type=str)
 
     if len(keys) <= 0:
         return "Error: No primary key constraints set."
 
-    sql = '''DELETE FROM %s WHERE %s;''' % (table, ' AND '.join(keys))
+    table_ident = _admin_table_ident(table)
+    if table_ident is None:
+        return "Error: Unknown table"
 
-    # print sql
+    ## The caller passes primary keys as "col='value'" strings; split them back into
+    ## (column, value) so both halves can be handled safely.
+    where_cols, params = [], []
+    for k in keys:
+        col, _, raw = k.partition('=')
+        col = col.strip()
+        raw = raw.strip()
+        if len(raw) >= 2 and raw[0] == "'" and raw[-1] == "'":
+            raw = raw[1:-1]
+        where_cols.append(col)
+        params.append(raw)
+
+    known_columns = _admin_table_columns(table)
+    if any(c not in known_columns for c in where_cols):
+        return "Error: Unknown primary key column"
+
+    query = sql.SQL("DELETE FROM {} WHERE {}").format(
+        table_ident,
+        sql.SQL(" AND ").join(
+            sql.SQL("{} = {}").format(sql.Identifier(c), sql.Placeholder())
+            for c in where_cols),
+    )
     try:
         with PooledCursor() as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, params)
             cursor.connection.commit()
             return "Deletion Successful"
     except Exception as e:
@@ -2863,8 +2869,13 @@ def admin_set_edit(args, keys):
                      for c in where_cols]
     params.extend(where_vals)
 
-    schema, sep, tbl = table.partition(".")
-    table_ident = sql.Identifier(schema, tbl) if sep else sql.Identifier(schema)
+    ## G3-816: allowlisted. sql.Identifier already made this injection-safe under
+    ## GWC-9, but the table name was still whatever the request asked for, so an
+    ## admin could UPDATE any table in the database rather than the eleven the admin
+    ## viewer offers.
+    table_ident = _admin_table_ident(table)
+    if table_ident is None:
+        return "Error: Unknown table"
 
     query = sql.SQL("UPDATE {} SET {} WHERE {}").format(
         table_ident,
@@ -2900,8 +2911,11 @@ def admin_add(args):
     if not columns:
         return "Nothing to insert"
 
-    schema, sep, tbl = table.partition(".")
-    table_ident = sql.Identifier(schema, tbl) if sep else sql.Identifier(schema)
+    ## G3-816: allowlisted, same reasoning as admin_set_edit -- injection-safe since
+    ## GWC-9, but the target table was unbounded.
+    table_ident = _admin_table_ident(table)
+    if table_ident is None:
+        return "Error: Unknown table"
 
     query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
         table_ident,
@@ -4760,27 +4774,51 @@ def get_genes_by_gs_id(geneset_id):
 
 def transpose_genes_by_species(attr):
     """
-    Return a list of genes based on a new ID and gbd_id
-    :param attr:
-    :return:
+    Resolve a list of input gene identifiers to preferred Gene Symbols (gdb_id=7) in
+    the requested species -- used when a geneset is created from a tool result and the
+    user picks a reference species for it.
+
+    Two paths, UNIONed (G3-815):
+
+      1. Direct -- an input gene that already belongs to ``newSpecies`` is returned by
+         its own preferred symbol. No homology involved.
+      2. Homology -- an input gene from a *different* species is transposed to its
+         Homologene homolog's preferred symbol in ``newSpecies``.
+
+    Previously only path 2 existed, so every gene with no ``extsrc.homology`` row was
+    silently dropped -- even on a same-species "transpose" where nothing needs
+    transposing. Riken clones, lncRNAs and other genes Homologene omits vanished from
+    the created geneset with no warning (measured: 6 of 115 on the C5 sign-off case).
+
+    :param attr: request form with 'genes' (JSON list), 'gene_id_type', 'newSpecies'
+    :return: list of preferred Gene Symbols in ``newSpecies``
     """
     genes = json.loads(attr['genes'])
     gene_id_type = attr['gene_id_type']
     if gene_id_type == '':
+        gene_id_type = 'ode_ref_id'
+    # gene_id_type names the gene column the input identifiers are matched against and is
+    # interpolated into the SQL below, so restrict it to the two columns this ever uses
+    # rather than trusting the request (CLAUDE.md: never build a query from unvalidated input).
+    if gene_id_type not in ('ode_gene_id', 'ode_ref_id'):
         gene_id_type = 'ode_ref_id'
     g = []
     for i in genes:
         g.append(str(i))
     newSpecies = json.loads(attr['newSpecies'])
 
-    sql = '''SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
+    sql = '''SELECT ode_ref_id FROM gene
+                            WHERE {col} IN %(genelist)s
+                              AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7
+             UNION
+             SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
                             (SELECT distinct h2.ode_gene_id FROM homology h1
                                 NATURAL JOIN homology h2
                                 NATURAL JOIN gene
                                 WHERE h2.hom_source_name='Homologene'
                                       AND h1.hom_source_id=h2.hom_source_id
-                                      AND {} IN %(genelist)s)
-                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;'''.format(gene_id_type)
+                                      AND {col} IN %(genelist)s)
+                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;'''.format(col=gene_id_type)
 
 
     with PooledCursor() as cursor:

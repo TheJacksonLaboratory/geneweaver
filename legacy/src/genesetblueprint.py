@@ -265,6 +265,118 @@ def infer_id_kind():
         total_id_count=len(set(input_id_list)))
 
 
+def derive_score_type(min_val, max_val):
+    """Derive ``(gs_threshold_type, gs_threshold)`` for a tool-created geneset from
+    its observed value range.
+
+    ``gs_threshold`` is a bare string (e.g. ``'0.5'``, ``'0,1'``, ``'0.2'``) with no
+    embedded quotes: the caller supplies SQL quoting via a bound parameter, and
+    ``recompute_geneset_value_thresholds`` parses it with ``float()`` / ``split(',')``.
+    The previous inline version wrapped the type-1 and type-5 thresholds in literal
+    single quotes, which the old ``'%s'``-interpolated UPDATE then double-quoted into
+    malformed SQL.
+
+    The ``0.25 <= max <= 0.5`` band previously matched no branch and left the score
+    type ``None``, so ``process_thresholds`` / ``recompute_geneset_value_thresholds``
+    flagged nothing and the whole set read out-of-threshold. It is now folded into the
+    P-Value branch (threshold = max), continuous with the ``max < 0.25`` case and
+    leaving every value in-threshold. (G3-809)
+    """
+    if min_val >= -1 and max_val <= 1:
+        if min_val >= 0 and max_val <= 1:
+            if min_val == max_val and max_val == 1:
+                return 3, '0.5'                 # Binary
+            elif max_val > 0.5:
+                return 4, '0,1'                 # Correlation
+            else:                               # max_val <= 0.5 (closes the old None gap)
+                return 1, str(max_val)          # P-Value
+        else:
+            return 4, '0,1'                     # Correlation (min < 0)
+    else:
+        return 5, str(min_val) + ',' + str(max_val)   # Effect
+
+
+def _store_tool_geneset_values(gs_id, unique_gene_ids, all_results):
+    """Store the ``geneset_value`` rows for a tool-created geneset, derive its score
+    type + threshold, set ``gs_count``, and compute ``gsv_in_threshold`` through the
+    one shared implementation the batch and score-type-edit paths use
+    (``geneweaverdb.recompute_geneset_value_thresholds``).
+
+    Extracted from two byte-identical inline blocks in ``create_temp_geneset``
+    (``/createtempgeneset``) and ``create_geneset`` (``/creategeneset.html``). Those
+    blocks flagged ``gsv_in_threshold`` from a hardcoded ``avg in [-1, 1]`` rule that
+    matched no score type and ran *before* ``gs_threshold_type`` was known, and never
+    called ``process_thresholds`` or ``recompute_geneset_value_thresholds`` -- so
+    tool-created genesets carried membership that disagreed with every other create
+    path, and migration 117 / the Python threshold fixes never reached them. (G3-809)
+    """
+    min_val = False
+    max_val = False
+    for ode_gene_id in unique_gene_ids:
+        values = []
+        sources = []
+        for res in all_results:
+            if res['ode_gene_id'] == ode_gene_id:
+                sources.append(res['ref_id'])
+                values.append(res['value'] if res['value'] else 1)
+
+        avg = 0
+        for val in values:
+            # `== False` (not `is False`) is preserved from the original inline
+            # blocks: it feeds only the score-type heuristic below, and changing the
+            # sentinel would shift derived score types for sets containing a 0. That
+            # is a separate pre-existing quirk, out of scope for the membership fix.
+            if min_val == False or val < min_val:  # noqa: E712
+                min_val = val
+            if max_val == False or val > max_val:  # noqa: E712
+                max_val = val
+            avg += val
+        avg /= len(values)
+
+        # Membership is computed below by recompute_geneset_value_thresholds once the
+        # score type is known; store a False placeholder here.
+        #
+        # Fully parameterised: psycopg2 adapts the Python lists to PostgreSQL arrays
+        # itself. Hand-building the array literals here (joining `sources` with '","')
+        # broke on any stored reference identifier containing a quote or backslash --
+        # a malformed array literal, or worse -- and interpolating a query string is
+        # exactly what the repo guardrail forbids on a line being touched.
+        gs_value_sql = (
+            "INSERT INTO extsrc.geneset_value"
+            "(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s);"
+        )
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(gs_value_sql,
+                           (gs_id, ode_gene_id, avg, sources, values, 0, False))
+            cursor.connection.commit()
+
+    gs_threshold_type, gs_threshold = derive_score_type(min_val, max_val)
+
+    # gs_count: count the rows actually inserted (one per distinct ode_gene_id). The
+    # previous formula counted gene *identifier rows* (geneset_value NATURAL JOIN gene
+    # WHERE ode_pref), which roughly doubled the count since genes carry more than one
+    # preferred identifier, and returned no row at all for an empty set. Search and My
+    # Genesets render gs_count while the geneset page runs its own count(*)
+    # (get_genecount_in_geneset), so drift here surfaces as the two disagreeing
+    # (GWC-34 / G3-782).
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute('SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s;',
+                       (gs_id,))
+        gs_count = cursor.fetchone()[0]
+
+        # Parameterized UPDATE (the old form interpolated gs_threshold into a '%s'
+        # literal, which double-quoted the quoted type-1/5 strings). Then compute
+        # membership through the shared helper now that the score type is known.
+        cursor.execute(
+            'UPDATE production.geneset SET gs_count=%s, gs_threshold=%s, '
+            'gs_threshold_type=%s WHERE gs_id=%s;',
+            (gs_count, gs_threshold, gs_threshold_type, gs_id))
+        geneweaverdb.recompute_geneset_value_thresholds(
+            cursor, gs_id, gs_threshold_type, gs_threshold)
+        cursor.connection.commit()
+
+
 @geneset_blueprint.route('/createtempgeneset', methods=['POST'])
 def create_temp_geneset():
     #Try to load the form, catching errors, etc.
@@ -446,88 +558,7 @@ def create_temp_geneset():
 
 
 
-        # creates geneset_value insertion queries for every unique ode_gene_id
-        Min = False
-        Max = False
-        for ode_gene_id in unique_gene_ids:
-            values = []
-            sources = []
-            for res in all_results:
-                if res['ode_gene_id'] == ode_gene_id:
-                    sources.append(res['ref_id'])
-                    if res['value']:
-                        values.append(res['value'])
-                    else:
-                        values.append(1)
-
-            avg = 0
-            for val in values:
-                if Min == False or val < Min:
-                    Min = val
-                if Max == False or val > Max:
-                    Max = val
-                avg += val
-            avg /= len(values)
-
-            is_thresh = False
-            if avg <= 1 and avg >= -1:
-                is_thresh = True
-
-            GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (
-            gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values), 0, is_thresh)
-            print(GS_value_sql)
-            with geneweaverdb.PooledCursor() as cursor:
-                cursor.execute(GS_value_sql)
-                cursor.connection.commit()
-
-
-        # gets threshold type and threshold for the geneset
-        gs_threshold_type = None
-        gs_threshold = None
-        if Min >= -1 and Max <= 1:
-            if Min >= 0 and Max <= 1:
-                if Min == Max and Max == 1:
-                    gs_threshold_type = 3
-                    gs_threshold = '0.5'
-                elif Max > 0.5:
-                    gs_threshold_type = 4
-                    gs_threshold = '0,1'
-                elif Max < 0.25:
-                    gs_threshold_type = 1
-                    gs_threshold = "\'" + str(Max) + "\'"
-            else:
-                gs_threshold_type = 4
-                gs_threshold = '0,1'
-        else:
-            gs_threshold_type = 5
-            gs_threshold = "\'" + str(Min) + "," + str(Max) + "\'"
-
-        # gets gene count for the geneset -- count the rows actually inserted above,
-        # which are one per distinct ode_gene_id. The previous formula counted gene
-        # *identifier rows* instead of genes: `geneset_value NATURAL JOIN gene WHERE
-        # ode_pref` yields one row per preferred identifier a gene carries, and genes
-        # routinely carry more than one (avg ~2 on dev), so it roughly doubled the
-        # count -- for GS403415 it returns 48 against 25 stored genes. `GROUP BY gs_id`
-        # also returned no row at all when the geneset ended up empty, so
-        # fetchone()[0] raised. Search and My Genesets render gs_count while the
-        # geneset page runs its own count(*) (get_genecount_in_geneset), so drift here
-        # surfaces as the two disagreeing (GWC-34 / G3-782).
-        gs_count = 0
-        with geneweaverdb.PooledCursor() as cursor:
-            cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s;''',
-                           (gs_id,))
-            gs_count = cursor.fetchone()[0]
-
-        # if gs_count == None:
-        # print error
-
-        # updates the geneset with the gs_count and threshold values
-        with geneweaverdb.PooledCursor() as cursor:
-            gs_update_sql = '''UPDATE production.geneset SET gs_count=%s, gs_threshold='%s', gs_threshold_type=%s WHERE gs_id=%s;''' % (
-            gs_count, gs_threshold, gs_threshold_type, gs_id)
-            cursor.execute(gs_update_sql)
-            cursor.connection.commit()
-            print(gs_update_sql)
+        _store_tool_geneset_values(gs_id, unique_gene_ids, all_results)
 
         return "GeneSet Created"
     except Exception as e:
@@ -715,88 +746,7 @@ def create_geneset():
 
 
 
-        # creates geneset_value insertion queries for every unique ode_gene_id
-        Min = False
-        Max = False
-        for ode_gene_id in unique_gene_ids:
-            values = []
-            sources = []
-            for res in all_results:
-                if res['ode_gene_id'] == ode_gene_id:
-                    sources.append(res['ref_id'])
-                    if res['value']:
-                        values.append(res['value'])
-                    else:
-                        values.append(1)
-
-            avg = 0
-            for val in values:
-                if Min == False or val < Min:
-                    Min = val
-                if Max == False or val > Max:
-                    Max = val
-                avg += val
-            avg /= len(values)
-
-            is_thresh = False
-            if avg <= 1 and avg >= -1:
-                is_thresh = True
-
-            GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (
-            gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values), 0, is_thresh)
-            print(GS_value_sql)
-            with geneweaverdb.PooledCursor() as cursor:
-                cursor.execute(GS_value_sql)
-                cursor.connection.commit()
-
-
-        # gets threshold type and threshold for the geneset
-        gs_threshold_type = None
-        gs_threshold = None
-        if Min >= -1 and Max <= 1:
-            if Min >= 0 and Max <= 1:
-                if Min == Max and Max == 1:
-                    gs_threshold_type = 3
-                    gs_threshold = '0.5'
-                elif Max > 0.5:
-                    gs_threshold_type = 4
-                    gs_threshold = '0,1'
-                elif Max < 0.25:
-                    gs_threshold_type = 1
-                    gs_threshold = "\'" + str(Max) + "\'"
-            else:
-                gs_threshold_type = 4
-                gs_threshold = '0,1'
-        else:
-            gs_threshold_type = 5
-            gs_threshold = "\'" + str(Min) + "," + str(Max) + "\'"
-
-        # gets gene count for the geneset -- count the rows actually inserted above,
-        # which are one per distinct ode_gene_id. The previous formula counted gene
-        # *identifier rows* instead of genes: `geneset_value NATURAL JOIN gene WHERE
-        # ode_pref` yields one row per preferred identifier a gene carries, and genes
-        # routinely carry more than one (avg ~2 on dev), so it roughly doubled the
-        # count -- for GS403415 it returns 48 against 25 stored genes. `GROUP BY gs_id`
-        # also returned no row at all when the geneset ended up empty, so
-        # fetchone()[0] raised. Search and My Genesets render gs_count while the
-        # geneset page runs its own count(*) (get_genecount_in_geneset), so drift here
-        # surfaces as the two disagreeing (GWC-34 / G3-782).
-        gs_count = 0
-        with geneweaverdb.PooledCursor() as cursor:
-            cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s;''',
-                           (gs_id,))
-            gs_count = cursor.fetchone()[0]
-
-        # if gs_count == None:
-        # print error
-
-        # updates the geneset with the gs_count and threshold values
-        with geneweaverdb.PooledCursor() as cursor:
-            gs_update_sql = '''UPDATE production.geneset SET gs_count=%s, gs_threshold='%s', gs_threshold_type=%s WHERE gs_id=%s;''' % (
-            gs_count, gs_threshold, gs_threshold_type, gs_id)
-            cursor.execute(gs_update_sql)
-            cursor.connection.commit()
-            print(gs_update_sql)
+        _store_tool_geneset_values(gs_id, unique_gene_ids, all_results)
 
         return "GeneSet Created"
     except Exception as e:

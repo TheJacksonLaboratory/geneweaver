@@ -8,11 +8,23 @@ Regression tests for legacy search filter parsing (G3-778).
   unselected facet: an empty tier/species/attribution selection used to match
   nothing and zero the whole result set. An unselected facet must add no filter
   (i.e. "no restriction").
+* keyword_paginated_search must not concatenate a term the request never sent. A
+  POST to /searchFilter.json with no `searchbar` field reached
+  `'@(' + search_fields + ') ' + t` with t = None and raised TypeError -> HTTP 500,
+  and `int(form.get('pagination_page'))` 500s the same way when that field is
+  absent. (G3-818 -- the fourth bug in this route, found after the G3-778 three.)
+* render_search_json must check STATUS before indexing search_values. On a
+  no-match or errored search, keyword_paginated_search returns ONLY a STATUS key,
+  so reading search_values['searchresults'] raised KeyError -> HTTP 500 from
+  /searchFilter.json. (The third of the three G3-778 bugs; the two above were
+  covered from the start, this one was not.)
 
 Pure unit tests: geneweaverdb / sphinxapi / config / flask are mocked (no DB, no
 search daemon), and apply_user_restrictions is stubbed so only the facet-filter
 logic is exercised.  Run from legacy/:  python -m unittest tests.test_search_filters
 """
+import ast
+import os
 import sys
 import unittest
 from unittest.mock import MagicMock
@@ -136,6 +148,145 @@ class BuildFilterEmptyFacetTests(unittest.TestCase):
         at = [f for f in client.filters if f[0] == 'attribution']
         self.assertEqual(len(at), 1)
         self.assertIn(10, at[0][1])
+
+
+class SearchNoResultsGuardTests(unittest.TestCase):
+    """The zero-result guard in application.py's two search render paths.
+
+    These are asserted structurally, on the parsed AST, rather than by calling the
+    views. src/application.py is 6,330 lines with 59 top-level imports (flask_admin
+    among them) and builds the Flask app at import, so it cannot be imported in a
+    pure unit test without mocking a long and brittle tail of packages. What
+    actually broke was control flow -- an unguarded subscript -- and that is
+    checkable directly: the STATUS guard must appear, must return, and must come
+    before anything reads search_values['searchresults'].
+    """
+
+    SOURCE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          'src', 'application.py')
+
+    @classmethod
+    def setUpClass(cls):
+        with open(cls.SOURCE) as fh:
+            cls.src = fh.read()
+        cls.functions = {n.name: n for n in ast.walk(ast.parse(cls.src))
+                         if isinstance(n, ast.FunctionDef)}
+
+    def _segment(self, node):
+        return ast.get_source_segment(self.src, node) or ''
+
+    def _guard_line(self, func):
+        """First line of an `if ... STATUS ...:` that returns out of the function."""
+        lines = [n.lineno for n in ast.walk(func)
+                 if isinstance(n, ast.If)
+                 and 'STATUS' in self._segment(n.test)
+                 and any(isinstance(c, ast.Return) for c in ast.walk(n))]
+        return min(lines) if lines else None
+
+    def _searchresults_line(self, func):
+        """First line that subscripts search_values with 'searchresults'."""
+        lines = []
+        for n in ast.walk(func):
+            if isinstance(n, ast.Subscript):
+                seg = self._segment(n).replace('"', "'")
+                if seg.startswith('search_values[') and "'searchresults'" in seg:
+                    lines.append(n.lineno)
+        return min(lines) if lines else None
+
+    def _assert_guarded(self, name):
+        self.assertIn(name, self.functions, '%s no longer exists' % name)
+        func = self.functions[name]
+        guard = self._guard_line(func)
+        access = self._searchresults_line(func)
+        self.assertIsNotNone(
+            guard,
+            '%s has no STATUS check that returns early; a no-match search will '
+            'KeyError on search_values and 500 (G3-778)' % name)
+        self.assertIsNotNone(access, '%s no longer reads searchresults' % name)
+        self.assertLess(
+            guard, access,
+            '%s reads search_values[\'searchresults\'] at line %s before its STATUS '
+            'guard at line %s -- a no-match search 500s (G3-778)' % (name, access, guard))
+
+    def test_search_json_guards_no_matches_before_reading_results(self):
+        # /searchFilter.json -- the bug. Every filter change, sort and page click
+        # goes through here, so an unguarded no-match search 500s the whole page.
+        self._assert_guarded('render_search_json')
+
+    def test_search_page_guards_no_matches_before_reading_results(self):
+        # /search/ -- already guarded; the json route was fixed to mirror it.
+        # Locked in so the pair cannot drift apart again.
+        self._assert_guarded('render_searchFromHome')
+
+
+class _QueryRecordingClient:
+    """Fake Sphinx client that records the query string and then errors out.
+
+    Query() returning None makes keyword_paginated_search return {'STATUS': 'ERROR'}
+    immediately, so the test never reaches the database calls further down.
+    """
+
+    def __init__(self):
+        self.queries = []
+
+    def __getattr__(self, _name):
+        # Swallow the various Set*() calls sortSearchResults and the filter builder make.
+        return lambda *a, **k: None
+
+    def Query(self, q):
+        self.queries.append(q)
+        return None
+
+
+class MissingSearchTermGuardTests(unittest.TestCase):
+    """G3-818: an absent `searchbar` must degrade to no-results, not a 500."""
+
+    def test_none_term_reports_no_matches(self):
+        # This is the exact shape render_search_json produced: [form.get('searchbar')]
+        # with the field absent.
+        self.assertEqual({'STATUS': 'NO MATCHES'},
+                         search.keyword_paginated_search([None], 1))
+
+    def test_blank_term_reports_no_matches(self):
+        self.assertEqual({'STATUS': 'NO MATCHES'},
+                         search.keyword_paginated_search([''], 1))
+
+    def test_no_terms_at_all_reports_no_matches(self):
+        self.assertEqual({'STATUS': 'NO MATCHES'},
+                         search.keyword_paginated_search([], 1))
+
+    def test_a_usable_term_alongside_a_missing_one_still_searches(self):
+        # The guard must drop the empty term, not abandon the search.
+        client = _QueryRecordingClient()
+        original = search.sphinxapi.SphinxClient
+        search.sphinxapi.SphinxClient = lambda: client
+        try:
+            result = search.keyword_paginated_search([None, 'brain'], 1)
+        finally:
+            search.sphinxapi.SphinxClient = original
+
+        self.assertEqual({'STATUS': 'ERROR'}, result)   # our fake Query returned None
+        self.assertEqual(1, len(client.queries))
+        self.assertIn('brain', client.queries[0])
+        self.assertNotIn('None', client.queries[0])
+
+
+class PaginationPageGuardTests(unittest.TestCase):
+    """G3-818: int(form.get('pagination_page')) with the field absent."""
+
+    def test_missing_pagination_page_defaults_to_one(self):
+        form = _form()
+        del form['pagination_page']
+        values = search.getUserFiltersFromApplicationRequest(form)
+        self.assertEqual(1, values['pagination_page'])
+
+    def test_non_numeric_pagination_page_defaults_to_one(self):
+        values = search.getUserFiltersFromApplicationRequest(_form(pagination_page='abc'))
+        self.assertEqual(1, values['pagination_page'])
+
+    def test_valid_pagination_page_is_kept(self):
+        values = search.getUserFiltersFromApplicationRequest(_form(pagination_page='4'))
+        self.assertEqual(4, values['pagination_page'])
 
 
 if __name__ == '__main__':

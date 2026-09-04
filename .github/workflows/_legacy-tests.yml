@@ -42,11 +42,17 @@ jobs:
           set -euo pipefail
           python -m unittest -v \
             tests.test_threshold_value_validation \
+            tests.test_tool_geneset_score_type \
             tests.test_batch_thresholds \
             tests.test_search_filters \
             tests.test_upload_processing \
             tests.db.test_get_genesets_hom_ids \
+            tests.db.test_transpose_genes_by_species \
+            tests.db.test_geneset_value_score_check \
             tests.test_geneset_count_maintenance \
             tests.db.test_gene_id_mapping \
             tests.db.test_get_genesets_w_threshold_counts \
+            tests.db.test_update_geneset_gs_updated \
+            tests.db.test_admin_sql_injection \
+            tests.test_tool_geneset_value_insert \
             tests.tools.test_mset_background_check

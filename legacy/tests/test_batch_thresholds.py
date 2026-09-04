@@ -59,15 +59,24 @@ class PQThresholdTests(unittest.TestCase):
     def _in(self, ttype, threshold, value):
         return self.reader._BatchReader__check_thresholds(ttype, threshold, value)
 
-    def test_pvalue_at_or_below_threshold_in(self):
+    def test_pvalue_below_threshold_in(self):
         self.assertTrue(self._in(1, 0.05, '0.01'))
-        self.assertTrue(self._in(1, 0.05, '0.05'))   # boundary inclusive
+
+    def test_pvalue_on_the_boundary_is_out(self):
+        # EXCLUSIVE (G3-819). This asserted True ("boundary inclusive") until
+        # 2026-09-04, when the deployed behaviour was measured: every type-1/2 row
+        # sitting exactly on its cutoff was out-of-threshold in both readable
+        # environments, because production.process_thresholds uses `<` and is the
+        # effective writer. The decision was to match Prod rather than change
+        # published membership, so this path was the outlier, not the proc.
+        self.assertFalse(self._in(1, 0.05, '0.05'))
+        self.assertFalse(self._in(2, 0.05, '0.05'))
 
     def test_pvalue_above_threshold_out(self):
         self.assertFalse(self._in(1, 0.05, '0.06'))
 
     def test_qvalue_behaves_like_pvalue(self):
-        self.assertTrue(self._in(2, 0.05, '0.05'))
+        self.assertTrue(self._in(2, 0.05, '0.01'))
         self.assertFalse(self._in(2, 0.05, '0.10'))
 
 
@@ -137,6 +146,55 @@ class ParseScoreTypeTests(unittest.TestCase):
     def test_qvalue_type_detected(self):
         stype, _ = self._parse('q-value')
         self.assertEqual(stype, 2)
+
+    # G3-811: the documented "P-Value < 0.05" form must round-trip the requested
+    # threshold instead of being silently replaced with 0.05. The bug was that the
+    # whole line was passed to a bare-number validator, so it never matched.
+    def test_pvalue_threshold_roundtrips(self):
+        stype, thresh = self._parse('P-Value < 0.01')
+        self.assertEqual((stype, thresh), (1, '0.01'))
+        self.assertFalse(self.reader.warns)
+
+    def test_qvalue_threshold_roundtrips(self):
+        stype, thresh = self._parse('Q-Value < 0.001')
+        self.assertEqual((stype, thresh), (2, '0.001'))
+        self.assertFalse(self.reader.warns)
+
+    def test_pvalue_bare_keyword_defaults_without_warning(self):
+        # No threshold requested -> default 0.05, and no spurious "invalid" warning.
+        stype, thresh = self._parse('p-value')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertFalse(self.reader.warns)
+
+    # G3-811 follow-up (PR #12 review): only an EXACT bare keyword may default
+    # silently. A wrong or missing operator is a malformed header, and treating it like
+    # the bare keyword replaced the user's cutoff with 0.05 with no signal at all.
+    def test_pvalue_wrong_operator_warns_and_defaults(self):
+        stype, thresh = self._parse('P-Value > 0.01')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertTrue(self.reader.warns)
+
+    def test_pvalue_missing_operator_warns_and_defaults(self):
+        stype, thresh = self._parse('P-Value 0.01')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertTrue(self.reader.warns)
+
+    def test_qvalue_wrong_operator_warns_and_defaults(self):
+        stype, thresh = self._parse('Q-Value > 0.01')
+        self.assertEqual((stype, thresh), (2, '0.05'))
+        self.assertTrue(self.reader.warns)
+
+    def test_pvalue_bare_keyword_with_whitespace_still_silent(self):
+        # Trailing whitespace is still a bare keyword, not a malformed header.
+        stype, thresh = self._parse('  P-Value  ')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertFalse(self.reader.warns)
+
+    def test_pvalue_out_of_range_warns_and_defaults(self):
+        # A value outside [0, 1] is a real error: warn and fall back to 0.05.
+        stype, thresh = self._parse('p-value < 1.5')
+        self.assertEqual((stype, thresh), (1, '0.05'))
+        self.assertTrue(self.reader.warns)
 
     def test_unknown_score_type_records_error(self):
         self._parse('nonsense')

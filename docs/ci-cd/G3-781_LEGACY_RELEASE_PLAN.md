@@ -325,13 +325,62 @@ Either way: **do not approve any deploy job until §4.3 and §5 are done for tha
    warning; note that simply dropping the `||` would break the build on `mset/`, so the fix has to
    be an artifact assertion, not fail-on-first-make-error.
 
-3. **`genes.dat` / `homology.dat` are not in the image.** They are untracked (~147 MB / ~1.7 MB), so
-   they are absent from the build context and from the new image; the old `555b16a-dirty` prod image
-   had them. `distribution_generator` / `drone` / `fileGenerator` read them from
-   `gw_dist_data_dir()`. Confirm per environment that this directory is a mounted volume that already
-   holds them (and not a path inside the image), or regenerate them (`fileGenerator -g -h`) before
-   any tool that depends on them is exercised. Generate on local disk and bulk-copy if the target is
-   a GCSFuse mount (CLAUDE.md).
+3. **`genes.dat` / `homology.dat` are not in the image — by design.** They are untracked
+   (~200 MB / ~1.7 MB) and absent from the build context, so they are absent from the image; the old
+   `555b16a-dirty` prod image carried them as unresolved LFS pointers. `distribution_generator` /
+   `drone` / `file_generator` read them from `gw_dist_data_dir()`, which is `GW_DIST_DATA_DIR` if
+   set, else `$APPLICATION_RESULTS/dist_data` — i.e. **the results PVC the worker already mounts**,
+   where they persist across pod replacement (`e3e4ad03`). They are regenerable sampling caches, not
+   build artifacts, so nothing needs adding to the image or to git.
+
+   **Verified state (2026-09-04):** dev has them (generated 2026-06-30); **SQA generated and verified
+   2026-09-04**; **Stage and Prod have neither** and need the step below. Tracked on G3-817, and
+   recorded as a deployment step on G3-781.
+
+   Per environment, in that namespace's `geneweaver-legacy-tools` pod — all three binaries are
+   already built in the release image:
+
+   ```bash
+   cd /app/tools-worker/tools/TOOLBOX/distribution_generator
+   export GW_DIST_DATA_DIR=/tmp/dist_data     # stage locally; see the GCSFuse note
+   ./file_generator.o -h                      # homology.dat
+   ./file_generator.o -g                      # genes.dat  (~36M lines)
+   mkdir -p "$APPLICATION_RESULTS/dist_data"
+   cp /tmp/dist_data/*.dat "$APPLICATION_RESULTS/dist_data/"
+   rm -rf /tmp/dist_data
+   ```
+
+   ⚠️ **One flag per invocation** — `file_generator` reads only `argv[1]`, so `-g -h` silently does
+   `-g` only. (The binary is `file_generator.o`, not `fileGenerator`; see the makefile's `-o`.)
+
+   ⚠️ **Generate on local disk and bulk-copy — never write straight to the PVC.** It is GCSFuse-backed
+   and `genes.dat` is ~36 million `ofstream` lines: exactly the case the CLAUDE.md guardrail
+   describes (~30 min direct vs ~3 min via /tmp + copy). Measured on SQA: `-h` 2s, `-g` 1m48s,
+   copy 4s — under two minutes total.
+
+   `GW_DIST_DATA_DIR` is exported only for the staging run; leave it **unset** in the deployment so
+   the tools fall through to the PVC path the copy targets. **No manifest change is required.**
+
+   Independent of the migrations and of the deploy itself — the only prerequisite is a running
+   tools-worker with DB access. Not repeated on later deploys (the files live on the PVC), but it
+   would need redoing if the PVC were recreated.
+
+   **Why it matters:** `JaccardSimilarity` reads its distribution from
+   `extsrc.jaccard_distribution_results` and, on a cache miss, shells out to
+   `distribution_generator.o`, which samples from these files to populate that table. With the files
+   absent the generator prints `genes.dat failed to open.` and returns `-1` **without inserting**
+   (`distribution_generator.cpp:384`), so the re-query finds nothing and the tool reports **p = 0**
+   for that set-size pair. Already-cached pairs are unaffected, which is why this is easy to miss:
+   SQA had 2,108 cached pairs and only *new* pairs returned 0.
+
+   **Verify** — both files present and non-zero; read one back off the mount with `head` **and**
+   `tail` (a successful GCSFuse write is not proof it reads back); then end-to-end, pick a set-size
+   pair with no cached rows and run the exact invocation the tool uses,
+   `./distribution_generator.o 3 3 False False`, expecting exit 0 and **no**
+   `genes.dat failed to open.`, and confirm the pair went from 0 rows to ≥1. On SQA that wrote
+   `(3, 3, FALSE) → jaccard_coef 0.0, frequency 500, p_value 1.0` and moved the table
+   36,314 → 36,315. That last check legitimately writes cache rows — the same ones the tool writes
+   on first use.
 
 4. **Namespace prerequisites exist** (the manifests assume them; they are not created by this deploy):
 
@@ -404,11 +453,12 @@ is safe. **Reversible?** The function is (§7); the backfill is **not**, unless 
 captured first. So:
 
 ```sql
--- 0) Size it first (prod may be large; if this is in the millions, batch by gs_id).
-SELECT count(*) AS rows_to_change, count(DISTINCT gv.gs_id) AS binary_sets
-FROM extsrc.geneset_value gv
-JOIN production.geneset gs ON gs.gs_id = gv.gs_id
-WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
+-- 0) Size it and read the current state with the read-only check (GWC-44 / G3-810):
+--      section 1 = rows_to_change / binary_sets, section 2 = proc_patched,
+--      section 3 = whether the backfill audit is present.
+--    If section 1's rows_to_change is in the millions, batch the step-1 capture and the
+--    migration itself by gs_id.
+\i legacy/migration/checks/gwc44-binary-threshold-drift.sql
 
 -- 1) Capture the pre-state so the backfill can be undone (do this in every environment).
 CREATE TABLE IF NOT EXISTS production.gwc44_117_backfill_audit AS
@@ -416,18 +466,13 @@ SELECT gv.gs_id, gv.ode_gene_id, gv.gsv_in_threshold AS prev_in_threshold, now()
 FROM extsrc.geneset_value gv
 JOIN production.geneset gs ON gs.gs_id = gv.gs_id
 WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
-SELECT count(*) FROM production.gwc44_117_backfill_audit;   -- must equal step 0
+SELECT count(*) FROM production.gwc44_117_backfill_audit;   -- must equal section 1's rows_to_change
 
 -- 2) Apply.
 \i legacy/migration/117-fix-binary-threshold-not-thresholded.sql
 
--- 3) Verify: no binary set has an out-of-threshold value, and the proc is the new one.
-SELECT count(*) AS should_be_zero
-FROM extsrc.geneset_value gv
-JOIN production.geneset gs ON gs.gs_id = gv.gs_id
-WHERE gs.gs_threshold_type = 3 AND gv.gsv_in_threshold IS DISTINCT FROM TRUE;
-
-SELECT pg_get_functiondef('production.process_thresholds(bigint)'::regprocedure) LIKE '%WHEN gs_threshold_type=3 THEN%TRUE%' AS proc_patched;
+-- 3) Verify by re-running the check: section 1 must now be zero and section 2 (proc_patched) TRUE.
+\i legacy/migration/checks/gwc44-binary-threshold-drift.sql
 ```
 
 Connecting:
@@ -488,6 +533,11 @@ approving each environment's deploy.
 - **Find Similar (GWC-35)** — the `geneset_jaccard` cache recomputes on page load. No migration.
 - **Search (G3-778)** — Sphinx index unchanged; no reindex required. Confirm the search sidecar
   (`geneweaver-legacy-search`, second container in the web Deployment) comes up healthy after rollout.
+- **JaccardSimilarity distribution caches (G3-817)** — `genes.dat` / `homology.dat` must exist on
+  that environment's results PVC, or JaccardSimilarity returns `p = 0` for any set-size pair not
+  already cached. Not a migration and not shipped in the image, so it rides with neither: it is a
+  manual per-environment step. **Done on dev and SQA; Stage and Prod still need it.** Full procedure,
+  the one-flag-per-invocation and GCSFuse caveats, and the end-to-end check are in **§4.3.3 item 3**.
 
 ### 5.4 Migration 118 (GWC-34) — `gs_count` backfill, recommended in SQA, Stage, Prod
 
@@ -576,6 +626,70 @@ from, so it is the fastest way for the reporter to confirm. Note also that genes
 the last index build are absent from search entirely until a rebuild, so a freshly uploaded test
 geneset should be checked on My Genesets, not in search results.
 
+### 5.5 Migration 119 (G3-809) — Correlation/Effect signed membership
+
+`legacy/migration/119-fix-correlation-effect-abs-threshold.sql`. `production.process_thresholds`
+computed type-4/5 (Correlation/Effect) membership as `ABS(gsv_value) BETWEEN lo AND hi`, while
+`recompute_geneset_value_thresholds` and `batch.BatchReader.__check_thresholds` both use the signed
+value — so the same geneset's membership depended on which write path last ran. Replaces the
+procedure with the signed form and backfills the rows that differ.
+
+**Already applied to dev and sqa.** Verified read-only 2026-09-03: no `ABS(` in the live procedure,
+type-4/5 reads signed `BETWEEN`, `production.g3809_119_threshold_abs_audit` present, and the
+backfill complete (zero remaining disagreement) in both. Audit sizes: dev 82,192 rows,
+sqa 111,493 rows. **Stage and Prod have not had it.**
+
+Needs no reindex — `gsv_in_threshold` is read live by the tools and is not a Sphinx attribute, and
+`gs_count` counts all value rows regardless of threshold, so search counts do not move.
+
+### 5.6 P/Q boundary — no migration; the boundary is **exclusive** (G3-809 / G3-819)
+
+**There is no migration 120.** One was drafted to make the P-Value/Q-Value boundary inclusive
+and has been **dropped**. Nothing to apply in any environment; this section exists so the
+decision is not relitigated.
+
+The three writers disagreed on whether a value *exactly equal* to its cutoff is in-threshold:
+`production.process_thresholds` used a strict `<` (exclusive), while
+`geneweaverdb.recompute_geneset_value_thresholds` and `batch.BatchReader.__check_thresholds`
+used `<=` (inclusive). The v3 `packages/core` also documents and tests inclusive, so the code's
+*intent* looked clearly inclusive.
+
+**What settled it was the deployed behaviour, not the code.** Measured read-only 2026-09-04, of
+the type-1/2 rows sitting exactly on their cutoff:
+
+| environment | on-cutoff rows | gene sets | flagged in-threshold |
+|---|---|---|---|
+| `geneweaver-dev` | 14,431 | 590 | **0** |
+| `geneweaver-sqa` | 28,205 | 601 | **0** |
+
+No mixture at all — the stored procedure is the effective writer for every one of them (the
+threshold-change trigger re-runs it over whatever the Python paths write). So exclusive is what
+every environment, **Prod included**, has always stored, and what every user has seen.
+
+Switching to inclusive would have retroactively added members to ~600 gene sets **per
+environment, across every curation tier** — on sqa: 11 Tier 1 normal, 72 Tier 1 provisional,
+1 Tier 2, 174 Tier 3, 11 Tier 4, 308 Tier 5, some created in 2007 — with individual sets moving
+materially (GS407228 +13,440 genes on 41,628; GS793 +1,352 on 3,025, i.e. +45%). That is a
+change to the scientific record rather than a fix restoring expected behaviour, so **the Python
+paths were aligned down to `<` instead** and the database is left exactly as it is.
+
+Changed in code (ships with the image, no DB work): `recompute_geneset_value_thresholds`,
+`batch.BatchReader.__check_thresholds`, and `application.calc_genes_count_in_threshold` — the
+last being the `/setthreshold` preview count, which was `<=` while membership was `<`, so the
+page could promise more genes than the geneset would hold. Its own docstring already said
+"below". Tests updated to assert the boundary is **out**.
+
+⚠️ **Do not "fix" the `<` in migration 117's or 119's type-1/2 branch.** It is deliberate. A
+note to that effect is in 119.
+
+⚠️ Two-sided score types (Correlation/Effect, types 4-8) remain **inclusive** (`BETWEEN`)
+everywhere — that was never in question and is unchanged.
+
+**Known remaining divergence, out of scope here:** v3's `packages/db`
+`query/threshold.py` builds the one-sided branch as `WHEN gsv_value < …` (exclusive, which now
+matches legacy) while v3's `packages/core` `one_sided_threshold` is `<=` (inclusive). v3 is not
+being touched as part of this legacy release.
+
 ## 6. Per-environment verification (do all of these in each env)
 
 | Fix | Check | Pass |
@@ -603,6 +717,58 @@ Log check after each rollout:
 kubectl -n <ns> logs deploy/geneweaver-legacy --tail=200 | grep -iE "traceback|error|critical" | head
 kubectl -n <ns> logs deploy/geneweaver-legacy-tools --tail=200 | grep -iE "traceback|error|not found" | head
 ```
+
+### 6.1 SQA — machine-verifiable rows, checked 2026-08-31
+
+The 1.6.0a pre-release deployed to SQA on 2026-08-24 (run `32744456037`; Stage and
+Prod skipped as designed). Both namespaces' pods run `…:3265bff`. The rows below
+were verified against the **running SQA pods and the `geneweaver-sqa` database**,
+read-only. The rest of §6 needs a browser and a logged-in curator, and is **not**
+covered here — see the list at the end of this subsection.
+
+| §6 row | Result | Evidence |
+|---|---|---|
+| §4.3.2 TOOLBOX binaries (pre-flight, was never recorded) | **PASS** | All 7 present, executable and ELF in the *release* image: `biclique`, `dbscan`, `CS_Mset/MSETcpp`, `bstrap`, `bicliquer`, `bk-partite`, `distribution_generator.o`. `mset/` holds only a Makefile — expected, nothing execs it |
+| Worker health | **PASS** | `celery@…ksljc ready`, all 12 tasks registered, zero errors in 400 lines |
+| Web log check | **PASS** | No traceback/error/critical in 400 lines |
+| GWC-44 / G3-776 (DB half) | **PASS** | All 22 binary genesets from the 117 audit have every value row in-threshold and `gs_count == count(geneset_value)`. Live `production.process_thresholds` type-3 branch reads `THEN TRUE` — the fix, not the pre-fix comparison. *UI half (upload a Binary set, run a tool) still needs a curator* |
+| G3-782 / GWC-34 | **PASS end-to-end** | Drift check §1 = `0/0/0/0`. Both audit tables retained at exactly the recorded sizes (117: 5,956 rows / 22 genesets; 118: 807). All 12 user-visible corrections hold, and **the Sphinx index serves the corrected number** — spot-checked 6 (e.g. GS408060 4,640 → 4,464; GS408061 1,074 → 897) via `sphinxapi` against the live `geneset` index. `indexer --all` ran on the rollout: 261,142 docs, 260,252 attr values. *The three write paths (upload / edit / tool output) still need a curator* |
+| G3-778 | **PASS** | `POST /searchFilter.json` returns **200** for: a zero-result term, zero-result + sort, a missing `sortBy`, an empty species facet, and a tier-only filter. Zero-result body is 21.5 KB with **0** result rows vs 307 KB / 25 rows for a real term — the no-results wrapper, not a 500 |
+| Security `f11ae9fb` (b) prerequisite | **PASS** | `static/js/geneweaver/escapeHtml.js` is served: HTTP 200, 1,867 bytes. *The actual XSS-render check on single + batch upload still needs a curator* |
+| Help links `5a712ad8` | **PASS — and the prod gate is clear** | Every docs link in the deployed templates points at `thejacksonlaboratory.github.io/geneweaver/…`. Fetched **unauthenticated** from outside the org: `/` and `/analysis-tools/mset/` both return **200** with the real page (`<title>MSET - GeneWeaver</title>`), not a GitHub login. So the Pages site is public and **B9 is not a prod blocker** — recheck once before Prod, but the assumption it was org-only does not hold |
+| MSET `5651bbcd` text | **PASS (code)** | Deployed worker's `MSET.py` carries the new wording ("…can change a gene set's curation tier. Please contact the GeneWeaver…"). *The end-to-end Tier-IV run still needs a curator* |
+| G3-805 / GWC-35 follow-up, GWC-9, GWC-42, GWC-36, GWC-8, GWC-50, GWC-45, GWC-51, Tools-worker set 2 | **code present, behaviour unverified** | `/app/src/geneweaverdb.py` and `/app/src/application.py` in the running pod are **byte-identical (md5) to `main` at `3265bff0`**, so every merged fix is in the image. Behaviour is the open half |
+
+**Still needs a human in the UI** — a curator, on SQA: GWC-9 (tier change / edit
+view), GWC-42 (score warnings), GWC-36 (alias-only batch upload), GWC-8 (NCBO
+annotations), GWC-50 (Symmetric Difference Venn), GWC-45 and GWC-51 (MSET runs),
+G3-805 (Find Similar vs the Jaccard tool at Homology=Included + Pairwise
+Deletion=Disabled), the `f11ae9fb` XSS render, the three GWC-34 write paths, the
+GWC-44 binary upload, and one tool per family for tools-worker set 2. §8.5 (who
+approves) is still unresolved, and this is the work it gates.
+
+**Two corrections to earlier findings:**
+
+1. **`genes.dat` / `homology.dat` (§4.3.3) — filed as G3-817 and since RESOLVED on
+   SQA.** The readiness research recorded the old worker holding 134-byte
+   **unresolved LFS pointers** and *no* built `distribution_generator.o`. On the
+   release image the pointers are gone (the files were absent entirely) but
+   `distribution_generator.o` **is** built and ELF.
+   *Updated 2026-09-04:* the framing "the release leaves the data half missing" was
+   itself misleading — the files are regenerable PVC-backed caches that belong in
+   neither the image nor git, dev had them all along (hence JaccardSimilarity working
+   there), and the impact was limited to set-size pairs not already cached (SQA had
+   2,108 cached). Generated and verified end-to-end on SQA 2026-09-04; **Stage and
+   Prod still need the step** (§4.3.3 item 3).
+2. **`/searchFilter.json` 500s when `searchbar` is absent** — `search.py:556`
+   builds `'@(' + search_fields + ') ' + t` with `t = form.get('searchbar')`, so a
+   POST without that field raises `TypeError: can only concatenate str (not
+   "NoneType")`. Outside G3-778's scope (that was zero-results and a missing
+   `sortBy`) and the UI always sends the field, so it is not a release blocker —
+   but it is the same missing-guard shape. *Filed as G3-818 and FIXED* (`f5d0d0d0`),
+   guarded in the shared sink so an absent term degrades to the no-results state;
+   the same missing-field crash in `int(form.get('pagination_page'))` was fixed with
+   it.
 
 ## 7. Rollback
 
@@ -676,10 +842,10 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 | Tools-worker duplicated in prod (two workers racing the queue) | ~~Medium~~ **None** — measured 2026-08-04: all four namespaces already run a Deployment of the same name, so this is a replace-in-place | High | Resolved; §4.3.1 |
 | Prod replica counts change on deploy: tools-worker **2 → 1**, web **2 → 4** | High — this is what the manifests say today | High (worker throughput halves) | §4.3.1 — patch the prod overlay or accept deliberately, **before** approving Prod |
 | A TOOLBOX binary silently missing (`\|\| echo WARN`) | Low — dev build `30553972874` shows all 7 required binaries compiling; only unused `mset/` fails | High | §4.3.2 assert on the release image (the release rebuilds, so dev's result does not carry over) |
-| `genes.dat`/`homology.dat` missing from the new image | Medium | Medium | §4.3.3 confirm mount / regenerate |
+| `genes.dat`/`homology.dat` absent on an environment's PVC (JaccardSimilarity returns p=0 for uncached set-size pairs) | ~~Medium~~ **None on dev/SQA** — generated and verified 2026-09-04; **still open for Stage/Prod** | Medium | §4.3.3 item 3 — regenerate per environment (G3-817) |
 | Migration 117 slow or lock-heavy on the shared prod instance | Low | Medium | §5.1 size first, batch, transaction |
 | Backfill not reversible | Low | High | §5.1 audit table |
 | SQA inherits base `AUTH_CLIENTID` | Low | Medium | §4.3.5 confirm intended |
 | ~~A Ready-for-Testing fix fails curation testing after release~~ **Retired** — all fixes Done, verified on the board 2026-08-21 | ~~Medium~~ None | Medium | §2 |
 | ~~A version-bump merge starts an unintended prod-bound run~~ **Retired** — occurred 2026-08-14 (run `31839201644`, cancelled); PR #6 merged 2026-08-21 moved the trigger to a deliberate `v*.*.*` tag | ~~Medium~~ None | High | §3, §4.2 |
-| **`gsv_in_threshold` written by three divergent implementations** (G3-809); tool-output routes bypass `process_thresholds` | High (present in code) | Medium — does **not** affect Binary, so it does not reopen GWC-44 | Out of scope for 1.6.0; tracked on G3-809 |
+| **`gsv_in_threshold` written by three divergent implementations** (G3-809); tool-output routes bypass `process_thresholds` | High (present in code) | Medium — does **not** affect Binary, so it does not reopen GWC-44 | **No longer out of scope** — fixed on `fix/legacy-post-signoff-bugfixes` (PR #12): code routes tool output through the shared implementation, migration 119 (§5.5) fixes Correlation/Effect. The P/Q boundary was resolved in code to match Prod's long-standing exclusive behaviour, with no migration (§5.6). 119 is already applied to dev and sqa |

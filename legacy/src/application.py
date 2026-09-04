@@ -2391,7 +2391,11 @@ def calc_genes_count_in_threshold(gsv_values, curr_thresh) -> dict:
             for gsv_value in gsv_values:
                 value = list(gsv_value.values())[0]
                 value = float(value)
-                if value >= 0 and value <= threshold:
+                ## Exclusive, matching membership (G3-819) and this function's own
+                ## docstring ("fall below given thresholds"). It was `<=` while
+                ## process_thresholds stored `<`, so the /setthreshold page could
+                ## promise more genes than the geneset would end up holding.
+                if value >= 0 and value < threshold:
                     threshold_gene_counts[threshold] += 1
 
     return threshold_gene_counts
@@ -5000,13 +5004,33 @@ def get_db_data():
 
 @app.route('/getServersideResultsdb')
 def get_db_results_data():
-    results = geneweaverdb.get_server_side_results(request.args)
+    ## G3-816: this had no authentication of any kind -- no decorator, no is_admin
+    ## check -- and passed request.args straight through, including a `user_id` the
+    ## caller chose. So anyone reachable by the app could list any user's tool
+    ## results by guessing an id, and `search[value]` was an unauthenticated SQL
+    ## injection into the same query. The user id now comes from the session, never
+    ## the request. results.html only ever sent the logged-in user's own id, so the
+    ## page is unaffected.
+    user_id = session.get('user_id')
+    if not user_id:
+        return json.dumps({'sEcho': request.args.get('sEcho', type=int),
+                           'iTotalRecords': 0, 'iTotalDisplayRecords': 0,
+                           'aaData': [], 'error': 'Not logged in'})
+    results = geneweaverdb.get_server_side_results(request.args, user_id)
     return json.dumps(results)
 
 
 @app.route('/getServersideGenesetsdb')
 def get_db_genesets_data():
-    results = geneweaverdb.get_server_side_genesets(request.args)
+    ## G3-816: same as above -- unauthenticated, and the caller supplied the user_id
+    ## whose gene sets were listed. Session-derived now; mygenesets.html sent the
+    ## logged-in user's own id anyway.
+    user_id = session.get('user_id')
+    if not user_id:
+        return json.dumps({'sEcho': request.args.get('sEcho', type=int),
+                           'iTotalRecords': 0, 'iTotalDisplayRecords': 0,
+                           'aaData': [], 'error': 'Not logged in'})
+    results = geneweaverdb.get_server_side_genesets(request.args, user_id)
     return json.dumps(results)
 
 
