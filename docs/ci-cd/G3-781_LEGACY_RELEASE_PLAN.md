@@ -325,13 +325,62 @@ Either way: **do not approve any deploy job until §4.3 and §5 are done for tha
    warning; note that simply dropping the `||` would break the build on `mset/`, so the fix has to
    be an artifact assertion, not fail-on-first-make-error.
 
-3. **`genes.dat` / `homology.dat` are not in the image.** They are untracked (~147 MB / ~1.7 MB), so
-   they are absent from the build context and from the new image; the old `555b16a-dirty` prod image
-   had them. `distribution_generator` / `drone` / `fileGenerator` read them from
-   `gw_dist_data_dir()`. Confirm per environment that this directory is a mounted volume that already
-   holds them (and not a path inside the image), or regenerate them (`fileGenerator -g -h`) before
-   any tool that depends on them is exercised. Generate on local disk and bulk-copy if the target is
-   a GCSFuse mount (CLAUDE.md).
+3. **`genes.dat` / `homology.dat` are not in the image — by design.** They are untracked
+   (~200 MB / ~1.7 MB) and absent from the build context, so they are absent from the image; the old
+   `555b16a-dirty` prod image carried them as unresolved LFS pointers. `distribution_generator` /
+   `drone` / `file_generator` read them from `gw_dist_data_dir()`, which is `GW_DIST_DATA_DIR` if
+   set, else `$APPLICATION_RESULTS/dist_data` — i.e. **the results PVC the worker already mounts**,
+   where they persist across pod replacement (`e3e4ad03`). They are regenerable sampling caches, not
+   build artifacts, so nothing needs adding to the image or to git.
+
+   **Verified state (2026-09-04):** dev has them (generated 2026-06-30); **SQA generated and verified
+   2026-09-04**; **Stage and Prod have neither** and need the step below. Tracked on G3-817, and
+   recorded as a deployment step on G3-781.
+
+   Per environment, in that namespace's `geneweaver-legacy-tools` pod — all three binaries are
+   already built in the release image:
+
+   ```bash
+   cd /app/tools-worker/tools/TOOLBOX/distribution_generator
+   export GW_DIST_DATA_DIR=/tmp/dist_data     # stage locally; see the GCSFuse note
+   ./file_generator.o -h                      # homology.dat
+   ./file_generator.o -g                      # genes.dat  (~36M lines)
+   mkdir -p "$APPLICATION_RESULTS/dist_data"
+   cp /tmp/dist_data/*.dat "$APPLICATION_RESULTS/dist_data/"
+   rm -rf /tmp/dist_data
+   ```
+
+   ⚠️ **One flag per invocation** — `file_generator` reads only `argv[1]`, so `-g -h` silently does
+   `-g` only. (The binary is `file_generator.o`, not `fileGenerator`; see the makefile's `-o`.)
+
+   ⚠️ **Generate on local disk and bulk-copy — never write straight to the PVC.** It is GCSFuse-backed
+   and `genes.dat` is ~36 million `ofstream` lines: exactly the case the CLAUDE.md guardrail
+   describes (~30 min direct vs ~3 min via /tmp + copy). Measured on SQA: `-h` 2s, `-g` 1m48s,
+   copy 4s — under two minutes total.
+
+   `GW_DIST_DATA_DIR` is exported only for the staging run; leave it **unset** in the deployment so
+   the tools fall through to the PVC path the copy targets. **No manifest change is required.**
+
+   Independent of the migrations and of the deploy itself — the only prerequisite is a running
+   tools-worker with DB access. Not repeated on later deploys (the files live on the PVC), but it
+   would need redoing if the PVC were recreated.
+
+   **Why it matters:** `JaccardSimilarity` reads its distribution from
+   `extsrc.jaccard_distribution_results` and, on a cache miss, shells out to
+   `distribution_generator.o`, which samples from these files to populate that table. With the files
+   absent the generator prints `genes.dat failed to open.` and returns `-1` **without inserting**
+   (`distribution_generator.cpp:384`), so the re-query finds nothing and the tool reports **p = 0**
+   for that set-size pair. Already-cached pairs are unaffected, which is why this is easy to miss:
+   SQA had 2,108 cached pairs and only *new* pairs returned 0.
+
+   **Verify** — both files present and non-zero; read one back off the mount with `head` **and**
+   `tail` (a successful GCSFuse write is not proof it reads back); then end-to-end, pick a set-size
+   pair with no cached rows and run the exact invocation the tool uses,
+   `./distribution_generator.o 3 3 False False`, expecting exit 0 and **no**
+   `genes.dat failed to open.`, and confirm the pair went from 0 rows to ≥1. On SQA that wrote
+   `(3, 3, FALSE) → jaccard_coef 0.0, frequency 500, p_value 1.0` and moved the table
+   36,314 → 36,315. That last check legitimately writes cache rows — the same ones the tool writes
+   on first use.
 
 4. **Namespace prerequisites exist** (the manifests assume them; they are not created by this deploy):
 
@@ -484,6 +533,11 @@ approving each environment's deploy.
 - **Find Similar (GWC-35)** — the `geneset_jaccard` cache recomputes on page load. No migration.
 - **Search (G3-778)** — Sphinx index unchanged; no reindex required. Confirm the search sidecar
   (`geneweaver-legacy-search`, second container in the web Deployment) comes up healthy after rollout.
+- **JaccardSimilarity distribution caches (G3-817)** — `genes.dat` / `homology.dat` must exist on
+  that environment's results PVC, or JaccardSimilarity returns `p = 0` for any set-size pair not
+  already cached. Not a migration and not shipped in the image, so it rides with neither: it is a
+  manual per-environment step. **Done on dev and SQA; Stage and Prod still need it.** Full procedure,
+  the one-flag-per-invocation and GCSFuse caveats, and the end-to-end check are in **§4.3.3 item 3**.
 
 ### 5.4 Migration 118 (GWC-34) — `gs_count` backfill, recommended in SQA, Stage, Prod
 
@@ -678,21 +732,26 @@ approves) is still unresolved, and this is the work it gates.
 
 **Two corrections to earlier findings:**
 
-1. **`genes.dat` / `homology.dat` (§4.3.3)** — the readiness research recorded the
-   old worker holding 134-byte **unresolved LFS pointers** and *no* built
-   `distribution_generator.o`. On the release image the pointers are gone (the files
-   are absent entirely) but `distribution_generator.o` **is** built and ELF. So the
-   release fixes the binary half and leaves the data half missing: JaccardSimilarity's
-   p-value fallback stays broken on SQA exactly as before — still a pre-existing
-   defect needing its own ticket, not a release regression. `GW_DIST_DATA_DIR` is
-   unset and `$APPLICATION_RESULTS/dist_data` (`/var/geneweaver/results/dist_data`)
-   does not exist.
+1. **`genes.dat` / `homology.dat` (§4.3.3) — filed as G3-817 and since RESOLVED on
+   SQA.** The readiness research recorded the old worker holding 134-byte
+   **unresolved LFS pointers** and *no* built `distribution_generator.o`. On the
+   release image the pointers are gone (the files were absent entirely) but
+   `distribution_generator.o` **is** built and ELF.
+   *Updated 2026-09-04:* the framing "the release leaves the data half missing" was
+   itself misleading — the files are regenerable PVC-backed caches that belong in
+   neither the image nor git, dev had them all along (hence JaccardSimilarity working
+   there), and the impact was limited to set-size pairs not already cached (SQA had
+   2,108 cached). Generated and verified end-to-end on SQA 2026-09-04; **Stage and
+   Prod still need the step** (§4.3.3 item 3).
 2. **`/searchFilter.json` 500s when `searchbar` is absent** — `search.py:556`
    builds `'@(' + search_fields + ') ' + t` with `t = form.get('searchbar')`, so a
    POST without that field raises `TypeError: can only concatenate str (not
    "NoneType")`. Outside G3-778's scope (that was zero-results and a missing
    `sortBy`) and the UI always sends the field, so it is not a release blocker —
-   but it is the same missing-guard shape and worth a follow-up ticket.
+   but it is the same missing-guard shape. *Filed as G3-818 and FIXED* (`f5d0d0d0`),
+   guarded in the shared sink so an absent term degrades to the no-results state;
+   the same missing-field crash in `int(form.get('pagination_page'))` was fixed with
+   it.
 
 ## 7. Rollback
 
@@ -766,7 +825,7 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 | Tools-worker duplicated in prod (two workers racing the queue) | ~~Medium~~ **None** — measured 2026-08-04: all four namespaces already run a Deployment of the same name, so this is a replace-in-place | High | Resolved; §4.3.1 |
 | Prod replica counts change on deploy: tools-worker **2 → 1**, web **2 → 4** | High — this is what the manifests say today | High (worker throughput halves) | §4.3.1 — patch the prod overlay or accept deliberately, **before** approving Prod |
 | A TOOLBOX binary silently missing (`\|\| echo WARN`) | Low — dev build `30553972874` shows all 7 required binaries compiling; only unused `mset/` fails | High | §4.3.2 assert on the release image (the release rebuilds, so dev's result does not carry over) |
-| `genes.dat`/`homology.dat` missing from the new image | Medium | Medium | §4.3.3 confirm mount / regenerate |
+| `genes.dat`/`homology.dat` absent on an environment's PVC (JaccardSimilarity returns p=0 for uncached set-size pairs) | ~~Medium~~ **None on dev/SQA** — generated and verified 2026-09-04; **still open for Stage/Prod** | Medium | §4.3.3 item 3 — regenerate per environment (G3-817) |
 | Migration 117 slow or lock-heavy on the shared prod instance | Low | Medium | §5.1 size first, batch, transaction |
 | Backfill not reversible | Low | High | §5.1 audit table |
 | SQA inherits base `AUTH_CLIENTID` | Low | Medium | §4.3.5 confirm intended |
