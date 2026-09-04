@@ -39,11 +39,41 @@
 -- proc and in packages/db; `threshold_low <= value <= threshold` in packages/core), so the
 -- one-sided strict `<` is the odd one out in both codebases rather than a considered choice.
 --
--- The user-facing batch syntax is written `P-Value < 0.05`, which reads exclusive, and that is
--- the only thing on the other side. It is a label for the score type, not an operator spec,
--- and it is outweighed by an explicitly documented and boundary-tested implementation. Worth a
--- heads-up to curation before Stage/Prod because it moves membership in ~600 published gene
--- sets per environment -- but as a notification, not a decision to be made.
+-- ⚠ BUT THE DEPLOYED BEHAVIOUR HAS ALWAYS BEEN EXCLUSIVE, AND UNIFORMLY SO. Measured on both
+-- readable environments 2026-09-04: of the type-1/2 rows sitting exactly on their cutoff,
+-- *every single one* is currently gsv_in_threshold = FALSE -- dev 14,431 rows / 590 sets,
+-- sqa 28,205 / 601, with ZERO on-cutoff rows flagged TRUE. There is no mixture. The DB proc is
+-- the effective writer for all of them (create_geneset2 on UI upload, plus the
+-- threshold-change trigger, which re-runs the proc over anything the Python paths wrote).
+--
+-- So the exclusive rule is not merely one implementation among five -- it is what every
+-- GeneWeaver user has seen for the entire history of the product, Prod included. The repo's
+-- own copy of the pre-117 procedure does not exist (117 was the first to put it under version
+-- control), and Prod's live proc cannot be read from here (RBAC), but 117's header records
+-- that it changed only the Binary branch, so the strict `<` in it is the original.
+--
+-- What applying this migration actually does, measured on sqa: it changes membership of ~600
+-- gene sets spanning EVERY curation tier -- 11 Tier 1 normal, 72 Tier 1 provisional, 1 Tier 2,
+-- 174 Tier 3, 11 Tier 4, 308 Tier 5 -- created as far back as 2007-2010. Individual sets move
+-- materially: GS407228 gains 13,440 genes on 41,628 current members (+32%), GS793 gains 1,352
+-- on 3,025 (+45%).
+--
+-- Therefore this IS a curation decision, and the earlier framing in this header ("settled by
+-- the repo, not a judgement call") was wrong. The code's INTENT is clearly inclusive; the
+-- product's PUBLISHED BEHAVIOUR is exclusive. Choosing inclusive means retroactively adding
+-- members to long-published gene sets, which is a scientific-record change, not a bug fix that
+-- restores something users expected. Three options, and curation picks:
+--
+--   (a) Apply this migration -- writers converge on inclusive, published membership changes.
+--   (b) Keep exclusive -- do NOT apply this; instead change `<=` -> `<` in
+--       recompute_geneset_value_thresholds, batch.__check_thresholds, their tests, and
+--       packages/core's one_sided_threshold (+ its boundary tests). Published data unchanged.
+--   (c) Inclusive for NEW writes only -- apply step 2a (the proc) and skip the 2b backfill.
+--       Writers agree going forward; existing published sets are left as they are, at the cost
+--       of old and new sets following different rules.
+--
+-- DO NOT RUN THIS IN STAGE OR PROD UNTIL CURATION HAS CHOSEN. The user-facing batch syntax is
+-- written `P-Value < 0.05`, which reads exclusive and matches the deployed behaviour.
 --
 -- ⚠ SAME BUG EXISTS IN v3: packages/db .../query/threshold.py builds the one-sided branch as
 -- `WHEN gsv_value < %(threshold_high)s THEN TRUE` -- exclusive, contradicting packages/core in
