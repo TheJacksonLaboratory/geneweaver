@@ -840,8 +840,45 @@
                        .attr('title', 'Cutoff for the selected score type. P-Value/Q-Value: a single value (e.g. 0.05). Correlation/Effect: min,max (e.g. -1,1).');
             }
         }
+
+        // G3-823: the score type and the threshold are independent inputs, so
+        // switching Correlation/Effect -> P-Value/Q-Value used to leave a "low,high"
+        // pair behind under a type whose threshold must be a single number. The save
+        // then died in the AFTER UPDATE trigger -- process_thresholds does
+        // cast(gs_threshold as numeric) -- and the curator saw only "An unknown error
+        // ocurred." Reshape the field to fit the newly chosen type so the requirement
+        // is visible before saving. update_geneset normalises server-side too; this is
+        // only the client half, and it is the half that tells the curator what changed.
+        //
+        // Two rules: only rewrite a value that does not already fit the new type (so
+        // Correlation -> Effect keeps its range), and only on an actual change -- never
+        // on load, or opening the form would silently rewrite a stored threshold.
+        function reshapeThresholdForType() {
+            var $thresh = $('#gs_threshold');
+            var type = $('#gs_threshold_type').val();
+            var value = ($thresh.val() || '').trim();
+
+            // Number('') is 0, so the emptiness check has to come first.
+            function isNumber(v) {
+                return v.trim() !== '' && !isNaN(Number(v));
+            }
+            var parts = value.split(',');
+            var isPair = parts.length === 2 && isNumber(parts[0]) && isNumber(parts[1]);
+
+            if (type === '1' || type === '2') {         // P-Value / Q-Value
+                if (!isNumber(value)) { $thresh.val('0.05'); }
+            } else if (type === '3') {                   // Binary -- not thresholded
+                $thresh.val('1');
+            } else if (type === '4' || type === '5') {   // Correlation / Effect
+                if (!isPair) { $thresh.val('-1,1'); }
+            }
+        }
+
         syncBinaryThreshold();
-        $('#gs_threshold_type').on('change', syncBinaryThreshold);
+        $('#gs_threshold_type').on('change', function () {
+            reshapeThresholdForType();
+            syncBinaryThreshold();
+        });
     });
 
 

@@ -4,6 +4,7 @@ from hashlib import md5
 import json
 import string
 import random
+import math
 import psycopg2
 from psycopg2 import Error
 from psycopg2 import sql
@@ -1630,6 +1631,70 @@ def score_type_value_warnings(score_type, values, limit=10):
     ]
 
 
+## G3-823: the edit form's score type and threshold are independent inputs, so a
+## two-sided threshold ("low,high") could be saved under a one-sided type. The UPDATE
+## itself succeeds -- production.geneset.gs_threshold is character varying -- but the
+## AFTER UPDATE trigger then runs production.process_thresholds, whose type-1/2 branch
+## evaluates cast(gs_threshold as numeric). The comma raises, the trigger aborts, the
+## whole save rolls back, and the curator is shown only "An unknown error ocurred."
+ONE_SIDED_THRESHOLD_TYPES = (1, 2)
+
+## The cutoff a P-Value/Q-Value set falls back to. Same default as batch upload and as
+## recompute_geneset_value_thresholds' own fallback, so a reshaped geneset lands where
+## a fresh P-Value upload would have.
+DEFAULT_ONE_SIDED_THRESHOLD = '0.05'
+
+
+def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
+    """
+    Returns ``(threshold, warning)`` for storing ``gs_threshold`` under
+    ``gs_threshold_type``, correcting a threshold whose *shape* does not match the
+    score type (G3-823).
+
+    Only the one-sided types (P-Value, Q-Value) are corrected, because they are the
+    ones that abort the write: ``process_thresholds`` casts their threshold straight
+    to numeric, so anything that is not a single finite number -- a "low,high" pair
+    left behind by Correlation/Effect, or any other junk -- rolls the save back. The
+    two-sided types parse with ``string_to_array`` instead, which does not raise.
+
+    A range carries no p-value cutoff, so there is nothing to convert: the low end of
+    "0.0,10.0" would silently exclude every gene, and the "-1" of "-1,1" is not a
+    probability at all. The set gets the standard 0.05 default instead, and the caller
+    surfaces the returned warning so the substitution is visible rather than silent.
+
+    arguments
+        gs_threshold_type: integer gs_threshold_type (1..5)
+        gs_threshold:      the submitted gs_threshold string
+
+    returns
+        (threshold, warning): the threshold to store, and an advisory warning string,
+        or None when nothing needed correcting
+    """
+    try:
+        ttype = int(gs_threshold_type)
+    except (TypeError, ValueError):
+        ## Not a score type we can reason about -- leave the value alone rather than
+        ## guess; the caller's own int() conversion will surface the problem.
+        return gs_threshold, None
+
+    if ttype not in ONE_SIDED_THRESHOLD_TYPES:
+        return gs_threshold, None
+
+    try:
+        castable = math.isfinite(float(gs_threshold))
+    except (TypeError, ValueError):
+        castable = False
+
+    if castable:
+        return gs_threshold, None
+
+    name = SCORE_TYPE_NAMES.get(ttype, str(ttype))
+    return DEFAULT_ONE_SIDED_THRESHOLD, (
+        'Score type "%s" takes a single cutoff, but the threshold read "%s". It has '
+        'been set to %s -- edit the threshold field if you need a different cutoff.'
+        % (name, gs_threshold, DEFAULT_ONE_SIDED_THRESHOLD))
+
+
 def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_threshold):
     """
     Recomputes ``gsv_in_threshold`` for every value of a geneset from its score
@@ -1893,6 +1958,13 @@ def update_geneset(usr_id, form):
     if not gs_threshold:
         gs_threshold = current_version.threshold
 
+    ## G3-823: the score type and the threshold field move independently, so the
+    ## threshold's shape may not match the type being saved. Correct it before the
+    ## write -- process_thresholds runs from an AFTER UPDATE trigger, and a threshold
+    ## it cannot cast takes the whole save down with an unactionable error.
+    gs_threshold, threshold_warning = normalize_threshold_for_type(
+        gs_threshold_type, gs_threshold)
+
     ## Did the score type or threshold actually change? If so we must recompute
     ## the per-value gsv_in_threshold flags below, or tools/views that filter on
     ## them will use stale membership (GWC-42).
@@ -1931,6 +2003,11 @@ def update_geneset(usr_id, form):
 
     result = {'success': True}
 
+    ## G3-823: report a reshaped threshold first -- it explains the cutoff the set
+    ## actually ended up with, which the value-domain warnings below are measured
+    ## against.
+    warnings = [threshold_warning] if threshold_warning else []
+
     ## GWC-42 half-gap (G3-812): the edit page can now change the score type, but
     ## only the upload paths ran the value-domain check. On an edit the user is
     ## reinterpreting values that already exist under a new type, so run the same
@@ -1938,10 +2015,11 @@ def update_geneset(usr_id, form):
     ## surface any warnings. Advisory only -- the change is already saved (this
     ## mirrors the upload behaviour: warn, do not block).
     if score_type_changed:
-        warnings = score_type_value_warnings(
+        warnings += score_type_value_warnings(
             gs_threshold_type, get_geneset_values_for_score_check(gs_id))
-        if warnings:
-            result['warnings'] = warnings
+
+    if warnings:
+        result['warnings'] = warnings
 
     return result
 
