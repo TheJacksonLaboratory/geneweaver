@@ -840,8 +840,84 @@
                        .attr('title', 'Cutoff for the selected score type. P-Value/Q-Value: a single value (e.g. 0.05). Correlation/Effect: min,max (e.g. -1,1).');
             }
         }
+
+        // G3-823: the score type and the threshold are independent inputs, so
+        // switching Correlation/Effect -> P-Value/Q-Value used to leave a "low,high"
+        // pair behind under a type whose threshold must be a single number. The save
+        // then died in the AFTER UPDATE trigger -- process_thresholds does
+        // cast(gs_threshold as numeric) -- and the curator saw only "An unknown error
+        // ocurred." Reshape the field to fit the newly chosen type so the requirement
+        // is visible before saving. update_geneset normalises server-side too; this is
+        // only the client half, and it is the half that tells the curator what changed.
+        //
+        // Two rules: only rewrite a value that does not already fit the new type (so
+        // Correlation -> Effect keeps its range), and only on an actual change -- never
+        // on load, or opening the form would silently rewrite a stored threshold.
+        // PostgreSQL's numeric literal grammar -- the same regex the server checks
+        // (geneweaverdb.PG_NUMERIC_RE) and the same one migration 119 carries.
+        // Number() is not a substitute: it accepts '0x1' and 'Infinity', so '0x1,0x2'
+        // would pass here as a well-formed pair and then abort the save in the
+        // trigger's string_to_array(...)::numeric[] cast.
+        var PG_NUMERIC = /^\s*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$/;
+
+        // Defaults per score type, matching batch upload and
+        // uploadfiles.get_default_threshold. Effect is -1000,1000 -- NOT Correlation's
+        // -1,1: ordinary effect sizes run well outside [-1,1], so borrowing
+        // Correlation's range here would quietly exclude them.
+        var DEFAULT_THRESHOLD = {'1': '0.05', '2': '0.05', '3': '1',
+                                 '4': '-1,1', '5': '-1000,1000'};
+
+        function thresholdFitsType(type, value) {
+            if (type === '1' || type === '2') {          // P-Value / Q-Value
+                return PG_NUMERIC.test(value);
+            }
+            if (type === '4' || type === '5') {          // Correlation / Effect
+                // The form insists on a well-formed pair, which is stricter than the
+                // server -- that only corrects what the database cannot store, so it
+                // never changes already signed-off behaviour. Here a range should look
+                // like a range.
+                var parts = value.split(',');
+                return parts.length === 2 &&
+                       PG_NUMERIC.test(parts[0]) && PG_NUMERIC.test(parts[1]);
+            }
+            // Binary is not thresholded at all (GWC-44), so anything fits and nothing
+            // is rewritten -- the field is already read-only and labelled for it.
+            return true;
+        }
+
+        // Review of PR #14: reshaping on every change is lossy on a round trip.
+        // Correlation '-0.2,0.2' -> P-Value became '0.05', and going back to Correlation
+        // saw a single number, decided it was not a pair, and overwrote it with the
+        // default '-1,1'. The curator's range was gone, and because '-1,1' IS valid the
+        // server had nothing to warn about -- so the loss was silent and would have
+        // recomputed membership on save. Bank the value per score type and give it back
+        // when that type is reselected; only synthesize a default when there is nothing
+        // banked.
+        //
+        // Kept free of jQuery so the decision can be exercised directly --
+        // tests/db/test_score_type_threshold_shape.py runs this very function under node.
+        function nextThresholdValue(type, previousType, value, drafts) {
+            if (previousType !== undefined && thresholdFitsType(previousType, value)) {
+                drafts[previousType] = value;
+            }
+            if (thresholdFitsType(type, value)) { return value; }
+            var banked = drafts[type];
+            return banked !== undefined ? banked : DEFAULT_THRESHOLD[type];
+        }
+
+        var thresholdDrafts = {};
+        var previousThresholdType = $('#gs_threshold_type').val();
+        thresholdDrafts[previousThresholdType] = ($('#gs_threshold').val() || '').trim();
+
         syncBinaryThreshold();
-        $('#gs_threshold_type').on('change', syncBinaryThreshold);
+        $('#gs_threshold_type').on('change', function () {
+            var $thresh = $('#gs_threshold');
+            $thresh.val(nextThresholdValue(
+                $(this).val(), previousThresholdType,
+                ($thresh.val() || '').trim(), thresholdDrafts));
+            previousThresholdType = $(this).val();
+            syncBinaryThreshold();
+        });
     });
 
 

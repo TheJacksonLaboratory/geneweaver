@@ -4,6 +4,7 @@ from hashlib import md5
 import json
 import string
 import random
+import decimal
 import psycopg2
 from psycopg2 import Error
 from psycopg2 import sql
@@ -1630,6 +1631,175 @@ def score_type_value_warnings(score_type, values, limit=10):
     ]
 
 
+## G3-823: the edit form's score type and threshold are independent inputs, so a
+## threshold can be saved whose shape does not match its type -- a two-sided
+## "low,high" pair left under a one-sided type being the reported case. The UPDATE
+## itself succeeds (production.geneset.gs_threshold is character varying), but the
+## AFTER UPDATE trigger then runs production.process_thresholds, which casts the
+## threshold. The cast raises, the trigger aborts, the whole save rolls back, and the
+## curator is shown only "An unknown error ocurred."
+ONE_SIDED_THRESHOLD_TYPES = (1, 2)    # P-Value, Q-Value -- a single cutoff
+TWO_SIDED_THRESHOLD_TYPES = (4, 5)    # Correlation, Effect -- a "low,high" range
+
+## PostgreSQL's numeric literal grammar: optional sign, digits with a leading or
+## trailing dot, optional exponent. This is the same regex as
+## migration/119-fix-correlation-effect-abs-threshold.sql, which carries it for the
+## same reason -- it is exactly what cast(... as numeric) and
+## string_to_array(...)::numeric[] accept, so it covers '6.76e-05', '.5', '15.' and
+## '+3.03'.
+##
+## float() is NOT a substitute: it also accepts Python spellings the database rejects
+## ('1_0', '1_000.5'), which would pass straight through to the trigger and abort the
+## save -- the very bug this function exists to prevent.
+PG_NUMERIC_RE = re.compile(r'^\s*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$')
+
+## Matching the grammar is necessary but not sufficient: numeric also has declared
+## limits, and a literal past them raises "value overflows numeric format" -- so the
+## syntax check alone still let the trigger abort. Confirmed on PostgreSQL 15.18:
+## '1e131071' and '1e-16383' store, '1e131072' and '1e-16384' raise.
+## https://www.postgresql.org/docs/15/datatype-numeric.html
+PG_NUMERIC_MAX_INTEGRAL_DIGITS = 131072
+PG_NUMERIC_MAX_FRACTIONAL_DIGITS = 16383
+
+## Spellings numeric accepts besides a plain literal. Deliberately treated as storable
+## and therefore left alone, even though none of them is a sensible cutoff: changing
+## them is a membership decision, not a crash fix. `1 < 'NaN'::numeric` is TRUE in
+## PostgreSQL (NaN sorts above every value), so a NaN cutoff puts every gene *in*
+## threshold -- rewriting it would move published membership, which CLAUDE.md requires
+## be measured and approved on its own rather than folded into a bug fix. Measured
+## while writing this: 0 live gene sets on SQA carry one.
+PG_NUMERIC_SPECIALS = frozenset(
+    ['nan', 'inf', '+inf', '-inf', 'infinity', '+infinity', '-infinity'])
+
+## Per-type fallbacks. These are the values batch upload already uses for a missing or
+## invalid threshold (batch.BatchReader.__parse_score_type) and which
+## uploadfiles.get_default_threshold returns, so a corrected geneset lands exactly
+## where a fresh upload of that type would have -- notably -1000,1000 for Effect, whose
+## ordinary values run well outside Correlation's -1,1.
+##
+## Duplicated rather than imported because the dependency only runs one way:
+## uploadfiles imports geneweaverdb. test_score_type_threshold_shape pins the two
+## together so they cannot drift.
+DEFAULT_THRESHOLDS = {1: '0.05', 2: '0.05', 3: '1', 4: '-1,1', 5: '-1000,1000'}
+
+## Kept as its own name because it is the one every other threshold path already
+## defaults to (recompute_geneset_value_thresholds' own fallback, batch's P/Q default).
+DEFAULT_ONE_SIDED_THRESHOLD = DEFAULT_THRESHOLDS[1]
+
+
+def _within_pg_numeric_bounds(text):
+    """Whether a literal already matching PG_NUMERIC_RE is inside numeric's declared
+    digit limits. Uses Decimal's exponent rather than expanding the number, so a
+    pathological exponent costs nothing to reject."""
+    try:
+        parsed = decimal.Decimal(text.strip()).as_tuple()
+    except (decimal.InvalidOperation, ValueError):
+        return False
+    ## as_tuple gives the coefficient digits and a base-10 exponent, so the digits on
+    ## either side of the point follow directly. Both can go negative (e.g. 1e-20 has
+    ## no integral digits), which is fine -- only the upper bounds matter.
+    integral = len(parsed.digits) + parsed.exponent
+    fractional = -parsed.exponent
+    return (integral <= PG_NUMERIC_MAX_INTEGRAL_DIGITS and
+            fractional <= PG_NUMERIC_MAX_FRACTIONAL_DIGITS)
+
+
+def _stores_as_pg_numeric(text):
+    """Whether ``cast(text as numeric)`` would store without raising -- the one-sided
+    cast. Grammar *and* bounds, plus the special spellings numeric accepts."""
+    if text.strip().lower() in PG_NUMERIC_SPECIALS:
+        return True
+    return bool(PG_NUMERIC_RE.match(text)) and _within_pg_numeric_bounds(text)
+
+
+def _stores_as_pg_numeric_array(text):
+    """Whether ``string_to_array(text, ',')::numeric[]`` would store without raising --
+    the two-sided cast. Every comma-separated component has to store, and the number of
+    them is not this function's business: a one-element array is legal SQL (it just
+    leaves the proc's upper bound NULL).
+    """
+    ## string_to_array('', ',') is the *empty* array -- zero components, nothing to
+    ## cast -- so an unset two-sided threshold does not raise and is not corrected.
+    if text == '':
+        return True
+    return all(_stores_as_pg_numeric(c) for c in text.split(','))
+
+
+def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
+    """
+    Returns ``(threshold, warning)`` for storing ``gs_threshold`` under
+    ``gs_threshold_type``, correcting a threshold the database could not cast (G3-823).
+
+    A threshold is stored as text and cast inside ``process_thresholds``: the one-sided
+    types (P-Value/Q-Value) go through ``cast(gs_threshold as numeric)``, the two-sided
+    ones (Correlation/Effect) through ``string_to_array(gs_threshold, ',')::numeric[]``.
+    Either cast raising aborts the AFTER UPDATE trigger and with it the entire save, so
+    both are checked here, component by component, against what numeric will actually
+    store: the literal grammar (``PG_NUMERIC_RE``) *and* its declared digit limits.
+
+    What is corrected is exactly what the database would reject. The spellings it
+    accepts are left alone even when they make a poor cutoff -- notably ``NaN``, which
+    sorts above every value in PostgreSQL and so puts every gene *in* threshold.
+    Rewriting that would move published membership, and CLAUDE.md requires such a
+    change be measured and approved on its own rather than folded into a crash fix.
+
+    Binary (3) is never corrected: a binary gene set is a membership list and is not
+    thresholded at all (GWC-44), so its threshold is never cast and any value is
+    harmless.
+
+    Two things are deliberately left alone, because the database casts them without
+    raising and changing them would alter signed-off behaviour rather than fix a crash:
+
+    * a single valid number under a two-sided type -- ``string_to_array('0.05', ',')``
+      yields a one-element array, so the proc's ``BETWEEN 0.05 AND NULL`` is merely
+      NULL and nothing is in threshold. That is the pre-existing P-Value -> Correlation
+      result 1.6.0a's C2 test signed off.
+    * an empty two-sided threshold, which casts to the empty array for the same reason.
+
+    A range carries no p-value cutoff, so it is not converted when the type narrows:
+    the low end of "0.0,10.0" would cast fine and so hide the crash, but a cutoff of 0
+    puts every gene out of threshold, and the "-1" of "-1,1" is not a probability at
+    all -- a visible error traded for a silently emptied gene set. The type's
+    established default is used instead and the substitution is returned as a warning,
+    so it is visible rather than silent.
+
+    arguments
+        gs_threshold_type: integer gs_threshold_type (1..5)
+        gs_threshold:      the submitted gs_threshold string
+
+    returns
+        (threshold, warning): the threshold to store, and an advisory warning string,
+        or None when nothing needed correcting
+    """
+    try:
+        ttype = int(gs_threshold_type)
+    except (TypeError, ValueError):
+        ## Not a score type we can reason about -- leave the value alone rather than
+        ## guess; the caller's own int() conversion will surface the problem.
+        return gs_threshold, None
+
+    text = '' if gs_threshold is None else str(gs_threshold)
+
+    if ttype in ONE_SIDED_THRESHOLD_TYPES:
+        shape = 'a single cutoff'
+        storable = _stores_as_pg_numeric(text)
+    elif ttype in TWO_SIDED_THRESHOLD_TYPES:
+        shape = 'a "low,high" range'
+        storable = _stores_as_pg_numeric_array(text)
+    else:
+        return gs_threshold, None
+
+    if storable:
+        return gs_threshold, None
+
+    default = DEFAULT_THRESHOLDS[ttype]
+    name = SCORE_TYPE_NAMES.get(ttype, str(ttype))
+    return default, (
+        'Score type "%s" takes %s, but the threshold read "%s", which the database '
+        'cannot read as a number. It has been set to %s -- edit the threshold field if '
+        'you need a different one.' % (name, shape, gs_threshold, default))
+
+
 def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_threshold):
     """
     Recomputes ``gsv_in_threshold`` for every value of a geneset from its score
@@ -1893,6 +2063,13 @@ def update_geneset(usr_id, form):
     if not gs_threshold:
         gs_threshold = current_version.threshold
 
+    ## G3-823: the score type and the threshold field move independently, so the
+    ## threshold's shape may not match the type being saved. Correct it before the
+    ## write -- process_thresholds runs from an AFTER UPDATE trigger, and a threshold
+    ## it cannot cast takes the whole save down with an unactionable error.
+    gs_threshold, threshold_warning = normalize_threshold_for_type(
+        gs_threshold_type, gs_threshold)
+
     ## Did the score type or threshold actually change? If so we must recompute
     ## the per-value gsv_in_threshold flags below, or tools/views that filter on
     ## them will use stale membership (GWC-42).
@@ -1931,6 +2108,11 @@ def update_geneset(usr_id, form):
 
     result = {'success': True}
 
+    ## G3-823: report a reshaped threshold first -- it explains the cutoff the set
+    ## actually ended up with, which the value-domain warnings below are measured
+    ## against.
+    warnings = [threshold_warning] if threshold_warning else []
+
     ## GWC-42 half-gap (G3-812): the edit page can now change the score type, but
     ## only the upload paths ran the value-domain check. On an edit the user is
     ## reinterpreting values that already exist under a new type, so run the same
@@ -1938,10 +2120,11 @@ def update_geneset(usr_id, form):
     ## surface any warnings. Advisory only -- the change is already saved (this
     ## mirrors the upload behaviour: warn, do not block).
     if score_type_changed:
-        warnings = score_type_value_warnings(
+        warnings += score_type_value_warnings(
             gs_threshold_type, get_geneset_values_for_score_check(gs_id))
-        if warnings:
-            result['warnings'] = warnings
+
+    if warnings:
+        result['warnings'] = warnings
 
     return result
 
