@@ -853,25 +853,42 @@
         // Two rules: only rewrite a value that does not already fit the new type (so
         // Correlation -> Effect keeps its range), and only on an actual change -- never
         // on load, or opening the form would silently rewrite a stored threshold.
+        // PostgreSQL's numeric literal grammar -- the same regex the server checks
+        // (geneweaverdb.PG_NUMERIC_RE) and the same one migration 119 carries.
+        // Number() is not a substitute: it accepts '0x1' and 'Infinity', so '0x1,0x2'
+        // would pass here as a well-formed pair and then abort the save in the
+        // trigger's string_to_array(...)::numeric[] cast.
+        var PG_NUMERIC = /^\s*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$/;
+
+        // Defaults per score type, matching batch upload and
+        // uploadfiles.get_default_threshold. Effect is -1000,1000 -- NOT Correlation's
+        // -1,1: ordinary effect sizes run well outside [-1,1], so borrowing
+        // Correlation's range here would quietly exclude them.
+        var DEFAULT_THRESHOLD = {'1': '0.05', '2': '0.05', '3': '1',
+                                 '4': '-1,1', '5': '-1000,1000'};
+
         function reshapeThresholdForType() {
             var $thresh = $('#gs_threshold');
             var type = $('#gs_threshold_type').val();
             var value = ($thresh.val() || '').trim();
-
-            // Number('') is 0, so the emptiness check has to come first.
-            function isNumber(v) {
-                return v.trim() !== '' && !isNaN(Number(v));
-            }
             var parts = value.split(',');
-            var isPair = parts.length === 2 && isNumber(parts[0]) && isNumber(parts[1]);
+            var fits;
 
-            if (type === '1' || type === '2') {         // P-Value / Q-Value
-                if (!isNumber(value)) { $thresh.val('0.05'); }
-            } else if (type === '3') {                   // Binary -- not thresholded
-                $thresh.val('1');
+            if (type === '1' || type === '2') {          // P-Value / Q-Value
+                fits = PG_NUMERIC.test(value);
             } else if (type === '4' || type === '5') {   // Correlation / Effect
-                if (!isPair) { $thresh.val('-1,1'); }
+                // The form insists on a well-formed pair, which is stricter than the
+                // server -- it only corrects what the database cannot cast, so that it
+                // never changes already signed-off behaviour. Here a range should look
+                // like a range.
+                fits = parts.length === 2 &&
+                       PG_NUMERIC.test(parts[0]) && PG_NUMERIC.test(parts[1]);
+            } else {                                     // Binary -- not thresholded
+                $thresh.val(DEFAULT_THRESHOLD['3']);
+                return;
             }
+
+            if (!fits) { $thresh.val(DEFAULT_THRESHOLD[type]); }
         }
 
         syncBinaryThreshold();

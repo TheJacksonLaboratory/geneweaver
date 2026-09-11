@@ -4,7 +4,6 @@ from hashlib import md5
 import json
 import string
 import random
-import math
 import psycopg2
 from psycopg2 import Error
 from psycopg2 import sql
@@ -1632,35 +1631,94 @@ def score_type_value_warnings(score_type, values, limit=10):
 
 
 ## G3-823: the edit form's score type and threshold are independent inputs, so a
-## two-sided threshold ("low,high") could be saved under a one-sided type. The UPDATE
-## itself succeeds -- production.geneset.gs_threshold is character varying -- but the
-## AFTER UPDATE trigger then runs production.process_thresholds, whose type-1/2 branch
-## evaluates cast(gs_threshold as numeric). The comma raises, the trigger aborts, the
-## whole save rolls back, and the curator is shown only "An unknown error ocurred."
-ONE_SIDED_THRESHOLD_TYPES = (1, 2)
+## threshold can be saved whose shape does not match its type -- a two-sided
+## "low,high" pair left under a one-sided type being the reported case. The UPDATE
+## itself succeeds (production.geneset.gs_threshold is character varying), but the
+## AFTER UPDATE trigger then runs production.process_thresholds, which casts the
+## threshold. The cast raises, the trigger aborts, the whole save rolls back, and the
+## curator is shown only "An unknown error ocurred."
+ONE_SIDED_THRESHOLD_TYPES = (1, 2)    # P-Value, Q-Value -- a single cutoff
+TWO_SIDED_THRESHOLD_TYPES = (4, 5)    # Correlation, Effect -- a "low,high" range
 
-## The cutoff a P-Value/Q-Value set falls back to. Same default as batch upload and as
-## recompute_geneset_value_thresholds' own fallback, so a reshaped geneset lands where
-## a fresh P-Value upload would have.
-DEFAULT_ONE_SIDED_THRESHOLD = '0.05'
+## PostgreSQL's numeric literal grammar: optional sign, digits with a leading or
+## trailing dot, optional exponent. This is the same regex as
+## migration/119-fix-correlation-effect-abs-threshold.sql, which carries it for the
+## same reason -- it is exactly what cast(... as numeric) and
+## string_to_array(...)::numeric[] accept, so it covers '6.76e-05', '.5', '15.' and
+## '+3.03'.
+##
+## float() is NOT a substitute: it also accepts Python spellings the database rejects
+## ('1_0', '1_000.5'), which would pass straight through to the trigger and abort the
+## save -- the very bug this function exists to prevent. It accepts 'inf' and 'nan'
+## too; numeric happens to take those, but a NaN cutoff compares false against every
+## value and would silently empty the gene set, so they are corrected as well.
+PG_NUMERIC_RE = re.compile(r'^\s*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$')
+
+## Per-type fallbacks. These are the values batch upload already uses for a missing or
+## invalid threshold (batch.BatchReader.__parse_score_type) and which
+## uploadfiles.get_default_threshold returns, so a corrected geneset lands exactly
+## where a fresh upload of that type would have -- notably -1000,1000 for Effect, whose
+## ordinary values run well outside Correlation's -1,1.
+##
+## Duplicated rather than imported because the dependency only runs one way:
+## uploadfiles imports geneweaverdb. test_score_type_threshold_shape pins the two
+## together so they cannot drift.
+DEFAULT_THRESHOLDS = {1: '0.05', 2: '0.05', 3: '1', 4: '-1,1', 5: '-1000,1000'}
+
+## Kept as its own name because it is the one every other threshold path already
+## defaults to (recompute_geneset_value_thresholds' own fallback, batch's P/Q default).
+DEFAULT_ONE_SIDED_THRESHOLD = DEFAULT_THRESHOLDS[1]
+
+
+def _casts_to_pg_numeric(text):
+    """Whether ``cast(text as numeric)`` would succeed -- the one-sided cast."""
+    return bool(PG_NUMERIC_RE.match(text))
+
+
+def _casts_to_pg_numeric_array(text):
+    """Whether ``string_to_array(text, ',')::numeric[]`` would succeed -- the two-sided
+    cast. Every comma-separated component has to be castable, and the number of them is
+    not this function's business: a one-element array is legal SQL (it just leaves the
+    proc's upper bound NULL).
+    """
+    ## string_to_array('', ',') is the *empty* array -- zero components, nothing to
+    ## cast -- so an unset two-sided threshold does not raise and is not corrected.
+    if text == '':
+        return True
+    return all(PG_NUMERIC_RE.match(c) for c in text.split(','))
 
 
 def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
     """
     Returns ``(threshold, warning)`` for storing ``gs_threshold`` under
-    ``gs_threshold_type``, correcting a threshold whose *shape* does not match the
-    score type (G3-823).
+    ``gs_threshold_type``, correcting a threshold the database could not cast (G3-823).
 
-    Only the one-sided types (P-Value, Q-Value) are corrected, because they are the
-    ones that abort the write: ``process_thresholds`` casts their threshold straight
-    to numeric, so anything that is not a single finite number -- a "low,high" pair
-    left behind by Correlation/Effect, or any other junk -- rolls the save back. The
-    two-sided types parse with ``string_to_array`` instead, which does not raise.
+    A threshold is stored as text and cast inside ``process_thresholds``: the one-sided
+    types (P-Value/Q-Value) go through ``cast(gs_threshold as numeric)``, the two-sided
+    ones (Correlation/Effect) through ``string_to_array(gs_threshold, ',')::numeric[]``.
+    Either cast raising aborts the AFTER UPDATE trigger and with it the entire save, so
+    both are checked here, component by component, against the grammar numeric actually
+    accepts (``PG_NUMERIC_RE``).
 
-    A range carries no p-value cutoff, so there is nothing to convert: the low end of
-    "0.0,10.0" would silently exclude every gene, and the "-1" of "-1,1" is not a
-    probability at all. The set gets the standard 0.05 default instead, and the caller
-    surfaces the returned warning so the substitution is visible rather than silent.
+    Binary (3) is never corrected: a binary gene set is a membership list and is not
+    thresholded at all (GWC-44), so its threshold is never cast and any value is
+    harmless.
+
+    Two things are deliberately left alone, because the database casts them without
+    raising and changing them would alter signed-off behaviour rather than fix a crash:
+
+    * a single valid number under a two-sided type -- ``string_to_array('0.05', ',')``
+      yields a one-element array, so the proc's ``BETWEEN 0.05 AND NULL`` is merely
+      NULL and nothing is in threshold. That is the pre-existing P-Value -> Correlation
+      result 1.6.0a's C2 test signed off.
+    * an empty two-sided threshold, which casts to the empty array for the same reason.
+
+    A range carries no p-value cutoff, so it is not converted when the type narrows:
+    the low end of "0.0,10.0" would cast fine and so hide the crash, but a cutoff of 0
+    puts every gene out of threshold, and the "-1" of "-1,1" is not a probability at
+    all -- a visible error traded for a silently emptied gene set. The type's
+    established default is used instead and the substitution is returned as a warning,
+    so it is visible rather than silent.
 
     arguments
         gs_threshold_type: integer gs_threshold_type (1..5)
@@ -1677,22 +1735,26 @@ def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
         ## guess; the caller's own int() conversion will surface the problem.
         return gs_threshold, None
 
-    if ttype not in ONE_SIDED_THRESHOLD_TYPES:
-        return gs_threshold, None
+    text = '' if gs_threshold is None else str(gs_threshold)
 
-    try:
-        castable = math.isfinite(float(gs_threshold))
-    except (TypeError, ValueError):
-        castable = False
+    if ttype in ONE_SIDED_THRESHOLD_TYPES:
+        shape = 'a single cutoff'
+        castable = _casts_to_pg_numeric(text)
+    elif ttype in TWO_SIDED_THRESHOLD_TYPES:
+        shape = 'a "low,high" range'
+        castable = _casts_to_pg_numeric_array(text)
+    else:
+        return gs_threshold, None
 
     if castable:
         return gs_threshold, None
 
+    default = DEFAULT_THRESHOLDS[ttype]
     name = SCORE_TYPE_NAMES.get(ttype, str(ttype))
-    return DEFAULT_ONE_SIDED_THRESHOLD, (
-        'Score type "%s" takes a single cutoff, but the threshold read "%s". It has '
-        'been set to %s -- edit the threshold field if you need a different cutoff.'
-        % (name, gs_threshold, DEFAULT_ONE_SIDED_THRESHOLD))
+    return default, (
+        'Score type "%s" takes %s, but the threshold read "%s", which the database '
+        'cannot read as a number. It has been set to %s -- edit the threshold field if '
+        'you need a different one.' % (name, shape, gs_threshold, default))
 
 
 def recompute_geneset_value_thresholds(cursor, gs_id, gs_threshold_type, gs_threshold):
