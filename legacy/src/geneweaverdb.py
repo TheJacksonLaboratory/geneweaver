@@ -4,6 +4,7 @@ from hashlib import md5
 import json
 import string
 import random
+import decimal
 import psycopg2
 from psycopg2 import Error
 from psycopg2 import sql
@@ -1649,10 +1650,26 @@ TWO_SIDED_THRESHOLD_TYPES = (4, 5)    # Correlation, Effect -- a "low,high" rang
 ##
 ## float() is NOT a substitute: it also accepts Python spellings the database rejects
 ## ('1_0', '1_000.5'), which would pass straight through to the trigger and abort the
-## save -- the very bug this function exists to prevent. It accepts 'inf' and 'nan'
-## too; numeric happens to take those, but a NaN cutoff compares false against every
-## value and would silently empty the gene set, so they are corrected as well.
+## save -- the very bug this function exists to prevent.
 PG_NUMERIC_RE = re.compile(r'^\s*[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$')
+
+## Matching the grammar is necessary but not sufficient: numeric also has declared
+## limits, and a literal past them raises "value overflows numeric format" -- so the
+## syntax check alone still let the trigger abort. Confirmed on PostgreSQL 15.18:
+## '1e131071' and '1e-16383' store, '1e131072' and '1e-16384' raise.
+## https://www.postgresql.org/docs/15/datatype-numeric.html
+PG_NUMERIC_MAX_INTEGRAL_DIGITS = 131072
+PG_NUMERIC_MAX_FRACTIONAL_DIGITS = 16383
+
+## Spellings numeric accepts besides a plain literal. Deliberately treated as storable
+## and therefore left alone, even though none of them is a sensible cutoff: changing
+## them is a membership decision, not a crash fix. `1 < 'NaN'::numeric` is TRUE in
+## PostgreSQL (NaN sorts above every value), so a NaN cutoff puts every gene *in*
+## threshold -- rewriting it would move published membership, which CLAUDE.md requires
+## be measured and approved on its own rather than folded into a bug fix. Measured
+## while writing this: 0 live gene sets on SQA carry one.
+PG_NUMERIC_SPECIALS = frozenset(
+    ['nan', 'inf', '+inf', '-inf', 'infinity', '+infinity', '-infinity'])
 
 ## Per-type fallbacks. These are the values batch upload already uses for a missing or
 ## invalid threshold (batch.BatchReader.__parse_score_type) and which
@@ -1670,22 +1687,42 @@ DEFAULT_THRESHOLDS = {1: '0.05', 2: '0.05', 3: '1', 4: '-1,1', 5: '-1000,1000'}
 DEFAULT_ONE_SIDED_THRESHOLD = DEFAULT_THRESHOLDS[1]
 
 
-def _casts_to_pg_numeric(text):
-    """Whether ``cast(text as numeric)`` would succeed -- the one-sided cast."""
-    return bool(PG_NUMERIC_RE.match(text))
+def _within_pg_numeric_bounds(text):
+    """Whether a literal already matching PG_NUMERIC_RE is inside numeric's declared
+    digit limits. Uses Decimal's exponent rather than expanding the number, so a
+    pathological exponent costs nothing to reject."""
+    try:
+        parsed = decimal.Decimal(text.strip()).as_tuple()
+    except (decimal.InvalidOperation, ValueError):
+        return False
+    ## as_tuple gives the coefficient digits and a base-10 exponent, so the digits on
+    ## either side of the point follow directly. Both can go negative (e.g. 1e-20 has
+    ## no integral digits), which is fine -- only the upper bounds matter.
+    integral = len(parsed.digits) + parsed.exponent
+    fractional = -parsed.exponent
+    return (integral <= PG_NUMERIC_MAX_INTEGRAL_DIGITS and
+            fractional <= PG_NUMERIC_MAX_FRACTIONAL_DIGITS)
 
 
-def _casts_to_pg_numeric_array(text):
-    """Whether ``string_to_array(text, ',')::numeric[]`` would succeed -- the two-sided
-    cast. Every comma-separated component has to be castable, and the number of them is
-    not this function's business: a one-element array is legal SQL (it just leaves the
-    proc's upper bound NULL).
+def _stores_as_pg_numeric(text):
+    """Whether ``cast(text as numeric)`` would store without raising -- the one-sided
+    cast. Grammar *and* bounds, plus the special spellings numeric accepts."""
+    if text.strip().lower() in PG_NUMERIC_SPECIALS:
+        return True
+    return bool(PG_NUMERIC_RE.match(text)) and _within_pg_numeric_bounds(text)
+
+
+def _stores_as_pg_numeric_array(text):
+    """Whether ``string_to_array(text, ',')::numeric[]`` would store without raising --
+    the two-sided cast. Every comma-separated component has to store, and the number of
+    them is not this function's business: a one-element array is legal SQL (it just
+    leaves the proc's upper bound NULL).
     """
     ## string_to_array('', ',') is the *empty* array -- zero components, nothing to
     ## cast -- so an unset two-sided threshold does not raise and is not corrected.
     if text == '':
         return True
-    return all(PG_NUMERIC_RE.match(c) for c in text.split(','))
+    return all(_stores_as_pg_numeric(c) for c in text.split(','))
 
 
 def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
@@ -1697,8 +1734,14 @@ def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
     types (P-Value/Q-Value) go through ``cast(gs_threshold as numeric)``, the two-sided
     ones (Correlation/Effect) through ``string_to_array(gs_threshold, ',')::numeric[]``.
     Either cast raising aborts the AFTER UPDATE trigger and with it the entire save, so
-    both are checked here, component by component, against the grammar numeric actually
-    accepts (``PG_NUMERIC_RE``).
+    both are checked here, component by component, against what numeric will actually
+    store: the literal grammar (``PG_NUMERIC_RE``) *and* its declared digit limits.
+
+    What is corrected is exactly what the database would reject. The spellings it
+    accepts are left alone even when they make a poor cutoff -- notably ``NaN``, which
+    sorts above every value in PostgreSQL and so puts every gene *in* threshold.
+    Rewriting that would move published membership, and CLAUDE.md requires such a
+    change be measured and approved on its own rather than folded into a crash fix.
 
     Binary (3) is never corrected: a binary gene set is a membership list and is not
     thresholded at all (GWC-44), so its threshold is never cast and any value is
@@ -1739,14 +1782,14 @@ def normalize_threshold_for_type(gs_threshold_type, gs_threshold):
 
     if ttype in ONE_SIDED_THRESHOLD_TYPES:
         shape = 'a single cutoff'
-        castable = _casts_to_pg_numeric(text)
+        storable = _stores_as_pg_numeric(text)
     elif ttype in TWO_SIDED_THRESHOLD_TYPES:
         shape = 'a "low,high" range'
-        castable = _casts_to_pg_numeric_array(text)
+        storable = _stores_as_pg_numeric_array(text)
     else:
         return gs_threshold, None
 
-    if castable:
+    if storable:
         return gs_threshold, None
 
     default = DEFAULT_THRESHOLDS[ttype]

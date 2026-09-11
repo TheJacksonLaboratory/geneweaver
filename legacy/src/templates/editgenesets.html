@@ -867,33 +867,55 @@
         var DEFAULT_THRESHOLD = {'1': '0.05', '2': '0.05', '3': '1',
                                  '4': '-1,1', '5': '-1000,1000'};
 
-        function reshapeThresholdForType() {
-            var $thresh = $('#gs_threshold');
-            var type = $('#gs_threshold_type').val();
-            var value = ($thresh.val() || '').trim();
-            var parts = value.split(',');
-            var fits;
-
+        function thresholdFitsType(type, value) {
             if (type === '1' || type === '2') {          // P-Value / Q-Value
-                fits = PG_NUMERIC.test(value);
-            } else if (type === '4' || type === '5') {   // Correlation / Effect
+                return PG_NUMERIC.test(value);
+            }
+            if (type === '4' || type === '5') {          // Correlation / Effect
                 // The form insists on a well-formed pair, which is stricter than the
-                // server -- it only corrects what the database cannot cast, so that it
+                // server -- that only corrects what the database cannot store, so it
                 // never changes already signed-off behaviour. Here a range should look
                 // like a range.
-                fits = parts.length === 2 &&
+                var parts = value.split(',');
+                return parts.length === 2 &&
                        PG_NUMERIC.test(parts[0]) && PG_NUMERIC.test(parts[1]);
-            } else {                                     // Binary -- not thresholded
-                $thresh.val(DEFAULT_THRESHOLD['3']);
-                return;
             }
-
-            if (!fits) { $thresh.val(DEFAULT_THRESHOLD[type]); }
+            // Binary is not thresholded at all (GWC-44), so anything fits and nothing
+            // is rewritten -- the field is already read-only and labelled for it.
+            return true;
         }
+
+        // Review of PR #14: reshaping on every change is lossy on a round trip.
+        // Correlation '-0.2,0.2' -> P-Value became '0.05', and going back to Correlation
+        // saw a single number, decided it was not a pair, and overwrote it with the
+        // default '-1,1'. The curator's range was gone, and because '-1,1' IS valid the
+        // server had nothing to warn about -- so the loss was silent and would have
+        // recomputed membership on save. Bank the value per score type and give it back
+        // when that type is reselected; only synthesize a default when there is nothing
+        // banked.
+        //
+        // Kept free of jQuery so the decision can be exercised directly --
+        // tests/db/test_score_type_threshold_shape.py runs this very function under node.
+        function nextThresholdValue(type, previousType, value, drafts) {
+            if (previousType !== undefined && thresholdFitsType(previousType, value)) {
+                drafts[previousType] = value;
+            }
+            if (thresholdFitsType(type, value)) { return value; }
+            var banked = drafts[type];
+            return banked !== undefined ? banked : DEFAULT_THRESHOLD[type];
+        }
+
+        var thresholdDrafts = {};
+        var previousThresholdType = $('#gs_threshold_type').val();
+        thresholdDrafts[previousThresholdType] = ($('#gs_threshold').val() || '').trim();
 
         syncBinaryThreshold();
         $('#gs_threshold_type').on('change', function () {
-            reshapeThresholdForType();
+            var $thresh = $('#gs_threshold');
+            $thresh.val(nextThresholdValue(
+                $(this).val(), previousThresholdType,
+                ($thresh.val() || '').trim(), thresholdDrafts));
+            previousThresholdType = $(this).val();
             syncBinaryThreshold();
         });
     });

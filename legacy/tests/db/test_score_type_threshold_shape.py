@@ -30,8 +30,11 @@ Run from legacy/:  python -m unittest tests.db.test_score_type_threshold_shape
 """
 import inspect
 import io
+import json
 import os
 import re
+import shutil
+import subprocess
 import unittest
 
 from tests.db import _shims
@@ -42,7 +45,10 @@ from src.geneweaverdb import (  # noqa: E402
     DEFAULT_THRESHOLDS,
     ONE_SIDED_THRESHOLD_TYPES,
     PG_NUMERIC_RE,
+    PG_NUMERIC_SPECIALS,
     TWO_SIDED_THRESHOLD_TYPES,
+    _stores_as_pg_numeric,
+    _stores_as_pg_numeric_array,
     normalize_threshold_for_type,
     update_geneset,
 )
@@ -52,15 +58,26 @@ P_VALUE, Q_VALUE, BINARY, CORRELATION, EFFECT = 1, 2, 3, 4, 5
 LEGACY = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 ## Spellings Python's float() or JavaScript's Number() accept but PostgreSQL's numeric
-## does not. Each one silently passed the original float()-based check straight through
-## to the trigger, which is the bug Copilot caught in review of PR #14.
+## does not, plus literals past numeric's declared digit limits. Each one silently
+## passed an earlier version of this check straight through to the trigger -- the
+## float() cases were Copilot's catch, the out-of-bounds ones a later review's.
+## Boundaries measured on PostgreSQL 15.18.
 NOT_PG_NUMERIC = ['1_0', '1_000.5', '0x1', '0b1', '1e', '.', '+', 'junk', 'P < 0.05',
-                  '0.05;DROP', '[]', 'inf', '-inf', 'nan', 'Infinity', 'NaN']
+                  '0.05;DROP', '[]', '1e131072', '1e-16384']
+
+## Accepted by numeric and therefore NOT corrected, even though none is a sensible
+## cutoff. Changing them would move membership on existing gene sets, which CLAUDE.md
+## requires be measured and approved on its own rather than folded into a crash fix --
+## and `1 < 'NaN'::numeric` is TRUE in PostgreSQL, so a NaN cutoff puts every gene *in*
+## threshold rather than emptying the set. 0 live gene sets on SQA carry one.
+PG_ACCEPTED_SPECIALS = ['nan', 'NaN', 'inf', '-inf', 'Infinity', '-Infinity']
 
 ## Everything the numeric cast does accept, including the awkward spellings migration
 ## 119's regex exists to keep: a bare leading dot, a trailing dot, an explicit plus.
 IS_PG_NUMERIC = ['0.05', '0.01', '0', '1', '-1', '+3.03', '.5', '15.', '2.0E-8',
-                 '6.76e-05', '1e-300', '  0.05  ']
+                 '6.76e-05', '1e-300', '  0.05  ',
+                 ## the exact boundaries numeric still stores
+                 '1e131071', '1e-16383']
 
 
 class GrammarTests(unittest.TestCase):
@@ -68,17 +85,36 @@ class GrammarTests(unittest.TestCase):
         for value in IS_PG_NUMERIC:
             self.assertTrue(PG_NUMERIC_RE.match(value), repr(value))
 
-    def test_the_grammar_rejects_what_numeric_rejects(self):
-        for value in NOT_PG_NUMERIC + ['', '   ']:
+    def test_the_grammar_rejects_bad_syntax(self):
+        for value in ['1_0', '1_000.5', '0x1', '0b1', '1e', '.', '+', 'junk', '', '   ']:
             self.assertFalse(PG_NUMERIC_RE.match(value), repr(value))
 
     def test_float_would_not_have_been_a_substitute(self):
         # The point of using a grammar rather than float(): these parse in Python and
         # are rejected by the database, so a float()-based check hands the trigger a
-        # value it cannot cast. Guards against anyone "simplifying" this back.
-        for value in ('1_0', '1_000.5', 'inf', 'nan'):
+        # value it cannot store. Guards against anyone "simplifying" this back.
+        for value in ('1_0', '1_000.5'):
             float(value)  # no exception -- that is the trap
             self.assertFalse(PG_NUMERIC_RE.match(value), repr(value))
+
+    def test_the_grammar_alone_is_not_enough(self):
+        # Syntax is necessary but not sufficient: these match the literal grammar and
+        # still raise "value overflows numeric format", so the check has to consider
+        # numeric's declared digit limits too.
+        for value in ('1e131072', '1e-16384'):
+            self.assertTrue(PG_NUMERIC_RE.match(value), repr(value))
+            self.assertFalse(_stores_as_pg_numeric(value), repr(value))
+
+    def test_the_storable_check_matches_measured_postgres_behaviour(self):
+        # Each expectation here was run against geneweaver-sqa (PostgreSQL 15.18).
+        for value in IS_PG_NUMERIC + PG_ACCEPTED_SPECIALS:
+            self.assertTrue(_stores_as_pg_numeric(value), repr(value))
+        for value in NOT_PG_NUMERIC + ['', '   ']:
+            self.assertFalse(_stores_as_pg_numeric(value), repr(value))
+
+    def test_the_special_spellings_are_listed_lowercase_for_folding(self):
+        self.assertEqual(PG_NUMERIC_SPECIALS,
+                         frozenset(v.lower() for v in PG_NUMERIC_SPECIALS))
 
     def test_the_grammar_matches_the_one_migration_119_uses(self):
         # Both exist to describe the same thing (what numeric will cast). If one is
@@ -235,22 +271,18 @@ class ContractTests(unittest.TestCase):
         # The contract: whatever goes in, what comes out is something the cast for that
         # type accepts. This is the assertion that keeps the trigger from ever aborting
         # a save again.
-        junk = (NOT_PG_NUMERIC + IS_PG_NUMERIC +
+        junk = (NOT_PG_NUMERIC + IS_PG_NUMERIC + PG_ACCEPTED_SPECIALS +
                 ['0.0,10.0', '-1,1', '', None, '   ', ',', '1,', ',1', '0.05,',
-                 '0x1,0x2', '1_0,2', 'a,b', '1,2,3'])
+                 '0x1,0x2', '1_0,2', 'a,b', '1,2,3', '1e131072,1', 'nan,1'])
         for ttype in ONE_SIDED_THRESHOLD_TYPES + TWO_SIDED_THRESHOLD_TYPES:
             for value in junk:
                 threshold, _ = normalize_threshold_for_type(ttype, value)
                 text = '' if threshold is None else str(threshold)
-                if ttype in ONE_SIDED_THRESHOLD_TYPES:
-                    self.assertTrue(PG_NUMERIC_RE.match(text),
-                                    'type %s / %r produced un-castable %r'
-                                    % (ttype, value, threshold))
-                else:
-                    for component in (text.split(',') if text else []):
-                        self.assertTrue(PG_NUMERIC_RE.match(component),
-                                        'type %s / %r produced un-castable %r'
-                                        % (ttype, value, threshold))
+                check = (_stores_as_pg_numeric if ttype in ONE_SIDED_THRESHOLD_TYPES
+                         else _stores_as_pg_numeric_array)
+                self.assertTrue(check(text),
+                                'type %s / %r produced unstorable %r'
+                                % (ttype, value, threshold))
 
     def test_the_defaults_match_the_upload_paths(self):
         # These are duplicated in geneweaverdb because uploadfiles imports it and not
@@ -287,6 +319,148 @@ class ContractTests(unittest.TestCase):
         self.assertIn('Effect', warning)
         self.assertIn('low,high', warning)
         self.assertIn('-1000,1000', warning)
+
+
+class BoundsAndSpecialsTests(unittest.TestCase):
+    """Raised in review of PR #14: matching numeric's grammar is not the same as being
+    storable, and the spellings numeric *does* accept are not ours to rewrite."""
+
+    def test_out_of_bounds_literals_are_corrected(self):
+        for value in ('1e131072', '1e-16384'):
+            for ttype in ONE_SIDED_THRESHOLD_TYPES:
+                threshold, warning = normalize_threshold_for_type(ttype, value)
+                self.assertEqual(threshold, DEFAULT_ONE_SIDED_THRESHOLD,
+                                 'type %s / %r' % (ttype, value))
+                self.assertIsNotNone(warning, 'type %s / %r' % (ttype, value))
+
+    def test_the_boundary_values_are_left_alone(self):
+        # One digit further out raises; these do not. Asserting the boundary rather
+        # than just the failure keeps the bound from being tightened by guesswork.
+        for value in ('1e131071', '1e-16383'):
+            for ttype in ONE_SIDED_THRESHOLD_TYPES:
+                threshold, warning = normalize_threshold_for_type(ttype, value)
+                self.assertEqual(threshold, value, 'type %s / %r' % (ttype, value))
+                self.assertIsNone(warning, 'type %s / %r' % (ttype, value))
+
+    def test_out_of_bounds_components_are_corrected_for_two_sided_types(self):
+        for ttype in TWO_SIDED_THRESHOLD_TYPES:
+            threshold, warning = normalize_threshold_for_type(ttype, '1e131072,1')
+            self.assertEqual(threshold, DEFAULT_THRESHOLDS[ttype])
+            self.assertIsNotNone(warning)
+
+    def test_numerics_own_special_spellings_are_left_alone(self):
+        # NaN and infinity cast fine (measured on 15.18), so correcting them would be a
+        # membership change rather than a crash fix -- and `1 < 'NaN'::numeric` is TRUE,
+        # so a NaN cutoff puts every gene IN threshold. CLAUDE.md wants that measured
+        # and approved separately, so this PR leaves them exactly as they are.
+        for value in PG_ACCEPTED_SPECIALS:
+            for ttype in ONE_SIDED_THRESHOLD_TYPES + TWO_SIDED_THRESHOLD_TYPES:
+                threshold, warning = normalize_threshold_for_type(ttype, value)
+                self.assertEqual(threshold, value, 'type %s / %r' % (ttype, value))
+                self.assertIsNone(warning, 'type %s / %r' % (ttype, value))
+
+
+NODE = shutil.which('node') or shutil.which('nodejs')
+
+JS_FRAGMENTS = (
+    r'var PG_NUMERIC = /.*?/;',
+    r'var DEFAULT_THRESHOLD = \{[\s\S]*?\};',
+    r'function thresholdFitsType[\s\S]*?\n        \}',
+    r'function nextThresholdValue[\s\S]*?\n        \}',
+)
+
+JS_DRIVER = """
+%(code)s
+var drafts = {};
+var prev = %(start_type)s, value = %(start_value)s;
+drafts[prev] = value;
+%(hops)s.forEach(function (t) {
+    value = nextThresholdValue(t, prev, value, drafts);
+    prev = t;
+});
+console.log(JSON.stringify(value));
+"""
+
+
+@unittest.skipUnless(NODE, 'node is not on PATH; the client-side check is skipped')
+class EditFormRoundTripTests(unittest.TestCase):
+    """The client half, exercised for real rather than asserted on source.
+
+    Raised in review of PR #14: reshaping on every score-type change was lossy on a
+    round trip. Correlation '-0.2,0.2' -> P-Value became '0.05', and selecting
+    Correlation again saw a single number, decided it was not a pair and overwrote it
+    with the default '-1,1'. The curator's range was gone -- and because '-1,1' is
+    itself valid, the server had nothing to warn about, so the loss was silent and
+    would have recomputed membership on save.
+
+    nextThresholdValue is deliberately jQuery-free so it can be lifted out of the
+    template and run directly.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        path = os.path.join(LEGACY, 'src', 'templates', 'editgenesets.html')
+        with io.open(path, encoding='utf-8') as fh:
+            cls.src = fh.read()
+
+    def _run(self, hops, start_type, start_value):
+        """Replay a sequence of score-type selections through the template's own
+        function and return the value the threshold field would hold."""
+        code = []
+        for pattern in JS_FRAGMENTS:
+            m = re.search(pattern, self.src)
+            self.assertIsNotNone(
+                m, 'could not lift %r out of editgenesets.html; the client fix has '
+                   'been reshaped and this test needs rewriting' % pattern)
+            code.append(m.group(0))
+
+        driver = JS_DRIVER % {
+            'code': '\n'.join(code),
+            'start_type': json.dumps(start_type),
+            'start_value': json.dumps(start_value),
+            'hops': json.dumps(hops),
+        }
+        out = subprocess.check_output([NODE, '-e', driver], stderr=subprocess.STDOUT)
+        return json.loads(out.decode().strip())
+
+    def test_a_round_trip_restores_the_curators_range(self):
+        # The reviewer's exact scenario.
+        self.assertEqual(
+            self._run(['1', '4'], '4', '-0.2,0.2'), '-0.2,0.2',
+            'a Correlation -> P-Value -> Correlation round trip must give the custom '
+            'range back, not the -1,1 default')
+
+    def test_a_round_trip_restores_a_custom_cutoff(self):
+        self.assertEqual(self._run(['4', '1'], '1', '2.0E-8'), '2.0E-8')
+
+    def test_an_incompatible_threshold_still_gets_a_default(self):
+        # Nothing banked for the new type -- the whole point of the original fix.
+        self.assertEqual(self._run(['1'], '4', '-0.2,0.2'), '0.05')
+        self.assertEqual(self._run(['5'], '1', '0.05'), '-1000,1000')
+        self.assertEqual(self._run(['4'], '1', '0.05'), '-1,1')
+
+    def test_a_compatible_threshold_is_never_rewritten(self):
+        # Correlation -> Effect: both two-sided, so the range carries over untouched.
+        self.assertEqual(self._run(['5'], '4', '-0.2,0.2'), '-0.2,0.2')
+        self.assertEqual(self._run(['2'], '1', '0.01'), '0.01')
+
+    def test_binary_does_not_discard_the_threshold(self):
+        # A binary set is not thresholded (GWC-44), so passing through Binary must not
+        # destroy the value the curator had for the type they came from.
+        self.assertEqual(self._run(['3', '4'], '4', '-0.2,0.2'), '-0.2,0.2')
+
+    def test_the_form_and_the_server_share_one_grammar(self):
+        m = re.search(r'var PG_NUMERIC = /(.*?)/;', self.src)
+        self.assertIsNotNone(m)
+        self.assertEqual(m.group(1), PG_NUMERIC_RE.pattern,
+                         'the form and the server must test the same numeric grammar, '
+                         'or one will accept a threshold the other rejects')
+
+    def test_the_form_and_the_server_share_one_set_of_defaults(self):
+        m = re.search(r'var DEFAULT_THRESHOLD = \{([\s\S]*?)\};', self.src)
+        self.assertIsNotNone(m)
+        found = {int(t): v for t, v in re.findall(r"'(\d)':\s*'([^']*)'", m.group(1))}
+        self.assertEqual(found, DEFAULT_THRESHOLDS)
 
 
 class UpdateGenesetCallsTheNormalizerTests(unittest.TestCase):
