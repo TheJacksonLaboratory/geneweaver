@@ -10,7 +10,84 @@ pre-release and deploys to **SQA only**; a plain version promotes through Stage 
 
 ---
 
-## 1.6.0b — unreleased
+## 1.6.0c — unreleased
+
+A single-fix pre-release: the score-type / threshold-shape crash that test **T3** of the 1.6.0b
+verification pass turned up. A **pre-release, SQA only.**
+
+> **Scope note.** No database migration is required, and no gene set's membership changes. The fix
+> is preventive: 0 of 18,649 live type-1/2 gene sets on SQA held a threshold the database could not
+> store, so nothing was stuck — the write is simply no longer attempted with one.
+
+### Fixed — curation & upload
+
+* **Changing a gene set's score type from Correlation/Effect to P-Value/Q-Value lost the change**
+  (G3-823) — `ae030f83`, `07d8da7d`, `861f093e`. A curator switching from a two-sided type (whose
+  threshold is a `low,high` pair) to a one-sided one (a single number) without also editing the
+  threshold field got *"An unknown error ocurred."* and the save was discarded. The `UPDATE` itself
+  is legal — `gs_threshold` is `character varying` — but the AFTER UPDATE trigger then runs
+  `process_thresholds`, which casts the threshold: `cast(gs_threshold as numeric)` for the one-sided
+  types, `string_to_array(gs_threshold, ',')::numeric[]` for the two-sided ones. The comma raises,
+  the trigger aborts, and the whole statement rolls back — so the row never reached an inconsistent
+  state; the defect was that the write was attempted at all with a threshold whose shape did not
+  match the new type.
+
+  Fixed on both sides. `geneweaverdb.normalize_threshold_for_type` corrects, before the write, any
+  threshold the database would refuse to store — checked per component against PostgreSQL's numeric
+  literal grammar (the regex migration 119 already carries) *and* numeric's declared digit limits.
+  `editgenesets.html` reshapes the field when the score type changes, so the requirement is visible
+  before saving rather than corrected behind the curator, and it banks the previous value per score
+  type so a round trip gives it back.
+
+  A range carries no p-value cutoff, so it is not converted: reusing the low end of `0.0,10.0` would
+  cast fine and hide the crash, but a cutoff of 0 puts every gene out of threshold — a visible error
+  traded for a silently emptied gene set. The type's established default is used instead (`0.05` for
+  P/Q, `-1,1` for Correlation, **`-1000,1000` for Effect**, matching `batch.py`'s
+  `__parse_score_type` and `uploadfiles.get_default_threshold`), and the substitution is reported
+  through the `result['warnings']` channel G3-812 added, so the curator is told the cutoff they asked
+  for was not the one saved.
+
+  Pre-existing, not a 1.6.0b regression: the path arrived with `cedfee9e` (GWC-42, which made score
+  type editable). 1.6.0a's C2 test missed it by exercising P-Value → Correlation, the direction that
+  survives because `string_to_array('0.05', ',')` yields a one-element array and
+  `BETWEEN 0.05 AND NULL` is merely NULL.
+
+### Testing & developer tooling
+
+* `legacy/tests/db/test_score_type_threshold_shape.py` — **39 tests**, added to the CI module list;
+  suite **189**. The contract test is the load-bearing one: over a corpus of junk, whatever goes in,
+  what comes out for a given score type is something that type's cast accepts.
+* The client half is **executed, not inspected**. The decision is factored out of the jQuery handler
+  as a jQuery-free `nextThresholdValue()`, and the tests lift it out of the template and run it under
+  `node`, skipping cleanly where node is absent. Two further tests pin the form's grammar and its
+  per-type defaults to the server's, so the two halves cannot drift.
+* `normalize_threshold_for_type` was validated probe-by-probe against `geneweaver-sqa`
+  (PostgreSQL 15.18) — 24 inputs, 0 mismatches with what the server actually does, including the
+  exact bounds (`1e131071` stores, `1e131072` raises; `1e-16383` stores, `1e-16384` raises).
+
+### Known issues
+
+* **A `NaN` threshold puts every gene in threshold.** `1 < 'NaN'::numeric` is TRUE in PostgreSQL, and
+  `numeric` accepts both `NaN` and `Infinity`, so such a threshold casts cleanly and is left
+  untouched by the fix above. Correcting it would move published membership, which is a
+  curation-semantics decision rather than a crash fix and wants its own measurement and approval.
+  Measured while deciding: **0 live gene sets on SQA** carry one; Stage and Prod are not readable
+  from here (RBAC). Not yet filed.
+* Two review findings on the fix were real holes and are worth knowing about if this code is touched
+  again: `float()` is not numeric's grammar (`float('1_0')` is `10.0`, `cast('1_0' as numeric)`
+  raises), and JavaScript's `Number()` accepts `0x1`, so `0x1,0x2` read as a well-formed pair. Both
+  are closed, and both have tests that fail if the checks are "simplified" back.
+
+### Version
+
+* `legacy/pyproject.toml` 1.6.0b → **1.6.0c**. A pre-release (the letter is what marks it), so the
+  release workflow deploys to **SQA only**. Release with `git tag v1.6.0c && git push origin
+  v1.6.0c` on the commit carrying this bump — the bump alone does not release. The app footer will
+  read `1.6.0c0`; Poetry normalises the version, exactly as `1.6.0b` rendered `1.6.0b0`.
+
+---
+
+## 1.6.0b — released to SQA 2026-09-08
 
 The post-sign-off fix set. Everything here was found **after** 1.6.0a was signed off on SQA — six
 findings raised while running the §6 verification list, two more just after, plus a fourth
@@ -178,6 +255,10 @@ threshold divergence found in code review. A **pre-release, SQA only.**
   release workflow deploys to **SQA only**. Release with `git tag v1.6.0b && git push origin
   v1.6.0b` on the commit carrying this bump — the bump alone does not release. The app footer will
   read `1.6.0b0`; Poetry normalises the version, exactly as `1.6.0a` rendered `1.6.0a0`.
+* **Released**: tagged `v1.6.0b` on `b9ecbe0b` (the PR #13 merge) and deployed to SQA on
+  **2026-09-08 14:35 UTC** (run `33897407803`), with Stage, Prod and the GitHub release draft
+  skipped as designed. The SQA deploy sat on its approval gate for four days between the tag and
+  the rollout.
 
 ---
 
