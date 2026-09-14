@@ -8,9 +8,23 @@ Changes to the legacy GeneWeaver application (`legacy/`), released from the mono
 The tag must match `legacy/pyproject.toml` or the run fails. A version containing a letter is a
 pre-release and deploys to **SQA only**; a plain version promotes through Stage and Prod.
 
+⚠️ **The letter is a PEP 440 pre-release segment, not a free-form counter, and it runs out at `c`.**
+Python normalises `a`→alpha, `b`→beta and `c`→**`rc`**, so the installed version does not always
+read back the way it was written:
+
+| written | installed / footer |
+| --- | --- |
+| `1.6.0a` | `1.6.0a0` |
+| `1.6.0b` | `1.6.0b0` |
+| `1.6.0c` | **`1.6.0rc0`** — `c` is the canonical abbreviation for `rc` |
+| `1.6.0d` | **invalid** — `InvalidVersion`; there is no `d` segment |
+
+So `1.6.0c` is the last pre-release available in this scheme. A fourth needs an explicit release
+candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in the release image.
+
 ---
 
-## 1.6.0c — unreleased
+## 1.6.0c — released to SQA 2026-09-14
 
 A single-fix pre-release: the score-type / threshold-shape crash that test **T3** of the 1.6.0b
 verification pass turned up. A **pre-release, SQA only.**
@@ -82,8 +96,18 @@ verification pass turned up. A **pre-release, SQA only.**
 
 * `legacy/pyproject.toml` 1.6.0b → **1.6.0c**. A pre-release (the letter is what marks it), so the
   release workflow deploys to **SQA only**. Release with `git tag v1.6.0c && git push origin
-  v1.6.0c` on the commit carrying this bump — the bump alone does not release. The app footer will
-  read `1.6.0c0`; Poetry normalises the version, exactly as `1.6.0b` rendered `1.6.0b0`.
+  v1.6.0c` on the commit carrying this bump — the bump alone does not release.
+* **The app footer reads `1.6.0rc0`, not `1.6.0c0`.** PEP 440 treats `c` as the canonical
+  abbreviation for `rc`, so the normalisation that turned `1.6.0a` into `1.6.0a0` and `1.6.0b` into
+  `1.6.0b0` turns `1.6.0c` into `1.6.0rc0`. The release is unaffected — the gate compares the tag
+  against `legacy/pyproject.toml`, which holds the un-normalised `1.6.0c` — but anyone checking
+  which build SQA is on should expect `1.6.0rc0`. Confirmed on the deployed 1.6.0c image. See the
+  note at the top of this file: `1.6.0d` would be rejected outright, so this scheme ends here.
+* **Released**: tagged `v1.6.0c` on `94490332` (the PR #15 merge) and deployed to SQA on
+  **2026-09-14** (run `34855953334`), with Stage, Prod and the GitHub release draft skipped as
+  designed. Verified on the running pod: image `…:9449033`, both containers ready at 0 restarts,
+  the two changed runtime files byte-identical to `main`, and `normalize_threshold_for_type`
+  exercised inside the deployed image across the corrected, untouched and left-alone cases.
 
 ---
 
