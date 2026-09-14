@@ -7,4 +7,36 @@ patchesStrategicMerge:
   - persistent-volume-claim.yaml
   - configmap.yaml
   - ingress.yaml
-  - deployment.yaml
+
+# Prod is the ONLY environment with HorizontalPodAutoscalers (measured 2026-09-14):
+#
+#   geneweaver-legacy        min 2 / max 8
+#   geneweaver-legacy-tools  min 2 / max 10
+#
+# They own spec.replicas, so declaring a value here only fights them: each apply
+# nudges the Deployment toward the manifest number until the autoscaler reconciles it
+# back. This overlay used to patch the web Deployment to `replicas: 4` -- a value prod
+# has never actually run, because the HPA has been holding it at its floor of 2 -- and
+# it patched nothing for the worker, so the worker inherited the base default of 1,
+# one below the HPA's minimum.
+#
+# The base keeps declaring replicas for the environments that have no autoscaler
+# (dev, sqa and stage all run 1). Prod removes the field outright so the HPA is the
+# only writer and an apply cannot move the count at all.
+#
+# NOTE: the HPAs exist only in the cluster. They are in no repository and nothing
+# reconciles them, so deleting or recreating the namespace would silently lose them.
+# Recorded in the release plan, docs/ci-cd/G3-781_LEGACY_RELEASE_PLAN.md section 4.3.1.
+patches:
+  - target:
+      kind: Deployment
+      name: geneweaver-legacy
+    patch: |-
+      - op: remove
+        path: /spec/replicas
+  - target:
+      kind: Deployment
+      name: geneweaver-legacy-tools
+    patch: |-
+      - op: remove
+        path: /spec/replicas
