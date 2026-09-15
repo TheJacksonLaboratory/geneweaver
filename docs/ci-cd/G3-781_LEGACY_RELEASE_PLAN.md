@@ -335,7 +335,34 @@ Either way: **do not approve any deploy job until §4.3 and §5 are done for tha
 
    **Verified state (2026-09-04):** dev has them (generated 2026-06-30); **SQA generated and verified
    2026-09-04**; **Stage and Prod have neither** and need the step below. Tracked on G3-817, and
-   recorded as a deployment step on G3-781.
+   recorded as a deployment step on G3-781. *Re-checked 2026-09-15:* SQA's survived the 1.6.0c
+   rollout (still dated 3 Sep — the PVC design working as intended); Stage and Prod still have
+   neither, and **cannot** until they are deployed — see the ordering warning below.
+
+   ⚠️ **ORDERING — corrected 2026-09-15. This step cannot run before the deploy, despite sitting
+   under §4.3 "Pre-flight checks".** The generators ship **in the monorepo-built image**, so an
+   environment still running the standalone build has nothing to execute. Measured on stage
+   (`geneweaver-legacy-tools:555b16a-dirty` / `geneweaver-legacy:59d15fb-dirty`):
+
+   | | stage — standalone images | SQA — monorepo image |
+   |---|---|---|
+   | tools pod `TOOLS` | **empty** | `{"tool_dir":"/app/tools-worker/tools","results":"/var/geneweaver/results"}` |
+   | tools pod `APPLICATION_RESULTS` | **empty** | `/var/geneweaver/results` |
+   | `file_generator.o` | **absent** | `/app/tools-worker/tools/TOOLBOX/distribution_generator/file_generator.o` |
+   | `distribution_generator.o` | **absent** | present alongside it |
+
+   Stage's *web* pod does have `APPLICATION_RESULTS=/var/geneweaver/results`, but no binaries either,
+   so there is no route to generate them on the current build. No permission grant changes this.
+
+   SQA is the working precedent and already followed the workable order: deployed 2026-08-24, `.dat`
+   files generated 2026-09-04. So the real per-environment sequence is **migrations → deploy →
+   generate the caches → verify**, and this item belongs with §6's post-deploy verification. It is
+   left here so the procedure stays next to its context, but **do not schedule it before the
+   environment's deploy** — the attempt simply fails with "not found".
+
+   Because the files live on the results PVC and survive pod replacement (re-confirmed on SQA after
+   the 1.6.0c rollout — still dated 3 Sep), generating them once per environment is enough; they do
+   not need redoing per release.
 
    Per environment, in that namespace's `geneweaver-legacy-tools` pod — all three binaries are
    already built in the release image:
@@ -436,6 +463,83 @@ kubectl -n <ns> get deploy -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{
   per-env migration timestamps on G3-769 and G3-776.
 
 ## 5. Database work
+
+### 5.0 Measured state per environment — 2026-09-15
+
+Read from the live databases, not inferred from ticket scope (the guardrail in `CLAUDE.md` exists
+because that inference was wrong once already on dev/sqa). Run via the Cloud SQL Auth proxy: the
+`geneweaver-legacy` pods carry **no psql client**, so the `.sql` files need the proxy route or
+psycopg2, not `kubectl exec … psql`.
+
+| | 117 | 118 | 119 | pre-state captured |
+|---|---|---|---|---|
+| SQA | applied | applied | applied | — |
+| **stage** | **applied 2026-09-15** | **applied 2026-09-15** | **applied 2026-09-15** | yes |
+| **prod** | pending | pending | pending | **yes** |
+
+**Baselines as measured before applying** (each capture's row count matched its baseline exactly):
+
+| | stage | prod |
+|---|---|---|
+| 117 — binary rows out of threshold | 5,883 rows / 19 sets | 9,859 rows / 54 sets |
+| 118 — miscounted gene sets | 796 | 28,648 |
+| 119 — type-4/5 rows on the wrong rule | 364,237 | 103,492 |
+| `proc_patched` before | false | false |
+| `ABS(` in live proc before | true | true |
+
+Prod's 117 population is the sharper one: all of the top 20 are `normal` status and created **2025
+or 2026**, almost all 100% out of threshold — live research gene sets returning nothing in every
+tool, with the unpatched procedure adding more on each binary upload.
+
+**Rollback tables** (keep them; they are the rollback, and they are small):
+
+| table | stage | prod | note |
+|---|---|---|---|
+| `production.gwc44_117_backfill_audit` | 5,883 · 352 kB | 9,859 · 584 kB | **§5.1 capture — 117 creates no audit of its own** |
+| `production.gwc34_118_gs_count_audit` | 796 | — | created by the migration, in its transaction |
+| `production.g3809_119_threshold_abs_audit` | 364,237 | — | created by the migration, in its transaction |
+| `production.prestate_118_gs_count_20260915` | 796 · 48 kB | 28,648 · 1,688 kB | independent snapshot |
+| `production.prestate_119_in_threshold_20260915` | 364,237 · 21 MB | 103,492 · 6,088 kB | independent snapshot |
+
+Total capture cost: **~21 MB / 13s on stage, ~8 MB / 17s on prod.** Size and time are both
+non-issues, so there is no reason to skip the capture. **Do not** pre-create the two tables the
+migrations build themselves — they carry explicit DDL and `ON CONFLICT` keys, and a differently
+shaped table of the same name makes `CREATE TABLE IF NOT EXISTS` skip and the insert fail. Hence
+the separately named `prestate_*` snapshots.
+
+⚠️ **Full-table copies are the wrong tool here.** `extsrc.geneset_value` on prod is 42.8M rows /
+10 GB heap (20 GB with indexes), and the instance is 828 GB with its top eight databases already
+totalling ~778 GB. `storageAutoResize` is on with no limit so it would not fail — it would just
+grow the disk. The affected row sets are in the thousands, so targeted captures cover the rollback
+at a ten-thousandth of the cost.
+
+⚠️ **Cloud SQL's own backups are not a usable rollback for this.**
+`pointInTimeRecoveryEnabled: false`, so the finest granularity is the daily 08:00 snapshot (7
+retained) — up to 24h of loss. Worse, a Cloud SQL restore is **instance-wide**: `geneweaver-stage`
+and `geneweaver-prod` share `jax-prod-10-promoted-owl` with `metasoft-prod`, `mpd-prod` and
+`geneweaver-aon-prod`, so restoring to undo a geneweaver migration would roll back other teams'
+production data. That also means **stage is a rehearsal, not a safety net** — the targeted audit
+tables are the real rollback in both environments.
+
+#### A fourth drift, found while verifying — stage only, and NOT from these migrations
+
+Of the type-1/2 rows sitting exactly on their cutoff:
+
+| | on-cutoff rows | flagged in-threshold |
+|---|---|---|
+| SQA | 28,205 | 0 |
+| **stage** | 6,386 | **6,200** |
+| prod | 14,610 | 0 |
+
+The procedure is exclusive everywhere (`gsv.gsv_value<cast(gsvt.gs_threshold as numeric)`), so all
+of those should be *out*. Stage's 6,200 are stored membership written by the older inclusive Python
+paths (`<=`, corrected in 1.6.0b) that `process_thresholds` has never recomputed — it only re-runs
+on upload or a threshold change. **None of 117/118/119 touches type-1/2** (117 filters
+`gs_threshold_type = 3`, 118 writes only `gs_count`, 119 filters `IN (4,5)`), so this predates them.
+
+It matters because any threshold edit on those sets fires the trigger and silently flips 6,200 rows
+out of threshold. **Prod and SQA are clean**, so this is a stage data anomaly and a G3-819
+follow-up, not part of this release.
 
 ### 5.1 Migration 117 (GWC-44) — required in SQA, Stage, Prod
 
@@ -538,6 +642,8 @@ approving each environment's deploy.
   already cached. Not a migration and not shipped in the image, so it rides with neither: it is a
   manual per-environment step. **Done on dev and SQA; Stage and Prod still need it.** Full procedure,
   the one-flag-per-invocation and GCSFuse caveats, and the end-to-end check are in **§4.3.3 item 3**.
+  ⚠️ It must run **after** that environment's deploy, not before — the generators ship in the
+  monorepo-built image, so there is nothing to execute on a standalone build (§4.3.3 item 3).
 
 ### 5.4 Migration 118 (GWC-34) — `gs_count` backfill, recommended in SQA, Stage, Prod
 
