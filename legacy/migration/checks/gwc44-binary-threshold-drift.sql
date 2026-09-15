@@ -87,7 +87,7 @@ SELECT pg_get_functiondef('production.process_thresholds(bigint)'::regprocedure)
        LIKE '%WHEN gs_threshold_type=3 THEN%TRUE%' AS proc_patched;
 
 \echo
-\echo ==== 3. Has migration 117's backfill been captured/run on this database?
+\echo ==== 3. Has the migration 117 backfill been captured/run on this database?
 -- The audit table is resolved when the statement is parsed, so it cannot simply be
 -- SELECTed behind a to_regclass() guard -- that still errors when the table is absent,
 -- which is precisely the case being tested. Hence the dynamic lookup. (The audit table is
