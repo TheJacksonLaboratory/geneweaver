@@ -260,7 +260,7 @@ Either way: **do not approve any deploy job until §4.3 and §5 are done for tha
    | env | Deployment | replicas | image | created |
    |---|---|---|---|---|
    | dev | `geneweaver-legacy-tools` | 1 | `docker-test/…:d65f790` | 2026-06-29 |
-   | sqa | `geneweaver-legacy-tools` | 1 | `docker-dev/…:555b16a-dirty` | 2024-06-18 |
+   | sqa | `geneweaver-legacy-tools` | 1 | `docker/geneweaver/…:9449033` — **monorepo-built, as of 2026-09-14** | 2024-06-18 |
    | stage | `geneweaver-legacy-tools` | 1 | `docker/…:555b16a-dirty` | 2024-06-18 |
    | prod | `geneweaver-legacy-tools` | **2** | `docker/…:555b16a-dirty` | 2024-06-18 |
 
@@ -270,26 +270,51 @@ Either way: **do not approve any deploy job until §4.3 and §5 are done for tha
    step is needed. No other GeneWeaver worker Deployment exists in any namespace (the other
    `*-worker` deployments belong to unrelated services).
 
-   This also corrects the assumption above: the standalone repo ships no tools-worker manifests, yet
-   all four namespaces have one — so they were created by some other route (most likely a manual
-   apply when the worker was split out in June 2024). Nothing has been reconciling them since.
+   **Update 2026-09-14: SQA already runs the monorepo-built worker** (`…/geneweaver/geneweaver-legacy-tools:9449033`,
+   the same commit as its web container), so "the first time the monorepo manages the worker in a
+   shared environment" has already happened — it has been through 1.6.0a, 1.6.0b and 1.6.0c without
+   incident. Stage and prod are the remaining holdouts, still on the 2024 image and from a
+   **different registry path** (`docker/geneweaver-legacy-tools`, with no `geneweaver/` segment),
+   which is worth knowing for rollback: the old image is a different repository, not an earlier tag
+   of the same one.
 
-   ⚠️ **New risk this surfaced — the deploy will change replica counts in prod.** The manifests do
-   not match what is live:
+   This also corrects the assumption above: the `geneweaver-legacy` repo ships no tools-worker
+   manifests, yet all four namespaces have one. The deployments' own
+   `kubectl.kubernetes.io/last-applied-configuration` answers where they came from — prod's web and
+   worker carry **different `skaffold.dev/run-id` labels**, so they were applied by two separate
+   skaffold runs, i.e. the worker came from the separate `geneweaver-legacy-tools` repo rather than
+   by hand. What that manifest declared is also instructive: **web `replicas: 4`, worker
+   `replicas: 6`** — neither of which prod runs, for the reason in the corrected note below.
 
-   ```
-   base/deployment.yaml               replicas: 1     base/tools-worker-deployment.yaml  replicas: 1
-   overlays/…--prod/deployment.yaml   replicas: 4     (no overlay patches the tools-worker)
-   live prod                          web = 2         tools = 2
-   live stage                         web = 1         tools = 1
-   ```
+   ⚠️ ~~**New risk this surfaced — the deploy will change replica counts in prod.**~~
+   **CORRECTED 2026-09-14 — prod replicas are owned by HorizontalPodAutoscalers, and this warning
+   was wrong.** It read the manifests against live `spec.replicas` without checking what *writes*
+   that field. Measured:
 
-   Deploying prod as configured would take **web 2 → 4** and **tools-worker 2 → 1** — silently
-   halving analysis-job throughput, because no overlay patches the worker's replica count and the
-   base default of 1 wins. Decide before approving Prod: either add a `replicas: 2` (or higher)
-   patch for `geneweaver-legacy-tools` to the prod overlay, or accept the reduction deliberately.
-   Confirm the web 2 → 4 increase is intended too — the overlay asks for 4, but prod has been
-   running 2, so the standalone repo has not been applying that value.
+   | env | HPA on `geneweaver-legacy` | HPA on `geneweaver-legacy-tools` | live web / tools |
+   |---|---|---|---|
+   | dev | none | none | 1 / 1 |
+   | sqa | none | none | 1 / 1 |
+   | stage | none | none | 1 / 1 |
+   | **prod** | **min 2 / max 8** | **min 2 / max 10** | 2 / 2 |
+
+   So prod's 2/2 is the autoscaler's floor at current load, not a manifest value — and the
+   overlay's `replicas: 4` is a number prod has **never run**. The feared "tools-worker 2 → 1,
+   silently halving analysis-job throughput" cannot persist: the HPA reconciles it straight back to
+   its minimum of 2. The residual is a transient dip while an apply nudges the count toward the
+   manifest value, which corrects itself.
+
+   **Fixed properly rather than papered over.** The original suggestion here — add a `replicas: 2`
+   patch for the worker — is the wrong shape: a declared value fights the autoscaler on every
+   apply. The prod overlay now **removes** `spec.replicas` from both Deployments with a JSON patch,
+   so the HPA is the only writer and an apply cannot move the count. The base keeps declaring
+   replicas for the environments that have no autoscaler. Verified with `kubectl kustomize`: prod
+   renders both Deployments with no `replicas` field, while dev, sqa and stage still render 1.
+
+   ⚠️ **The HPAs exist only in the cluster.** They are in no repository — not the monorepo, not the
+   retired standalone repos — and nothing reconciles them, so deleting or recreating a namespace
+   would silently lose them and drop prod to the manifest's (now absent) value. Capturing them as
+   manifests is worth doing, but it is a separate change from this release.
 
 2. **TOOLBOX binaries actually built.** `legacy/tools-worker/Dockerfile` wraps each `make` in
    `|| echo "WARN: make failed in $d"` — exactly the swallow-the-build-failure pattern CLAUDE.md
@@ -747,6 +772,25 @@ Deletion=Disabled), the `f11ae9fb` XSS render, the three GWC-34 write paths, the
 GWC-44 binary upload, and one tool per family for tools-worker set 2. §8.5 (who
 approves) is still unresolved, and this is the work it gates.
 
+#### Addendum — checked 2026-09-04
+
+Two things changed on SQA after the 2026-08-31 pass, and one was verified end-to-end.
+Everything above still stands; SQA still runs `…:3265bff` (1.6.0a).
+
+| Row | Result | Evidence |
+|---|---|---|
+| **JaccardSimilarity distribution caches** (G3-817) — was the one open item from the 08-31 pass | **PASS — provisioned and verified end-to-end** | `genes.dat` (208,353,110 B / 35,901,978 lines) and `homology.dat` (1,715,428 B / 137,032 lines) generated into `$APPLICATION_RESULTS/dist_data` on the SQA results PVC. Staged to `/tmp` via `GW_DIST_DATA_DIR` and bulk-copied per the GCSFuse guardrail: `-h` 2s, `-g` 1m48s, copy 4s. Verified byte-for-byte after the copy **and** read back off the mount (head *and* tail). End-to-end: `./distribution_generator.o 3 3 False False` on a pair with no cached rows → exit 0, no `genes.dat failed to open.`, and it wrote `(3, 3, FALSE) → coef 0.0, freq 500, p 1.0`; table 36,314 → 36,315 |
+| **P/Q threshold boundary** (G3-809 item 3 / G3-819) | **PASS — exclusive, as intended** | Live `process_thresholds` type-1/2 branch reads `gsv_value<cast(...)` — exclusive. Of the 28,205 type-1/2 rows sitting exactly on their cutoff across 601 gene sets, **0 are in-threshold**, so SQA matches Prod's long-standing behaviour. No migration was applied and none is needed; the divergent Python paths were corrected instead (see §5.6). `production.g3809_120_pq_boundary_audit` correctly absent |
+| **Migration 119 (G3-809 Correlation/Effect)** | **PASS** | Applied and fully backfilled: no `ABS(` in the live procedure, type-4/5 reads signed `BETWEEN`, `g3809_119_threshold_abs_audit` present at 111,493 rows, and zero type-4/5 rows still disagreeing |
+
+⚠️ ~~**Not on SQA yet.**~~ **Superseded 2026-09-08** — this warning described the
+post-sign-off fixes (G3-809 code half, G3-810, G3-811, G3-812, G3-814, G3-815,
+G3-816, G3-818, and the P/Q code alignment) as dev-only, pending a PR #12 merge and
+a new SQA release. All three have since happened: PR #12 and PR #13 merged, 1.6.0b
+was tagged and released, and SQA has run it since 2026-09-08. The verification pass
+it asked for is the next addendum. The rows *above* still describe the 1.6.0a build
+and are left as the record of that pass.
+
 **Two corrections to earlier findings:**
 
 1. **`genes.dat` / `homology.dat` (§4.3.3) — filed as G3-817 and since RESOLVED on
@@ -769,6 +813,121 @@ approves) is still unresolved, and this is the work it gates.
    guarded in the shared sink so an absent term degrades to the no-results state;
    the same missing-field crash in `int(form.get('pagination_page'))` was fixed with
    it.
+
+#### Addendum — 1.6.0b on SQA; verification pass 2026-09-08/09
+
+**The release shipped.** `v1.6.0b` is tagged on `b9ecbe0`, the PR #13 merge commit;
+PR #12 and PR #13 both merged 2026-09-04 16:48 UTC. The `Legacy — Release (SQA →
+Stage → Prod)` run succeeded: tag-matches-version verified, legacy unit tests green,
+image built, **SQA deploy only** — Stage, Prod and the GitHub release draft all
+skipped, which is correct, because the letter suffix marks 1.6.0b a pre-release. The
+SQA deploy then sat on its approval gate for four days and was approved **2026-09-08
+14:35 UTC**. SQA runs `geneweaver-legacy:b9ecbe0` on both containers.
+
+**No database work for this release.** Migration 119 was already applied to SQA and
+there is no migration 120 (§5.6). Re-measured after the deploy: nothing moved. So
+this pass is entirely about code behaviour, not data correction.
+
+**Machine-verifiable rows — 7 of 7 PASS** (read-only, against the running pods and
+`geneweaver-sqa`, 2026-09-08): build integrity (all six changed runtime files
+byte-identical to `main`, app reports `1.6.0b0`, both containers ready at **0
+restarts** — which matters now that a failed cold index build is fatal); G3-816
+authz (all three formerly-ungated endpoints refuse with zero rows, including with
+stacked SQL in `search[value]`); G3-818 (`POST /searchFilter.json` without
+`searchbar` → **200**, was a 500); G3-810 (migration 117 drift check 0 / 0,
+`proc_patched` true); G3-819 (exclusive in the code *and* the procedure, and the
+28,205 on-cutoff rows across 601 gene sets are unchanged — no membership moved);
+G3-817 (`genes.dat` / `homology.dat` survived the pod replacement, the PVC-backed
+design working as intended); and G3-814 in part (delta loop running under
+`TZ=America/New_York`, new pod wrote its own keyed watermark `geneset:9d296672`).
+
+**Curator tests — 6 of 6 PASSED** (2026-09-09): the P/Q boundary in the UI, the
+G3-815 tool-output fixture (**109 → 115**, closing the 1.6.0a C5 finding, with
+`GS408076` kept as the before-picture), the batch P/Q threshold and its
+malformed-header warning, the score-type value-domain check, search freshness on
+both the create and the edit half, and **T6** the admin-viewer regression half.
+
+T6 in detail, since it is the one G3-816 gates: all **eleven** viewers load with
+rows, **sorting** works (the sharp end of the fix — `order[0][column]` is now an
+index into the validated column list rather than a name spliced into `ORDER BY`),
+**Add / Edit / Delete** all work on `odestatic.news_feed`, and a **`Behcet's`**
+search returns a result rather than erroring, on `production.geneset` where the old
+no-op `"\'"` escape used to make writes fail silently. Every viewer loading also
+means none of the three rejection paths (`Unknown table`, `Unknown column`,
+`No columns requested`) fired for any of the eleven tables — which had been
+predicted mechanically before the session and then held live.
+
+The Delete is worth recording specifically: it required `get_primary_keys` to
+resolve the **bare** name `news_feed` through `::regclass` on `search_path` — not
+the schema the allowlist had just validated — and return `nf_id`. That is the path
+whose failure mode is a 500 rather than a clean refusal (it returns the exception
+*string*, which the caller then iterates character by character), so it is the first
+thing to re-check in an environment whose `search_path` differs from SQA's
+`"$user", public, production, extsrc, odestatic, curation`.
+
+**Two pre-existing defects found and filed:** **G3-823** (High) — changing a score
+type two-sided → one-sided without also editing the threshold field leaves a
+`low,high` string under a one-sided type, and `process_thresholds`'
+`cast(gs_threshold as numeric)` aborts the write with only "An unknown error
+ocurred." shown; it arrived with GWC-42 and 1.6.0a's C2 test missed it by going the
+surviving direction. **G3-824** (Low) — twelve admin routes return 500 rather than
+the Forbidden page when not logged in, because `before_request` sets
+`flask.g.user = None` and `"user" in flask.g` is then true. Neither is a 1.6.0b
+regression.
+
+**One more pre-existing defect surfaced by T6, not yet filed.** The admin **Add**
+form renders every column as a bare text input with no type hint (`adminAdd.html:47-63`),
+so `odestatic.news_feed`'s nullable `nf_timestamp` — which defaults to `now()` and
+should simply be left blank — is presented identically to the four required fields.
+Filling it with anything PostgreSQL cannot parse aborts the INSERT, and the raw
+error (statement text and `HINT` included) is shown to the admin via `alert(data)`.
+Confirmed pre-existing: `628cb904` touched only `application.py`, `geneweaverdb.py`,
+the tests and the CI workflow, and `git diff v1.6.0a HEAD` on `adminAdd.html` and
+`adminviews.py` is empty. Note the error text renders bound parameters as quoted
+literals — that is psycopg2 mogrifying client-side, **not** evidence of
+interpolation; reaching PostgreSQL's type coercion at all proves the request passed
+the allowlist.
+
+**Carry to Stage:** the Sphinx **kill-list is unverified** — nothing on SQA could
+exercise it, because every test gene set postdates the last full build and so has no
+main-index copy to suppress. On Stage, rename a gene set that predates the last full
+rebuild to *disjoint* text and confirm the old text stops matching under `@name`.
+Also worth a T1 run with a **non-binary** tool output: the SQA run inherited Binary,
+where the pre- and post-G3-809 rules agree by coincidence, so it proved G3-815 and
+the honest count but not G3-809's routing of tool output through the shared
+threshold path.
+
+The per-test fixtures, observed results and pass/fail criteria are held in the
+1.6.0b sign-off sheet:
+<https://claude.ai/code/artifact/29c7ecb5-46dc-4658-9994-9dfac8e9c070>.
+
+#### Addendum — 1.6.0c on SQA, verified 2026-09-14
+
+**Released.** `v1.6.0c` tagged on `94490332` (the PR #15 merge) and deployed to SQA on
+**2026-09-14** (run `34855953334`), with Stage, Prod and the GitHub release draft skipped as
+designed. Contents: one fix — **G3-823**, the score-type / threshold-shape crash found by test T3
+of the 1.6.0b pass (PR #14). **No migration, and no gene set's membership changes**; 0 of 18,649
+live type-1/2 gene sets on SQA held a threshold the database could not store, so the fix is
+preventive rather than corrective.
+
+Machine checks after the rollout, all PASS: image `…:9449033` on both containers; both ready at
+**0 restarts**; the two changed runtime files (`geneweaverdb.py`, `templates/editgenesets.html`)
+**byte-identical to `main`**; `normalize_threshold_for_type` exercised *inside the deployed image*
+across the corrected, untouched and deliberately-left-alone cases; the G3-819 exclusive boundary
+still present in the deployed code; `genes.dat` / `homology.dat` surviving the pod replacement on
+the results PVC; the sidecar's delta loop rotating and the new pod writing its own keyed watermark
+(`geneset:5d14ef6d`); and the formerly-ungated admin endpoints still refusing with zero rows.
+
+**Still outstanding:** G3-823's browser check — the ticket is *Ready for Testing*, not Done.
+Reproduction is the test: on SQA, `GS408080` (`SQA160b-scoretype`, Effect `0.0,10.0`) → change the
+score type to P-Value leaving the threshold field alone. The field should reshape to `0.05` on the
+change, and the save should succeed with G3-812's value-domain warning rendering.
+
+**Note on the version string:** `1.6.0c` installs as **`1.6.0rc0`** — PEP 440 treats `c` as the
+canonical abbreviation for `rc`. The release is unaffected (the gate compares the tag against
+`legacy/pyproject.toml`, which holds the un-normalised `1.6.0c`), but expect `1.6.0rc0` when
+checking which build an environment runs. `1.6.0d` would be **invalid**, so this lettering scheme
+ends at `c`: a further pre-release needs `1.6.0rc1`.
 
 ## 7. Rollback
 
@@ -825,6 +984,12 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 3. **Tools-worker in shared envs** — replace the existing prod worker with the monorepo-built image
    in this release, or deploy web-only first and cut the worker over separately? (Kustomize base
    includes it, so "web-only" would need a temporary overlay exclusion.) §4.3.1
+
+   *Informed 2026-09-14:* SQA has run the monorepo-built worker through 1.6.0a/b/c, and every
+   namespace already has a Deployment of that name, so a joint cutover is a rolling replacement
+   rather than a step into the unknown. The replica hazard that made "web-only first" attractive
+   turned out not to exist (§4.3.1) — prod's counts are HPA-owned. Still a sequencing choice, but
+   no longer a risk-driven one.
 4. **NCBO key (G3-770)** — ship the hardcoded key to prod, or land the secret first? §4.3.6
 5. **Maintenance window** — Prod deploy + migration timing, and who approves the environment gates.
 6. ~~**DB names**~~ — **resolved 2026-08-24.** All three confirmed against Cloud SQL:
