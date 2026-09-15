@@ -24,6 +24,86 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
+## 1.6.0 — unreleased
+
+**The promotion release.** Not new application behaviour: 1.6.0 carries the *same application code*
+as `1.6.0c`, which SQA has been running and verifying since 2026-09-14. What changes is the release
+*shape* — a plain version with no letter, so the workflow promotes **SQA → Stage → Prod** and drafts
+a GitHub release, instead of stopping at SQA.
+
+> **Every deploy is still gated.** Pushing the tag queues the Stage and Prod deploy jobs behind their
+> GitHub environment approvals; it does not deploy anything on its own. Nothing reaches Prod until
+> someone approves it, and **Prod must not be approved until its migrations are applied** — see
+> *Required before each environment* below.
+
+### Changed since 1.6.0c
+
+No application code. `git diff v1.6.0c..main` touches five files, none of them under `legacy/src`:
+
+* **Prod deploy config** (`5cf51108` / #17) — the prod overlay no longer declares `spec.replicas` for
+  either Deployment. Prod is the only environment with HorizontalPodAutoscalers
+  (`geneweaver-legacy` min 2 / max 8, `geneweaver-legacy-tools` min 2 / max 10), and they own that
+  field; the overlay's old `replicas: 4` was a value prod has never run, while the worker inherited
+  the base default of 1 — one below its HPA floor. A JSON patch now removes the field so the
+  autoscaler is the only writer. dev, sqa and stage still render `replicas: 1`, matching their live
+  state.
+* **Tooling** (#18) — `checks/gwc44-binary-threshold-drift.sql` no longer dies on its own section 3;
+  an apostrophe in an `\echo` was read by psql as an opening quote.
+* **Documentation** (#16, #17, #18) — the release plan's measured per-environment database state, the
+  corrected `.dat` ordering, the prod HPA record, and the changelog's version-normalisation note.
+
+### Required before each environment
+
+Ordering is not optional: `process_thresholds` is a *database* object, so the right image with the
+wrong procedure still misbehaves. Per environment, **migrations first, then the deploy**
+(release plan §5.2).
+
+| | 117 | 118 | 119 | pre-state captured |
+|---|---|---|---|---|
+| SQA | applied | applied | applied | — |
+| **Stage** | **applied 2026-09-15** | **applied 2026-09-15** | **applied 2026-09-15** | yes |
+| **Prod** | **NOT applied** | **NOT applied** | **NOT applied** | yes — rollback ready |
+
+Stage's database work is done and verified (binary rows out of threshold 0, miscounts 0, type-4/5
+disagreements 0, `ABS(` gone). **Prod's is captured but not applied**, so approving the Prod deploy
+before running them would ship the fixed code against an unfixed procedure.
+
+Then, **after** each environment's deploy — not before, because the generators ship inside the
+monorepo-built image — generate that environment's JaccardSimilarity `.dat` caches (§4.3.3 item 3).
+Stage and Prod both still need this; SQA has them and they survive pod replacement on the results
+PVC.
+
+### Known issues carried forward
+
+* **Stage only:** 6,200 of 6,386 type-1/2 rows sitting exactly on their cutoff are flagged
+  in-threshold, against a procedure that is exclusive. SQA (0 of 28,205) and Prod (0 of 14,610) are
+  clean. Pre-existing and unrelated to migrations 117/118/119, none of which touches type-1/2 — it is
+  stored membership from the older inclusive Python paths that `process_thresholds` has never
+  recomputed. A G3-819 follow-up, not a release blocker.
+* **Prod only:** 2,949 `normal`, user-visible gene sets claim genes while holding none (worst claim
+  20,930), across 339 owners, none created after 2021. Migration 118 deliberately does not touch
+  them — deriving a count from zero rows would zero the claim, and 886 of them are Tier I, where
+  lost data is likelier than a stale number. Its own ticket, with the 2009 and 2017 clusters as the
+  lead.
+* A `NaN` threshold puts every gene in threshold (`1 < 'NaN'::numeric` is TRUE in PostgreSQL).
+  Unchanged from 1.6.0c; 0 live gene sets carry one on SQA.
+
+### Version
+
+* `legacy/pyproject.toml` 1.6.0c → **1.6.0**. A full release — no letter — so the workflow promotes
+  through **Stage and Prod** and drafts a GitHub release. Release with
+  `git tag v1.6.0 && git push origin v1.6.0` on the commit carrying this bump; the bump alone does
+  not release, and the version job fails the run if tag and file disagree.
+* Installs as **`1.6.0`** with no normalisation, unlike the lettered pre-releases
+  (`1.6.0a`→`1.6.0a0`, `1.6.0b`→`1.6.0b0`, `1.6.0c`→`1.6.0rc0`). PEP 440 orders `1.6.0rc0 < 1.6.0`,
+  so this is an upgrade from what SQA runs today.
+* ⚠️ **Artifact identity:** this builds a *new* image. SQA's 1.6.0c sign-off does not transfer to it,
+  so §4.3.2's TOOLBOX binary assertion needs re-running against this build. Identity does hold
+  *within* the run — one image is built and that same artifact is deployed to SQA, Stage and Prod in
+  turn, with SQA re-verified as the first hop.
+
+---
+
 ## 1.6.0c — released to SQA 2026-09-14
 
 A single-fix pre-release: the score-type / threshold-shape crash that test **T3** of the 1.6.0b
