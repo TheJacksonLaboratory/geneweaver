@@ -5,4 +5,5 @@ resources:
   - ../../base
 patchesStrategicMerge:
   - persistent-volume-claim.yaml
+  - search-view-refresh-cronjob.yaml
   - ingress.yaml

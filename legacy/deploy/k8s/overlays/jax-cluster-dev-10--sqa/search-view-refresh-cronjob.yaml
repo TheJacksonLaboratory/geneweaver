@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: geneweaver-search-view-refresh
+spec:
+  # Staggered off the base 00:30 because this environment SHARES a Cloud SQL instance with
+  # dev (jax-dev-10-guided-jay, CLAUDE.md "Deploy / environments"). The base
+  # schedule is inherited by every overlay, so leaving it here would have both environments
+  # rebuild the same view at the same moment on one instance -- and each rebuild is an
+  # aggregate over extsrc.geneset_value (~35M rows), so dev would be competing with this
+  # one for the instance it shares.
+  #
+  # Two hours apart, against a job that cannot run for more than one: the script's
+  # statement_timeout is 55 minutes under a 60-minute activeDeadlineSeconds, so the two runs
+  # provably cannot overlap rather than merely being unlikely to.
+  schedule: "30 2 * * *"

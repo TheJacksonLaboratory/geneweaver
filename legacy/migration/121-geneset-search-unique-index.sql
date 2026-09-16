@@ -49,10 +49,22 @@
 -- catch-up REFRESH that makes the gene sets above searchable immediately.
 --
 -- DOES NOT: change any gene set, any threshold, any membership, or any row of production.geneset.
--- Nothing a user has published changes value. The view's *contents* change -- by design, to match
--- the tables it is derived from -- so search starts returning gene sets it has been omitting.
--- Nothing that search returns today stops being returned: the view is rebuilt from the same
--- definition against a superset of the data it was built from.
+-- Nothing a user has published changes value.
+--
+-- The view's *contents* do change, by design: the refresh makes the view match the tables it is
+-- derived from. That is a change in what API search returns, in BOTH directions, and not only an
+-- addition:
+--
+--   * gene sets created since the last build start being returned -- the point of this migration;
+--   * gene sets DELETED since the last build, or edited so they no longer match a query, stop
+--     being returned. The view's own definition is `WHERE gs.gs_status <> 'deleted'` (116), so a
+--     gene set deleted after the last build is still in the stale view and still findable today.
+--
+-- So the row count can fall, and results a user could find yesterday can be gone tomorrow. Those
+-- are stale rows the view should not have been serving -- a deleted gene set appearing in search
+-- results is the same staleness bug pointing the other way -- but they are a real change in
+-- output, not a no-op. This is why jobs/refresh_search_view.py tolerates a shrinking row count
+-- and fails only on an empty view: a decrease is legitimate, an empty view never is.
 --
 -- Idempotent? Yes. The index is created IF NOT EXISTS, and a REFRESH can be run any number of
 -- times. Reversible? Yes -- see Rollback. No audit table is needed because no user data is

@@ -77,10 +77,17 @@ def connect():
 
 
 def require_unique_index(cursor) -> None:
-    """Refuse to run unless migration 121's unique index is present.
+    """Refuse to run unless an index REFRESH ... CONCURRENTLY can actually use is present.
 
     Falling back to a plain REFRESH would work, and would block every API search for the duration
     of the rebuild. Failing here instead leaves search stale but responsive, and names the reason.
+
+    "Unique and valid" is NOT the requirement. Postgres accepts CONCURRENTLY only with a unique
+    index that "uses only column names and includes all rows" -- so an expression index or a
+    partial (WHERE ...) index does not qualify, and nor does a non-immediate one. Checking only
+    indisunique/indisvalid would let this guard pass and the REFRESH fail immediately afterwards
+    with a message about the index rather than about the migration, which defeats the whole point
+    of guarding. The predicates below are the same four properties Postgres itself requires.
     """
     cursor.execute(
         """
@@ -93,19 +100,23 @@ def require_unique_index(cursor) -> None:
           AND t.relname = %s
           AND x.indisunique
           AND x.indisvalid
+          AND x.indimmediate
+          AND x.indpred IS NULL
+          AND x.indexprs IS NULL
         """,
         (VIEW_SCHEMA, VIEW_NAME),
     )
     indexes = [row[0] for row in cursor.fetchall()]
     if not indexes:
         raise SystemExit(
-            f"search-view-refresh: {VIEW_SCHEMA}.{VIEW_NAME} has no valid unique index, so it "
-            "cannot be refreshed CONCURRENTLY. Apply migration "
+            f"search-view-refresh: {VIEW_SCHEMA}.{VIEW_NAME} has no unique index that REFRESH "
+            "MATERIALIZED VIEW CONCURRENTLY can use -- it must be unique, valid, immediate, and "
+            "over plain columns with no WHERE clause. Apply migration "
             "121-geneset-search-unique-index.sql to this environment. Refusing to fall back to a "
             "plain REFRESH, which would hold ACCESS EXCLUSIVE and block API search for the whole "
             "rebuild."
         )
-    log(f"unique index present: {', '.join(indexes)}")
+    log(f"usable unique index present: {', '.join(indexes)}")
 
 
 def state(cursor) -> tuple:

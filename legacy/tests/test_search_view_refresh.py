@@ -13,6 +13,14 @@ pinned here:
   works, and holds ACCESS EXCLUSIVE on the view for the whole rebuild, blocking
   every /api/genesets/search call. Failing loudly is the correct behaviour and
   the easy thing to "fix" by accident.
+* The guard must test the index SHAPE, not just uniqueness. Postgres accepts
+  CONCURRENTLY only with a unique index that is immediate and "uses only column
+  names and includes all rows", so an expression or partial unique index would
+  satisfy a naive indisunique/indisvalid check and then fail the refresh anyway
+  -- reporting the index instead of the missing migration, which is exactly what
+  the guard exists to prevent. psycopg2 is faked here, so these tests pin the
+  catalog predicates in the query rather than evaluating them: the filtering IS
+  the SQL, and asserting its text is what catches a predicate being dropped.
 * It must refresh CONCURRENTLY, and with autocommit on. psycopg2 opens a
   transaction on first execute, and REFRESH ... CONCURRENTLY cannot run inside
   a transaction block, so without autocommit the job fails outright.
@@ -152,6 +160,35 @@ class TestUniqueIndexGuard(unittest.TestCase):
         code, _out, cursor, _conn = run_job()
         self.assertEqual(code, 0)
         self.assertTrue([sql for sql, _ in cursor.executed if 'REFRESH' in sql])
+
+    def test_guard_requires_an_index_shape_refresh_can_actually_use(self):
+        """Unique and valid is not the requirement; Postgres asks for three things more."""
+        _code, _out, cursor, _conn = run_job()
+        catalog = [(sql, params) for sql, params in cursor.executed if 'pg_index' in sql]
+        self.assertEqual(len(catalog), 1, 'the catalog is consulted exactly once')
+        query, params = catalog[0]
+        for predicate, why in (
+            ('x.indisunique', 'CONCURRENTLY needs a unique index'),
+            ('x.indisvalid', 'a failed CREATE INDEX leaves an invalid one behind'),
+            ('x.indimmediate', 'a non-immediate index is not accepted'),
+            ('x.indpred IS NULL', 'a partial index does not include all rows'),
+            ('x.indexprs IS NULL', 'an expression index does not use only column names'),
+        ):
+            self.assertIn(predicate, query, f'guard must require {predicate}: {why}')
+        self.assertEqual(
+            params,
+            (refresh_search_view.VIEW_SCHEMA, refresh_search_view.VIEW_NAME),
+            'schema and view must be bound, not interpolated',
+        )
+
+    def test_refusal_names_the_shape_requirement(self):
+        """So an operator who has a partial unique index is not told to re-apply 121 blindly."""
+        with self.assertRaises(SystemExit) as raised:
+            run_job(unique_indexes=())
+        message = str(raised.exception)
+        self.assertIn('CONCURRENTLY', message)
+        for word in ('immediate', 'plain columns', 'WHERE clause'):
+            self.assertIn(word, message)
 
 
 class TestRefreshStatement(unittest.TestCase):

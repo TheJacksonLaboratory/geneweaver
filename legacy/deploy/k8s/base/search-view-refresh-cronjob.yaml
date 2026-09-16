@@ -23,6 +23,14 @@ spec:
   # sidecar's full rebuild starts on the first delta tick after local midnight (so by 00:15) and a
   # cold production index took about four minutes, so half past leaves it finished and keeps the
   # two jobs off the same database at the same moment.
+  #
+  # This base value is what dev and prod run. sqa and stage patch it to 02:30, because each of
+  # them shares a Cloud SQL INSTANCE with one of those two (dev+sqa on jax-dev-10-guided-jay,
+  # stage+prod on jax-prod-10-promoted-owl -- CLAUDE.md "Deploy / environments"). A single
+  # inherited schedule would have both halves of a pair rebuild the same ~35M-row aggregate on
+  # one instance simultaneously, so stage would contend with prod. Two hours apart against a job
+  # capped at one hour (55-minute statement_timeout under a 60-minute activeDeadlineSeconds)
+  # means the paired runs provably cannot overlap.
   schedule: "30 0 * * *"
   # The container clock is UTC. Naming the zone keeps this at local midnight-thirty across the
   # EST/EDT change, which a hardcoded UTC hour would not -- the same reason the search sidecar

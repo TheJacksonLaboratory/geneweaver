@@ -31,6 +31,13 @@ The API gene set search fix (G3-826). **This release carries a database migratio
 set's contents, threshold or membership changes: the migration adds one index to a derived view
 and rebuilds that view from the tables it is derived from.
 
+What API search *returns* does change, and in both directions. Gene sets created since the view
+was last built start appearing — the point of the release — and gene sets **deleted** since then
+stop appearing, because the stale view still contains them (its definition is
+`WHERE gs.gs_status <> 'deleted'`, so a gene set deleted after the last build is still findable
+today). Those removals are stale rows the view should not have been serving, but they are a real
+change in output rather than a no-op, and the row count can legitimately fall.
+
 ### Fixed — `/api/genesets/search` could not find any gene set created after 2026-03-02 (G3-826)
 
 `GET /api/genesets/search` does not read the `geneset` table. It joins `production.geneset_search`
