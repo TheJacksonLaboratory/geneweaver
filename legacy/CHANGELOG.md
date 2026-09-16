@@ -136,7 +136,7 @@ Whether this route should require a login outright, rather than running and then
 permission error, is left as its own decision on G3-825. The queries no longer run for an
 anonymous caller, so the cost of that is now zero.
 
-### Fixed — `/api/genesets/search` could not find any gene set created after 2026-03-02 (G3-826)
+### Fixed — `/api/genesets/search` could not find gene sets created since the view's last rebuild (G3-826)
 
 `GET /api/genesets/search` does not read the `geneset` table. It joins `production.geneset_search`
 (`packages/db/src/geneweaver/db/query/search/search.py:65`), the materialized view created by

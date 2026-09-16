@@ -50,8 +50,9 @@ The version you are using is shown at the bottom of every page on
   can see, and asking for a gene set you cannot read no longer reveals which publication
   it belongs to.
 
-All three are long-standing — the page has behaved this way since it was added in 2015 —
-and are unrelated to the 1.6.0 and 1.6.1 releases.
+The three *Find other GeneSets from this publication* fixes are long-standing — that page
+has behaved this way since it was added in 2015 — and are unrelated to the 1.6.0 and 1.6.1
+releases.
 
 ---
 
