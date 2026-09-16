@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-legacy
+spec:
+  template:
+    spec:
+      containers:
+        - name: geneweaver-legacy
+          # The HPA in this overlay targets CPU *Utilization* for this container, and
+          # utilization is a percentage of the container's request: with no request
+          # declared, the metric resolves to <unknown> and the HPA holds the Deployment
+          # at minReplicas instead of scaling.
+          #
+          # These two values are what prod is running right now (measured 2026-09-16 on
+          # both the 1.6.0 and the rolled-back pod templates), so declaring them changes
+          # no scheduling behaviour. They are not in this repository's manifests today --
+          # the monorepo's apply never managed the field, so the values survive from the
+          # standalone repo's pipeline through apply's three-way merge. That makes the
+          # HPA's metric depend on a deploy path we are in the middle of retiring, and it
+          # would silently vanish if the namespace were recreated.
+          #
+          # The memory request is the budget the base's WEB_CONCURRENCY comment reasons
+          # about: four workers measured at 177-190 MiB each.
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1092Mi

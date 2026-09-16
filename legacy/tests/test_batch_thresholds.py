@@ -34,6 +34,11 @@ class _RequestException(Exception):
 
 
 _fake_requests = types.ModuleType('requests')
+# requests 2.32.4 re-exports RequestException at the package root as well as under
+# .exceptions (verified against the deployed image: both names are the same object).
+# Mirror both so the fake cannot bless a spelling the real library does not have.
+_fake_requests.exceptions = types.SimpleNamespace(
+    RequestException=_RequestException)
 _fake_requests.RequestException = _RequestException
 _fake_requests.get = MagicMock()
 _old_requests = sys.modules.get('requests')

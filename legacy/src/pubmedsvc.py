@@ -105,7 +105,7 @@ def get_SRP(pub_med_id):
         response_root = ET.fromstring(response.content)
         primary_id = response_root.find('.//STUDY/IDENTIFIERS/PRIMARY_ID')
         return primary_id.text if primary_id is not None and primary_id.text else ''
-    except (requests.RequestException, ET.ParseError) as exc:
+    except (requests.exceptions.RequestException, ET.ParseError) as exc:
         logger.warning('NCBI SRA lookup failed for PubMed ID %s: %s',
                        pub_med_id, type(exc).__name__)
         return ''
