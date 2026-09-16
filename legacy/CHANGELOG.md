@@ -24,7 +24,110 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
-## 1.6.1a — unreleased
+## 1.6.1 — unreleased
+
+**The promotion release for the outage fix.** Not new application behaviour: 1.6.1 carries the
+*same application code* as `1.6.1a`, which SQA verifies first. What changes is the release *shape* —
+a plain version with no letter, so the workflow promotes **SQA → Stage → Prod** and drafts a GitHub
+release, instead of stopping at SQA.
+
+> **Every deploy is still gated.** Pushing the tag queues the Stage and Prod deploy jobs behind their
+> GitHub environment approvals; it does not deploy anything on its own. **Do not approve Prod until
+> SQA has signed off 1.6.1a** — that pass is what this release rests on.
+
+> ⚠️ **Prod is two releases behind.** It has been serving the pre-1.6.0 image (`59d15fb-dirty`) since
+> the 2026-09-16 rollback, so approving Prod here delivers **1.6.0's application changes and 1.6.1's
+> limits at once**. The Prod verification pass has to cover 1.6.0's scope — thresholds, search,
+> curation, the tool routes — not just the concurrency fix. Stage and SQA are on 1.6.0 already and
+> move one step.
+
+### Changed since 1.6.1a
+
+Nothing but this version bump and the changelog. `git diff v1.6.1a..main` touches two files, neither
+under `legacy/src`.
+
+### Why the version jumps to 1.6.1 rather than reusing 1.6.0
+
+`v1.6.0` is already tagged (`5e3892c`) and released, and it points at code *without* the outage fix —
+283 changed lines across `legacy/src`, the Dockerfile and the deploy overlays separate the two. Tag
+and `legacy/pyproject.toml` have to agree, and a released version has to keep describing its own
+artifact, so the fix ships as the next patch version.
+
+### Required before each environment
+
+**Database: nothing to do.** Migrations 117, 118 and 119 are applied and verified in every
+environment, Prod included — this release adds none.
+
+| | 117 | 118 | 119 |
+|---|---|---|---|
+| Dev | applied | applied | applied |
+| SQA | applied | applied | applied |
+| Stage | applied 2026-09-15 | applied 2026-09-15 | applied 2026-09-15 |
+| Prod | applied 2026-09-15 | applied 2026-09-15 | applied 2026-09-15 |
+
+Two deploy-time notes specific to this release:
+
+* **The Prod apply adopts the HorizontalPodAutoscaler.** The live `geneweaver-legacy` HPA was created
+  imperatively and carries no `last-applied-configuration` annotation, so the first apply of the
+  now-in-Git manifest emits a warning and patches the annotation in. Expected, and it is the point:
+  the HPA's bounds and its web-container CPU metric stop living only in the cluster. Its
+  `spec.replicas` stays HPA-owned — the overlay removes the field outright.
+* **The web container's CPU and memory requests move into Git** at the values Prod runs today
+  (`cpu: 1`, `memory: 1092Mi`). Nothing about scheduling changes; what changes is that the HPA's
+  `Utilization` target no longer depends on values inherited from the standalone repo's pipeline
+  through `kubectl apply`'s three-way merge.
+
+The JaccardSimilarity `.dat` caches are already generated in every environment and live on the
+results PVC, so they survive pod replacement and this deploy. No regeneration step this time.
+
+### What to watch after the Prod deploy
+
+* **`WORKER TIMEOUT` should stay at zero.** It was 35 in two hours during the incident and zero in
+  the 14 days before it, so it is a clean signal. `--timeout` is now 60 s, so a stuck worker is
+  replaced inside a minute rather than five.
+* **The HPA should visibly respond to load.** With four workers per pod, a busy pod burns CPU, which
+  is what the autoscaler measures; during the incident a single blocked worker burned none and Prod
+  sat at its floor of 2 through a total outage.
+* **The scraper may return.** The application changes raise the ceiling — request concurrency at the
+  Prod floor goes from 2 to 8 — but the two edge mitigations are still open: `proxy-next-upstream`
+  off for timeouts, and rate-limiting.
+
+### Known issues carried forward
+
+* ⚠️ **A stale duplicate `public.process_thresholds` exists on Prod and SQA** (not Dev, not Stage),
+  carrying the pre-117 body — Binary as `value > threshold`, P/Q inclusive, type 4/5 on
+  `ABS(value)`. It predates migrations 117/118/119, which correctly replaced
+  `production.process_thresholds`. The application is unaffected (the pool sets `search_path TO
+  production, extsrc, odestatic`, which excludes `public`), but any session resolving `public` first
+  calls the unfixed function. Needs its own migration; not addressed by this release.
+* **Stage only:** 6,200 of 6,386 type-1/2 rows sitting exactly on their cutoff are flagged
+  in-threshold against an exclusive procedure. SQA (0 of 28,205) and Prod (0 of 14,610) are clean.
+  A G3-819 follow-up.
+* **Prod only:** 2,956 gene sets claim genes while holding none. Migration 118 deliberately leaves
+  them alone. Its own ticket.
+* A `NaN` threshold puts every gene in threshold (`1 < 'NaN'::numeric` is TRUE in PostgreSQL).
+  Unchanged; 0 live gene sets carry one on SQA.
+
+### Version
+
+* `legacy/pyproject.toml` 1.6.1a → **1.6.1**. A full release — no letter — so the workflow promotes
+  through **Stage and Prod** and drafts a GitHub release. Release with
+  `git tag v1.6.1 && git push origin v1.6.1` on the commit carrying this bump; the bump alone does
+  not release, and the version job fails the run if tag and file disagree.
+* Installs as **`1.6.1`** with no normalisation, unlike the lettered pre-release (`1.6.1a` →
+  `1.6.1a0`). PEP 440 orders `1.6.1a0 < 1.6.1`, so this is an upgrade from what SQA runs once
+  1.6.1a is deployed.
+* ⚠️ **Artifact identity:** this builds a *new* image. SQA's 1.6.1a sign-off does not transfer to it,
+  so §4.3.2's TOOLBOX binary assertion needs re-running against this build. Identity does hold
+  *within* the run — one image is built and that same artifact is deployed to SQA, Stage and Prod in
+  turn, with SQA re-verified as the first hop.
+
+---
+
+## 1.6.1a — tagged 2026-09-16; SQA deploy awaiting approval
+
+> `v1.6.1a` is pushed and the image is built; the SQA deploy job is queued behind its GitHub
+> environment approval. Nothing is deployed until someone approves it.
 
 **The outage-response pre-release.** No application behaviour changes and no migration: 1.6.1a is
 1.6.0 plus the limits and health gates that stop one blocked request from taking the site down. A
