@@ -24,7 +24,114 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
-## 1.6.1 — unreleased
+## 1.6.2 — unreleased
+
+The `/findPublications` fix (G3-825). **No database migration**, and no gene set's
+membership changes — the route only reads.
+
+### Fixed — `/findPublications` (G3-825)
+
+`get_similar_genesets_by_publication` shipped in **2015** (`ffd24d80`, "Created a view other
+genesets with the same publication id page. Still needs some jquery work…") with four defects
+and kept all four for eleven years. The only changes since were a rename
+(`geneset_is_readable` → `geneset_is_readable2`, `0ce99c4d`, 2017) and a whole-file
+tabs-to-spaces reindent (`e966e3c5`, 2016) — which shows up in a `git log -S gs_ids_clean`
+search and looks like a semantic change to this function, but is not. The function in the
+image Prod ran before 1.6.0 (`59d15fb-dirty`) is byte-identical to the one 1.6.1 shipped.
+
+* **One permission round trip per sibling gene set, and the answers were discarded.**
+  `geneset_is_readable2` was called in a Python loop, one `cursor.execute` each, into
+  `gs_ids_clean` — which was then never read, because the final query used the unfiltered
+  `gs_ids`. Measured on Prod for `gs_id 374128` (PMID 10802651, the GO Consortium paper,
+  **14,799** gene sets): **18.62 s**, 1.26 ms a call. The same predicate inside the query
+  costs **~13 µs a row** — same number of evaluations, no round trips. The predicate is now
+  part of the statement, so it cannot be computed and ignored.
+* **A gene set with no publication returned HTTP 500.** The id list was interpolated into
+  `IN (%s)`, so an empty list produced `IN ()` → `psycopg2.errors.SyntaxError`. **154,651** of
+  Prod's gene sets (56%) have no `pub_id`. Caught in Prod's own log on **2026-09-13**, two days
+  before 1.6.0 deployed, so this predates the 1.6 line entirely. Now
+  `g.pub_id = (SELECT pub_id FROM geneset WHERE gs_id = %(gs_id)s)`: a NULL publication makes
+  the comparison NULL, which matches nothing and returns zero rows. `gs_id` is the primary key,
+  so the scalar subquery can never return more than one row.
+* **The discarded filter leaked metadata.** On Prod, **170** publications mix readable and
+  non-readable gene sets, and **14,630** gene sets are not readable anonymously. The route has
+  no `@login_required` and passes `user_id = 0` for anonymous callers, and
+  `viewsamepublications.html` prints `name`, `abbreviation`, `description`, `count`, `cur_id`,
+  `sp_id` and `attribution` per row — so those sets' metadata was shown. Gene *values* are not
+  exposed by that template.
+* **`%`-interpolation of a query string**, against the `CLAUDE.md` database guardrail. The
+  values were database-derived integers, so it was not injectable; it is the prohibited pattern,
+  and it is what made the `IN ()` crash possible.
+
+### Fixed — the second N+1, which is why the page is capped
+
+Better SQL alone would not have fixed the timeout. Each row becomes a `Geneset`, and
+**`Geneset.__init__` calls `get_all_publications()`** for any set with a publication — its own
+query on its own pooled connection, **0.91 ms** measured on Prod, so **~13.5 s** for that
+publication before Jinja renders a block each. The observed failure was 61.08 s against 19.01 s
+of membership queries; this is most of the remainder.
+
+So the route now renders **one bounded page**: `SIMILAR_BY_PUBLICATION_PAGE_SIZE = 100`, with
+`LIMIT`/`OFFSET`, `ORDER BY g.gs_id`, and a `count_similar_genesets_by_publication` total behind
+Previous/Next links. The template's empty state now keys off that **total** rather than the
+length of the page — with paging, a last page can legitimately hold one row while the
+publication has thousands, and `length < 2` would have read that as "no other GeneSets". The
+total counts the viewed gene set itself, so `< 2` still means "no others", unchanged.
+
+The page-size constant carries the reason in a comment: the cap is what bounds the route, and
+raising it re-introduces the per-object publication lookups linearly.
+
+### Measured, against `geneweaver-prod`
+
+Read-only, 2026-09-16, with the exact SQL the new code generates:
+
+| case | count query | page query | rows | total |
+|---|---|---|---|---|
+| `gs_id 374128` — 14,799 siblings | 0.207 s | 0.200 s | 100 | **0.407 s** |
+| `gs_id 408661` — no publication | 0.001 s | 0.001 s | 0 | **0.002 s** |
+| `gs_id 999999999` — no such gene set | 0.001 s | 0.001 s | 0 | 0.002 s |
+
+Plus **0.078 s** for the 100 `Geneset.__init__` publication lookups one page now triggers.
+About **0.49 s** in total, against 19 s + 13.5 s before, and the 61.08 s the live request took
+before it was killed. The count returns **14,797**, not 14,799 — two of that publication's gene
+sets fail the readability check, which is the filter now doing its job.
+
+Deep paging does not degrade: `OFFSET 14750` measured 0.240 s against 0.197 s at `OFFSET 0`,
+because the sort materialises the matching rows for any page. Two caveats worth keeping: those
+are warm-cache numbers (72,691 buffer accesses, all hits), and the cost is linear in publication
+size rather than bounded — 0.2 s at 14,799 rows against a 60 s worker ceiling is a wide margin,
+not a guarantee.
+
+### Not fixed here
+
+Whether this route should be reachable without a login at all — it enumerates gene sets by
+publication for anonymous callers — is a separate question, recorded on G3-825.
+
+### Testing & developer tooling
+
+* `legacy/tests/db/test_find_publications.py` — **22 tests**, wired into the explicit module
+  list in `_legacy-tests.yml`; suite **194 → 216**. Three groups: the two queries (one statement
+  per page, the predicate in the SQL, equality not `IN`, no interpolation, `mogrify` never
+  called, every value bound, anonymous → `-1`, `LIMIT`/`OFFSET`/`ORDER BY` present, the page size
+  bounded); the route on its parsed AST, as `tests/test_search_filters.py` does, because
+  `src/application.py` builds the Flask app at import and cannot be imported in a unit test; and
+  the template contract, so the empty state cannot drift back to testing the page length.
+
+### Version
+
+* No version bump in this branch. `legacy/pyproject.toml` stays at **1.6.1**; the bump to
+  **1.6.2** belongs in its own release PR, as 1.6.0 and 1.6.1 did, because the tag is the release
+  decision and a merged bump must not be able to fire a prod-bound run on its own (`cb61c111`).
+
+---
+
+## 1.6.1 — released 2026-09-16
+
+> Tagged `v1.6.1` on `71b66e24` and promoted SQA → Stage → Prod the same day. **This is
+> the build Prod runs.** Verified on the deployed pods: image `71b66e2@sha256:d0a305fb…`,
+> `poetry version` 1.6.1, the served footer reading *Application Version 1.6.1*, 1 master
+> + 4 workers at `--timeout 60`, `/healthz` 204, and the HPA reading a real CPU value
+> rather than `<unknown>`.
 
 **The promotion release for the outage fix.** Not new application behaviour: 1.6.1 carries the
 *same application code* as `1.6.1a`, which SQA verifies first. What changes is the release *shape* —

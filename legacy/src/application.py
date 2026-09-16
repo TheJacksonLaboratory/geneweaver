@@ -4507,12 +4507,40 @@ def render_export_hba(txt, abbreviation):
 
 @app.route('/findPublications/<int:gs_id>')
 def render_view_same_publications(gs_id):
+    ## G3-825: this used to ask the database whether each sibling gene set was readable
+    ## one query at a time, throw those answers away, and then render every sibling on
+    ## one page -- each of which costs another query inside Geneset.__init__. On the GO
+    ## Consortium paper's 14,799 gene sets that was ~19s of permission round trips plus
+    ## ~13.5s of publication lookups, and the request never finished. A gene set with no
+    ## publication returned an outright 500. Both are now one bounded, filtered query.
     if 'user_id' in session:
         user_id = session['user_id']
     else:
         user_id = 0
-    results = geneweaverdb.get_similar_genesets_by_publication(gs_id, user_id)
-    return render_template('viewsamepublications.html', user_id=user_id, gs_id=gs_id, geneset=results)
+
+    page_size = geneweaverdb.SIMILAR_BY_PUBLICATION_PAGE_SIZE
+
+    ## The page number only ever arrives from our own links below, so anything else is a
+    ## hand-edited or stale URL -- fall back to the first page rather than 500 on it.
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    page = max(page, 1)
+
+    total = geneweaverdb.count_similar_genesets_by_publication(gs_id, user_id)
+    num_pages = max((total + page_size - 1) // page_size, 1)
+    page = min(page, num_pages)
+    offset = (page - 1) * page_size
+
+    results = geneweaverdb.get_similar_genesets_by_publication(
+        gs_id, user_id, limit=page_size, offset=offset)
+
+    return render_template('viewsamepublications.html', user_id=user_id, gs_id=gs_id,
+                           geneset=results, total=total, page=page,
+                           num_pages=num_pages, page_size=page_size,
+                           first_shown=offset + 1 if results else 0,
+                           last_shown=offset + len(results))
 
 
 @app.route('/emphasis', methods=['GET', 'POST'])

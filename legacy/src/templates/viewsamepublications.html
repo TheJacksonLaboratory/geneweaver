@@ -67,7 +67,10 @@
                 <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
         </div>
 
-        {% if geneset is not defined or geneset | length < 2 %}
+        {# G3-825: keyed off the total, not this page's length -- with paging a last
+           page can legitimately hold a single row while the publication has thousands.
+           `total` counts the viewed gene set itself, so < 2 still means "no others". #}
+        {% if total is not defined or total < 2 %}
 
             <div class="alert alert-warning fade in"><button type="button" class="close" data-dismiss="alert"
                                                             aria-hidden="true">x</button>
@@ -77,6 +80,36 @@
         {% else %}
 
             <div class="panel-body">
+
+                {% if num_pages is defined and num_pages > 1 %}
+                    <div class="row" style="margin: 0 0 10px 0">
+                        <div class="col-md-12">
+                            <div class="alert alert-info fade in" style="margin-bottom: 8px">
+                                Showing <strong>{{ first_shown }}&ndash;{{ last_shown }}</strong>
+                                of <strong>{{ total }}</strong> GeneSets annotated to this
+                                publication (page {{ page }} of {{ num_pages }}).
+                                <a href="/search/?searchbar=GS{{ gs_id }}&amp;searchGenesets=yes">Search</a>
+                                to filter them.
+                            </div>
+                            <ul class="pagination" style="margin: 0">
+                                {% if page > 1 %}
+                                    <li><a href="/findPublications/{{ gs_id }}?page=1">&laquo; First</a></li>
+                                    <li><a href="/findPublications/{{ gs_id }}?page={{ page - 1 }}">Previous</a></li>
+                                {% else %}
+                                    <li class="disabled"><span>&laquo; First</span></li>
+                                    <li class="disabled"><span>Previous</span></li>
+                                {% endif %}
+                                {% if page < num_pages %}
+                                    <li><a href="/findPublications/{{ gs_id }}?page={{ page + 1 }}">Next</a></li>
+                                    <li><a href="/findPublications/{{ gs_id }}?page={{ num_pages }}">Last &raquo;</a></li>
+                                {% else %}
+                                    <li class="disabled"><span>Next</span></li>
+                                    <li class="disabled"><span>Last &raquo;</span></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
                 <div class="row">
                     <div class="col-md-3 pull-left">
                         <a href="/viewgenesetdetails/{{ gs_id }}">

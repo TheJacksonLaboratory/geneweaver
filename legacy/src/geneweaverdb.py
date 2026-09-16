@@ -4337,39 +4337,82 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
         return simgc
 
 
-def get_similar_genesets_by_publication(geneset_id, user_id):
-    """
-    Get all other genesets with the same publication id as the geneset id passed to this function
-    :param geneset_id:	the geneset ID
-    :param user_id:		the user ID that needs permission
-    :return:			the Geneset corresponding to the given publication ID if the
-                        user has read permission, with jac_value, None otherwise
-    """
-    gs_ids = []
-    gs_ids_clean = []
+# How many gene sets /findPublications renders at once (G3-825).
+#
+# The cap is load-bearing, not cosmetic. Each row becomes a Geneset, and
+# Geneset.__init__ calls get_all_publications() for any set that has a publication --
+# its own query, on its own pooled connection, measured at 0.91 ms against prod. The
+# GO Consortium paper (PMID 10802651) has 14,799 gene sets attached, so rendering them
+# all meant ~13.5 s of publication lookups on top of the membership filter, before
+# Jinja rendered a block each. The SQL below removes the *other* N+1; only a bounded
+# page removes this one.
+SIMILAR_BY_PUBLICATION_PAGE_SIZE = 100
+
+# One page of the gene sets sharing a publication, and the total behind it.
+#
+# `g.pub_id = (SELECT ...)` rather than `IN (SELECT ...)`: for a gene set with no
+# publication the subquery is NULL, so the comparison matches nothing and returns zero
+# rows. The old code built the id list in Python and interpolated it into
+# `IN (%s)`, which for the 154,651 prod gene sets with no pub_id produced `IN ()` --
+# a SyntaxError, so an unconditional HTTP 500 (G3-825). gs_id is the primary key, so
+# the scalar subquery can never return more than one row.
+#
+# geneset_is_readable2 is applied *in* this statement. It used to run as one round
+# trip per sibling and the result was then discarded -- the final query read the
+# unfiltered list -- which cost 18.6 s on the publication above and returned gene sets
+# the caller was not allowed to read.
+_SIMILAR_BY_PUBLICATION_WHERE = '''
+    FROM geneset g
+    WHERE g.pub_id = (SELECT pub_id FROM geneset WHERE gs_id = %(gs_id)s)
+      AND geneset_is_readable2(%(user_id)s, g.gs_id)
+'''
+
+
+def _readable_by(user_id):
+    """Map the anonymous caller onto the id geneset_is_readable2 expects."""
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
-    if user_id == 0:
-        user_id = -1
-    # print geneset_id
+    return -1 if user_id == 0 else user_id
+
+
+def get_similar_genesets_by_publication(geneset_id, user_id,
+                                        limit=SIMILAR_BY_PUBLICATION_PAGE_SIZE,
+                                        offset=0):
+    """
+    Get one page of the other genesets sharing this geneset's publication.
+
+    Only genesets the user may read are returned -- the check is part of the query,
+    so it cannot be computed and then ignored.
+
+    :param geneset_id:	the geneset ID whose publication is being matched
+    :param user_id:		the user ID that needs permission; 0 for anonymous
+    :param limit:		maximum genesets to return
+    :param offset:		how many to skip, for paging
+    :return:			a list of Genesets, empty when the geneset has no publication
+    """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT gs_id FROM geneset WHERE pub_id IN (SELECT pub_id FROM geneset WHERE gs_id=%s)''',
-                       (geneset_id,))
-        res = cursor.fetchall()
-        for r in res:
-            gs_ids.append(r[0])
+        cursor.execute('''SELECT g.*''' + _SIMILAR_BY_PUBLICATION_WHERE + '''
+            ORDER BY g.gs_id
+            LIMIT %(limit)s OFFSET %(offset)s
+            ''',
+                       {'gs_id': geneset_id, 'user_id': _readable_by(user_id),
+                        'limit': limit, 'offset': offset})
+        return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
 
-        for gs_id in gs_ids:
-            cursor.execute('''SELECT geneset_is_readable2(%s, %s)''', (user_id, gs_id))
-            a = cursor.fetchone()[0]
-            if a:
-                gs_ids_clean.append(gs_id)
 
-        # s = ','.join(gs_ids_clean)
-        cursor.execute(cursor.mogrify(
-                '''SELECT geneset.* FROM geneset WHERE geneset.gs_id IN (%s)''' % ",".join(str(x) for x in gs_ids)))
+def count_similar_genesets_by_publication(geneset_id, user_id):
+    """
+    How many genesets share this geneset's publication and are readable by this user.
 
-        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
-        return genesets
+    Counts the viewed geneset itself, so a publication with no other genesets counts 1.
+
+    :param geneset_id:	the geneset ID whose publication is being matched
+    :param user_id:		the user ID that needs permission; 0 for anonymous
+    :return:			an integer count, 0 when the geneset has no publication
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT count(*)''' + _SIMILAR_BY_PUBLICATION_WHERE,
+                       {'gs_id': geneset_id, 'user_id': _readable_by(user_id)})
+        return cursor.fetchone()[0]
 
 
 def get_genesets_for_publication(pub_id, user_id):
