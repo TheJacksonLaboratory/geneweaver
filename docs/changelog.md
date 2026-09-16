@@ -18,13 +18,13 @@ The version you are using is shown at the bottom of every page on
 
 ### Fixed
 
-* **Gene sets created since March 2026 can be found through the API again.** GeneWeaver's
+* **Recently created gene sets can be found through the API again.** GeneWeaver's
   programmatic gene set search (`/api/genesets/search`, used by the newer API and the tools
-  built on it) was answering from an index that had not been rebuilt since early March. Any
-  gene set created after that — including every gene set uploaded on 14 September — came back
-  as *no results*, with nothing to indicate the gene set existed at all. The search now has a
-  rebuild scheduled every night, so a newly created gene set becomes searchable within a day,
-  and the backlog has been cleared.
+  built on it) was answering from an index that had not been rebuilt since May. Gene sets
+  created after that — 25 of them, including every gene set uploaded on 14 September — came
+  back as *no results*, with nothing to indicate the gene set existed at all. The search now
+  has a rebuild scheduled every night, so a newly created gene set becomes searchable within a
+  day, and the backlog has been cleared.
 
     Searching on [geneweaver.org](https://www.geneweaver.org) itself was **not** affected —
     the website's own search uses a different index, which was already being rebuilt nightly.

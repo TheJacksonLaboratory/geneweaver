@@ -146,20 +146,31 @@ after 116.
 
 So GeneWeaver had two independent search indexes over the same gene sets and rebuilt only one of
 them. The legacy UI's Sphinx index has a delta every 15 minutes and a full rebuild at local
-midnight (`start_sphinx.sh`, G3-814); `geneset_search` had nothing. Measured against Prod through
-the API on 2026-09-16:
+midnight (`start_sphinx.sh`, G3-814); `geneset_search` had nothing.
 
-| | gene set | created |
-| --- | --- | --- |
-| newest row present in the view | GS412582 | 2026-03-02 |
-| oldest row missing from it | GS412733 | 2026-09-14 |
+Measured against each database directly on 2026-09-16:
 
-All nine gene sets of the 2026-09-14 upload batch (GS412733–GS412741) were missing, while samples
-from 2019, 2023, 2025 and early 2026 were all present — stale, not broken. The reported case,
-GS412733, is `gs_status` `normal`, Tier IV, score type `effect`, and is returned by
-`/api/genesets?gs_id=412733`, so it satisfied every filter the failing request sent; removing all
-filters still returned nothing, and a control gene set with the identical tier and score type but
-an earlier creation date returned rows under the same filter string.
+| | live gene sets missing from the view | usable unique index | 116's GIN index |
+| --- | --- | --- | --- |
+| dev | 19 | yes | **absent** |
+| sqa | 12 | yes | yes |
+| stage | 1 | yes | yes |
+| prod | 25 | yes | yes |
+
+On Prod the view's newest `gs_created` is **2026-05-06** against **2026-09-15** live, and the 25
+missing rows are gs_id 412712–412744 created 2026-05-13 to 2026-09-15 — so the view was last
+rebuilt in early-to-mid May, about **four months** earlier. The reported batch GS412733–GS412741
+is among those 25. GS412733 is `gs_status` `normal`, Tier IV, score type `effect`, and is returned
+by `/api/genesets?gs_id=412733`, so it satisfied every filter the failing request sent; removing
+all filters still returned nothing, and a control gene set with the identical tier and score type
+but an earlier creation date returned rows under the same filter string.
+
+> **Correction.** An earlier draft of this entry said the view's newest gene set was GS412582
+> created 2026-03-02, making the gap six months. That was an artifact of measuring through
+> `/api/genesets`, which lists only gene sets the caller may see: gs_id 412583–412711 are 102 gene
+> sets, all Tier V (private), all present in the view and created 2026-03-03 to 2026-05-06, and
+> the enumeration never sampled them. Four months and 25 gene sets, not six months. The defect is
+> unchanged; its size was overstated.
 
 The failure mode is the bad part: HTTP **200** with an empty `data` array, which a caller cannot
 distinguish from *no such gene set*. Nothing logged an error, and the legacy UI's own search kept
@@ -170,12 +181,17 @@ finding the same gene sets, so nothing pointed at the API.
 * `migration/121-geneset-search-unique-index.sql` — adds `geneset_search_gs_id_idx`, a unique
   index on `(gs_id)`, and then runs the one-off catch-up `REFRESH` that closes the gap already
   accumulated. Migration 116 created only a GIN index on `_combined_tsvector`, and
-  `REFRESH MATERIALIZED VIEW CONCURRENTLY` requires a *unique* index. Without one the only
-  available form is a plain `REFRESH`, which holds `ACCESS EXCLUSIVE` for the whole rebuild — API
-  search blocks until it finishes. The index is what makes a nightly refresh unnoticeable instead
-  of a nightly interruption. The catch-up refresh sits deliberately outside the migration's
-  transaction (`CONCURRENTLY` cannot run inside one), so do not apply the file with
-  `psql --single-transaction`.
+  `REFRESH MATERIALIZED VIEW CONCURRENTLY` requires a *unique* index; without one the only
+  available form is a plain `REFRESH`, which holds `ACCESS EXCLUSIVE` for the whole rebuild and
+  blocks API search until it finishes. In fact **all four databases already carry such an index**
+  (`geneset_search_unique_idx`, in no migration in this repository), so step 1 creates nothing
+  today and the migration reduces to its catch-up refresh. The step stays because an index that
+  exists by an unrecorded out-of-band act guarantees nothing about the next environment, restore
+  or hand-rebuilt view, and the nightly job hard-depends on it — this makes it a property of the
+  schema rather than a coincidence. It is conditional on the index's *shape*, not its name, so it
+  does not add a redundant second unique index where one already exists. The catch-up refresh sits
+  deliberately outside the migration's transaction (`CONCURRENTLY` cannot run inside one), so do
+  not apply the file with `psql --single-transaction`.
 * `deploy/k8s/base/search-view-refresh-cronjob.yaml` + `jobs/refresh_search_view.py`
   — the scheduled rebuild that was missing, at **00:30 America/New_York**, half an hour after the
   Sphinx full rebuild starts, so both search backends go stale and fresh together and neither hits
@@ -193,6 +209,20 @@ the migration at or before the deploy.
 `CONCURRENTLY` refreshes are atomic: a refresh that fails, times out or has its pod killed leaves
 the view's previous contents in place. A failed run costs freshness until the next run, never
 availability.
+
+**Cost, measured on dev 2026-09-16:** the catch-up `REFRESH ... CONCURRENTLY` took **526.7s — 8m47s
+— on a 261,005-row view, to add 19 rows**, and ended with zero live gene sets missing. Nearly nine
+minutes to publish nineteen gene sets: the cost is rebuilding the whole aggregate and is
+essentially independent of how stale the view is, so it does not shrink once the backlog is
+cleared, and the nightly job will pay roughly this every night. It sits well inside the job's
+55-minute `statement_timeout` and well inside the two-hour stagger between paired environments.
+Applied to dev with the conditional step 1 creating nothing, as designed:
+
+```
+step 1  geneset_search already has a usable unique index (geneset_search_unique_idx); leaving it alone
+step 3  REFRESH CONCURRENTLY took 526.7s (+19 rows)
+step 4  live genesets still missing from view: 0
+```
 
 What API search *returns* does change, and in both directions. Gene sets created since the view
 was last built start appearing — the point of the release — and gene sets **deleted** since then
