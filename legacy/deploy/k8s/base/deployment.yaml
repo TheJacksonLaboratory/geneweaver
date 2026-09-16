@@ -33,10 +33,9 @@ spec:
             # int(os.environ.get("WEB_CONCURRENCY", 1)), and the Dockerfile CMD passes no
             # --workers. With a single worker per pod the app has no concurrency at all --
             # one slow request occupies the pod, every other request queues behind it, and
-            # because the CMD also sets `--timeout 300` the worker is held for five minutes
-            # before it is killed and replaced. Under sustained traffic the backlog then
-            # never drains: each replacement worker immediately picks up another queued
-            # request and is killed in turn.
+            # the old `--timeout 300` held that worker for five minutes. Under sustained
+            # traffic the backlog then never drained: each replacement worker immediately
+            # picked up another queued request and was killed in turn.
             #
             # That is exactly how prod collapsed on 2026-09-16: it served normally for
             # 4h51m after the 1.6.0 deploy, then one slow search at 00:30 UTC saturated the
@@ -46,7 +45,9 @@ spec:
             # throughout, so this was queueing, not load. Stage never showed it: same image,
             # no traffic, so no queue.
             #
-            # Set per environment; the prod overlay raises it further.
+            # Four sync workers fit the web container's measured memory budget while
+            # giving every pod capacity to serve health checks and ordinary pages when a
+            # slow request is being terminated by Gunicorn's 60-second upper bound.
             - name: WEB_CONCURRENCY
               value: "4"
             - name: CELERY_PASSWORD
@@ -67,7 +68,31 @@ spec:
             - secretRef:
                 name: geneweaver-legacy-secrets
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            # Give Gunicorn time to replace individual timed-out workers before
+            # restarting the entire web container.
+            failureThreshold: 12
         - name: geneweaver-legacy-search
           image: geneweaver-legacy
           imagePullPolicy: Always
@@ -81,4 +106,26 @@ spec:
             # the EST/EDT change, which a hardcoded UTC hour would not.
             - name: TZ
               value: America/New_York
+          ports:
+            - name: sphinx
+              containerPort: 9312
+          startupProbe:
+            tcpSocket:
+              port: sphinx
+            periodSeconds: 5
+            timeoutSeconds: 2
+            # A production cold index took about four minutes during the incident.
+            failureThreshold: 120
+          readinessProbe:
+            tcpSocket:
+              port: sphinx
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            tcpSocket:
+              port: sphinx
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
           command: ["/bin/bash", "-c", "/app/sphinx/start_sphinx.sh"]

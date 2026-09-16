@@ -8,11 +8,16 @@ Covers:
 * GWC-42 / G3-772 -- __parse_score_type maps score types correctly and parses
   the correlation/effect *upper* bound (the fix that turns
   "0.0 < correlation < 0.5" into "0.0,0.5" rather than the old "0.0,.0").
+* NCBI requests carry finite timeouts, and optional SRA metadata degrades to an
+  empty value when NCBI is unavailable or rate-limits the application.
 
 Pure unit tests: geneweaverdb / pubmedsvc are mocked so no DB is needed.
 Run from legacy/:  python -m unittest tests.test_batch_thresholds
 """
+import importlib.util
+import os
 import sys
+import types
 import unittest
 from unittest.mock import MagicMock
 
@@ -22,6 +27,90 @@ sys.modules['geneweaverdb'] = MagicMock()
 sys.modules['pubmedsvc'] = MagicMock()
 
 from src.batch import BatchReader
+
+
+class _RequestException(Exception):
+    pass
+
+
+_fake_requests = types.ModuleType('requests')
+_fake_requests.RequestException = _RequestException
+_fake_requests.get = MagicMock()
+_old_requests = sys.modules.get('requests')
+sys.modules['requests'] = _fake_requests
+_pubmedsvc_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                               'src', 'pubmedsvc.py')
+_pubmedsvc_spec = importlib.util.spec_from_file_location(
+    '_pubmedsvc_timeout_tests', _pubmedsvc_path)
+pubmedsvc_under_test = importlib.util.module_from_spec(_pubmedsvc_spec)
+_pubmedsvc_spec.loader.exec_module(pubmedsvc_under_test)
+if _old_requests is None:
+    del sys.modules['requests']
+else:
+    sys.modules['requests'] = _old_requests
+
+
+class _Response:
+    def __init__(self, body, error=None):
+        self.content = body.encode('utf-8')
+        self.text = body
+        self._error = error
+
+    def raise_for_status(self):
+        if self._error:
+            raise self._error
+
+
+class PubMedTimeoutTests(unittest.TestCase):
+    """NCBI calls are bounded and optional SRA metadata fails open."""
+
+    def setUp(self):
+        _fake_requests.get.reset_mock()
+        _fake_requests.get.side_effect = None
+
+    def test_pubmed_metadata_request_has_timeout(self):
+        _fake_requests.get.return_value = _Response(
+            '<PubmedArticle><ArticleTitle>Example</ArticleTitle></PubmedArticle>')
+
+        result = pubmedsvc_under_test.get_pubmed_info('123')
+
+        self.assertEqual('Example', result['pub_title'])
+        self.assertEqual('123', result['pub_pubmed'])
+        self.assertEqual(pubmedsvc_under_test.NCBI_TIMEOUT,
+                         _fake_requests.get.call_args.kwargs['timeout'])
+
+    def test_sra_lookup_has_timeout_on_both_requests(self):
+        _fake_requests.get.side_effect = [
+            _Response('<LinkSet><LinkSetDb><Link><Id>456</Id></Link>'
+                      '</LinkSetDb></LinkSet>'),
+            _Response('<EXPERIMENT_PACKAGE><STUDY><IDENTIFIERS>'
+                      '<PRIMARY_ID>SRP000001</PRIMARY_ID>'
+                      '</IDENTIFIERS></STUDY></EXPERIMENT_PACKAGE>'),
+        ]
+
+        result = pubmedsvc_under_test.get_SRP('123')
+
+        self.assertEqual('SRP000001', result)
+        self.assertEqual(2, _fake_requests.get.call_count)
+        for call in _fake_requests.get.call_args_list:
+            self.assertEqual(pubmedsvc_under_test.NCBI_TIMEOUT,
+                             call.kwargs['timeout'])
+
+    def test_sra_rate_limit_degrades_to_missing_metadata(self):
+        _fake_requests.get.return_value = _Response(
+            '', _RequestException('HTTP 429'))
+
+        with self.assertLogs(pubmedsvc_under_test.logger, level='WARNING'):
+            result = pubmedsvc_under_test.get_SRP('123')
+
+        self.assertEqual('', result)
+        self.assertEqual(1, _fake_requests.get.call_count)
+
+    def test_sra_missing_link_skips_second_request(self):
+        _fake_requests.get.return_value = _Response('<LinkSet/>')
+
+        self.assertEqual('', pubmedsvc_under_test.get_SRP('123'))
+        self.assertEqual(1, _fake_requests.get.call_count)
 
 
 class BinaryThresholdTests(unittest.TestCase):

@@ -311,10 +311,10 @@ Either way: **do not approve any deploy job until §4.3 and §5 are done for tha
    replicas for the environments that have no autoscaler. Verified with `kubectl kustomize`: prod
    renders both Deployments with no `replicas` field, while dev, sqa and stage still render 1.
 
-   ⚠️ **The HPAs exist only in the cluster.** They are in no repository — not the monorepo, not the
-   retired standalone repos — and nothing reconciles them, so deleting or recreating a namespace
-   would silently lose them and drop prod to the manifest's (now absent) value. Capturing them as
-   manifests is worth doing, but it is a separate change from this release.
+   **Update 2026-09-16 (PR #20):** the web HPA is now declared in the prod overlay with the measured
+   min 2 / max 8 bounds. Its metric is scoped to the `geneweaver-legacy` container, so a Sphinx
+   sidecar cold build no longer scales out more pods that must each perform another cold build. The
+   tools HPA is still cluster-managed and remains vulnerable to namespace recreation.
 
 2. **TOOLBOX binaries actually built.** `legacy/tools-worker/Dockerfile` wraps each `make` in
    `|| echo "WARN: make failed in $d"` — exactly the swallow-the-build-failure pattern CLAUDE.md
@@ -1111,7 +1111,7 @@ Without that audit table the backfill cannot be distinguished from legitimately 
 |---|---|---|---|
 | ~~Double-deploy from both pipelines~~ **Retired** — `geneweaver-legacy` archived, verified 2026-08-21 | ~~Medium~~ None | High | §4.1 |
 | Tools-worker duplicated in prod (two workers racing the queue) | ~~Medium~~ **None** — measured 2026-08-04: all four namespaces already run a Deployment of the same name, so this is a replace-in-place | High | Resolved; §4.3.1 |
-| Prod replica counts change on deploy: tools-worker **2 → 1**, web **2 → 4** | High — this is what the manifests say today | High (worker throughput halves) | §4.3.1 — patch the prod overlay or accept deliberately, **before** approving Prod |
+| ~~Prod replica counts change on deploy: tools-worker **2 → 1**, web **2 → 4**~~ **Retired** — the prod overlay removes both Deployment replica fields; the web HPA is now declared in Git and the existing tools HPA restores its floor | ~~High~~ None | Resolved; §4.3.1 |
 | A TOOLBOX binary silently missing (`\|\| echo WARN`) | Low — dev build `30553972874` shows all 7 required binaries compiling; only unused `mset/` fails | High | §4.3.2 assert on the release image (the release rebuilds, so dev's result does not carry over) |
 | `genes.dat`/`homology.dat` absent on an environment's PVC (JaccardSimilarity returns p=0 for uncached set-size pairs) | ~~Medium~~ **None on dev/SQA** — generated and verified 2026-09-04; **still open for Stage/Prod** | Medium | §4.3.3 item 3 — regenerate per environment (G3-817) |
 | Migration 117 slow or lock-heavy on the shared prod instance | Low | Medium | §5.1 size first, batch, transaction |

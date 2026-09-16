@@ -1,0 +1,23 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: geneweaver-legacy
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: geneweaver-legacy
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    # Scale on the web container. The Sphinx sidecar uses about one core while
+    # cold-building its index; including that startup work in a pod-wide CPU metric
+    # previously created seven simultaneous cold index builds without adding usable
+    # request capacity.
+    - type: ContainerResource
+      containerResource:
+        name: cpu
+        container: geneweaver-legacy
+        target:
+          type: Utilization
+          averageUtilization: 80

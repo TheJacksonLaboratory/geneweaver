@@ -44,4 +44,4 @@ RUN poetry install --only-root
 
 WORKDIR /app/src
 
-CMD ["poetry", "run", "gunicorn", "--timeout", "300", "--limit-request-line", "8190", "--bind", "0.0.0.0:8000", "application:app"]
+CMD ["poetry", "run", "gunicorn", "--timeout", "60", "--limit-request-line", "8190", "--bind", "0.0.0.0:8000", "application:app"]

@@ -8,7 +8,7 @@ import logging
 from collections import OrderedDict, defaultdict
 from decimal import Decimal
 from io import StringIO
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 import datetime
 import itertools
 import json
@@ -82,6 +82,13 @@ VERSION = metadata.version("geneweaver-legacy")
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1 ,x_proto=1)
+
+
+@app.route('/healthz')
+def healthz():
+    """Report that Flask imported and a Gunicorn worker can accept requests."""
+    return Response(status=204)
+
 
 app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
@@ -1299,8 +1306,9 @@ def run_generator(generator_id):
     generator = publication_generator.PublicationGenerator.get_generator_by_id(generator_id)
     try:
         results = generator.run()
-    except HTTPError:
-        print("HTTPError trying to run generator {}".format(generator.name))
+    except (HTTPError, URLError, TimeoutError) as exc:
+        print("PubMed request failed while running generator {}: {}".format(
+            generator.name, type(exc).__name__))
         return json.dumps({'error': 'Problem communicating with PubMed, please try again later...'})
     return json.dumps(results.__dict__)
 
@@ -6356,4 +6364,3 @@ if __name__ == '__main__':
 
     else:
         app.run()
-

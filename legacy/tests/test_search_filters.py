@@ -59,6 +59,24 @@ class RecordingSphinxClient:
         pass
 
 
+class SphinxClientTimeoutTests(unittest.TestCase):
+    """Every search socket must stop waiting when the sidecar is unhealthy."""
+
+    def test_client_factory_sets_server_and_timeout(self):
+        client = MagicMock()
+        original = search.sphinxapi.SphinxClient
+        search.sphinxapi.SphinxClient = MagicMock(return_value=client)
+        try:
+            result = search._new_sphinx_client()
+        finally:
+            search.sphinxapi.SphinxClient = original
+
+        self.assertIs(result, client)
+        client.SetServer.assert_called_once_with(search.sphinx_server,
+                                                 search.sphinx_port)
+        client.SetConnectTimeout.assert_called_once_with(2.0)
+
+
 def _form(**overrides):
     f = {'searchbar': 'brain', 'pagination_page': '1', 'searchGenesets': 'on'}
     f.update(overrides)
