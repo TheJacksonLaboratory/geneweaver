@@ -29,6 +29,44 @@ spec:
             - name: geneweaver-legacy
               mountPath: /var/geneweaver/results
           env:
+            # Gunicorn runs ONE worker unless told otherwise: its `workers` default is
+            # int(os.environ.get("WEB_CONCURRENCY", 1)), and the Dockerfile CMD passes no
+            # --workers. With a single worker per pod the app has no concurrency at all --
+            # one slow request occupies the pod, every other request queues behind it, and
+            # the old `--timeout 300` held that worker for five minutes. Under sustained
+            # traffic the backlog then never drained: each replacement worker immediately
+            # picked up another queued request and was killed in turn.
+            #
+            # That is exactly how prod collapsed on 2026-09-16. Reconstructed from the
+            # ingress access log and the container logs after the rollback:
+            #
+            #   19:38  1.6.0 deployed. Serves prod for 4h07m at a 0.06s mean.
+            #   23:45  a scraper starts walking gene identifiers through /search/,
+            #          47 -> 422 requests/minute. Two pods, one worker each, so two
+            #          requests at a time: the arrival rate is several times capacity.
+            #   23:45+ requests cross ingress's 5s upstream timeout, and ingress retries
+            #          the next upstream -- one client request becomes three upstream
+            #          requests (logged as `5.001, 5.000, 0.625` / `504, 504, -`). The
+            #          client then gives up (499) while Gunicorn keeps writing the
+            #          response to a socket nobody reads: every worker died inside
+            #          `sock.sendall()` at the 300s timeout. 35 WORKER TIMEOUTs in two
+            #          hours; zero in the preceding 14 days.
+            #   01:48  rollback. The fresh pods serve fast enough to raise CPU, the HPA
+            #          scales 2 -> 7, and the same scraper is absorbed.
+            #
+            # A worker blocked in sendall() burns no CPU, so pod CPU stayed low and the
+            # CPU-driven HPA left prod at its floor of 2 for the whole outage -- the
+            # autoscaler could not see a total outage. Nothing in the release was slower:
+            # the code this scraper's URL executes is unchanged, and at 02:05, once the
+            # HPA had scaled back to 2 pods, the *rolled-back* image was degrading under
+            # the same scraper too (6s mean, 266 client aborts per 5 minutes). Stage never
+            # showed it: same image, no scraper, so no queue.
+            #
+            # Four sync workers fit the web container's measured memory budget while
+            # giving every pod capacity to serve health checks and ordinary pages when a
+            # slow request is being terminated by Gunicorn's 60-second upper bound.
+            - name: WEB_CONCURRENCY
+              value: "4"
             - name: CELERY_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -47,7 +85,31 @@ spec:
             - secretRef:
                 name: geneweaver-legacy-secrets
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            # Give Gunicorn time to replace individual timed-out workers before
+            # restarting the entire web container.
+            failureThreshold: 12
         - name: geneweaver-legacy-search
           image: geneweaver-legacy
           imagePullPolicy: Always
@@ -61,4 +123,26 @@ spec:
             # the EST/EDT change, which a hardcoded UTC hour would not.
             - name: TZ
               value: America/New_York
+          ports:
+            - name: sphinx
+              containerPort: 9312
+          startupProbe:
+            tcpSocket:
+              port: sphinx
+            periodSeconds: 5
+            timeoutSeconds: 2
+            # A production cold index took about four minutes during the incident.
+            failureThreshold: 120
+          readinessProbe:
+            tcpSocket:
+              port: sphinx
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            tcpSocket:
+              port: sphinx
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
           command: ["/bin/bash", "-c", "/app/sphinx/start_sphinx.sh"]

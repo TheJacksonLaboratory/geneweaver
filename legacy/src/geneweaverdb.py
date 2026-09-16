@@ -42,7 +42,12 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 # the global threaded connection pool that should be used for all DB
 # connections in this application
 pool = GeneWeaverThreadedConnectionPool(
-    5, 20,
+    # Gunicorn uses synchronous worker processes, so one request runs in each
+    # process at a time. Keeping five idle connections per worker multiplied a
+    # harmless worker-count increase into dozens of idle database sessions per
+    # pod. One warm connection is sufficient; retain a small ceiling for code
+    # paths or non-Gunicorn consumers that do use threads.
+    1, 5,
     database=config.get('db', 'database'),
     user=config.get('db', 'user'),
     password=config.get('db', 'password'),

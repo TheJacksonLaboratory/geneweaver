@@ -1,13 +1,16 @@
 import re
 import sys
-import urllib
+import urllib.error
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 
 import geneweaverdb
 import pub_assignments
 
 
-PUBMED_SEARCH_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
+PUBMED_SEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
+PUBMED_TIMEOUT_SECONDS = 10
 
 TO_MONTH_NAME = {
     '1': 'Jan', '01': 'Jan', '2': 'Feb', '02': 'Feb', '3': 'Mar', '03': 'Mar', '4': 'Apr', '04': 'Apr',
@@ -103,7 +106,9 @@ class PublicationGenerator(object):
         """
         import time
         start = time.time()
-        pubmed_result = PubmedResult(urllib.request.urlopen(PUBMED_SEARCH_URL % (urllib.parse.quote(self.querystring),)).read())
+        pubmed_result = PubmedResult(urllib.request.urlopen(
+            PUBMED_SEARCH_URL % (urllib.parse.quote(self.querystring),),
+            timeout=PUBMED_TIMEOUT_SECONDS).read())
 
         # Timing for how long the pubmed search took
         new_time = time.time()
@@ -126,7 +131,7 @@ class PubmedResult(object):
     Class for storing the result of a Pubmed Search.
     An instance of this class holds the current state of the search for paging purposes.
     """
-    _PUBMED_DATA_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s&retstart=%s&retmax=%s&retmode=xml'
+    _PUBMED_DATA_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s&retstart=%s&retmax=%s&retmode=xml'
     retmax = 10
     retstart = 0
     current_rows = []
@@ -159,10 +164,13 @@ class PubmedResult(object):
             self.retmax = max_result
 
         try:
-            response = urllib.request.urlopen(self._PUBMED_DATA_URL % (self.query_key, self.web_env, self.retstart, self.retmax)).read()
+            response = urllib.request.urlopen(
+                self._PUBMED_DATA_URL % (self.query_key, self.web_env,
+                                         self.retstart, self.retmax),
+                timeout=PUBMED_TIMEOUT_SECONDS).read()
         # Allow HTTPError from communication problems with PubMed to get propogated up
         except urllib.error.HTTPError as e:
-            print("Problem communicating with PubMed. {}".format(e.message))
+            print("Problem communicating with PubMed. {}".format(e))
             raise e
 
         self._process_pubmed_response(response)

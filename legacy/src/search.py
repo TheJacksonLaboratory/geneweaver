@@ -14,11 +14,19 @@ sphinx_port = config.getInt('sphinx', 'port')
 max_matches = 1000
 # The total number of genesets to conider in counting results in the filter set on the side bar
 max_filter_matches = 5000
+SPHINX_TIMEOUT_SECONDS = 2.0
+
+
+def _new_sphinx_client():
+    """Create a search client whose connect and socket reads are bounded."""
+    client = sphinxapi.SphinxClient()
+    client.SetServer(sphinx_server, sphinx_port)
+    client.SetConnectTimeout(SPHINX_TIMEOUT_SECONDS)
+    return client
 
 
 def search_sphinxql_diagnostic(sphinxQLQuery):
-    client = sphinxapi.SphinxClient()
-    client.SetServer(sphinx_server, sphinx_port)
+    client = _new_sphinx_client()
     return client.Query(sphinxQLQuery)
 
 
@@ -221,8 +229,7 @@ def getSearchFilterValues(query):
     the original PHP code.
     """
 
-    client = sphinxapi.SphinxClient()
-    client.SetServer(sphinx_server, sphinx_port)
+    client = _new_sphinx_client()
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     client.SetLimits(0, 1000, 1000)
 
@@ -549,8 +556,7 @@ def keyword_paginated_search(terms, pagination_page,
     TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
     '''
     # Connect to the sphinx indexed search server
-    client = sphinxapi.SphinxClient()
-    client.SetServer(sphinx_server, sphinx_port)
+    client = _new_sphinx_client()
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     # Set the number of GS results to fetch per page
     resultsPerPage = 25
@@ -706,8 +712,7 @@ def api_search(search_term,
     '''
     The purpose of api search is to do a simple keyword search based on a simple keyword. The results returned are what only guests would see, so there are no tier 5 results returned.
     '''
-    client = sphinxapi.SphinxClient()
-    client.SetServer(sphinx_server, sphinx_port)
+    client = _new_sphinx_client()
     query = '@(' + search_fields + ') ' + search_term
     # Note that this uses extended syntax http://sphinxsearch.com/docs/current.html#extended-syntax
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
