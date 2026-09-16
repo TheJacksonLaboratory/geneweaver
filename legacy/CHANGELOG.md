@@ -53,15 +53,38 @@ image Prod ran before 1.6.0 (`59d15fb-dirty`) is byte-identical to the one 1.6.1
   `g.pub_id = (SELECT pub_id FROM geneset WHERE gs_id = %(gs_id)s)`: a NULL publication makes
   the comparison NULL, which matches nothing and returns zero rows. `gs_id` is the primary key,
   so the scalar subquery can never return more than one row.
-* **The discarded filter leaked metadata.** On Prod, **170** publications mix readable and
-  non-readable gene sets, and **14,630** gene sets are not readable anonymously. The route has
-  no `@login_required` and passes `user_id = 0` for anonymous callers, and
+* **The discarded filter showed logged-in callers gene sets they could not read.** Whatever
+  `geneset_is_readable2` said about a sibling, every sibling was rendered:
   `viewsamepublications.html` prints `name`, `abbreviation`, `description`, `count`, `cur_id`,
-  `sp_id` and `attribution` per row — so those sets' metadata was shown. Gene *values* are not
-  exposed by that template.
+  `sp_id` and `attribution` per row. Demonstrated on Prod: for a real non-admin account and a
+  gene set that account may not read, the old query returned **3 rows** and the fixed one
+  returns **0**. Gene *values* are not exposed by that template.
+
+  **Scope correction.** The first version of this entry, of G3-825 and of PR #24 said an
+  *anonymous* visitor was shown that metadata. That is wrong, and the review caught it:
+  `viewsamepublications.html` opens with `{% if user_id == 0 %}` and includes
+  `permissionError.html`, so an anonymous caller never reaches the rows at all. The **170**
+  publications that mix readable and non-readable gene sets and the **14,630** gene sets with a
+  publication that are not publicly readable are still real, but they measure the *restricted
+  population*, not what an anonymous visitor could see. The exposure is to authenticated users;
+  the route's lack of `@login_required` mattered only in that it let an anonymous request run
+  ~32 s of queries to be told it had no permission.
 * **`%`-interpolation of a query string**, against the `CLAUDE.md` database guardrail. The
   values were database-derived integers, so it was not injectable; it is the prohibited pattern,
   and it is what made the `IN ()` crash possible.
+
+### Fixed — a caller could probe a gene set they cannot read
+
+Raised in review. The scalar subquery resolved the viewed gene set's `pub_id` without checking
+that the caller may read *it* -- only the siblings were filtered. So a logged-in caller could
+ask for a restricted `gs_id` and the readable siblings that came back disclosed which
+publication it is attached to. The subquery now carries the same check, so an unreadable gene
+set resolves to NULL and the page shows its empty state. It also makes
+`count_similar_genesets_by_publication`'s documented "counts the viewed gene set itself" true,
+which it was not when the viewed set was filtered out of nothing.
+
+The route additionally returns before either query when `user_id == 0`, since the template
+renders `permissionError.html` for that case and never reaches the rows.
 
 ### Fixed — the second N+1, which is why the page is capped
 
@@ -104,8 +127,9 @@ not a guarantee.
 
 ### Not fixed here
 
-Whether this route should be reachable without a login at all — it enumerates gene sets by
-publication for anonymous callers — is a separate question, recorded on G3-825.
+Whether this route should require a login outright, rather than running and then rendering a
+permission error, is left as its own decision on G3-825. The queries no longer run for an
+anonymous caller, so the cost of that is now zero.
 
 ### Testing & developer tooling
 

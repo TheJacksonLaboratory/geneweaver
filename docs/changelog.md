@@ -31,9 +31,11 @@ The version you are using is shown at the bottom of every page on
   message as a publication with a single gene set.
 * **The list now shows only the gene sets you are allowed to see.** Permission was being
   checked and then ignored, so on publications that mix public and restricted gene sets
-  the page listed the name, description, size, tier and species of sets the viewer had no
-  access to. Gene-level data was never exposed. The count now reflects what you can see,
-  too.
+  the page listed the name, description, size, tier and species of sets the signed-in
+  viewer had no access to. Gene-level data was never exposed, and the page has always
+  refused to render for visitors who are not signed in. The count now reflects what you
+  can see, and asking for a gene set you cannot read no longer reveals which publication
+  it belongs to.
 
 All three are long-standing — the page has behaved this way since it was added in 2015 —
 and are unrelated to the 1.6.0 and 1.6.1 releases.

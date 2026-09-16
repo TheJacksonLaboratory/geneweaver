@@ -22,8 +22,8 @@ Geneset.__init__ calls get_all_publications(), its own query at 0.91 ms -- anoth
 13.5 s for that publication. Hence a bounded page, not only better SQL.
 
 The DB tests run with no database: geneweaverdb builds a connection pool at import, so
-a fake psycopg2 is installed whose pool never connects and PooledCursor is patched to
-feed canned rows. The route is asserted on the parsed AST, matching
+tests/db/_shims.py installs a fake psycopg2 whose pool never connects, and PooledCursor
+is patched to feed canned rows. The route is asserted on the parsed AST, matching
 tests/test_search_filters.py -- src/application.py builds the Flask app at import and
 cannot be loaded in a pure unit test.
 
@@ -32,45 +32,13 @@ Run from legacy/:  python -m unittest tests.db.test_find_publications
 import ast
 import os
 import re
-import sys
-import types
 import unittest
 from unittest.mock import patch, MagicMock
 
 
-def _install_import_shims():
-    """Make `import src.geneweaverdb` succeed with no DB / no psycopg2 installed."""
-    psycopg2 = types.ModuleType('psycopg2')
-    psycopg2.Error = type('Error', (Exception,), {})
-    psycopg2.sql = MagicMock()
-    extras = types.ModuleType('psycopg2.extras')
-    extras.execute_values = MagicMock()
-    pool = types.ModuleType('psycopg2.pool')
+from tests.db import _shims  # noqa: E402
 
-    class _NoConnectPool:
-        def __init__(self, *a, **k):
-            pass
-
-        def getconn(self, *a, **k):
-            raise AssertionError('PooledCursor must be mocked in these tests')
-
-        def putconn(self, *a, **k):
-            pass
-
-    pool.ThreadedConnectionPool = _NoConnectPool
-    psycopg2.extras = extras
-    psycopg2.pool = pool
-    sys.modules['psycopg2'] = psycopg2
-    sys.modules['psycopg2.extras'] = extras
-    sys.modules['psycopg2.pool'] = pool
-
-    for name in ('config', 'notifications', 'pubmedsvc', 'annotator',
-                 'curation_assignments', 'flask', 'tools', 'tools.toolcommon'):
-        sys.modules.setdefault(name, MagicMock())
-
-
-_install_import_shims()
-from src import geneweaverdb  # noqa: E402
+_shims.install()
 from src.geneweaverdb import (  # noqa: E402
     SIMILAR_BY_PUBLICATION_PAGE_SIZE,
     count_similar_genesets_by_publication,
@@ -141,6 +109,23 @@ class SimilarByPublicationQueryTests(unittest.TestCase):
                       'the total must count only readable gene sets, or the page '
                       'count disagrees with the pages')
         self.assertIn('count(*)', sql)
+
+    def test_source_geneset_readability_is_checked_too(self):
+        self._call()
+        self.assertRegex(
+            self._sql(),
+            r'WHERE gs_id = %\(gs_id\)s AND geneset_is_readable2\(%\(user_id\)s, gs_id\)',
+            'the subquery must also check the viewed gene set: otherwise a caller who '
+            'cannot read it still gets its publication resolved, and the readable '
+            'siblings that come back disclose which publication it is attached to')
+
+    def test_count_checks_the_source_geneset_too(self):
+        self.cursor.fetchone.return_value = (0,)
+        count_similar_genesets_by_publication(374128, 5)
+        self.assertRegex(
+            _squash(self.cursor.execute.call_args[0][0]),
+            r'WHERE gs_id = %\(gs_id\)s AND geneset_is_readable2\(%\(user_id\)s, gs_id\)',
+            'the total must not count a publication the caller cannot reach')
 
     def test_count_returns_the_scalar(self):
         self.cursor.fetchone.return_value = (14799,)
@@ -249,6 +234,22 @@ class FindPublicationsRouteTests(unittest.TestCase):
                       "the template's empty state keys off the total; without it a "
                       'last page holding one row reads as "no other GeneSets"')
 
+    def test_view_skips_the_queries_for_an_anonymous_caller(self):
+        seg = self._segment()
+        anon = seg.index('user_id == 0')
+        count = seg.index('count_similar_genesets_by_publication')
+        self.assertLess(
+            anon, count,
+            'viewsamepublications.html renders permissionError for an anonymous caller '
+            'and never reaches the rows, so the queries must not run for one')
+        self.assertRegex(
+            seg[anon:count], r'return render_template',
+            'the anonymous branch must return before any query runs')
+
+    def test_view_passes_the_pubmed_id_for_the_search_link(self):
+        self.assertIn('pubmed_id', self._segment(),
+                      'the pager links to a PubMed-ID search, which needs the id')
+
     def test_view_tolerates_a_junk_page_argument(self):
         seg = self._segment()
         self.assertTrue(
@@ -277,6 +278,18 @@ class ViewSamePublicationsTemplateTests(unittest.TestCase):
 
     def test_pager_is_rendered_only_when_there_is_more_than_one_page(self):
         self.assertRegex(self.html, r'{%\s*if\s+num_pages\s+is\s+defined\s+and\s+num_pages\s*>\s*1\s*%}')
+
+    def test_pager_does_not_link_a_gsid_search(self):
+        self.assertNotIn(
+            'searchbar=GS{{ gs_id }}', self.html,
+            '/search/ always searches gsid_prefixed, so a GS<id> term matches only the '
+            'viewed gene set -- that link claimed to filter the siblings and did not')
+
+    def test_pubmed_search_link_is_guarded_on_having_an_id(self):
+        self.assertRegex(self.html, r'{%\s*if\s+pubmed_id\s*%}')
+        self.assertIn('searchbar={{ pubmed_id }}', self.html)
+        self.assertIn('searchAbstracts=yes', self.html,
+                      'the PubMed id only matches with the abstract fields searched')
 
     def test_pager_links_carry_the_page_number(self):
         self.assertIn('/findPublications/{{ gs_id }}?page={{ page + 1 }}', self.html)

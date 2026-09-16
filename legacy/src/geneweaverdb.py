@@ -4357,13 +4357,23 @@ SIMILAR_BY_PUBLICATION_PAGE_SIZE = 100
 # a SyntaxError, so an unconditional HTTP 500 (G3-825). gs_id is the primary key, so
 # the scalar subquery can never return more than one row.
 #
-# geneset_is_readable2 is applied *in* this statement. It used to run as one round
-# trip per sibling and the result was then discarded -- the final query read the
-# unfiltered list -- which cost 18.6 s on the publication above and returned gene sets
-# the caller was not allowed to read.
+# geneset_is_readable2 is applied *in* this statement, to the siblings AND to the
+# viewed gene set inside the subquery. It used to run as one round trip per sibling and
+# the result was then discarded -- the final query read the unfiltered list -- which
+# cost 18.6 s on the publication above and showed the caller gene sets they were not
+# allowed to read.
+#
+# The check on the subquery matters on its own: without it, a caller who cannot read
+# gs_id still gets its publication resolved, and the readable siblings that come back
+# disclose which publication the restricted gene set is attached to. It also keeps
+# count_similar_genesets_by_publication's "counts the viewed gene set itself" true --
+# an unreadable gene set is excluded from its own total, which would otherwise be
+# counted while every sibling was filtered.
 _SIMILAR_BY_PUBLICATION_WHERE = '''
     FROM geneset g
-    WHERE g.pub_id = (SELECT pub_id FROM geneset WHERE gs_id = %(gs_id)s)
+    WHERE g.pub_id = (SELECT pub_id FROM geneset
+                      WHERE gs_id = %(gs_id)s
+                        AND geneset_is_readable2(%(user_id)s, gs_id))
       AND geneset_is_readable2(%(user_id)s, g.gs_id)
 '''
 
