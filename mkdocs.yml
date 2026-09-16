@@ -168,3 +168,4 @@ nav:
       - License: reference/license.md
       - Policies: reference/policies.md
       - Acknowledgements: reference/acknowledgements.md
+  - Changelog: changelog.md
