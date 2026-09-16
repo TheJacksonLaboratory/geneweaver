@@ -26,8 +26,13 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ## 1.6.2 — unreleased
 
-The `/findPublications` fix (G3-825). **No database migration**, and no gene set's
-membership changes — the route only reads.
+Two independent fixes to gene set search, one in each of GeneWeaver's two search paths: the
+legacy page `/findPublications` (G3-825) and the API's `/api/genesets/search` (G3-826).
+
+**This release carries a database migration — `121-geneset-search-unique-index.sql` — and it must
+be applied in each environment.** (G3-825 alone needed none; G3-826 does.) No gene set's contents,
+threshold or membership changes in either fix: `/findPublications` only reads, and the migration
+adds one index to a derived view and rebuilds that view from the tables it is derived from.
 
 ### Fixed — `/findPublications` (G3-825)
 
@@ -131,15 +136,121 @@ Whether this route should require a login outright, rather than running and then
 permission error, is left as its own decision on G3-825. The queries no longer run for an
 anonymous caller, so the cost of that is now zero.
 
+### Fixed — `/api/genesets/search` could not find gene sets created since the view's last rebuild (G3-826)
+
+`GET /api/genesets/search` does not read the `geneset` table. It joins `production.geneset_search`
+(`packages/db/src/geneweaver/db/query/search/search.py:65`), the materialized view created by
+migration 116. A materialized view is a frozen snapshot — its contents change only on `REFRESH` —
+and **nothing had ever refreshed it**: no SQL, no CronJob, no application code path, no migration
+after 116.
+
+So GeneWeaver had two independent search indexes over the same gene sets and rebuilt only one of
+them. The legacy UI's Sphinx index has a delta every 15 minutes and a full rebuild at local
+midnight (`start_sphinx.sh`, G3-814); `geneset_search` had nothing.
+
+Measured against each database directly on 2026-09-16:
+
+| | live gene sets missing from the view | usable unique index | 116's GIN index |
+| --- | --- | --- | --- |
+| dev | 19 | yes | **absent** |
+| sqa | 12 | yes | yes |
+| stage | 1 | yes | yes |
+| prod | 25 | yes | yes |
+
+On Prod the view's newest `gs_created` is **2026-05-06** against **2026-09-15** live, and the 25
+missing rows are gs_id 412712–412744 created 2026-05-13 to 2026-09-15 — so the view was last
+rebuilt in early-to-mid May, about **four months** earlier. The reported batch GS412733–GS412741
+is among those 25. GS412733 is `gs_status` `normal`, Tier IV, score type `effect`, and is returned
+by `/api/genesets?gs_id=412733`, so it satisfied every filter the failing request sent; removing
+all filters still returned nothing, and a control gene set with the identical tier and score type
+but an earlier creation date returned rows under the same filter string.
+
+> **Correction.** An earlier draft of this entry said the view's newest gene set was GS412582
+> created 2026-03-02, making the gap six months. That was an artifact of measuring through
+> `/api/genesets`, which lists only gene sets the caller may see: gs_id 412583–412711 are 102 gene
+> sets, all Tier V (private), all present in the view and created 2026-03-03 to 2026-05-06, and
+> the enumeration never sampled them. Four months and 25 gene sets, not six months. The defect is
+> unchanged; its size was overstated.
+
+The failure mode is the bad part: HTTP **200** with an empty `data` array, which a caller cannot
+distinguish from *no such gene set*. Nothing logged an error, and the legacy UI's own search kept
+finding the same gene sets, so nothing pointed at the API.
+
+**The fix is in two halves, because the obvious one-liner is a nightly outage.**
+
+* `migration/121-geneset-search-unique-index.sql` — adds `geneset_search_gs_id_idx`, a unique
+  index on `(gs_id)`, and then runs the one-off catch-up `REFRESH` that closes the gap already
+  accumulated. Migration 116 created only a GIN index on `_combined_tsvector`, and
+  `REFRESH MATERIALIZED VIEW CONCURRENTLY` requires a *unique* index; without one the only
+  available form is a plain `REFRESH`, which holds `ACCESS EXCLUSIVE` for the whole rebuild and
+  blocks API search until it finishes. In fact **all four databases already carry such an index**
+  (`geneset_search_unique_idx`, in no migration in this repository), so step 1 creates nothing
+  today and the migration reduces to its catch-up refresh. The step stays because an index that
+  exists by an unrecorded out-of-band act guarantees nothing about the next environment, restore
+  or hand-rebuilt view, and the nightly job hard-depends on it — this makes it a property of the
+  schema rather than a coincidence. It is conditional on the index's *shape*, not its name, so it
+  does not add a redundant second unique index where one already exists. The catch-up refresh sits
+  deliberately outside the migration's transaction (`CONCURRENTLY` cannot run inside one), so do
+  not apply the file with `psql --single-transaction`.
+* `deploy/k8s/base/search-view-refresh-cronjob.yaml` + `jobs/refresh_search_view.py`
+  — the scheduled rebuild that was missing, at **00:30 America/New_York**, half an hour after the
+  Sphinx full rebuild starts, so both search backends go stale and fresh together and neither hits
+  the database while the other is working. `concurrencyPolicy: Forbid`, `backoffLimit: 2`, and a
+  55-minute `statement_timeout` under a 60-minute `activeDeadlineSeconds` so the database aborts a
+  runaway refresh with a reportable error before Kubernetes kills the pod. It runs the released
+  legacy image, so Skaffold pins the same tag as the web container and the script cannot drift from
+  the deploy.
+
+The job **refuses to run** — loudly, naming migration 121 — if the unique index is absent, rather
+than falling back to the locking `REFRESH`. An environment that deploys 1.6.2 without applying 121
+therefore gets a failed nightly job and a stale search index, not a nightly search outage. Apply
+the migration at or before the deploy.
+
+`CONCURRENTLY` refreshes are atomic: a refresh that fails, times out or has its pod killed leaves
+the view's previous contents in place. A failed run costs freshness until the next run, never
+availability.
+
+**Cost, measured on dev 2026-09-16:** the catch-up `REFRESH ... CONCURRENTLY` took **526.7s — 8m47s
+— on a 261,005-row view, to add 19 rows**, and ended with zero live gene sets missing. Nearly nine
+minutes to publish nineteen gene sets: the cost is rebuilding the whole aggregate and is
+essentially independent of how stale the view is, so it does not shrink once the backlog is
+cleared, and the nightly job will pay roughly this every night. It sits well inside the job's
+55-minute `statement_timeout` and well inside the two-hour stagger between paired environments.
+Applied to dev with the conditional step 1 creating nothing, as designed:
+
+```
+step 1  geneset_search already has a usable unique index (geneset_search_unique_idx); leaving it alone
+step 3  REFRESH CONCURRENTLY took 526.7s (+19 rows)
+step 4  live genesets still missing from view: 0
+```
+
+What API search *returns* does change, and in both directions. Gene sets created since the view
+was last built start appearing — the point of the release — and gene sets **deleted** since then
+stop appearing, because the stale view still contains them (its definition is
+`WHERE gs.gs_status <> 'deleted'`, so a gene set deleted after the last build is still findable
+today). Those removals are stale rows the view should not have been serving, but they are a real
+change in output rather than a no-op, and the row count can legitimately fall.
+
 ### Testing & developer tooling
 
-* `legacy/tests/db/test_find_publications.py` — **22 tests**, wired into the explicit module
-  list in `_legacy-tests.yml`; suite **194 → 216**. Three groups: the two queries (one statement
+* `legacy/tests/db/test_find_publications.py` — **28 tests**, wired into the explicit module
+  list in `_legacy-tests.yml`. Three groups: the two queries (one statement
   per page, the predicate in the SQL, equality not `IN`, no interpolation, `mogrify` never
   called, every value bound, anonymous → `-1`, `LIMIT`/`OFFSET`/`ORDER BY` present, the page size
   bounded); the route on its parsed AST, as `tests/test_search_filters.py` does, because
   `src/application.py` builds the Flask app at import and cannot be imported in a unit test; and
   the template contract, so the empty state cannot drift back to testing the page length.
+* `legacy/tests/test_search_view_refresh.py` — **17 tests**, same module list. These pin the
+  guards in the nightly refresh job that deploying cannot exercise, because a wrong guard shows
+  up either as a nightly search outage or as a silently stale index, months later: the refusal
+  when no usable unique index exists (and that it refreshes nothing on the way to refusing), the
+  catalog predicates `REFRESH ... CONCURRENTLY` actually requires, `CONCURRENTLY` plus autocommit
+  (psycopg2 opens a transaction on first execute and `CONCURRENTLY` cannot run inside one), the
+  bound `statement_timeout` and that it stays under the job's deadline, that the DB password never
+  reaches stdout, and that a shrinking view is tolerated while an empty one fails. psycopg2 is
+  faked, so there is no database and no network.
+
+Suite **194 → 239** for the two fixes together.
 
 ### Version
 

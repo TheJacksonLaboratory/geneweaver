@@ -18,6 +18,19 @@ The version you are using is shown at the bottom of every page on
 
 ### Fixed
 
+* **Recently created gene sets can be found through the API again.** GeneWeaver's
+  programmatic gene set search (`/api/genesets/search`, used by the newer API and the tools
+  built on it) was answering from an index that had not been rebuilt since May. Gene sets
+  created after that — 25 of them, including every gene set uploaded on 14 September — came
+  back as *no results*, with nothing to indicate the gene set existed at all. The search now
+  has a rebuild scheduled every night, so a newly created gene set becomes searchable within a
+  day, and the backlog has been cleared.
+
+    Searching on [geneweaver.org](https://www.geneweaver.org) itself was **not** affected —
+    the website's own search uses a different index, which was already being rebuilt nightly.
+    Fetching a gene set directly by its ID was not affected either. Only the programmatic
+    search was, and only for gene sets newer than the last rebuild.
+
 * **"Find other GeneSets from this publication" works on large publications.** For a
   publication with thousands of gene sets attached the page never finished loading and
   eventually returned an error — the GeneWeaver record for the Gene Ontology Consortium
@@ -37,8 +50,9 @@ The version you are using is shown at the bottom of every page on
   can see, and asking for a gene set you cannot read no longer reveals which publication
   it belongs to.
 
-All three are long-standing — the page has behaved this way since it was added in 2015 —
-and are unrelated to the 1.6.0 and 1.6.1 releases.
+The three *Find other GeneSets from this publication* fixes are long-standing — that page
+has behaved this way since it was added in 2015 — and are unrelated to the 1.6.0 and 1.6.1
+releases.
 
 ---
 

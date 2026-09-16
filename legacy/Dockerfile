@@ -42,6 +42,15 @@ COPY /src /app/src
 
 RUN poetry install --only-root
 
+# Scripts run by scheduled Jobs rather than by the web container -- currently the nightly
+# refresh of production.geneset_search (deploy/k8s/base/search-view-refresh-cronjob.yaml,
+# G3-826). Copied after the dependency installs so editing one does not invalidate them.
+#
+# jobs/ rather than sample-configs/k8s/ next to start_sphinx.sh: `sample-configs/**` is
+# gitignored (legacy/.gitignore), so everything under it is in the repo only by force-add and
+# a later `git add -A` silently misses edits to it. A new file should not inherit that.
+COPY jobs /app/jobs/
+
 WORKDIR /app/src
 
 CMD ["poetry", "run", "gunicorn", "--timeout", "60", "--limit-request-line", "8190", "--bind", "0.0.0.0:8000", "application:app"]

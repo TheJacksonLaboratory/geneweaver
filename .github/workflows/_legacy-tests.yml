@@ -57,4 +57,5 @@ jobs:
             tests.test_tool_geneset_value_insert \
             tests.db.test_score_type_threshold_shape \
             tests.db.test_find_publications \
-            tests.tools.test_mset_background_check
+            tests.tools.test_mset_background_check \
+            tests.test_search_view_refresh

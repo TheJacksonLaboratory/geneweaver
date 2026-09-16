@@ -8,6 +8,7 @@ resources:
   - tools-worker-configmap.yaml
   - tools-worker-deployment.yaml
   - service.yaml
+  - search-view-refresh-cronjob.yaml
   - external-secrets.yaml
   - persistent-volume-claim.yaml
   - ingress.yaml

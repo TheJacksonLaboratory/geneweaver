@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: geneweaver-search-view-refresh
+  labels:
+    app: geneweaver-search-view-refresh
+spec:
+  # GeneWeaver has two independent search indexes over the same gene sets, and until now only one
+  # of them was ever rebuilt:
+  #
+  #   * the legacy UI's Sphinx/Manticore index -- rebuilt inside the geneweaver-legacy-search
+  #     sidecar, delta every 15 minutes and a full `indexer --all` at 00:00 America/New_York
+  #     (start_sphinx.sh, G3-814).
+  #   * production.geneset_search -- the MATERIALIZED VIEW that GET /api/genesets/search joins
+  #     (packages/db/src/geneweaver/db/query/search/search.py). A materialized view changes only
+  #     on REFRESH, and nothing refreshed it. Direct database checks on 2026-09-16 found 25 live
+  #     Prod gene sets missing: the newest materialized gs_created was 2026-05-06 while the live
+  #     table had reached 2026-09-15. Searches for those sets returned HTTP 200 with an empty
+  #     result that a caller cannot tell apart from "no such gene set". G3-826.
+  #
+  # This is that missing rebuild, scheduled deliberately alongside the Sphinx one so both search
+  # backends go stale and fresh together rather than drifting apart. 00:30 rather than 00:00: the
+  # sidecar's full rebuild starts on the first delta tick after local midnight (so by 00:15) and a
+  # cold production index took about four minutes, so half past leaves it finished and keeps the
+  # two jobs off the same database at the same moment.
+  #
+  # This base value is what dev and prod run. sqa and stage patch it to 02:30, because each of
+  # them shares a Cloud SQL INSTANCE with one of those two (dev+sqa on jax-dev-10-guided-jay,
+  # stage+prod on jax-prod-10-promoted-owl -- CLAUDE.md "Deploy / environments"). A single
+  # inherited schedule would have both halves of a pair rebuild the same ~35M-row aggregate on
+  # one instance simultaneously, so stage would contend with prod. Two hours apart against a job
+  # capped at one hour (55-minute statement_timeout under a 60-minute activeDeadlineSeconds)
+  # means the paired runs provably cannot overlap.
+  schedule: "30 0 * * *"
+  # The container clock is UTC. Naming the zone keeps this at local midnight-thirty across the
+  # EST/EDT change, which a hardcoded UTC hour would not -- the same reason the search sidecar
+  # sets TZ=America/New_York. Requires Kubernetes >= 1.27 for stable spec.timeZone; the clusters
+  # run 1.34.
+  timeZone: America/New_York
+  # One refresh at a time. A second concurrent CONCURRENTLY refresh of the same view would either
+  # block on the first or duplicate its (substantial) work for no gain.
+  concurrencyPolicy: Forbid
+  # If the controller could not start the run within half an hour of its slot, skip it and wait
+  # for tomorrow rather than firing late into the working day.
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Two retries, then leave it failed and visible. A refresh that cannot succeed needs a human
+      # to read the reason (most likely: migration 121 not applied in this environment), and
+      # retrying all night would bury it.
+      backoffLimit: 2
+      # Upper bound on the whole run, above the script's 55-minute statement_timeout so the
+      # database aborts the refresh with a reportable error before Kubernetes kills the pod.
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: geneweaver-search-view-refresh
+        spec:
+          restartPolicy: Never
+          serviceAccountName: workload-identity-geneweaver
+          containers:
+            - name: refresh
+              # The released legacy image, so this runs the script version that shipped with the
+              # deploy and needs no image of its own. Skaffold rewrites the tag at deploy time,
+              # exactly as it does for the web and sidecar containers.
+              image: geneweaver-legacy
+              imagePullPolicy: Always
+              # `poetry run`, not bare python3: the image installs its dependencies (psycopg2)
+              # through poetry, and its CMD invokes the app the same way.
+              command:
+                - poetry
+                - run
+                - python3
+                - /app/jobs/refresh_search_view.py
+              envFrom:
+                # DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD. Nothing about the
+                # instance is baked into the image or this manifest.
+                - secretRef:
+                    name: geneweaver-db
