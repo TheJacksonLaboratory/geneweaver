@@ -24,6 +24,71 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
+## 1.6.2 — unreleased
+
+The API gene set search fix (G3-826). **This release carries a database migration —
+`121-geneset-search-unique-index.sql` — and it must be applied in each environment.** No gene
+set's contents, threshold or membership changes: the migration adds one index to a derived view
+and rebuilds that view from the tables it is derived from.
+
+### Fixed — `/api/genesets/search` could not find any gene set created after 2026-03-02 (G3-826)
+
+`GET /api/genesets/search` does not read the `geneset` table. It joins `production.geneset_search`
+(`packages/db/src/geneweaver/db/query/search/search.py:65`), the materialized view created by
+migration 116. A materialized view is a frozen snapshot — its contents change only on `REFRESH` —
+and **nothing had ever refreshed it**: no SQL, no CronJob, no application code path, no migration
+after 116.
+
+So GeneWeaver had two independent search indexes over the same gene sets and rebuilt only one of
+them. The legacy UI's Sphinx index has a delta every 15 minutes and a full rebuild at local
+midnight (`start_sphinx.sh`, G3-814); `geneset_search` had nothing. Measured against Prod through
+the API on 2026-09-16:
+
+| | gene set | created |
+| --- | --- | --- |
+| newest row present in the view | GS412582 | 2026-03-02 |
+| oldest row missing from it | GS412733 | 2026-09-14 |
+
+All nine gene sets of the 2026-09-14 upload batch (GS412733–GS412741) were missing, while samples
+from 2019, 2023, 2025 and early 2026 were all present — stale, not broken. The reported case,
+GS412733, is `gs_status` `normal`, Tier IV, score type `effect`, and is returned by
+`/api/genesets?gs_id=412733`, so it satisfied every filter the failing request sent; removing all
+filters still returned nothing, and a control gene set with the identical tier and score type but
+an earlier creation date returned rows under the same filter string.
+
+The failure mode is the bad part: HTTP **200** with an empty `data` array, which a caller cannot
+distinguish from *no such gene set*. Nothing logged an error, and the legacy UI's own search kept
+finding the same gene sets, so nothing pointed at the API.
+
+**The fix is in two halves, because the obvious one-liner is a nightly outage.**
+
+* `migration/121-geneset-search-unique-index.sql` — adds `geneset_search_gs_id_idx`, a unique
+  index on `(gs_id)`, and then runs the one-off catch-up `REFRESH` that closes the gap already
+  accumulated. Migration 116 created only a GIN index on `_combined_tsvector`, and
+  `REFRESH MATERIALIZED VIEW CONCURRENTLY` requires a *unique* index. Without one the only
+  available form is a plain `REFRESH`, which holds `ACCESS EXCLUSIVE` for the whole rebuild — API
+  search blocks until it finishes. The index is what makes a nightly refresh unnoticeable instead
+  of a nightly interruption. The catch-up refresh sits deliberately outside the migration's
+  transaction (`CONCURRENTLY` cannot run inside one), so do not apply the file with
+  `psql --single-transaction`.
+* `deploy/k8s/base/search-view-refresh-cronjob.yaml` + `jobs/refresh_search_view.py`
+  — the scheduled rebuild that was missing, at **00:30 America/New_York**, half an hour after the
+  Sphinx full rebuild starts, so both search backends go stale and fresh together and neither hits
+  the database while the other is working. `concurrencyPolicy: Forbid`, `backoffLimit: 2`, and a
+  55-minute `statement_timeout` under a 60-minute `activeDeadlineSeconds` so the database aborts a
+  runaway refresh with a reportable error before Kubernetes kills the pod. It runs the released
+  legacy image, so Skaffold pins the same tag as the web container and the script cannot drift from
+  the deploy.
+
+The job **refuses to run** — loudly, naming migration 121 — if the unique index is absent, rather
+than falling back to the locking `REFRESH`. An environment that deploys 1.6.2 without applying 121
+therefore gets a failed nightly job and a stale search index, not a nightly search outage. Apply
+the migration at or before the deploy.
+
+`CONCURRENTLY` refreshes are atomic: a refresh that fails, times out or has its pod killed leaves
+the view's previous contents in place. A failed run costs freshness until the next run, never
+availability.
+
 ## 1.6.1 — unreleased
 
 **The promotion release for the outage fix.** Not new application behaviour: 1.6.1 carries the

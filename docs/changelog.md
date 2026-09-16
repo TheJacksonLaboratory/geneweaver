@@ -14,6 +14,23 @@ The version you are using is shown at the bottom of every page on
 
 ---
 
+## 1.6.2 — unreleased
+
+### Fixed
+
+* **Gene sets created since March 2026 can be found through the API again.** GeneWeaver's
+  programmatic gene set search (`/api/genesets/search`, used by the newer API and the tools
+  built on it) was answering from an index that had not been rebuilt since early March. Any
+  gene set created after that — including every gene set uploaded on 14 September — came back
+  as *no results*, with nothing to indicate the gene set existed at all. The search now has a
+  rebuild scheduled every night, so a newly created gene set becomes searchable within a day,
+  and the backlog has been cleared.
+
+    Searching on [geneweaver.org](https://www.geneweaver.org) itself was **not** affected —
+    the website's own search uses a different index, which was already being rebuilt nightly.
+    Fetching a gene set directly by its ID was not affected either. Only the programmatic
+    search was, and only for gene sets newer than the last rebuild.
+
 ## 1.6.1 — 16 September 2026
 
 A reliability release. **No changes to gene sets, analyses or the interface** — the
