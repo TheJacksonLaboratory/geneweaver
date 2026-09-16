@@ -56,7 +56,6 @@ jobs:
             tests.db.test_admin_sql_injection \
             tests.test_tool_geneset_value_insert \
             tests.db.test_score_type_threshold_shape \
+            tests.db.test_find_publications \
             tests.tools.test_mset_background_check \
             tests.test_search_view_refresh
-            tests.db.test_find_publications \
-            tests.tools.test_mset_background_check
