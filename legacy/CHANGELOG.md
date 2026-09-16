@@ -24,7 +24,151 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
-## 1.6.0 — unreleased
+## 1.6.1a — unreleased
+
+**The outage-response pre-release.** No application behaviour changes and no migration: 1.6.1a is
+1.6.0 plus the limits and health gates that stop one blocked request from taking the site down. A
+**pre-release, SQA only** — Prod goes back to a plain version once this is verified.
+
+> **Why a patch bump and not `1.6.0d`.** The letter is a PEP 440 pre-release segment and there is no
+> `d`; `1.6.0c` was already the last one available, and `1.6.0` itself is released. So the next
+> pre-release has to hang off the next patch version: `1.6.1a`, installed as **`1.6.1a0`**.
+
+### The outage this responds to
+
+Reconstructed from the ingress access log and the container logs after the rollback. All times UTC,
+2026-09-15/16.
+
+| | |
+|---|---|
+| 19:38 | 1.6.0 deployed to Prod. Serves for **4 h 07 m at a 0.06 s mean** request time. |
+| 23:45 | A scraper starts walking gene identifiers through `/search/`, **47 → 422 requests per minute**, rotating desktop user agents. Prod runs 2 pods × **1 Gunicorn worker** — two requests at a time — so arrivals run several times over capacity. Before this, Prod took 1–4 searches per five minutes. |
+| 23:45+ | Requests cross ingress's 5 s upstream timeout and ingress **retries the next upstream**, so one client request becomes three (`5.001, 5.000, 0.625` / `504, 504, -`). The client gives up (499) while Gunicorn keeps writing the response to a socket nobody reads: every worker died inside **`sock.sendall()`** at the 300 s timeout. **35 `WORKER TIMEOUT`s in two hours, against zero in the preceding 14 days.** |
+| 01:48 | Rollback. The fresh pods serve fast enough to raise CPU, the HPA scales **2 → 7**, and the same scraper is absorbed. |
+| 02:05 | The HPA scales back to 2 pods and the **rolled-back** image starts degrading under the same scraper too: 6 s mean, 266 client aborts per five minutes. |
+
+Two conclusions shape this release:
+
+* **Nothing in 1.6.0 was slower.** The code this scraper's URL executes is unchanged — the deployed
+  1.6.0-predecessor `/app/src` was pulled out of the running Prod pod and diffed against the
+  release: `render_searchFromHome`, `get_geneset_no_user` and the search templates are identical,
+  and the `search.py` changes are guards that do not fire on this URL shape. The database, Sphinx
+  and GCSFuse were healthy throughout, and no autovacuum ran on `geneset`/`geneset_value` in the
+  window.
+* **A blocked write burns no CPU**, so the CPU-driven HPA held Prod at its floor of 2 for the whole
+  outage — the autoscaler could not see a total outage. More workers per pod is what makes CPU a
+  meaningful signal again.
+
+### Fixed — request concurrency and unbounded waits (#20)
+
+* **Four Gunicorn workers per pod, every environment.** Gunicorn's `workers` default is
+  `int(os.environ.get("WEB_CONCURRENCY", 1))` and the Dockerfile `CMD` passes no `--workers`, so
+  every pod in every environment has been running **one** worker and had no concurrency at all.
+  `WEB_CONCURRENCY=4` is set in the base. Four fits the web container's measured memory budget —
+  one live worker at 177–190 MiB against a ~1.1 GiB request. At the Prod floor, request concurrency
+  rises from **2 to 8**.
+* **Gunicorn `--timeout` 300 → 60 s.** A worker writing to an abandoned socket was held for five
+  minutes; it is now replaced within one.
+* **`/healthz` plus startup, readiness and liveness probes** on the web container. A saturated pod
+  is taken out of service instead of absorbing requests it cannot answer, and a container that does
+  not recover is restarted. The endpoint is deliberately trivial (`204`, no database) so it reports
+  worker availability rather than dependency health.
+* **Readiness gated on Sphinx.** The search sidecar gets TCP probes, with a startup budget covering
+  the measured four-minute cold index build, so a pod cannot serve searches against a searchd that
+  is not listening yet.
+* **Sphinx socket operations bounded at 2 s** (`SPHINX_TIMEOUT_SECONDS`); the locked
+  `sphinxapi-py3` 2.1.11 `SetConnectTimeout(float)` applies the socket timeout before connect and
+  retains it for response reads, so this bounds reads as well as connects.
+* **NCBI calls bounded.** PubMed at 10 s (`PUBMED_TIMEOUT_SECONDS`), SRA at `(3.05, 10)`
+  connect/read (`NCBI_TIMEOUT`). The optional SRA lookup now **fails open** — on a timeout, a
+  malformed response, or an HTTP error such as the 429s observed in Prod logs — and logs a warning
+  instead of failing the gene set page. Found while reading the incident logs, not part of the
+  collapse.
+* **Connection pool 5–20 → 1–5 per worker.** With synchronous workers, five idle connections per
+  worker turned a worker-count increase into dozens of idle sessions per pod. Prod peaked at 15 of
+  600 connections during the incident, so this is headroom management rather than a fix.
+
+### Infrastructure & operations
+
+* **The Prod web HPA is now declared in Git** (min 2 / max 8), scaled on the **web container's** CPU
+  rather than the pod's. The Sphinx sidecar uses about a core while cold-building its index;
+  including that in a pod-wide metric added pods that each started another cold build without
+  adding request capacity. Until now the HPA existed only in the cluster, reconciled by nothing.
+* **The web container's CPU and memory requests are declared** in the Prod overlay, at the values
+  Prod runs today (`cpu: 1`, `memory: 1092Mi`, measured on both the 1.6.0 and the rolled-back pod
+  templates, so scheduling is unchanged). The HPA's `Utilization` target is a percentage of the
+  container's request: no manifest here declared one, and Prod's live values survive from the
+  standalone repo's pipeline through `kubectl apply`'s three-way merge. The HPA's metric therefore
+  depended on the deploy path being retired, and would have resolved to `<unknown>` — holding Prod
+  at `minReplicas` exactly when it needed to scale.
+
+### Not in this release
+
+Two mitigations belong at the ingress, not in the application, and are tracked separately:
+
+* Turn off `proxy-next-upstream` for timeouts, so one slow request cannot become three.
+* Rate-limit the scraper. It drove the whole event and will return; the application changes here
+  raise the ceiling but do not remove the incentive to defend the edge.
+
+### Required before deploying
+
+**Nothing new.** Migrations 117, 118 and 119 are applied and verified in every environment,
+including Prod — re-verified 2026-09-16 on Prod: binary rows out of threshold **0**, real
+`gs_count` miscounts **0**, `production.process_thresholds` free of `ABS(`.
+
+| | 117 | 118 | 119 |
+|---|---|---|---|
+| Dev | applied | applied | applied |
+| SQA | applied | applied | applied |
+| Stage | applied 2026-09-15 | applied 2026-09-15 | applied 2026-09-15 |
+| Prod | applied 2026-09-15 | applied 2026-09-15 | applied 2026-09-15 |
+
+Prod's JaccardSimilarity `.dat` caches were generated after the 1.6.0 deploy and live on the results
+PVC, so they survive the rollback and this redeploy. **Prod is currently on the pre-1.6.0 image**, so
+promoting Prod means moving it forward two releases at once — 1.6.0's application changes arrive with
+1.6.1's limits.
+
+### Known issues carried forward
+
+* ⚠️ **A stale duplicate `public.process_thresholds` exists on Prod and SQA** (not Dev, not Stage).
+  It is the **pre-117 body**: Binary as `value > threshold`, P/Q inclusive (`<=`), and type 4/5 on
+  `ABS(value)` — every behaviour migrations 117 and 119 exist to remove. It predates all three
+  migrations, which correctly replaced `production.process_thresholds`. The application is not
+  affected: the connection pool sets `search_path TO production, extsrc, odestatic`, which does not
+  include `public`. But any session that resolves `public` first — a psql session on the default
+  search path, for instance — calls the unfixed function and silently rewrites membership. Needs its
+  own migration to drop or redirect it; it is not addressed here because it is neither caused by nor
+  fixed by this release.
+* **Stage only:** 6,200 of 6,386 type-1/2 rows sitting exactly on their cutoff are flagged
+  in-threshold against an exclusive procedure. SQA (0 of 28,205) and Prod (0 of 14,610) are clean.
+  Pre-existing stored membership from the older inclusive Python paths; a G3-819 follow-up.
+* **Prod only:** 2,956 gene sets claim genes while holding none. Migration 118 deliberately does not
+  touch them — deriving the count from zero rows would zero the claim, and Tier I sets are among
+  them, where lost data is likelier than a stale number. Its own ticket.
+* A `NaN` threshold puts every gene in threshold (`1 < 'NaN'::numeric` is TRUE in PostgreSQL).
+  Unchanged; 0 live gene sets carry one on SQA.
+
+### Version
+
+* `legacy/pyproject.toml` 1.6.0 → **1.6.1a**. A pre-release — the letter is what marks it — so the
+  workflow deploys to **SQA only**, with no Stage/Prod promotion and no drafted GitHub release.
+  Release with `git tag v1.6.1a && git push origin v1.6.1a` on the commit carrying this bump. The
+  version job compares the tag against the file and fails the run if they disagree, and the bump
+  alone releases nothing.
+* Installs as **`1.6.1a0`** (PEP 440 normalises `a` → `a0`), verified in the release image. PEP 440
+  orders `1.6.0 < 1.6.1a0`, so this is an upgrade from what SQA runs today.
+* ⚠️ **Artifact identity:** this builds a *new* image, so 1.6.0's sign-off does not transfer.
+  §4.3.2's TOOLBOX binary assertion needs re-running against this build.
+
+---
+
+## 1.6.0 — released 2026-09-15; **Prod rolled back 2026-09-16**
+
+> **Prod is not running this version.** It was deployed to Prod at 19:38 UTC on 2026-09-15
+> and rolled back at 01:48 UTC on 2026-09-16 after a site-wide outage; Prod has been serving
+> the previous image (`59d15fb-dirty`) since. The outage was a request-concurrency collapse,
+> not a defect in this version's application code — see **1.6.1a**, which is the redeploy
+> path. SQA and Stage still run 1.6.0. All three database migrations are applied everywhere.
 
 **The promotion release.** Not new application behaviour: 1.6.0 carries the *same application code*
 as `1.6.0c`, which SQA has been running and verifying since 2026-09-14. What changes is the release
@@ -61,12 +205,14 @@ wrong procedure still misbehaves. Per environment, **migrations first, then the 
 | | 117 | 118 | 119 | pre-state captured |
 |---|---|---|---|---|
 | SQA | applied | applied | applied | — |
-| **Stage** | **applied 2026-09-15** | **applied 2026-09-15** | **applied 2026-09-15** | yes |
-| **Prod** | **NOT applied** | **NOT applied** | **NOT applied** | yes — rollback ready |
+| Stage | applied 2026-09-15 | applied 2026-09-15 | applied 2026-09-15 | yes |
+| Prod | applied 2026-09-15 | applied 2026-09-15 | applied 2026-09-15 | yes — rollback ready |
 
-Stage's database work is done and verified (binary rows out of threshold 0, miscounts 0, type-4/5
-disagreements 0, `ABS(` gone). **Prod's is captured but not applied**, so approving the Prod deploy
-before running them would ship the fixed code against an unfixed procedure.
+All environments are now done and verified (binary rows out of threshold 0, real `gs_count`
+miscounts 0, type-4/5 disagreements 0, `ABS(` gone from `production.process_thresholds`). This table
+read "Prod: NOT applied" when 1.6.0 was prepared; Prod's migrations were run on 2026-09-15 ahead of
+its deploy, and re-verified 2026-09-16. See 1.6.1a's known issues for the stale
+`public.process_thresholds` duplicate this re-verification turned up.
 
 Then, **after** each environment's deploy — not before, because the generators ship inside the
 monorepo-built image — generate that environment's JaccardSimilarity `.dat` caches (§4.3.3 item 3).
