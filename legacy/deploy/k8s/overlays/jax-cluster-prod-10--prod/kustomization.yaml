@@ -7,6 +7,7 @@ patchesStrategicMerge:
   - persistent-volume-claim.yaml
   - configmap.yaml
   - ingress.yaml
+  - deployment.yaml
 
 # Prod is the ONLY environment with HorizontalPodAutoscalers (measured 2026-09-14):
 #

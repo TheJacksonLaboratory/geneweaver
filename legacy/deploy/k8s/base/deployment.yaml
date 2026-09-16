@@ -29,6 +29,26 @@ spec:
             - name: geneweaver-legacy
               mountPath: /var/geneweaver/results
           env:
+            # Gunicorn runs ONE worker unless told otherwise: its `workers` default is
+            # int(os.environ.get("WEB_CONCURRENCY", 1)), and the Dockerfile CMD passes no
+            # --workers. With a single worker per pod the app has no concurrency at all --
+            # one slow request occupies the pod, every other request queues behind it, and
+            # because the CMD also sets `--timeout 300` the worker is held for five minutes
+            # before it is killed and replaced. Under sustained traffic the backlog then
+            # never drains: each replacement worker immediately picks up another queued
+            # request and is killed in turn.
+            #
+            # That is exactly how prod collapsed on 2026-09-16: it served normally for
+            # 4h51m after the 1.6.0 deploy, then one slow search at 00:30 UTC saturated the
+            # single worker and the pod never recovered -- 11 worker timeouts, one every
+            # ~5 minutes, with even static files timing out because nothing reached a free
+            # worker. CPU stayed at ~1 millicore and the database at 15 of 600 connections
+            # throughout, so this was queueing, not load. Stage never showed it: same image,
+            # no traffic, so no queue.
+            #
+            # Set per environment; the prod overlay raises it further.
+            - name: WEB_CONCURRENCY
+              value: "4"
             - name: CELERY_PASSWORD
               valueFrom:
                 secretKeyRef:

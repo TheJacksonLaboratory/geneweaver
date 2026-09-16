@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-legacy
+  labels:
+    app: geneweaver-legacy
+spec:
+  template:
+    spec:
+      containers:
+        # Prod carries the only real traffic, so it gets the most headroom. Note this
+        # patch deliberately sets NO replicas: prod's HorizontalPodAutoscalers own that
+        # field (geneweaver-legacy min 2 / max 8), and the kustomization removes it.
+        - name: geneweaver-legacy
+          env:
+            - name: WEB_CONCURRENCY
+              value: "8"
