@@ -2705,13 +2705,28 @@ that carries them, so nothing is described twice.</p>
 <h2 id="162-unreleased">1.6.2 — unreleased</h2>
 <h3 id="fixed">Fixed</h3>
 <ul>
-<li><strong>"Find other GeneSets from this publication" works on large publications.</strong> For a
+<li>
+<p><strong>Recently created gene sets can be found through the API again.</strong> GeneWeaver's
+  programmatic gene set search (<code>/api/genesets/search</code>, used by the newer API and the tools
+  built on it) was answering from an index that had not been rebuilt since May. Gene sets
+  created after that — 25 of them, including every gene set uploaded on 14 September — came
+  back as <em>no results</em>, with nothing to indicate the gene set existed at all. The search now
+  has a rebuild scheduled every night, so a newly created gene set becomes searchable within a
+  day, and the backlog has been cleared.</p>
+<p>Searching on <a href="https://www.geneweaver.org">geneweaver.org</a> itself was <strong>not</strong> affected —
+the website's own search uses a different index, which was already being rebuilt nightly.
+Fetching a gene set directly by its ID was not affected either. Only the programmatic
+search was, and only for gene sets newer than the last rebuild.</p>
+</li>
+<li>
+<p><strong>"Find other GeneSets from this publication" works on large publications.</strong> For a
   publication with thousands of gene sets attached the page never finished loading and
   eventually returned an error — the GeneWeaver record for the Gene Ontology Consortium
   paper has 14,799 gene sets, and the page asked the database a separate question about
   every one of them, twice. It now asks once and shows 100 gene sets at a time, with
   Previous / Next links and a count of how many there are in total. The page went from
-  not loading at all to well under a second.</li>
+  not loading at all to well under a second.</p>
+</li>
 <li><strong>A gene set with no publication no longer returns an error.</strong> More than half of all
   gene sets have no publication attached, and for those this page failed outright rather
   than saying there was nothing to show. It now shows the same "no other GeneSets"
@@ -2724,8 +2739,9 @@ that carries them, so nothing is described twice.</p>
   can see, and asking for a gene set you cannot read no longer reveals which publication
   it belongs to.</li>
 </ul>
-<p>All three are long-standing — the page has behaved this way since it was added in 2015 —
-and are unrelated to the 1.6.0 and 1.6.1 releases.</p>
+<p>The three <em>Find other GeneSets from this publication</em> fixes are long-standing — that page
+has behaved this way since it was added in 2015 — and are unrelated to the 1.6.0 and 1.6.1
+releases.</p>
 <hr />
 <h2 id="161-16-september-2026">1.6.1 — 16 September 2026</h2>
 <p>A reliability release. <strong>No changes to gene sets, analyses or the interface</strong> — the
