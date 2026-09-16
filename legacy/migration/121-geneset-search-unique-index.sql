@@ -223,8 +223,10 @@ SELECT gs_id
 FROM production.geneset_search
 WHERE _combined_tsvector @@ plainto_tsquery('english', 'gs412733');
 
--- 5) And that nothing that used to be findable was lost -- GS412582 was the newest row in the
---    stale view. Must return one row.
+-- 5) Verify one known-live control that was already searchable remains searchable. GS412582 is
+--    a sampled visible row, not the view's old watermark, and this check does not claim that the
+--    complete result set is unchanged: stale deleted rows are expected to disappear on refresh.
+--    Must return one row where this gene set exists.
 SELECT gs_id
 FROM production.geneset_search
 WHERE _combined_tsvector @@ plainto_tsquery('english', 'gs412582');

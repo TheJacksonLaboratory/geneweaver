@@ -9,9 +9,9 @@ second one was missing:
   * legacy UI search  -> Sphinx/Manticore index, rebuilt in the geneweaver-legacy-search sidecar
   * GET /api/genesets/search -> production.geneset_search, a MATERIALIZED VIEW (migration 116)
 
-A materialized view only changes on REFRESH. Nothing ever refreshed this one, so by 2026-09-16 the
-newest gene set it contained was GS412582 (created 2026-03-02) while the database had gone on to
-GS412741 (2026-09-14) -- six months of new gene sets that the API's search answered with an empty
+A materialized view only changes on REFRESH. Direct database checks on 2026-09-16 found 25 live
+Prod gene sets missing from this one: the newest materialized ``gs_created`` was 2026-05-06 while
+the live table had reached 2026-09-15. The API answered searches for the missing sets with an empty
 result set and HTTP 200, indistinguishable to a caller from "no such gene set". See G3-826.
 
 CONCURRENTLY is not optional here. The plain form holds an ACCESS EXCLUSIVE lock for the whole
@@ -39,8 +39,11 @@ REFRESH_SQL = f"REFRESH MATERIALIZED VIEW CONCURRENTLY {VIEW_SCHEMA}.{VIEW_NAME}
 
 # The DB aborts the refresh before Kubernetes' activeDeadlineSeconds kills the pod, so a run that
 # overruns its budget reports a Postgres timeout rather than a bare SIGKILL with no explanation.
-# Keep this below the CronJob's activeDeadlineSeconds.
-DEFAULT_STATEMENT_TIMEOUT_MS = 3_300_000  # 55 minutes
+# The CronJob's activeDeadlineSeconds is 60 minutes. Preserve a five-minute margin even when an
+# operator supplies an override, so Postgres reports a useful timeout before Kubernetes kills the
+# pod. PostgreSQL treats zero as "disabled", so the lower bound matters too.
+MAX_STATEMENT_TIMEOUT_MS = 3_300_000  # 55 minutes
+DEFAULT_STATEMENT_TIMEOUT_MS = MAX_STATEMENT_TIMEOUT_MS
 
 
 def log(message: str) -> None:
@@ -125,8 +128,31 @@ def state(cursor) -> tuple:
     return cursor.fetchone()
 
 
+def statement_timeout_ms() -> int:
+    """Read and validate the timeout while preserving the CronJob's safety margin."""
+    raw = os.environ.get(
+        "SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS",
+        str(DEFAULT_STATEMENT_TIMEOUT_MS),
+    )
+    try:
+        timeout_ms = int(raw)
+    except ValueError:
+        raise SystemExit(
+            "search-view-refresh: SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS must be an "
+            f"integer from 1 through {MAX_STATEMENT_TIMEOUT_MS}; got {raw!r}"
+        ) from None
+
+    if not 1 <= timeout_ms <= MAX_STATEMENT_TIMEOUT_MS:
+        raise SystemExit(
+            "search-view-refresh: SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS must be from "
+            f"1 through {MAX_STATEMENT_TIMEOUT_MS} so Postgres times out before the "
+            f"CronJob deadline; got {timeout_ms}"
+        )
+    return timeout_ms
+
+
 def main() -> int:
-    timeout_ms = int(os.environ.get("SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS", DEFAULT_STATEMENT_TIMEOUT_MS))
+    timeout_ms = statement_timeout_ms()
 
     conn = connect()
     with conn.cursor() as cursor:

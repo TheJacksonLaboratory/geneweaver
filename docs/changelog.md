@@ -31,10 +31,6 @@ The version you are using is shown at the bottom of every page on
     Fetching a gene set directly by its ID was not affected either. Only the programmatic
     search was, and only for gene sets newer than the last rebuild.
 
-## 1.6.2 — unreleased
-
-### Fixed
-
 * **"Find other GeneSets from this publication" works on large publications.** For a
   publication with thousands of gene sets attached the page never finished loading and
   eventually returned an error — the GeneWeaver record for the Gene Ontology Consortium

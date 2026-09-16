@@ -220,6 +220,41 @@ class TestRefreshStatement(unittest.TestCase):
         timeouts = [params for sql, params in cursor.executed if 'statement_timeout' in sql]
         self.assertEqual(timeouts, [(60000,)])
 
+    def test_statement_timeout_cannot_be_disabled(self):
+        """Postgres treats zero as no timeout, which would let Kubernetes kill the pod first."""
+        for value in ('0', '-1'):
+            with self.subTest(value=value), self.assertRaises(SystemExit) as raised:
+                run_job(env=dict(ENV, SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS=value))
+            self.assertIn('must be from 1 through', str(raised.exception))
+
+    def test_statement_timeout_override_preserves_the_deadline_margin(self):
+        """Overrides may not consume the five-minute gap below activeDeadlineSeconds."""
+        for value in (
+            str(refresh_search_view.MAX_STATEMENT_TIMEOUT_MS + 1),
+            str(3600 * 1000),
+        ):
+            with self.subTest(value=value), self.assertRaises(SystemExit) as raised:
+                run_job(env=dict(ENV, SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS=value))
+            self.assertIn('CronJob deadline', str(raised.exception))
+
+    def test_statement_timeout_override_must_be_an_integer(self):
+        """A malformed override must fail clearly before opening a database connection."""
+        with self.assertRaises(SystemExit) as raised:
+            run_job(env=dict(ENV, SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS='55 minutes'))
+        self.assertIn('must be an integer', str(raised.exception))
+
+    def test_maximum_statement_timeout_is_accepted(self):
+        """The largest override that preserves the five-minute margin remains valid."""
+        env = dict(
+            ENV,
+            SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS=str(
+                refresh_search_view.MAX_STATEMENT_TIMEOUT_MS
+            ),
+        )
+        _code, _out, cursor, _conn = run_job(env=env)
+        timeouts = [params for sql, params in cursor.executed if 'statement_timeout' in sql]
+        self.assertEqual(timeouts, [(refresh_search_view.MAX_STATEMENT_TIMEOUT_MS,)])
+
     def test_timeout_default_is_under_the_cronjob_deadline(self):
         """activeDeadlineSeconds is 3600; the DB must abort first, with a reason."""
         self.assertLess(refresh_search_view.DEFAULT_STATEMENT_TIMEOUT_MS, 3600 * 1000)

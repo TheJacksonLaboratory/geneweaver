@@ -13,10 +13,10 @@ spec:
   #     (start_sphinx.sh, G3-814).
   #   * production.geneset_search -- the MATERIALIZED VIEW that GET /api/genesets/search joins
   #     (packages/db/src/geneweaver/db/query/search/search.py). A materialized view changes only
-  #     on REFRESH, and nothing refreshed it: by 2026-09-16 its newest gene set was GS412582
-  #     (created 2026-03-02) while the database had reached GS412741 (2026-09-14). Six months of
-  #     gene sets were unsearchable through the API, answered with HTTP 200 and an empty result
-  #     set that a caller cannot tell apart from "no such gene set". G3-826.
+  #     on REFRESH, and nothing refreshed it. Direct database checks on 2026-09-16 found 25 live
+  #     Prod gene sets missing: the newest materialized gs_created was 2026-05-06 while the live
+  #     table had reached 2026-09-15. Searches for those sets returned HTTP 200 with an empty
+  #     result that a caller cannot tell apart from "no such gene set". G3-826.
   #
   # This is that missing rebuild, scheduled deliberately alongside the Sphinx one so both search
   # backends go stale and fresh together rather than drifting apart. 00:30 rather than 00:00: the
