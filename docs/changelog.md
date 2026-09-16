@@ -31,6 +31,34 @@ The version you are using is shown at the bottom of every page on
     Fetching a gene set directly by its ID was not affected either. Only the programmatic
     search was, and only for gene sets newer than the last rebuild.
 
+## 1.6.2 — unreleased
+
+### Fixed
+
+* **"Find other GeneSets from this publication" works on large publications.** For a
+  publication with thousands of gene sets attached the page never finished loading and
+  eventually returned an error — the GeneWeaver record for the Gene Ontology Consortium
+  paper has 14,799 gene sets, and the page asked the database a separate question about
+  every one of them, twice. It now asks once and shows 100 gene sets at a time, with
+  Previous / Next links and a count of how many there are in total. The page went from
+  not loading at all to well under a second.
+* **A gene set with no publication no longer returns an error.** More than half of all
+  gene sets have no publication attached, and for those this page failed outright rather
+  than saying there was nothing to show. It now shows the same "no other GeneSets"
+  message as a publication with a single gene set.
+* **The list now shows only the gene sets you are allowed to see.** Permission was being
+  checked and then ignored, so on publications that mix public and restricted gene sets
+  the page listed the name, description, size, tier and species of sets the signed-in
+  viewer had no access to. Gene-level data was never exposed, and the page has always
+  refused to render for visitors who are not signed in. The count now reflects what you
+  can see, and asking for a gene set you cannot read no longer reveals which publication
+  it belongs to.
+
+All three are long-standing — the page has behaved this way since it was added in 2015 —
+and are unrelated to the 1.6.0 and 1.6.1 releases.
+
+---
+
 ## 1.6.1 — 16 September 2026
 
 A reliability release. **No changes to gene sets, analyses or the interface** — the
@@ -208,4 +236,4 @@ remain inclusive at both ends, which was never in question.
 * **"Find other GeneSets from this publication" fails on very large publications.** For a
   publication with thousands of associated gene sets the page does not finish loading, and for
   a gene set with no publication it returns an error. Long-standing — present in every earlier
-  version — and being fixed separately.
+  version. **Fixed in 1.6.2.**
