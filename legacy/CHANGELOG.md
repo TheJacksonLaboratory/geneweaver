@@ -24,17 +24,37 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
-## 1.6.2b — unreleased
+## 1.6.2b — tagged 2026-09-17; verified on SQA
 
 **The second SQA pre-release of 1.6.2**, carrying the post-refresh `VACUUM` that `1.6.2a` does
 not. Same release *shape* as 1.6.2a: the letter makes it a PEP 440 pre-release, so the workflow
 deploys to **SQA only** — no Stage/Prod promotion, no drafted GitHub release. The plain `1.6.2`
 then promotes exactly what this verifies, which restores the 1.6.1/1.6.1a pattern.
 
-> **Prepared, not released.** Merging this bump deploys nothing — the tag is the release decision
-> (`cb61c111`). To ship: `git tag v1.6.2b && git push origin v1.6.2b` on the merge commit.
-> Installs as **`1.6.2b0`**; PEP 440 orders `1.6.2a0 < 1.6.2b0 < 1.6.2`, so it is an upgrade from
-> what SQA runs.
+> **Released to SQA and verified 2026-09-17.** Deployed pod: image
+> `7d4daaf@sha256:1591d8c3…`, `poetry version` → `1.6.2b`, installed as **`1.6.2b0`**. The
+> CronJob is present on the staggered `30 2 * * *` America/New_York schedule with
+> `activeDeadlineSeconds=3600` and the matching injected
+> `SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS=3600`, and the shipped image carries
+> `VACUUM_DEADLINE_MARGIN_SECONDS = 300`.
+>
+> A forced run of the job passed, exit 0, with both new lines present:
+>
+> ```
+> usable unique index present: geneset_search_unique_idx
+> refreshed in 275.9s (+0 rows, newest gs_id 408085 -> 408085)
+> before vacuum: 0 dead tuples, 1222 MB
+> vacuum budget: 3024s of the 3324s left on the job deadline
+> vacuumed in 2.7s (last_vacuum now 2026-09-17 16:58:07.374802+00:00)
+> after vacuum:  0 dead tuples, 1222 MB
+> ```
+>
+> `vacuum budget: 3024s of the 3324s left` is the deadline-bounding working on real numbers —
+> the refresh spent 276s of the 3600s deadline, and the vacuum was granted the remaining 3324s
+> minus the 300s margin, rather than a fresh 55 minutes. `last_vacuum` advanced past its
+> 13:50:12 baseline, so the vacuum demonstrably ran and the silent-skip guard did not misfire.
+> `0 → 0 dead tuples` is the honest reading of an already-clean view: the benefit was measured
+> separately on a real backlog (855 → 0 in 28.9s), and the 2.7s here is the steady-state cost.
 
 > ⚠️ **This spends the second of three available letters.** `1.6.2c` normalises to `1.6.2rc0` and
 > is the **last** one; there is no `1.6.2d` — it raises `InvalidVersion`, and `poetry` would
@@ -174,13 +194,47 @@ deliberately not folded into a version bump.
 
 ## 1.6.2 — unreleased
 
-Two independent fixes to gene set search, one in each of GeneWeaver's two search paths: the
-legacy page `/findPublications` (G3-825) and the API's `/api/genesets/search` (G3-826).
+**The promotion release for the gene set search fixes.** Two independent fixes, one in each of
+GeneWeaver's two search paths: the legacy page `/findPublications` (G3-825) and the API's
+`/api/genesets/search` (G3-826).
 
-**This release carries a database migration — `121-geneset-search-unique-index.sql` — and it must
-be applied in each environment.** (G3-825 alone needed none; G3-826 does.) No gene set's contents,
-threshold or membership changes in either fix: `/findPublications` only reads, and the migration
-adds one index to a derived view and rebuilds that view from the tables it is derived from.
+Not new application behaviour: 1.6.2 carries the *same application code* as `1.6.2b`, which SQA
+verified on 2026-09-17. What changes is the release **shape** — a plain version with no letter, so
+the workflow promotes **SQA → Stage → Prod** and drafts a GitHub release instead of stopping at
+SQA. `git diff v1.6.2b..HEAD` touches only this version bump and the changelog.
+
+> **Every deploy is still gated.** Pushing the tag queues the Stage and Prod deploy jobs behind
+> their GitHub environment approvals; it does not deploy anything on its own. `deploy_stage` needs
+> `deploy_sqa` and `deploy_prod` needs `deploy_stage`, so they cannot run out of order.
+
+> **This is the release that finally gives Stage and Prod a scheduled refresh.** Both have the
+> CronJob nowhere today — migration 121's catch-up on 2026-09-16 was a one-off, so both have been
+> drifting again since. dev has had it since 2026-09-16 and sqa since 2026-09-17.
+
+**The database needs nothing.** `121-geneset-search-unique-index.sql` was applied to **all four**
+databases on 2026-09-16, ahead of the release rather than with it, and re-verified 2026-09-17:
+every view holds exactly as many rows as its table has live gene sets, with matching `max(gs_id)`
+and newest `gs_created`, and **zero** stale rows. No gene set's contents, threshold or membership
+changes in either fix.
+
+### Deploy-time notes for this release
+
+* **The CronJob is new to Stage and Prod.** Prod runs the base `30 0 * * *` America/New_York
+  schedule; **Stage is staggered to `30 2 * * *`** because the two share the Cloud SQL instance
+  `jax-prod-10-promoted-owl` and each refresh is an aggregate over ~42M rows. Two hours apart
+  against a job capped at one by its `statement_timeout` makes non-overlap provable.
+* **Expect the first Prod run to take ~9 minutes** and to publish whatever accumulated since
+  2026-09-16. The catch-up on 2026-09-16 took 538.8s, and Prod's API was unaffected throughout:
+  30 samples across that rebuild held 0.189–0.313s against a 0.19–0.21s baseline.
+* **Verify after the Prod deploy** that `geneweaver-search-view-refresh` exists in the `prod`
+  namespace, and ideally force one run rather than waiting for 00:30 ET:
+  `kubectl -n prod create job svr-check --from=cronjob/geneweaver-search-view-refresh`.
+  The log should carry `usable unique index present: geneset_search_unique_idx`,
+  `vacuum budget: …`, `vacuumed in …s (last_vacuum now …)` and exit 0.
+* **Pre-existing Prod bloat is not reclaimed by this release.** `production.geneset_search` was
+  1890 MB with 28,508 dead tuples and `last_autovacuum` of 2026-04-15. The nightly `VACUUM` stops
+  that compounding but cannot return space to the OS; a `VACUUM FULL` in an `ACCESS EXCLUSIVE`
+  window is a separate decision.
 
 ### Fixed — `/findPublications` (G3-825)
 
