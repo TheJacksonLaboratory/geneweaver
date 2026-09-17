@@ -24,17 +24,80 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
-## 1.6.2a — unreleased
+## 1.6.2b — unreleased
+
+**The second SQA pre-release of 1.6.2**, carrying the post-refresh `VACUUM` that `1.6.2a` does
+not. Same release *shape* as 1.6.2a: the letter makes it a PEP 440 pre-release, so the workflow
+deploys to **SQA only** — no Stage/Prod promotion, no drafted GitHub release. The plain `1.6.2`
+then promotes exactly what this verifies, which restores the 1.6.1/1.6.1a pattern.
+
+> **Prepared, not released.** Merging this bump deploys nothing — the tag is the release decision
+> (`cb61c111`). To ship: `git tag v1.6.2b && git push origin v1.6.2b` on the merge commit.
+> Installs as **`1.6.2b0`**; PEP 440 orders `1.6.2a0 < 1.6.2b0 < 1.6.2`, so it is an upgrade from
+> what SQA runs.
+
+> ⚠️ **This spends the second of three available letters.** `1.6.2c` normalises to `1.6.2rc0` and
+> is the **last** one; there is no `1.6.2d` — it raises `InvalidVersion`, and `poetry` would
+> reject it in `pyproject.toml`, failing the image build rather than the version gate. A third
+> pre-release after `1.6.2c` needs explicit `1.6.2rc1` numbering. (The same trap the 1.6.0 series
+> hit at `1.6.0c`; see the warning at the top of this file.)
+
+### What changed since 1.6.2a
+
+Only #27, in two commits:
+
+* `220d5599` — the nightly refresh now runs `VACUUM (ANALYZE)` after each refresh, bounded by what
+  remains of the pod's `activeDeadlineSeconds`, verifying via `last_vacuum` that it actually ran,
+  and skipping rather than risking a pod kill that would report a **completed** refresh as failed.
+* `24914045` — raises the vacuum's deadline margin from 120s to **300s**, matching the refresh's.
+  Kubernetes counts `activeDeadlineSeconds` from the *Job's* start while the script can only
+  measure from *Python* startup, so the margin also has to cover scheduling, image pull and
+  container startup. Without it a slow image pull could still eat the headroom.
+
+No migration, no schema change, and nothing in `/findPublications` or the search queries moves.
+
+### What to check on SQA
+
+**One run of the nightly job** — the only thing 1.6.2b changes. Force it rather than waiting for
+02:30 ET:
+
+```
+kubectl -n sqa create job svr-check --from=cronjob/geneweaver-search-view-refresh
+```
+
+The log must show, in order:
+
+```
+usable unique index present: geneset_search_unique_idx
+refreshed in ...s (...)
+before vacuum: N dead tuples, ... MB
+vacuum budget: ...s of the ...s left on the job deadline
+vacuumed in ...s (last_vacuum now ...)
+after vacuum:  0 dead tuples, ... MB
+```
+
+`vacuum budget:` and `last_vacuum now` are the new lines, and the dead-tuple count dropping to
+**0** is the point of the release. Exit code must be 0. A `WARNING: ... skipping the VACUUM` line
+would mean the refresh ran long enough to eat the budget — not a failure, but worth reporting,
+because on SQA the refresh takes ~280s against a 3600s deadline and should have ~3300s to spare.
+
+Everything else 1.6.2a was verified for still holds and does not need redoing; see that entry.
+
+---
+
+## 1.6.2a — tagged 2026-09-17; deployed to SQA
 
 **The SQA pre-release of 1.6.2.** A version carrying a letter is a PEP 440 pre-release, so the
 workflow deploys to **SQA only**, with no Stage/Prod promotion and no drafted GitHub release.
 Prod gets a plain `1.6.2` once SQA signs this off.
 
-> **1.6.2a is not the last word on 1.6.2.** It was tagged and deployed to SQA on 2026-09-17, and
-> the post-refresh `VACUUM` (see *Changed — the nightly refresh now VACUUMs the view afterwards*
-> under 1.6.2) landed afterwards. Rather than let the plain version carry an unverified change,
-> **a second pre-release, `1.6.2b`, goes to SQA once that merges**; the plain `1.6.2` then promotes
-> what 1.6.2b verified. So 1.6.2 will be identical to `1.6.2b`, and the 1.6.1/1.6.1a pattern —
+> **1.6.2a is not the last word on 1.6.2.** Verified on the SQA pod: image `5ced70d`,
+> `poetry version` → `1.6.2a`, installed as `1.6.2a0`, CronJob present on the staggered
+> `30 2 * * *` America/New_York schedule, and a forced run of it succeeded (289.7s, +0 rows).
+> The post-refresh `VACUUM` (see *Changed — the nightly refresh now VACUUMs the view afterwards*
+> under 1.6.2) landed afterwards, in #27. Rather than let the plain version carry an unverified
+> change, **`1.6.2b` carries it to SQA** (below); the plain `1.6.2` then promotes what 1.6.2b
+> verified. So 1.6.2 will be identical to `1.6.2b`, and the 1.6.1/1.6.1a pattern —
 > a plain version carrying exactly its last pre-release's code — holds after all.
 >
 > `1.6.2b` installs as **`1.6.2b0`**, and PEP 440 orders `1.6.2a0 < 1.6.2b0 < 1.6.2`, so it is an
