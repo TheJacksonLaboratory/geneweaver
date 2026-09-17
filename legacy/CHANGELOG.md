@@ -26,10 +26,21 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ## 1.6.2a — unreleased
 
-**The SQA pre-release of 1.6.2.** Same application code as the 1.6.2 entry below — this is the
-release *shape*, not new behaviour: a version carrying a letter is a PEP 440 pre-release, so the
+**The SQA pre-release of 1.6.2.** A version carrying a letter is a PEP 440 pre-release, so the
 workflow deploys to **SQA only**, with no Stage/Prod promotion and no drafted GitHub release.
 Prod gets a plain `1.6.2` once SQA signs this off.
+
+> **1.6.2a is not the last word on 1.6.2.** It was tagged and deployed to SQA on 2026-09-17, and
+> the post-refresh `VACUUM` (see *Changed — the nightly refresh now VACUUMs the view afterwards*
+> under 1.6.2) landed afterwards. Rather than let the plain version carry an unverified change,
+> **a second pre-release, `1.6.2b`, goes to SQA once that merges**; the plain `1.6.2` then promotes
+> what 1.6.2b verified. So 1.6.2 will be identical to `1.6.2b`, and the 1.6.1/1.6.1a pattern —
+> a plain version carrying exactly its last pre-release's code — holds after all.
+>
+> `1.6.2b` installs as **`1.6.2b0`**, and PEP 440 orders `1.6.2a0 < 1.6.2b0 < 1.6.2`, so it is an
+> upgrade from what SQA runs. Note that it spends the second of three available letters: `1.6.2c`
+> normalises to `1.6.2rc0` and is the last one, after which a third pre-release needs explicit
+> `1.6.2rc1` numbering.
 
 > **Prepared, not released.** Merging this bump deliberately does not deploy anything — the tag is
 > the release decision (`cb61c111`). To ship: `git tag v1.6.2a && git push origin v1.6.2a` on the
@@ -304,6 +315,104 @@ stop appearing, because the stale view still contains them (its definition is
 `WHERE gs.gs_status <> 'deleted'`, so a gene set deleted after the last build is still findable
 today). Those removals are stale rows the view should not have been serving, but they are a real
 change in output rather than a no-op, and the row count can legitimately fall.
+
+### Changed — the nightly refresh now VACUUMs the view afterwards (G3-826 follow-up)
+
+> **`1.6.2a` does not carry this.** It was tagged and deployed to SQA before this landed. Decided:
+> **1.6.2 carries it, and SQA verifies it first as `1.6.2b`** — a second pre-release, tagged once
+> this merges. Not deferred to 1.6.3, because the change exists precisely because the CronJob is
+> about to run nightly against Prod for the first time, which is the moment to have it in; and not
+> ridden into the plain 1.6.2 unverified either, even though the promotion order would have given
+> it an SQA step (`deploy_stage` lists `deploy_sqa` in its `needs`). The plain `1.6.2` then
+> promotes exactly what 1.6.2b verified.
+>
+> **What to check on SQA against 1.6.2b:** one run of the nightly job. The log should carry
+> `vacuumed in …s (last_vacuum now …)` and a dead-tuple count that drops to 0. Force it rather
+> than waiting for 02:30:
+> `kubectl -n sqa create job svr-check --from=cronjob/geneweaver-search-view-refresh`
+
+`REFRESH ... CONCURRENTLY` is a diff-and-merge, not a rewrite. That is precisely what lets it run
+without locking readers, and the price is dead tuples: every row whose searchable content changed
+leaves its old version — and its old out-of-line tsvector — behind. The plain, non-concurrent
+`REFRESH` truncates and rewrites and so never bloats, but it holds `ACCESS EXCLUSIVE` for the
+whole rebuild and would black out API search for minutes, which is the trade this ticket
+deliberately refused.
+
+**Autovacuum will not reliably clean up after us.** Its trigger is relative to table size —
+`50 + 0.2 × live_tuples`, about **53,000** dead rows on Prod's 264,716 — and a nightly delta
+produces far fewer, so the table can bloat for months without ever tripping it. Measured
+2026-09-16 on the live databases:
+
+| | `last_autovacuum` | dead tuples | total size | of which TOAST |
+| --- | --- | --- | --- | --- |
+| prod | **2026-04-15** | 28,508 (54% of trigger) | 1890 MB | 1224 MB |
+| dev | **never** | — | 2138 MB | ~1856 MB |
+
+dev holds the same row count as sqa (1222 MB) in 2138 MB with *fewer* indexes. That is years of
+refreshes with nothing cleaning up behind them — and it is what Prod grows into if the nightly job
+ships without this.
+
+So the job now runs `VACUUM (ANALYZE) production.geneset_search` after each refresh and logs the
+dead-tuple count and total size either side, so the condition stays visible on a clean run instead
+of only surfacing once it is a problem.
+
+**Measured on sqa, 2026-09-17**, running the updated script against the real database:
+
+```
+refreshed in 279.1s (+0 rows, newest gs_id 408085 -> 408085)
+before vacuum: 855 dead tuples, 1222 MB
+vacuumed in 28.9s
+after vacuum:  0 dead tuples, 1222 MB
+```
+
+Three things worth reading off that. A refresh that publishes **nothing** still leaves 855 dead
+tuples, so at that rate autovacuum's ~53,000 trigger is two months away while the file grows the
+whole time — the mechanism, quantified. The cleanup costs **28.9s against a 279s refresh**, about
+10%, and a second `VACUUM` moments later took **2.3s**, so once it runs nightly there is almost
+nothing to do. And the size stayed at **1222 MB**: the space is reusable, not returned — exactly
+the limit described below.
+
+The vacuum is bounded by **what is left of the pod's deadline**, not by a fresh
+`statement_timeout`. That setting is per *statement*, not a session budget, so the refresh and the
+vacuum would otherwise each be entitled to the full 55 minutes — up to 110 against a 60-minute
+`activeDeadlineSeconds`. If the pod were killed mid-vacuum the Job would be marked
+`Failed`/`DeadlineExceeded`, reporting a **completed** refresh as a failure and never printing the
+"refresh SUCCEEDED" line that exists to prevent exactly that misreading. So the script computes
+the remaining time, gives the vacuum that minus a five-minute margin, and **skips the vacuum
+outright** when that leaves less than a minute for cleanup — cleanup waits for tomorrow rather
+than risking the run being reported as failed. The manifest passes its `activeDeadlineSeconds`
+to the script as `SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS` so the two cannot drift.
+
+(For the record, since it is the obvious worry: an overrun would **not** cause the refresh to be
+repeated. Verified on the dev cluster, Kubernetes 1.34, that `activeDeadlineSeconds` takes
+precedence over `backoffLimit` — the Job goes terminal as `Failed=DeadlineExceeded` with zero
+replacement pods. The cost of an overrun is a misleading red Job, not repeated work.)
+
+It also verifies the vacuum actually happened, by checking that `last_vacuum` advanced. A `VACUUM`
+on a relation the caller does not own is **not an error** in PostgreSQL — it emits a warning and
+skips — so without this the step could become a silent no-op after a role change or restore and
+still log success. PostgreSQL 15 is what these instances run, and ownership is the only route
+there; the `MAINTAIN` privilege that would let a non-owner vacuum arrived in 16. All four databases
+connect as the view's owner today (checked 2026-09-16), so this guards the future, not the present.
+Confirmed against sqa that `last_vacuum` advances immediately, so the check does not produce a
+spurious warning every night.
+
+Two deliberate limits:
+
+* **A failed `VACUUM` does not fail the job.** The refresh has already committed, so search is
+  current and the job's actual contract is met. Failing would put the CronJob into `backoffLimit`
+  retries, and each retry repeats the whole multi-minute refresh purely to reattempt a vacuum —
+  more churn to fix churn. It logs `WARNING`, states that the refresh succeeded so nobody reads it
+  as a stale-search failure, and exits 0.
+* **This stops the bloat compounding; it does not undo what has accumulated.** Plain `VACUUM`
+  marks space reusable by later writes to the same view, so the file stops growing. Returning
+  space to the OS needs `VACUUM FULL`, which takes `ACCESS EXCLUSIVE` and belongs in a maintenance
+  window. Prod's 1890 MB and dev's 2138 MB stay until someone schedules that.
+
+No per-table `autovacuum_vacuum_scale_factor` override, and no migration: nothing writes to this
+view except the refresh, so a job that cleans up after itself covers every source of churn there
+is. Tuning a threshold as well would be a second mechanism for the same problem.
+
 
 ### Testing & developer tooling
 

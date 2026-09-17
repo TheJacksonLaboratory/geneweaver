@@ -23,6 +23,10 @@ minutes is worse than a nightly job that fails loudly with the reason.
 
 The refresh is atomic: if it fails or the pod is killed part-way, the view keeps its previous
 contents. A failed run therefore costs freshness until the next run, never availability.
+
+It then VACUUMs the view, because CONCURRENTLY earns its lock-free rebuild by leaving dead tuples
+behind and autovacuum's size-relative trigger will not reliably fire for a nightly delta. See
+vacuum() for the measurements behind that.
 """
 
 import os
@@ -36,6 +40,7 @@ import psycopg2
 VIEW_SCHEMA = "production"
 VIEW_NAME = "geneset_search"
 REFRESH_SQL = f"REFRESH MATERIALIZED VIEW CONCURRENTLY {VIEW_SCHEMA}.{VIEW_NAME}"
+VACUUM_SQL = f"VACUUM (ANALYZE) {VIEW_SCHEMA}.{VIEW_NAME}"
 
 # The DB aborts the refresh before Kubernetes' activeDeadlineSeconds kills the pod, so a run that
 # overruns its budget reports a Postgres timeout rather than a bare SIGKILL with no explanation.
@@ -44,6 +49,20 @@ REFRESH_SQL = f"REFRESH MATERIALIZED VIEW CONCURRENTLY {VIEW_SCHEMA}.{VIEW_NAME}
 # pod. PostgreSQL treats zero as "disabled", so the lower bound matters too.
 MAX_STATEMENT_TIMEOUT_MS = 3_300_000  # 55 minutes
 DEFAULT_STATEMENT_TIMEOUT_MS = MAX_STATEMENT_TIMEOUT_MS
+
+# statement_timeout is PER STATEMENT, not a budget for the session, so the refresh and the VACUUM
+# would each get the full 55 minutes -- up to 110 against a 60-minute pod deadline. The VACUUM is
+# therefore bounded by what is LEFT of the deadline instead, and skipped outright when too little
+# remains. Kept in the environment so the manifest's activeDeadlineSeconds stays the single source
+# of truth (the CronJob passes it in) rather than being duplicated as a literal here.
+DEFAULT_JOB_DEADLINE_SECONDS = 3600
+# Keep the same five-minute headroom as the refresh. Kubernetes counts activeDeadlineSeconds from
+# the Job's start, while this script can only measure from Python startup, so this margin also
+# covers scheduling, image pull, and container startup before started_at was recorded. Postgres
+# must abort the VACUUM and leave this script time to log why before Kubernetes terminates the pod.
+VACUUM_DEADLINE_MARGIN_SECONDS = 300
+# Below this there is no point starting: skip and let tomorrow's run do the cleanup.
+VACUUM_MIN_SECONDS = 60
 
 
 def log(message: str) -> None:
@@ -128,6 +147,121 @@ def state(cursor) -> tuple:
     return cursor.fetchone()
 
 
+def bloat(cursor) -> tuple:
+    """Return (dead_tuples, total_size_pretty) for the view.
+
+    Reported so the condition this VACUUM exists to prevent stays visible in the job log even
+    when nothing goes wrong. `pg_total_relation_size` deliberately includes the TOAST table:
+    `_combined_tsvector` is too large to store inline, so most of this view's bytes -- and most of
+    its churn -- live there rather than in the heap.
+    """
+    cursor.execute(
+        """
+        SELECT s.n_dead_tup,
+               pg_size_pretty(pg_total_relation_size(c.oid))
+        FROM pg_stat_all_tables s
+        JOIN pg_class c ON c.relname = s.relname
+        JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = s.schemaname
+        WHERE s.schemaname = %s AND s.relname = %s
+        """,
+        (VIEW_SCHEMA, VIEW_NAME),
+    )
+    row = cursor.fetchone()
+    return row if row else (None, None)
+
+
+def vacuum(cursor, seconds_left: float) -> bool:
+    """VACUUM the view after refreshing, within what is left of the pod's deadline.
+
+    Returns True only when the vacuum demonstrably ran.
+
+    Why this is here at all: REFRESH ... CONCURRENTLY is a diff-and-merge, not a rewrite. That is
+    what lets it run without locking readers, and the price is dead tuples -- every row whose
+    searchable content changed leaves its old version, and its old out-of-line tsvector, behind.
+    A plain (non-concurrent) REFRESH truncates and rewrites, so it never bloats; we deliberately
+    do not use it, because it would hold ACCESS EXCLUSIVE and black out API search for the whole
+    rebuild.
+
+    Autovacuum will not reliably clean up after us. Its trigger is relative to table size --
+    50 + 0.2 * live_tuples, about 53,000 dead rows on Prod's 264,716 -- and a nightly refresh
+    produces far fewer than that, so the table can bloat for months without ever tripping it.
+    Measured 2026-09-16: Prod's last_autovacuum was 2026-04-15 with 28,508 dead tuples sitting
+    there (54% of the trigger), and dev had never been autovacuumed at all, carrying ~1856 MB of
+    TOAST against sqa's ~1224 MB for the same row count. This job creates the churn, so this job
+    cleans it up rather than hoping a threshold tuned for ordinary tables happens to fire.
+
+    Note what a plain VACUUM does and does not do: it marks dead space reusable by later writes to
+    this same view, so the file stops growing. It does NOT return space to the operating system --
+    that needs VACUUM FULL, which takes ACCESS EXCLUSIVE and therefore belongs in a maintenance
+    window, not here. So this keeps the bloat from compounding; it does not undo what has already
+    accumulated.
+    """
+    # Bound this statement by the deadline that is actually left, not by a fresh
+    # statement_timeout. If the refresh ran long, the remaining budget -- not 55 minutes -- is
+    # what this VACUUM may spend, so Postgres aborts it with a reportable error instead of
+    # Kubernetes killing the pod mid-statement. A pod killed on activeDeadlineSeconds marks the
+    # Job Failed with DeadlineExceeded, which would show a completed refresh as a failure and skip
+    # the "refresh SUCCEEDED" line below entirely. (It would NOT repeat the refresh: verified on
+    # the dev cluster, k8s 1.34, that activeDeadlineSeconds takes precedence over backoffLimit --
+    # the Job goes terminal with zero replacement pods.)
+    budget = seconds_left - VACUUM_DEADLINE_MARGIN_SECONDS
+    if budget < VACUUM_MIN_SECONDS:
+        log(f"WARNING: only {seconds_left:.0f}s of the job deadline remain -- skipping the VACUUM "
+            f"rather than risk the pod being killed mid-statement and the run reported as failed")
+        log("WARNING: the refresh SUCCEEDED and search is current -- only the cleanup was skipped")
+        return False
+    cursor.execute("SET statement_timeout = %s", (int(budget * 1000),))
+    log(f"vacuum budget: {budget:.0f}s of the {seconds_left:.0f}s left on the job deadline")
+
+    # Ground truth for "did it actually run". A VACUUM on a relation the caller does not own is
+    # NOT an error in PostgreSQL -- it emits a warning and SKIPS, so the except below would never
+    # see it and the job would report success having done nothing. On PostgreSQL 15 (what these
+    # instances run) ownership is the only route; the MAINTAIN privilege that would let a
+    # non-owner vacuum arrived in 16. All four databases connect as the view's owner today
+    # (checked 2026-09-16), so this guards a future role change or restore, not a current state.
+    cursor.execute(
+        "SELECT last_vacuum FROM pg_stat_all_tables WHERE schemaname = %s AND relname = %s",
+        (VIEW_SCHEMA, VIEW_NAME),
+    )
+    row = cursor.fetchone()
+    last_vacuum_before = row[0] if row else None
+
+    started = time.monotonic()
+    try:
+        cursor.execute(VACUUM_SQL)
+    except psycopg2.Error as exc:
+        # Deliberately NOT a job failure. The refresh has already committed, so search is fresh --
+        # the job's actual contract is met. Failing here would put the CronJob into backoffLimit
+        # retries, and each retry repeats the whole multi-minute refresh purely to reattempt a
+        # VACUUM: more churn, to fix churn. The cost of skipping one night's cleanup is that the
+        # file grows; the cost of retrying is worse. Reported loudly, with the dead-tuple count
+        # below, so a run of these is visible rather than silent.
+        log(f"WARNING: VACUUM failed ({exc.__class__.__name__}: {str(exc).strip()})")
+        log("WARNING: the refresh SUCCEEDED and search is current -- only the cleanup was skipped")
+        return False
+    elapsed = time.monotonic() - started
+
+    cursor.execute(
+        "SELECT last_vacuum FROM pg_stat_all_tables WHERE schemaname = %s AND relname = %s",
+        (VIEW_SCHEMA, VIEW_NAME),
+    )
+    row = cursor.fetchone()
+    last_vacuum_after = row[0] if row else None
+
+    if last_vacuum_after is not None and last_vacuum_after != last_vacuum_before:
+        log(f"vacuumed in {elapsed:.1f}s (last_vacuum now {last_vacuum_after})")
+        return True
+
+    # Phrased as "could not confirm" rather than "was skipped": the statistics view is the only
+    # signal available, and reading it back straight after the statement is a narrow race even
+    # though PostgreSQL 15 keeps these in shared memory. Either way it needs a human, and the
+    # first thing to check is whether this job's role still owns the view.
+    log(f"WARNING: VACUUM returned in {elapsed:.1f}s but last_vacuum did not advance "
+        f"(still {last_vacuum_before}) -- it may have been skipped; check that "
+        f"{VIEW_SCHEMA}.{VIEW_NAME} is still owned by this job's role")
+    return False
+
+
 def statement_timeout_ms() -> int:
     """Read and validate the timeout while preserving the CronJob's safety margin."""
     raw = os.environ.get(
@@ -152,7 +286,10 @@ def statement_timeout_ms() -> int:
 
 
 def main() -> int:
+    started_at = time.monotonic()
     timeout_ms = statement_timeout_ms()
+    job_deadline_s = int(os.environ.get(
+        "SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS", DEFAULT_JOB_DEADLINE_SECONDS))
 
     conn = connect()
     with conn.cursor() as cursor:
@@ -181,6 +318,12 @@ def main() -> int:
         if not rows_after:
             log("FAILED: the view is empty after refreshing; API search would return nothing")
             return 1
+
+        dead_before, size_before = bloat(cursor)
+        log(f"before vacuum: {dead_before} dead tuples, {size_before}")
+        vacuum(cursor, job_deadline_s - (time.monotonic() - started_at))
+        dead_after, size_after = bloat(cursor)
+        log(f"after vacuum:  {dead_after} dead tuples, {size_after}")
 
     conn.close()
     return 0
