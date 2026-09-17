@@ -30,13 +30,17 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 workflow deploys to **SQA only**, with no Stage/Prod promotion and no drafted GitHub release.
 Prod gets a plain `1.6.2` once SQA signs this off.
 
-> **Unlike 1.6.1/1.6.1a, this is NOT the same application code as its release.** 1.6.2a was tagged
-> and deployed to SQA on 2026-09-17, and the post-refresh `VACUUM` (see *Changed — the nightly
-> refresh now VACUUMs the view afterwards* under 1.6.2) landed afterwards. It was decided that
-> 1.6.2 carries it rather than deferring to 1.6.3. This costs nothing in coverage: a plain version
-> deploys **SQA first** and `deploy_stage` cannot start until `deploy_sqa` succeeds, so 1.6.2 gets
-> its own SQA pass before Stage or Prod — the thing to verify there is the nightly job, and the
-> thing not to do is approve Stage before it has been.
+> **1.6.2a is not the last word on 1.6.2.** It was tagged and deployed to SQA on 2026-09-17, and
+> the post-refresh `VACUUM` (see *Changed — the nightly refresh now VACUUMs the view afterwards*
+> under 1.6.2) landed afterwards. Rather than let the plain version carry an unverified change,
+> **a second pre-release, `1.6.2b`, goes to SQA once that merges**; the plain `1.6.2` then promotes
+> what 1.6.2b verified. So 1.6.2 will be identical to `1.6.2b`, and the 1.6.1/1.6.1a pattern —
+> a plain version carrying exactly its last pre-release's code — holds after all.
+>
+> `1.6.2b` installs as **`1.6.2b0`**, and PEP 440 orders `1.6.2a0 < 1.6.2b0 < 1.6.2`, so it is an
+> upgrade from what SQA runs. Note that it spends the second of three available letters: `1.6.2c`
+> normalises to `1.6.2rc0` and is the last one, after which a third pre-release needs explicit
+> `1.6.2rc1` numbering.
 
 > **Prepared, not released.** Merging this bump deliberately does not deploy anything — the tag is
 > the release decision (`cb61c111`). To ship: `git tag v1.6.2a && git push origin v1.6.2a` on the
@@ -314,17 +318,18 @@ change in output rather than a no-op, and the row count can legitimately fall.
 
 ### Changed — the nightly refresh now VACUUMs the view afterwards (G3-826 follow-up)
 
-> **This is the one thing in 1.6.2 that `1.6.2a` does not carry.** 1.6.2a was tagged and deployed
-> to SQA before this landed, so unlike 1.6.1/1.6.1a the plain version is not byte-identical to its
-> pre-release. **Decided: 1.6.2 carries it**, rather than deferring to 1.6.3 — the change exists
-> precisely because the CronJob is about to run nightly against Prod for the first time, which is
-> the moment you want it in, not the release after.
+> **`1.6.2a` does not carry this.** It was tagged and deployed to SQA before this landed. Decided:
+> **1.6.2 carries it, and SQA verifies it first as `1.6.2b`** — a second pre-release, tagged once
+> this merges. Not deferred to 1.6.3, because the change exists precisely because the CronJob is
+> about to run nightly against Prod for the first time, which is the moment to have it in; and not
+> ridden into the plain 1.6.2 unverified either, even though the promotion order would have given
+> it an SQA step (`deploy_stage` lists `deploy_sqa` in its `needs`). The plain `1.6.2` then
+> promotes exactly what 1.6.2b verified.
 >
-> The promotion order already covers the difference: a plain version deploys **SQA first**, and
-> `deploy_stage` lists `deploy_sqa` in its `needs`, so Stage cannot start until SQA has succeeded.
-> So 1.6.2 gets its own SQA pass. What to check there is one run of the nightly job — the log
-> should carry `vacuumed in …s (last_vacuum now …)` and a dead-tuple count that drops — and what
-> not to do is approve Stage before that has been looked at.
+> **What to check on SQA against 1.6.2b:** one run of the nightly job. The log should carry
+> `vacuumed in …s (last_vacuum now …)` and a dead-tuple count that drops to 0. Force it rather
+> than waiting for 02:30:
+> `kubectl -n sqa create job svr-check --from=cronjob/geneweaver-search-view-refresh`
 
 `REFRESH ... CONCURRENTLY` is a diff-and-merge, not a rewrite. That is precisely what lets it run
 without locking readers, and the price is dead tuples: every row whose searchable content changed
