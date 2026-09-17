@@ -24,8 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
-Repository = "https://github.com/TheJacksonLaboratory/geneweaver-client"
+Homepage = "https://thejacksonlaboratory.github.io/geneweaver/"
+Repository = "https://github.com/TheJacksonLaboratory/geneweaver"
 
 [project.scripts]
 gweave = "geneweaver.client.cli.main:cli"

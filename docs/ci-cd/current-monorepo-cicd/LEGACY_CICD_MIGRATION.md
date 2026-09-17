@@ -134,28 +134,22 @@ version (`1.6.0`) that should not be coupled to the API's uv/PyPI publish or `0.
     Pages site is enabled with source `gh-pages` / `/`. 66 pages published; the internal
     notes under `ci-cd/`, `tools/`, `ui/` and this `README` are correctly excluded.
 
-    **⚠ Release gate — GitHub Pages must be public before the legacy app reaches prod.**
-    `geneweaver-docs` is a public repo; this monorepo is internal, and **GitHub does not
-    serve an internal repo's Pages at the predictable org URL**. Verified behaviour today:
+    **✅ Release gate RESOLVED (2026-09-17).** The repo is public and its Pages site is
+    public with it, so `https://thejacksonlaboratory.github.io/geneweaver/` serves the docs
+    to anyone. Verified by an unauthenticated fetch returning the real page
+    (`<title>GeneWeaver</title>`, 55 KB) rather than a sign-in page — which matters because
+    the failure mode this gate warned about also returns HTTP 200, so a status-code check
+    alone would not have distinguished them.
 
-    ```
-    https://thejacksonlaboratory.github.io/geneweaver/   → 301
-    https://cautious-adventure-5wymmqe.pages.github.io/  → GitHub sign-in page
-    ```
+    The app's Help and per-tool documentation links point at that URL and **shipped to Prod
+    in 1.6.2 on 2026-09-17**. The "open in Colab" links in `docs/tutorial/*.ipynb` already
+    reference `TheJacksonLaboratory/geneweaver` and resolve for the same reason.
 
-    GitHub assigns a randomised `*.pages.github.io` host for private/internal Pages, and
-    the org URL redirects to it; unauthenticated visitors land on a login page, not the
-    docs. Note this returns HTTP 200 — the login page is a real response — so a naive
-    availability check will report the site as up while no user can read it.
-
-    The app's Help and per-tool documentation links already point at
-    `https://thejacksonlaboratory.github.io/geneweaver/`. That URL is correct and needs
-    no change: it starts serving the docs as soon as the repo (or its Pages visibility)
-    becomes public. Until then, shipping those links to prod sends every external
-    geneweaver.org user to a GitHub login. Resolve by making the repo public, setting
-    Pages visibility to public (Enterprise Cloud), or moving the site to a public host /
-    custom domain. Check this alongside the other prod prerequisites in the G3-781
-    promotion. The "open in Colab" links in `docs/tutorial/*.ipynb` need the same.
+    What this replaces, recorded rather than deleted because the release plan referenced it
+    as an open Prod gate: on 2026-08-14 this monorepo was internal, GitHub served its Pages
+    from a randomised `*.pages.github.io` host, the org URL 301'd to it, and unauthenticated
+    visitors landed on a login page. Resolving it needed the repo (or its Pages visibility)
+    to become public, which has since happened.
 
 ## 6. Open decisions
 - **Separate vs unified deploy:** legacy gets its own version/release cadence and image
