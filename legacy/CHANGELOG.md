@@ -372,6 +372,22 @@ whole time — the mechanism, quantified. The cleanup costs **28.9s against a 27
 nothing to do. And the size stayed at **1222 MB**: the space is reusable, not returned — exactly
 the limit described below.
 
+The vacuum is bounded by **what is left of the pod's deadline**, not by a fresh
+`statement_timeout`. That setting is per *statement*, not a session budget, so the refresh and the
+vacuum would otherwise each be entitled to the full 55 minutes — up to 110 against a 60-minute
+`activeDeadlineSeconds`. If the pod were killed mid-vacuum the Job would be marked
+`Failed`/`DeadlineExceeded`, reporting a **completed** refresh as a failure and never printing the
+"refresh SUCCEEDED" line that exists to prevent exactly that misreading. So the script computes
+the remaining time, gives the vacuum that minus a two-minute margin, and **skips the vacuum
+outright** when less than a minute is left — cleanup waits for tomorrow rather than risking the
+run being reported as failed. The manifest passes its `activeDeadlineSeconds` to the script as
+`SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS` so the two cannot drift.
+
+(For the record, since it is the obvious worry: an overrun would **not** cause the refresh to be
+repeated. Verified on the dev cluster, Kubernetes 1.34, that `activeDeadlineSeconds` takes
+precedence over `backoffLimit` — the Job goes terminal as `Failed=DeadlineExceeded` with zero
+replacement pods. The cost of an overrun is a misleading red Job, not repeated work.)
+
 It also verifies the vacuum actually happened, by checking that `last_vacuum` advanced. A `VACUUM`
 on a relation the caller does not own is **not an error** in PostgreSQL — it emits a warning and
 skips — so without this the step could become a silent no-op after a role change or restore and

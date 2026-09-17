@@ -226,18 +226,20 @@ class TestRefreshStatement(unittest.TestCase):
         self.assertTrue(connection.autocommit)
 
     def test_statement_timeout_is_set_and_parameterised(self):
+        """Two now: the session-wide one, then the VACUUM's own deadline-bounded one."""
         _code, _out, cursor, _conn = run_job()
         timeouts = [(sql, params) for sql, params in cursor.executed if 'statement_timeout' in sql]
-        self.assertEqual(len(timeouts), 1)
+        self.assertEqual(len(timeouts), 2)
         sql, params = timeouts[0]
         self.assertEqual(params, (refresh_search_view.DEFAULT_STATEMENT_TIMEOUT_MS,))
         self.assertIn('%s', sql, 'the timeout must be bound, not interpolated')
+        self.assertIn('%s', timeouts[1][0])
 
     def test_statement_timeout_is_overridable_from_the_environment(self):
         env = dict(ENV, SEARCH_VIEW_REFRESH_STATEMENT_TIMEOUT_MS='60000')
         _code, _out, cursor, _conn = run_job(env=env)
         timeouts = [params for sql, params in cursor.executed if 'statement_timeout' in sql]
-        self.assertEqual(timeouts, [(60000,)])
+        self.assertEqual(timeouts[0], (60000,), 'the session timeout honours the override')
 
     def test_statement_timeout_cannot_be_disabled(self):
         """Postgres treats zero as no timeout, which would let Kubernetes kill the pod first."""
@@ -272,7 +274,8 @@ class TestRefreshStatement(unittest.TestCase):
         )
         _code, _out, cursor, _conn = run_job(env=env)
         timeouts = [params for sql, params in cursor.executed if 'statement_timeout' in sql]
-        self.assertEqual(timeouts, [(refresh_search_view.MAX_STATEMENT_TIMEOUT_MS,)])
+        # timeouts[1] is the VACUUM's own deadline-bounded budget, asserted separately.
+        self.assertEqual(timeouts[0], (refresh_search_view.MAX_STATEMENT_TIMEOUT_MS,))
 
     def test_timeout_default_is_under_the_cronjob_deadline(self):
         """activeDeadlineSeconds is 3600; the DB must abort first, with a reason."""
@@ -366,6 +369,45 @@ class TestVacuumAfterRefresh(unittest.TestCase):
         self.assertIn('vacuumed in', out)
         self.assertIn('last_vacuum now', out)
         self.assertNotIn('did not advance', out)
+
+    def test_vacuum_is_bounded_by_what_is_left_of_the_job_deadline(self):
+        """statement_timeout is PER STATEMENT, so without this the VACUUM would get a fresh 55
+        minutes on top of whatever the refresh spent -- up to 110 against a 60-minute pod
+        deadline."""
+        _code, out, cursor, _conn = run_job()
+        timeouts = [params[0] for sql, params in cursor.executed if 'statement_timeout' in sql]
+        self.assertEqual(len(timeouts), 2, 'the vacuum sets its own')
+        budget_ms = timeouts[1]
+        ceiling_ms = (refresh_search_view.DEFAULT_JOB_DEADLINE_SECONDS
+                      - refresh_search_view.VACUUM_DEADLINE_MARGIN_SECONDS) * 1000
+        self.assertLessEqual(budget_ms, ceiling_ms,
+                             'the vacuum may never be given more than the deadline minus margin')
+        self.assertIn('vacuum budget:', out)
+
+    def test_vacuum_is_skipped_when_the_deadline_is_nearly_spent(self):
+        """Better to skip cleanup than to have the pod killed mid-statement.
+
+        A pod killed on activeDeadlineSeconds marks the Job Failed/DeadlineExceeded, which would
+        report a COMPLETED refresh as a failure and never print the "refresh SUCCEEDED" line.
+        (It would not repeat the refresh -- verified on the dev cluster, k8s 1.34, that
+        activeDeadlineSeconds takes precedence over backoffLimit and the Job goes terminal with
+        zero replacement pods.)
+        """
+        env = dict(ENV, SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS='100')
+        code, out, cursor, _conn = run_job(env=env)
+        self.assertEqual(code, 0, 'skipping cleanup is not a job failure')
+        self.assertFalse([sql for sql, _ in cursor.executed if 'VACUUM' in sql],
+                         'no VACUUM may be issued when there is no budget for it')
+        self.assertIn('skipping the VACUUM', out)
+        self.assertIn('refresh SUCCEEDED', out)
+
+    def test_the_job_deadline_comes_from_the_environment(self):
+        """The manifest's activeDeadlineSeconds is the single source of truth and is injected."""
+        env = dict(ENV, SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS='600')
+        _code, _out, cursor, _conn = run_job(env=env)
+        budget_ms = [params[0] for sql, params in cursor.executed if 'statement_timeout' in sql][1]
+        ceiling_ms = (600 - refresh_search_view.VACUUM_DEADLINE_MARGIN_SECONDS) * 1000
+        self.assertLessEqual(budget_ms, ceiling_ms)
 
     def test_no_vacuum_when_the_view_came_back_empty(self):
         """That path returns 1; cleaning up after a broken refresh is not the priority."""

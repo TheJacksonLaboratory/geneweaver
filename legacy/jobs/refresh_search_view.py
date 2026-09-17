@@ -50,6 +50,18 @@ VACUUM_SQL = f"VACUUM (ANALYZE) {VIEW_SCHEMA}.{VIEW_NAME}"
 MAX_STATEMENT_TIMEOUT_MS = 3_300_000  # 55 minutes
 DEFAULT_STATEMENT_TIMEOUT_MS = MAX_STATEMENT_TIMEOUT_MS
 
+# statement_timeout is PER STATEMENT, not a budget for the session, so the refresh and the VACUUM
+# would each get the full 55 minutes -- up to 110 against a 60-minute pod deadline. The VACUUM is
+# therefore bounded by what is LEFT of the deadline instead, and skipped outright when too little
+# remains. Kept in the environment so the manifest's activeDeadlineSeconds stays the single source
+# of truth (the CronJob passes it in) rather than being duplicated as a literal here.
+DEFAULT_JOB_DEADLINE_SECONDS = 3600
+# Headroom so the pod is never killed mid-statement: Postgres must abort the VACUUM and this
+# script must get to log why, before Kubernetes terminates the pod.
+VACUUM_DEADLINE_MARGIN_SECONDS = 120
+# Below this there is no point starting: skip and let tomorrow's run do the cleanup.
+VACUUM_MIN_SECONDS = 60
+
 
 def log(message: str) -> None:
     """Write a progress line. Never called with any part of the DB password."""
@@ -156,8 +168,10 @@ def bloat(cursor) -> tuple:
     return row if row else (None, None)
 
 
-def vacuum(cursor) -> bool:
-    """VACUUM the view after refreshing. Returns True on success.
+def vacuum(cursor, seconds_left: float) -> bool:
+    """VACUUM the view after refreshing, within what is left of the pod's deadline.
+
+    Returns True only when the vacuum demonstrably ran.
 
     Why this is here at all: REFRESH ... CONCURRENTLY is a diff-and-merge, not a rewrite. That is
     what lets it run without locking readers, and the price is dead tuples -- every row whose
@@ -180,6 +194,23 @@ def vacuum(cursor) -> bool:
     window, not here. So this keeps the bloat from compounding; it does not undo what has already
     accumulated.
     """
+    # Bound this statement by the deadline that is actually left, not by a fresh
+    # statement_timeout. If the refresh ran long, the remaining budget -- not 55 minutes -- is
+    # what this VACUUM may spend, so Postgres aborts it with a reportable error instead of
+    # Kubernetes killing the pod mid-statement. A pod killed on activeDeadlineSeconds marks the
+    # Job Failed with DeadlineExceeded, which would show a completed refresh as a failure and skip
+    # the "refresh SUCCEEDED" line below entirely. (It would NOT repeat the refresh: verified on
+    # the dev cluster, k8s 1.34, that activeDeadlineSeconds takes precedence over backoffLimit --
+    # the Job goes terminal with zero replacement pods.)
+    budget = seconds_left - VACUUM_DEADLINE_MARGIN_SECONDS
+    if budget < VACUUM_MIN_SECONDS:
+        log(f"WARNING: only {seconds_left:.0f}s of the job deadline remain -- skipping the VACUUM "
+            f"rather than risk the pod being killed mid-statement and the run reported as failed")
+        log("WARNING: the refresh SUCCEEDED and search is current -- only the cleanup was skipped")
+        return False
+    cursor.execute("SET statement_timeout = %s", (int(budget * 1000),))
+    log(f"vacuum budget: {budget:.0f}s of the {seconds_left:.0f}s left on the job deadline")
+
     # Ground truth for "did it actually run". A VACUUM on a relation the caller does not own is
     # NOT an error in PostgreSQL -- it emits a warning and SKIPS, so the except below would never
     # see it and the job would report success having done nothing. On PostgreSQL 15 (what these
@@ -253,7 +284,10 @@ def statement_timeout_ms() -> int:
 
 
 def main() -> int:
+    started_at = time.monotonic()
     timeout_ms = statement_timeout_ms()
+    job_deadline_s = int(os.environ.get(
+        "SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS", DEFAULT_JOB_DEADLINE_SECONDS))
 
     conn = connect()
     with conn.cursor() as cursor:
@@ -285,7 +319,7 @@ def main() -> int:
 
         dead_before, size_before = bloat(cursor)
         log(f"before vacuum: {dead_before} dead tuples, {size_before}")
-        vacuum(cursor)
+        vacuum(cursor, job_deadline_s - (time.monotonic() - started_at))
         dead_after, size_after = bloat(cursor)
         log(f"after vacuum:  {dead_after} dead tuples, {size_after}")
 

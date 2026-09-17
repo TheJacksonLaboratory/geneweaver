@@ -53,6 +53,11 @@ spec:
       backoffLimit: 2
       # Upper bound on the whole run, above the script's 55-minute statement_timeout so the
       # database aborts the refresh with a reportable error before Kubernetes kills the pod.
+      #
+      # This value is ALSO passed to the script below, because statement_timeout is per statement:
+      # without knowing the pod's deadline the script would hand the post-refresh VACUUM a fresh
+      # 55 minutes on top of whatever the refresh spent, and a pod killed here is reported as
+      # Failed/DeadlineExceeded -- a completed refresh shown as a failure. Keep the two in step.
       activeDeadlineSeconds: 3600
       template:
         metadata:
@@ -75,6 +80,11 @@ spec:
                 - run
                 - python3
                 - /app/jobs/refresh_search_view.py
+              env:
+                # Mirrors activeDeadlineSeconds above so the script can bound its VACUUM by what
+                # is actually left of the pod's life. Change both together.
+                - name: SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS
+                  value: "3600"
               envFrom:
                 # DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD. Nothing about the
                 # instance is baked into the image or this manifest.
