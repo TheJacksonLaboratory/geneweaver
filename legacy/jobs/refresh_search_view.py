@@ -56,9 +56,11 @@ DEFAULT_STATEMENT_TIMEOUT_MS = MAX_STATEMENT_TIMEOUT_MS
 # remains. Kept in the environment so the manifest's activeDeadlineSeconds stays the single source
 # of truth (the CronJob passes it in) rather than being duplicated as a literal here.
 DEFAULT_JOB_DEADLINE_SECONDS = 3600
-# Headroom so the pod is never killed mid-statement: Postgres must abort the VACUUM and this
-# script must get to log why, before Kubernetes terminates the pod.
-VACUUM_DEADLINE_MARGIN_SECONDS = 120
+# Keep the same five-minute headroom as the refresh. Kubernetes counts activeDeadlineSeconds from
+# the Job's start, while this script can only measure from Python startup, so this margin also
+# covers scheduling, image pull, and container startup before started_at was recorded. Postgres
+# must abort the VACUUM and leave this script time to log why before Kubernetes terminates the pod.
+VACUUM_DEADLINE_MARGIN_SECONDS = 300
 # Below this there is no point starting: skip and let tomorrow's run do the cleanup.
 VACUUM_MIN_SECONDS = 60
 

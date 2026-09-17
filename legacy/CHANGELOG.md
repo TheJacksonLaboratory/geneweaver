@@ -378,10 +378,10 @@ vacuum would otherwise each be entitled to the full 55 minutes — up to 110 aga
 `activeDeadlineSeconds`. If the pod were killed mid-vacuum the Job would be marked
 `Failed`/`DeadlineExceeded`, reporting a **completed** refresh as a failure and never printing the
 "refresh SUCCEEDED" line that exists to prevent exactly that misreading. So the script computes
-the remaining time, gives the vacuum that minus a two-minute margin, and **skips the vacuum
-outright** when less than a minute is left — cleanup waits for tomorrow rather than risking the
-run being reported as failed. The manifest passes its `activeDeadlineSeconds` to the script as
-`SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS` so the two cannot drift.
+the remaining time, gives the vacuum that minus a five-minute margin, and **skips the vacuum
+outright** when that leaves less than a minute for cleanup — cleanup waits for tomorrow rather
+than risking the run being reported as failed. The manifest passes its `activeDeadlineSeconds`
+to the script as `SEARCH_VIEW_REFRESH_JOB_DEADLINE_SECONDS` so the two cannot drift.
 
 (For the record, since it is the obvious worry: an overrun would **not** cause the refresh to be
 repeated. Verified on the dev cluster, Kubernetes 1.34, that `activeDeadlineSeconds` takes

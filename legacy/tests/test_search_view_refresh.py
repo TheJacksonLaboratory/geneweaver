@@ -384,6 +384,17 @@ class TestVacuumAfterRefresh(unittest.TestCase):
                              'the vacuum may never be given more than the deadline minus margin')
         self.assertIn('vacuum budget:', out)
 
+    def test_vacuum_preserves_the_refresh_deadline_margin(self):
+        """Both statements must allow for work before Python starts measuring elapsed time."""
+        refresh_margin_s = (
+            refresh_search_view.DEFAULT_JOB_DEADLINE_SECONDS
+            - refresh_search_view.MAX_STATEMENT_TIMEOUT_MS / 1000
+        )
+        self.assertGreaterEqual(
+            refresh_search_view.VACUUM_DEADLINE_MARGIN_SECONDS,
+            refresh_margin_s,
+        )
+
     def test_vacuum_is_skipped_when_the_deadline_is_nearly_spent(self):
         """Better to skip cleanup than to have the pod killed mid-statement.
 
