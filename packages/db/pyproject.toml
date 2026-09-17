@@ -16,8 +16,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
-Repository = "https://github.com/TheJacksonLaboratory/geneweaver-db"
+Homepage = "https://thejacksonlaboratory.github.io/geneweaver/"
+Repository = "https://github.com/TheJacksonLaboratory/geneweaver"
 
 [dependency-groups]
 dev = [

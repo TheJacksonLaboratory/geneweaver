@@ -11,28 +11,26 @@ name: Docs — Publish
 # to retire a second, diverging copy of the docs rather than to avoid a clash.
 # As of 2026-08-14 it is not archived, merely dormant (last push 2025-01-07).
 #
-# ALSO REQUIRED: this repo has no GitHub Pages site configured and no gh-pages
-# branch (checked 2026-08-14). The first run of this workflow creates the branch;
-# Pages must then be turned on with its source set to gh-pages, or the deploy
-# succeeds while nothing is served. Settings > Pages, or:
-#   gh api -X POST repos/TheJacksonLaboratory/geneweaver/pages \
-#     -f 'source[branch]=gh-pages' -f 'source[path]=/'
+# LIVE AND PUBLIC (verified 2026-09-17). Pages is configured and serving from the
+# gh-pages branch at https://thejacksonlaboratory.github.io/geneweaver/, the repo
+# is public and the Pages site is public with it, so an anonymous visitor reaches
+# the docs. The app's Help links point here and shipped to Prod in 1.6.2.
 #
-# SITE VISIBILITY: geneweaver-docs is a public repo; this one is internal, so
-# Pages served from here is reachable only by the org. That is accepted while
-# the docs ride on dev. It must be made public — repo visibility, GitHub Pages
-# visibility on Enterprise Cloud, or a public host / custom domain — before the
-# app's Help links reach prod, or external users of geneweaver.org get an org
-# login instead of the documentation. Those links are repointed in this same
-# change (legacy/src/templates/{header,footer,index}.html and the /help/
-# redirect in legacy/src/application.py).
+# This replaces two warnings that were true when written on 2026-08-14 and are not
+# now: that no Pages site or gh-pages branch existed, and that the repo was
+# internal so its site was org-only and had to be made public before the Help
+# links could reach Prod. Both preconditions are satisfied. They are recorded here
+# rather than deleted because "the site is org-only" would otherwise look like an
+# open Prod gate to anyone reading the release plan, which still referenced it.
 #
-# The published URL changes with the repo name:
+# The published URL changed with the repo name:
 #   old  https://thejacksonlaboratory.github.io/geneweaver-docs/
 #   new  https://thejacksonlaboratory.github.io/geneweaver/
-# Archiving leaves the old site served read-only, so existing links keep working
-# but go stale. [project.urls].Homepage in pyproject.toml and the badges in
-# docs/README.md still point at the old location.
+# Archiving the old repo leaves its site served read-only, so existing links keep
+# working but go stale. Every [project.urls] entry across the five pyproject.toml
+# files now points at the new site and at this monorepo; four of the five
+# Repository URLs had pointed at the pre-monorepo standalone repos, which are
+# archived.
 
 on:
   push:

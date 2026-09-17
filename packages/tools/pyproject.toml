@@ -23,8 +23,8 @@ sklearn = [
 ]
 
 [project.urls]
-Homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
-Repository = "https://github.com/TheJacksonLaboratory/geneweaver-tools"
+Homepage = "https://thejacksonlaboratory.github.io/geneweaver/"
+Repository = "https://github.com/TheJacksonLaboratory/geneweaver"
 
 [dependency-groups]
 dev = [
