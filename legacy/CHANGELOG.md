@@ -305,6 +305,81 @@ stop appearing, because the stale view still contains them (its definition is
 today). Those removals are stale rows the view should not have been serving, but they are a real
 change in output rather than a no-op, and the row count can legitimately fall.
 
+### Changed — the nightly refresh now VACUUMs the view afterwards (G3-826 follow-up)
+
+> ⚠️ **This is the one thing in 1.6.2 that `1.6.2a` does not carry.** 1.6.2a was tagged and
+> deployed to SQA before this landed, so unlike 1.6.1/1.6.1a the plain version is **not**
+> byte-identical to its pre-release. Either re-run the manual job on SQA once against 1.6.2
+> (a five-minute check), or hold this for 1.6.3 and let 1.6.2 promote exactly what SQA signed
+> off. That is a release decision, not a code one.
+
+`REFRESH ... CONCURRENTLY` is a diff-and-merge, not a rewrite. That is precisely what lets it run
+without locking readers, and the price is dead tuples: every row whose searchable content changed
+leaves its old version — and its old out-of-line tsvector — behind. The plain, non-concurrent
+`REFRESH` truncates and rewrites and so never bloats, but it holds `ACCESS EXCLUSIVE` for the
+whole rebuild and would black out API search for minutes, which is the trade this ticket
+deliberately refused.
+
+**Autovacuum will not reliably clean up after us.** Its trigger is relative to table size —
+`50 + 0.2 × live_tuples`, about **53,000** dead rows on Prod's 264,716 — and a nightly delta
+produces far fewer, so the table can bloat for months without ever tripping it. Measured
+2026-09-16 on the live databases:
+
+| | `last_autovacuum` | dead tuples | total size | of which TOAST |
+| --- | --- | --- | --- | --- |
+| prod | **2026-04-15** | 28,508 (54% of trigger) | 1890 MB | 1224 MB |
+| dev | **never** | — | 2138 MB | ~1856 MB |
+
+dev holds the same row count as sqa (1222 MB) in 2138 MB with *fewer* indexes. That is years of
+refreshes with nothing cleaning up behind them — and it is what Prod grows into if the nightly job
+ships without this.
+
+So the job now runs `VACUUM (ANALYZE) production.geneset_search` after each refresh and logs the
+dead-tuple count and total size either side, so the condition stays visible on a clean run instead
+of only surfacing once it is a problem.
+
+**Measured on sqa, 2026-09-17**, running the updated script against the real database:
+
+```
+refreshed in 279.1s (+0 rows, newest gs_id 408085 -> 408085)
+before vacuum: 855 dead tuples, 1222 MB
+vacuumed in 28.9s
+after vacuum:  0 dead tuples, 1222 MB
+```
+
+Three things worth reading off that. A refresh that publishes **nothing** still leaves 855 dead
+tuples, so at that rate autovacuum's ~53,000 trigger is two months away while the file grows the
+whole time — the mechanism, quantified. The cleanup costs **28.9s against a 279s refresh**, about
+10%, and a second `VACUUM` moments later took **2.3s**, so once it runs nightly there is almost
+nothing to do. And the size stayed at **1222 MB**: the space is reusable, not returned — exactly
+the limit described below.
+
+It also verifies the vacuum actually happened, by checking that `last_vacuum` advanced. A `VACUUM`
+on a relation the caller does not own is **not an error** in PostgreSQL — it emits a warning and
+skips — so without this the step could become a silent no-op after a role change or restore and
+still log success. PostgreSQL 15 is what these instances run, and ownership is the only route
+there; the `MAINTAIN` privilege that would let a non-owner vacuum arrived in 16. All four databases
+connect as the view's owner today (checked 2026-09-16), so this guards the future, not the present.
+Confirmed against sqa that `last_vacuum` advances immediately, so the check does not produce a
+spurious warning every night.
+
+Two deliberate limits:
+
+* **A failed `VACUUM` does not fail the job.** The refresh has already committed, so search is
+  current and the job's actual contract is met. Failing would put the CronJob into `backoffLimit`
+  retries, and each retry repeats the whole multi-minute refresh purely to reattempt a vacuum —
+  more churn to fix churn. It logs `WARNING`, states that the refresh succeeded so nobody reads it
+  as a stale-search failure, and exits 0.
+* **This stops the bloat compounding; it does not undo what has accumulated.** Plain `VACUUM`
+  marks space reusable by later writes to the same view, so the file stops growing. Returning
+  space to the OS needs `VACUUM FULL`, which takes `ACCESS EXCLUSIVE` and belongs in a maintenance
+  window. Prod's 1890 MB and dev's 2138 MB stay until someone schedules that.
+
+No per-table `autovacuum_vacuum_scale_factor` override, and no migration: nothing writes to this
+view except the refresh, so a job that cleans up after itself covers every source of churn there
+is. Tuning a threshold as well would be a second mechanism for the same problem.
+
+
 ### Testing & developer tooling
 
 * `legacy/tests/db/test_find_publications.py` — **28 tests**, wired into the explicit module

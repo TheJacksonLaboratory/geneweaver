@@ -64,6 +64,7 @@ def _load_module():
         raise AssertionError('psycopg2.connect must be patched in these tests')
 
     fake.connect = _refuse
+    fake.Error = type('Error', (Exception,), {})
     sys.modules['psycopg2'] = fake
 
     spec = importlib.util.spec_from_file_location('refresh_search_view', SCRIPT)
@@ -78,9 +79,16 @@ refresh_search_view = _load_module()
 class FakeCursor:
     """Records SQL and answers the three reads the job makes."""
 
-    def __init__(self, unique_indexes, states):
+    def __init__(self, unique_indexes, states, bloat=((28508, '1890 MB'), (0, '1890 MB')),
+                 vacuum_error=None, vacuum_advances=True):
         self._unique_indexes = unique_indexes
         self._states = list(states)
+        self._bloat = list(bloat)
+        self._vacuum_error = vacuum_error
+        # A VACUUM on a relation the caller does not own warns and skips instead of raising, so
+        # last_vacuum not advancing is the only signal. False simulates that.
+        self._vacuum_advances = vacuum_advances
+        self._vacuumed = False
         self._last = ''
         self.executed = []
 
@@ -93,6 +101,10 @@ class FakeCursor:
     def execute(self, sql, params=None):
         self._last = sql
         self.executed.append((sql, params))
+        if 'VACUUM' in sql:
+            if self._vacuum_error is not None:
+                raise self._vacuum_error
+            self._vacuumed = True
 
     def fetchall(self):
         if 'pg_index' in self._last:
@@ -102,6 +114,11 @@ class FakeCursor:
     def fetchone(self):
         if 'count(*)' in self._last:
             return self._states.pop(0)
+        if 'n_dead_tup' in self._last:
+            return self._bloat.pop(0) if self._bloat else (0, '0 bytes')
+        if 'last_vacuum' in self._last:
+            advanced = self._vacuumed and self._vacuum_advances
+            return ('2026-09-17T14:00:00Z' if advanced else None,)
         raise AssertionError(f'unexpected fetchone for: {self._last}')
 
 
@@ -120,9 +137,11 @@ class FakeConnection:
 
 def run_job(unique_indexes=('geneset_search_gs_id_idx',),
             states=((400_000, 412582), (400_009, 412741)),
-            env=None):
+            env=None, bloat=((28508, '1890 MB'), (0, '1890 MB')), vacuum_error=None,
+            vacuum_advances=True):
     """Run main() against a fake DB. Returns (exit_code, stdout, cursor, connection)."""
-    cursor = FakeCursor(unique_indexes, states)
+    cursor = FakeCursor(unique_indexes, states, bloat=bloat, vacuum_error=vacuum_error,
+                        vacuum_advances=vacuum_advances)
     connection = FakeConnection(cursor)
     out = io.StringIO()
     with patch.dict('os.environ', env if env is not None else ENV, clear=True), \
@@ -287,6 +306,82 @@ class TestEnvironmentValidation(unittest.TestCase):
         env = {k: v for k, v in ENV.items() if k != 'DB_PORT'}
         code, _out, _cursor, _conn = run_job(env=env)
         self.assertEqual(code, 0)
+
+
+class TestVacuumAfterRefresh(unittest.TestCase):
+    """CONCURRENTLY buys its lock-free rebuild with dead tuples; this job owns the cleanup.
+
+    Autovacuum's trigger is 50 + 0.2 * live_tuples -- ~53,000 rows on Prod -- and a nightly delta
+    produces far fewer, so the table can bloat for months without tripping it. Measured
+    2026-09-16: Prod last autovacuumed 2026-04-15 with 28,508 dead tuples; dev never at all.
+    """
+
+    def test_vacuums_after_refreshing(self):
+        _code, _out, cursor, _conn = run_job()
+        order = [i for i, (sql, _) in enumerate(cursor.executed)
+                 if 'REFRESH' in sql or 'VACUUM' in sql]
+        kinds = ['REFRESH' if 'REFRESH' in cursor.executed[i][0] else 'VACUUM' for i in order]
+        self.assertEqual(kinds, ['REFRESH', 'VACUUM'], 'vacuum must follow the refresh, once each')
+
+    def test_vacuum_statement_shape(self):
+        _code, _out, cursor, _conn = run_job()
+        vacuums = [sql for sql, _ in cursor.executed if 'VACUUM' in sql]
+        self.assertEqual(vacuums, ['VACUUM (ANALYZE) production.geneset_search'])
+        self.assertNotIn('FULL', vacuums[0],
+                         'VACUUM FULL takes ACCESS EXCLUSIVE and belongs in a maintenance window')
+
+    def test_bloat_is_reported_either_side(self):
+        """The condition the vacuum exists to prevent stays visible even on a clean run."""
+        _code, out, _cursor, _conn = run_job(bloat=((28508, '1890 MB'), (0, '1287 MB')))
+        self.assertIn('28508 dead tuples', out)
+        self.assertIn('1890 MB', out)
+        self.assertIn('1287 MB', out)
+
+    def test_a_failed_vacuum_does_not_fail_the_job(self):
+        """The refresh has already committed, so search is fresh; retrying it would be worse."""
+        err = refresh_search_view.psycopg2.Error('out of shared memory')
+        code, out, cursor, _conn = run_job(vacuum_error=err)
+        self.assertEqual(code, 0, 'a vacuum failure must not trigger backoffLimit retries')
+        self.assertIn('WARNING', out)
+        self.assertIn('refresh SUCCEEDED', out,
+                      'the operator must not read this as a stale-search failure')
+        self.assertTrue([sql for sql, _ in cursor.executed if 'REFRESH' in sql])
+
+    def test_a_silently_skipped_vacuum_is_reported(self):
+        """PostgreSQL warns and skips rather than raising when the caller is not the owner.
+
+        On PG 15 -- what these instances run -- ownership is the only route; the MAINTAIN
+        privilege that would let a non-owner vacuum arrived in 16. So a role change would turn
+        this step into a no-op that still logs success. last_vacuum is the only ground truth.
+        """
+        code, out, cursor, _conn = run_job(vacuum_advances=False)
+        self.assertEqual(code, 0, 'still not a job failure -- the refresh succeeded')
+        self.assertIn('WARNING', out)
+        self.assertIn('last_vacuum did not advance', out)
+        self.assertIn('owned by this job', out, 'the warning must name the likely cause')
+        self.assertTrue([sql for sql, _ in cursor.executed if 'VACUUM' in sql])
+
+    def test_a_confirmed_vacuum_reports_the_new_watermark(self):
+        _code, out, _cursor, _conn = run_job()
+        self.assertIn('vacuumed in', out)
+        self.assertIn('last_vacuum now', out)
+        self.assertNotIn('did not advance', out)
+
+    def test_no_vacuum_when_the_view_came_back_empty(self):
+        """That path returns 1; cleaning up after a broken refresh is not the priority."""
+        code, _out, cursor, _conn = run_job(states=((400_000, 412582), (0, None)))
+        self.assertEqual(code, 1)
+        self.assertFalse([sql for sql, _ in cursor.executed if 'VACUUM' in sql])
+
+    def test_no_vacuum_when_the_guard_refuses(self):
+        cursor = FakeCursor((), [])
+        connection = FakeConnection(cursor)
+        with patch.dict('os.environ', ENV, clear=True), \
+                patch.object(refresh_search_view.psycopg2, 'connect', return_value=connection), \
+                redirect_stdout(io.StringIO()), \
+                self.assertRaises(SystemExit):
+            refresh_search_view.main()
+        self.assertFalse([sql for sql, _ in cursor.executed if 'VACUUM' in sql])
 
 
 class TestOutcomeReporting(unittest.TestCase):
