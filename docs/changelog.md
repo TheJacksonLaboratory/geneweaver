@@ -14,7 +14,7 @@ The version you are using is shown at the bottom of every page on
 
 ---
 
-## 1.6.2 — unreleased
+## 1.6.2 — 17 September 2026
 
 ### Fixed
 
