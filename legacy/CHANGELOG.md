@@ -26,10 +26,17 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ## 1.6.2a — unreleased
 
-**The SQA pre-release of 1.6.2.** Same application code as the 1.6.2 entry below — this is the
-release *shape*, not new behaviour: a version carrying a letter is a PEP 440 pre-release, so the
+**The SQA pre-release of 1.6.2.** A version carrying a letter is a PEP 440 pre-release, so the
 workflow deploys to **SQA only**, with no Stage/Prod promotion and no drafted GitHub release.
 Prod gets a plain `1.6.2` once SQA signs this off.
+
+> **Unlike 1.6.1/1.6.1a, this is NOT the same application code as its release.** 1.6.2a was tagged
+> and deployed to SQA on 2026-09-17, and the post-refresh `VACUUM` (see *Changed — the nightly
+> refresh now VACUUMs the view afterwards* under 1.6.2) landed afterwards. It was decided that
+> 1.6.2 carries it rather than deferring to 1.6.3. This costs nothing in coverage: a plain version
+> deploys **SQA first** and `deploy_stage` cannot start until `deploy_sqa` succeeds, so 1.6.2 gets
+> its own SQA pass before Stage or Prod — the thing to verify there is the nightly job, and the
+> thing not to do is approve Stage before it has been.
 
 > **Prepared, not released.** Merging this bump deliberately does not deploy anything — the tag is
 > the release decision (`cb61c111`). To ship: `git tag v1.6.2a && git push origin v1.6.2a` on the
@@ -307,11 +314,17 @@ change in output rather than a no-op, and the row count can legitimately fall.
 
 ### Changed — the nightly refresh now VACUUMs the view afterwards (G3-826 follow-up)
 
-> ⚠️ **This is the one thing in 1.6.2 that `1.6.2a` does not carry.** 1.6.2a was tagged and
-> deployed to SQA before this landed, so unlike 1.6.1/1.6.1a the plain version is **not**
-> byte-identical to its pre-release. Either re-run the manual job on SQA once against 1.6.2
-> (a five-minute check), or hold this for 1.6.3 and let 1.6.2 promote exactly what SQA signed
-> off. That is a release decision, not a code one.
+> **This is the one thing in 1.6.2 that `1.6.2a` does not carry.** 1.6.2a was tagged and deployed
+> to SQA before this landed, so unlike 1.6.1/1.6.1a the plain version is not byte-identical to its
+> pre-release. **Decided: 1.6.2 carries it**, rather than deferring to 1.6.3 — the change exists
+> precisely because the CronJob is about to run nightly against Prod for the first time, which is
+> the moment you want it in, not the release after.
+>
+> The promotion order already covers the difference: a plain version deploys **SQA first**, and
+> `deploy_stage` lists `deploy_sqa` in its `needs`, so Stage cannot start until SQA has succeeded.
+> So 1.6.2 gets its own SQA pass. What to check there is one run of the nightly job — the log
+> should carry `vacuumed in …s (last_vacuum now …)` and a dead-tuple count that drops — and what
+> not to do is approve Stage before that has been looked at.
 
 `REFRESH ... CONCURRENTLY` is a diff-and-merge, not a rewrite. That is precisely what lets it run
 without locking readers, and the price is dead tuples: every row whose searchable content changed
