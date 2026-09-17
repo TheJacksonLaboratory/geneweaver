@@ -24,6 +24,80 @@ candidate (`1.6.0rc1`, `1.6.0rc2`, …), which normalises to itself. Verified in
 
 ---
 
+## 1.6.2a — unreleased
+
+**The SQA pre-release of 1.6.2.** Same application code as the 1.6.2 entry below — this is the
+release *shape*, not new behaviour: a version carrying a letter is a PEP 440 pre-release, so the
+workflow deploys to **SQA only**, with no Stage/Prod promotion and no drafted GitHub release.
+Prod gets a plain `1.6.2` once SQA signs this off.
+
+> **Prepared, not released.** Merging this bump deliberately does not deploy anything — the tag is
+> the release decision (`cb61c111`). To ship: `git tag v1.6.2a && git push origin v1.6.2a` on the
+> merge commit. The version job fails the run if the tag and `legacy/pyproject.toml` disagree.
+> Installs as **`1.6.2a0`**; PEP 440 orders `1.6.1a0 < 1.6.1 < 1.6.2a0 < 1.6.2`, so it is an
+> upgrade from what SQA runs.
+
+### What SQA is being asked to verify
+
+Two independent gene set search fixes, one in each of GeneWeaver's two search paths:
+
+* **`/findPublications` (G3-825)** — the legacy page. Bounded and paginated, filtered by
+  readability, and no longer 500s for a gene set with no publication.
+* **`/api/genesets/search` (G3-826)** — the API. A nightly rebuild of the
+  `production.geneset_search` materialized view, which nothing had ever refreshed.
+
+Both are described in full in the 1.6.2 entry below.
+
+### Migration 121 is already applied everywhere
+
+`121-geneset-search-unique-index.sql` was applied to **all four databases on 2026-09-16**, ahead
+of this release rather than with it, so no migration step is outstanding for the SQA deploy:
+
+| | refresh | rows | live gene sets missing from the view |
+| --- | --- | --- | --- |
+| dev | 526.7s | +19 | 19 → **0** |
+| sqa | 274.0s | +12 | 12 → **0** |
+| stage | 329.8s | +1 | 1 → **0** |
+| prod | 538.8s | −14 | 25 → **0** |
+
+Step 1 created no index in any environment — all four already carried a usable
+`geneset_search_unique_idx`. Every view now has exactly as many rows as its table has live gene
+sets, and matching `max(gs_id)` and newest `gs_created`. Prod's count fell because the refresh also
+dropped **39 stale rows** for gene sets deleted since its last rebuild, alongside gaining the 25.
+
+So what this deploy actually changes on SQA is the **CronJob**: it is new here, and from the first
+night it runs the refresh at **02:30 America/New_York** (staggered off the base 00:30 because SQA
+shares a Cloud SQL instance with dev). Until it is deployed, every environment starts drifting
+again from 2026-09-16.
+
+### What to check on SQA
+
+* `GET /api/genesets/search?search_text=gs<id>` finds a gene set created after 2026-09-16 — the
+  point of the release. Allow one nightly cycle after the deploy.
+* `kubectl -n sqa get cronjob geneweaver-search-view-refresh` exists, and a manual run from it
+  (`kubectl -n sqa create job … --from=cronjob/geneweaver-search-view-refresh`) logs
+  `usable unique index present: geneset_search_unique_idx` and exits 0 — worth doing rather than
+  waiting for 02:30.
+* `/findPublications/<gs_id>` on a large publication loads in well under a second and pages, and a
+  gene set with no publication shows the empty state instead of an error.
+* Free-text searches return **more** than before, not the same: the refresh published gene sets
+  that were previously invisible. An identical-results check would fail spuriously.
+
+### Known issue, unchanged by this release
+
+dev is missing migration 116's GIN index `geneset_search_idx` on `_combined_tsvector`, which SQA,
+Stage and Prod all have, so dev's full-text predicate has no index to use. dev's view is also
+2138 MB against SQA's 1222 MB for the same row count, with fewer indexes — real bloat. Both look
+like the view having been dropped and rebuilt by hand at some point. Needs its own ticket; it is
+deliberately not folded into a version bump.
+
+### Version
+
+* `legacy/pyproject.toml` **1.6.1 → 1.6.2a**. No other file changes: the fixes themselves are
+  already on `main` (PRs #24 and #25).
+
+---
+
 ## 1.6.2 — unreleased
 
 Two independent fixes to gene set search, one in each of GeneWeaver's two search paths: the
