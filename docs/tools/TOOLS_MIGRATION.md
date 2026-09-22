@@ -300,10 +300,13 @@ Registration alone does not put the tools in AsyncTask. Outstanding, and outside
 repository:
 
 1. **Publish `geneweaver-tools` to the private `gcp-dev` index**, the source AsyncTask
-   uses for `strain-recommendation` and `asynctask-mpd-plugin`. Note the published PyPI
-   `geneweaver-tools` is the unrelated **0.0.5** framework-only release from the
-   standalone repo, while this package is `0.20.0a0` with the nine ported tools — the
-   version jump is a release decision, not a bump.
+   uses for `strain-recommendation` and `asynctask-mpd-plugin`.
+
+   The authoritative `geneweaver-tools` is **this monorepo package** (`packages/tools`,
+   `0.20.0a0`). The standalone `TheJacksonLaboratory/geneweaver-tools` repo behind the
+   PyPI `0.0.5` framework-only release is **archived** (last pushed 2025-01-15) and
+   should be disregarded. `[tool.uv.sources]` already pins the name to the workspace
+   copy, so nothing in this repository can resolve the archived release.
 2. **Add `geneweaver-tools[sklearn]` to `asynctask`'s dependencies.** The extra is
    required: `jaccard_clustering/__init__.py` imports `.tool` eagerly, which raises
    `ImportError` without scipy/scikit-learn. (`dbscan` is safe either way — it lazy-loads
