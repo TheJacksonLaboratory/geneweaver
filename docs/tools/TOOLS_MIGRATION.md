@@ -5,11 +5,12 @@
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
 > **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 75 passing;
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 115 passing;
 > `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
 > and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
-> changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md).
-> **Last updated:** 2026-06-10
+> changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md). The tools are
+> registered as AsyncTask plugins (see §10).
+> **Last updated:** 2026-09-22
 
 ---
 
@@ -249,3 +250,67 @@ Notes:
   tool filtered these only at render time, the port now filters them when building the graph
   (covered by `test_cut_does_not_leave_dangling_links`). (DBSCAN) `epsilon` was typed
   `float`, breaking the binary's integer parser — now `int` (see §4).
+
+---
+
+## 10. Running the tools in AsyncTask
+
+The tools execute in production through **AsyncTask**
+(`bitbucket.org/jacksonlaboratory/asynctask`), a Temporal-backed JAX service that runs
+analysis work as plugins. It is a separate deployed service with its own database — not a
+library this repository imports.
+
+### How AsyncTask finds a tool
+
+AsyncTask discovers plugins with `importlib.metadata` over the **`jax.ats.plugins`**
+entry-point group (`asynctask/src/asynctask/plugins/loaders.py`), wraps each in a facade,
+and rejects anything that does not satisfy its `AsyncTaskPlugin` protocol:
+
+```python
+@runtime_checkable
+class AsyncTaskPlugin(Protocol[InputType, OutputType]):
+    def run(self, input_data: InputType) -> OutputType: ...
+```
+
+`AbstractTool.run(tool_input) -> ToolOutput` already satisfies this — the protocol is
+`runtime_checkable`, so conformance is decided by the presence of `run`. **No tool code
+had to change.**
+
+### What this package declares
+
+`packages/tools/pyproject.toml` registers the nine canonical tools under
+`[project.entry-points."jax.ats.plugins"]`. Two deliberate choices:
+
+* **Names are namespaced** under `geneweaver.` (e.g. `geneweaver.upset`). AsyncTask's
+  loader raises on duplicate plugin names across *every* installed plugin, and it already
+  depends on `geneweaver-boolean-algebra`, so an un-namespaced `boolean_algebra` could
+  collide.
+* **`BinaryDBSCAN` is not registered.** It is the legacy-parity fallback; the in-process
+  `DBSCAN` is canonical (see [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1).
+
+`packages/tools/tests/unit/test_asynctask_plugin_contract.py` restates the protocol
+locally and asserts every entry point resolves, is an `AbstractTool`, satisfies the
+protocol, and exposes its `ToolInput`/`ToolOutput`. AsyncTask is privately published, so
+the contract is mirrored rather than imported; the test fails if a tool stops being
+loadable — which would otherwise only surface inside AsyncTask.
+
+### What is still required to actually run there
+
+Registration alone does not put the tools in AsyncTask. Outstanding, and outside this
+repository:
+
+1. **Publish `geneweaver-tools` to the private `gcp-dev` index**, the source AsyncTask
+   uses for `strain-recommendation` and `asynctask-mpd-plugin`. Note the published PyPI
+   `geneweaver-tools` is the unrelated **0.0.5** framework-only release from the
+   standalone repo, while this package is `0.20.0a0` with the nine ported tools — the
+   version jump is a release decision, not a bump.
+2. **Add `geneweaver-tools[sklearn]` to `asynctask`'s dependencies.** The extra is
+   required: `jaccard_clustering/__init__.py` imports `.tool` eagerly, which raises
+   `ImportError` without scipy/scikit-learn. (`dbscan` is safe either way — it lazy-loads
+   the in-process default via PEP 562.)
+3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
+   `geneweaver-boolean-algebra 0.3.0a23`, which overlaps
+   `packages/tools/.../boolean_algebra/`. Namespacing avoids a name collision; it does not
+   decide which implementation is authoritative.
+4. **Resolve tool inputs from the database.** Tools take fully-built input and nothing yet
+   assembles it — only ABBA has a resolver.

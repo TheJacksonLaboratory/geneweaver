@@ -22,6 +22,25 @@ sklearn = [
     "scipy>=1.10.0",
 ]
 
+# The AsyncTask service (bitbucket.org/jacksonlaboratory/asynctask) discovers work
+# through this entry-point group and loads each target with importlib.metadata. Its
+# loader raises on duplicate plugin names across *all* installed plugins, and
+# `geneweaver-boolean-algebra` is already installed there, so every name here is
+# namespaced under `geneweaver.`.
+#
+# `BinaryDBSCAN` is deliberately not registered: it is the legacy-parity fallback, not
+# the canonical implementation (see docs/tools/TOOLS_BENCHMARKS.md 1).
+[project.entry-points."jax.ats.plugins"]
+"geneweaver.boolean_algebra" = "geneweaver.tools.boolean_algebra:BooleanAlgebra"
+"geneweaver.combine" = "geneweaver.tools.combine:Combine"
+"geneweaver.dbscan" = "geneweaver.tools.dbscan:DBSCAN"
+"geneweaver.hypergeometric" = "geneweaver.tools.hypergeometric:HyperGeometric"
+"geneweaver.jaccard_clustering" = "geneweaver.tools.jaccard_clustering:JaccardClustering"
+"geneweaver.jaccard_similarity" = "geneweaver.tools.jaccard_similarity:JaccardSimilarity"
+"geneweaver.mset" = "geneweaver.tools.mset:MSET"
+"geneweaver.phenome_map" = "geneweaver.tools.phenome_map:PhenomeMap"
+"geneweaver.upset" = "geneweaver.tools.upset:UpSet"
+
 [project.urls]
 Homepage = "https://thejacksonlaboratory.github.io/geneweaver/"
 Repository = "https://github.com/TheJacksonLaboratory/geneweaver"
