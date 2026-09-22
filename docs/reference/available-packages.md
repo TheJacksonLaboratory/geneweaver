@@ -17,8 +17,20 @@ A package for performing boolean algebra operations on GeneWeaver data.
 - [`geneweaver-db`](https://pypi.org/project/geneweaver-db/): 
 A package for interacting with the GeneWeaver database.
 
-Each package has its own documentation and code repository, which can be found in the 
-links above.
+!!! note "Development has moved to the GeneWeaver monorepo"
+    `geneweaver-core`, `geneweaver-db`, `geneweaver-client` and `geneweaver-tools` are
+    now developed in the
+    [GeneWeaver monorepo](https://github.com/TheJacksonLaboratory/geneweaver) under
+    `packages/`. The standalone repositories for `geneweaver-db`, `geneweaver-client`,
+    `geneweaver-tools`, `geneweaver-testing` and `geneweaver-boolean-algebra` are
+    archived. The PyPI releases above are still installable, but the monorepo is the
+    source of truth and the published releases may lag it.
+
+    This matters most for **`geneweaver-tools`**: the published package contains the
+    `AbstractTool` framework *only*. The GeneWeaver analysis tools themselves
+    (BooleanAlgebra, Combine, DBSCAN, HyperGeometric, JaccardClustering,
+    JaccardSimilarity, MSET, PhenomeMap, UpSet) live in the monorepo at `packages/tools`
+    and have not been published to PyPI.
 
 ## Package Relationships
 
