@@ -6,12 +6,12 @@
 - Separate frontend app lives in `ui/`
 - Legacy code lives in `legacy/`; avoid changing it unless the task explicitly targets legacy behavior
 ## Setup
-- Install backend dependencies with `poetry install`
-- Run the backend with `poetry run uvicorn geneweaver.api.main:app --reload`
+- Install backend dependencies with `uv sync --all-packages --all-extras --all-groups`
+- Run the backend with `uv run uvicorn geneweaver.api.main:app --reload`
 - Install frontend dependencies with `cd ui && npm install`
 - Run the frontend with `cd ui && npm run dev`
 ## Validation
-- Lint backend changes with `ruff src tests --fix` and `black src tests`
+- Lint backend changes with `ruff check src tests --fix` and `ruff format src tests`
 - Run backend tests with `pytest tests --cov=geneweaver.api --cov-report term --cov-report html`
 - For UI tasks, run the smallest relevant test or build command from `ui/`
 - Prefer the smallest relevant test target first, then broaden only as needed
