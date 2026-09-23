@@ -46,7 +46,7 @@ tools-first argument because the deployed legacy app cannot run it:
 | **BinaryDBSCAN** | exact wrapper around the legacy C++ implementation | **6/6** (encode/gate/decode against the same binary) | Yes |
 | **JaccardSimilarity** | coefficient + empirical p-value; `distribution_generator` treated as a separate data-prep step | **all match** — 45/45 coefficients, 15/15 p-values where intersection > 0, 30/30 correctly skipped at intersection 0 | Yes |
 | **UpSet** | exclusive-intersection sizes | **2/2 modes** (`include_zeros` off = 5 combos, on = 63) — validated against a *transcription* of py-upset semantics, because the legacy implementation uses pandas' removed `DataFrame.ix` and cannot execute | **No** — `'tools.UpSet'` is commented out of `legacy/tools-worker/tools/celeryapp.py`, `upsetblueprint` is never registered, and the code is py2-era |
-| **MSET** | binary wrapper; **fixes** legacy using `group_1_background` for *both* gene lists | **all match**, including verification of that bug fix. Monte Carlo stays in `MSETcpp` | Yes, but see A7 |
+| **MSET** | binary wrapper; **fixes** legacy using `group_1_background` for *both* gene lists, and now takes its background as a resolved universe rather than a `*BG.txt` file name (A7) | **all match**, including verification of that bug fix. Monte Carlo stays in `MSETcpp` | Yes, but needs the A2 resolver |
 
 HyperGeometric is already in Group 1; like UpSet, its worker module is commented out of legacy's
 Celery include list, so the deployed legacy app cannot launch it.
@@ -158,7 +158,8 @@ local, dev and sqa, so the KS term never fires.
   (`tool.py:24-32`); the in-process DBSCAN default needs it too.
 - Binary paths come from env vars: `GENEWEAVER_BICLIQUE_BINARY` (required for PhenomeMap),
   `GENEWEAVER_BSTRAP_BINARY` (optional bootstrap), `GENEWEAVER_MSET_BINARY`,
-  `GENEWEAVER_MSET_BACKGROUND_DIR`, `GENEWEAVER_DBSCAN_BINARY` (optional — in-process is default).
+  `GENEWEAVER_DBSCAN_BINARY` (optional — in-process is default). `GENEWEAVER_MSET_BACKGROUND_DIR`
+  is **gone** as of the A7 tools change: MSET's universes arrive as data.
 - **This repo contains no execution machinery at all.** No Celery, Redis, broker, scheduler,
   worker or `BackgroundTasks` use anywhere in `src/`, `packages/` or `deploy/`; installed
   `jax-apiutils 0.2.0a6` ships SSE *schemas* (`fastapi/schemas/server_sent_event.py`, the G3-726
@@ -512,13 +513,28 @@ across two TOOLBOX trees (600 tracked `*BG.txt` files)**, the regeneration job a
 per-environment storage. Both halves are required: DB-resolution alone still rejects Tier-IV
 sets, and a full universe alone still goes stale.
 
-This requires a real tool-contract change: `MSETInput` currently carries two **background file
-names**, and `MSET` joins them to `GENEWEAVER_MSET_BACKGROUND_DIR`. Change the input to carry the
-resolved universes (or a typed resolver result), have the worker write run-scoped local temporary
-files for `MSETcpp`, and guarantee cleanup. Passing a DB-derived filename would retain the stale
-cache design under a new name.
+**The tool-contract half is done (PR #32).** `MSETInput` now carries two resolved gene universes
+instead of two background file names; `GENEWEAVER_MSET_BACKGROUND_DIR` and the `background_dir`
+constructor argument are gone; the default runner materialises the universes as run-scoped temp
+files for `MSETcpp` and removes them afterwards (they are O(100k) identifiers, so leaking a temp
+dir per run would matter). A pre-flight subset check names the out-of-universe genes instead of
+letting the binary emit `list_N not subset of its background` — the GWC-51 symptom. Passing a
+DB-derived *filename* would have kept the stale-cache design under a new name, so it deliberately
+takes data.
 
-*Verify:* GS407805 — 63 of 5,319 genes currently out-of-universe — runs clean.
+Scale of what this retires: **602 tracked `*BG.txt` files** across three TOOLBOX directories,
+**450 of them empty**. The cache was not merely stale — three-quarters of it was never populated,
+which is its own argument against the design.
+
+**What remains is the caller's query**, and it belongs to A2/G3-798: a `packages/db` resolver
+returning the full gene space for an id-type + species from `extsrc.gene`. Note the legacy query
+derived species only through the geneset join
+(`createBackgrounds.py::get_gene_id_by_gdb_type`), so dropping the curated-geneset restriction
+also drops its species filter — the resolver needs species attached to the gene directly, which
+is a schema question to settle before writing it.
+
+*Verify:* GS407805 — 63 of 5,319 genes currently out-of-universe — runs clean. Requires the A2
+resolver plus `MSETcpp`, so it cannot be closed from the tools change alone.
 
 ### A8. Parity & benchmark gate
 

@@ -30,6 +30,7 @@ import psycopg
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "packages", "tools", "src"))
 from geneweaver.tools.mset import MSET, MSETInput
+from geneweaver.tools.mset import tool as mset_tool
 from geneweaver.tools.mset.tool import intersect_genes, parse_tsv_dict
 
 DSN = "host=127.0.0.1 port=5433 dbname=geneweaver-dev user=geneweaver-dev password=localdev"
@@ -86,6 +87,8 @@ def main():
           f"({len(port_parsed)} keys: {sorted(port_parsed)})")
 
     # --- 3. group_2_background bug fix (capturing runner; no binary needed) ---
+    # The backgrounds are now resolved gene universes rather than *BG.txt file names
+    # (G3-784), so each list gets its own universe: here, itself.
     captured: dict = {}
 
     def capturing_runner(g1, g2, bg1, bg2, n_samples, over):
@@ -96,16 +99,43 @@ def main():
         MSETInput(
             group_1_genes=list_1,
             group_2_genes=list_2,
-            group_1_background="background_1.txt",
-            group_2_background="background_2.txt",
+            group_1_background=list(list_1),
+            group_2_background=list(list_2),
             number_of_samples=100,
         )
     )
-    bug_fixed = captured.get("bg1") == "background_1.txt" and captured.get("bg2") == "background_2.txt"
+    bug_fixed = captured.get("bg1") == list(list_1) and captured.get("bg2") == list(list_2)
     print(f"  list-2 uses group_2_background (fix)  {'OK' if bug_fixed else 'MISMATCH'}   "
-          f"(port bg2={captured.get('bg2')!r}; legacy reused group_1_background here)")
+          f"(port bg2 has {len(captured.get('bg2') or [])} genes; legacy reused "
+          f"group_1_background here)")
 
-    ok = set_ok and order_ok and no_dups and parse_ok and bug_fixed
+    # --- 4. the background is data, not a file path (G3-784) ---
+    no_file_dependency = (
+        "group_1_background" in MSETInput.model_fields
+        and MSETInput.model_fields["group_1_background"].annotation is not str
+        and not hasattr(mset_tool, "BACKGROUND_ENV_VAR")
+    )
+    print(f"  background passed as data, not a file  {'OK' if no_file_dependency else 'MISMATCH'}   "
+          f"(no GENEWEAVER_MSET_BACKGROUND_DIR; no *BG.txt read at run time)")
+
+    # --- 5. out-of-universe genes fail legibly rather than cryptically (GWC-51) ---
+    try:
+        MSET(runner=capturing_runner).run(
+            MSETInput(
+                group_1_genes=[*list_1, "__NOT_A_REAL_GENE__"],
+                group_2_genes=list_2,
+                group_1_background=list(list_1),
+                group_2_background=list(list_2),
+            )
+        )
+        subset_checked = False
+    except ValueError as exc:
+        subset_checked = "__NOT_A_REAL_GENE__" in str(exc)
+    print(f"  out-of-universe gene named in error   {'OK' if subset_checked else 'MISMATCH'}   "
+          f"(legacy surfaced MSETcpp's \"list_N not subset of its background\")")
+
+    ok = (set_ok and order_ok and no_dups and parse_ok and bug_fixed
+          and no_file_dependency and subset_checked)
     print("\nRESULT:", "PORT PYTHON SURFACE MATCHES LEGACY (+ bug fixed) ✓" if ok else "MISMATCHES ✗")
     sys.exit(0 if ok else 1)
 
