@@ -1,0 +1,148 @@
+<div class="p-4">
+  <h2 class="mt-0">Analyze gene sets</h2>
+  <p class="text-color-secondary mt-0">
+    Run a GeneWeaver v3 analysis tool over two or more gene sets. Signed-out runs can use
+    publicly readable gene sets only.
+  </p>
+
+  <p-card>
+    <div class="formgrid grid">
+      <div class="field col-12 md:col-6">
+        <label for="genesetIds" class="block mb-2">Gene set IDs</label>
+        <p-chips
+          inputId="genesetIds"
+          [(ngModel)]="genesetIdInput"
+          [allowDuplicate]="false"
+          [addOnBlur]="true"
+          separator=","
+          placeholder="e.g. 514, 515"
+          styleClass="w-full"
+          ariaLabel="Gene set IDs to analyze"
+        ></p-chips>
+        <small class="block mt-2 text-color-secondary">
+          Type an ID and press enter. At least two, at most twenty.
+        </small>
+      </div>
+
+      <div class="field col-12 md:col-4">
+        <label for="tool" class="block mb-2">Tool</label>
+        <p-dropdown
+          inputId="tool"
+          [options]="toolOptions"
+          [(ngModel)]="selectedTool"
+          optionLabel="label"
+          optionValue="value"
+          optionDisabled="disabledReason"
+          styleClass="w-full"
+        ></p-dropdown>
+      </div>
+
+      <div class="field col-12 md:col-2 flex align-items-end">
+        <div class="field-checkbox mb-0">
+          <p-checkbox
+            inputId="includeZeros"
+            [(ngModel)]="includeZeros"
+            [binary]="true"
+          ></p-checkbox>
+          <label for="includeZeros" class="ml-2">Include empty combinations</label>
+        </div>
+      </div>
+    </div>
+
+    <p-message
+      *ngIf="selectedToolReason"
+      severity="info"
+      [text]="selectedToolReason"
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <p-message
+      *ngIf="invalidEntries.length"
+      severity="warn"
+      [text]="'Not valid gene set IDs: ' + invalidEntries.join(', ')"
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <div class="flex gap-2">
+      <p-button
+        label="Run"
+        icon="pi pi-play"
+        [disabled]="!canRun"
+        (onClick)="run()"
+      ></p-button>
+      <p-button
+        label="Clear"
+        icon="pi pi-times"
+        severity="secondary"
+        [outlined]="true"
+        [disabled]="running || (!result && !errorMessage)"
+        (onClick)="clear()"
+      ></p-button>
+    </div>
+
+    <p-progressBar
+      *ngIf="running"
+      mode="indeterminate"
+      styleClass="mt-3"
+      [style]="{ height: '6px' }"
+    ></p-progressBar>
+  </p-card>
+
+  <p-message
+    *ngIf="errorMessage"
+    severity="error"
+    [text]="errorMessage"
+    styleClass="w-full mt-3"
+  ></p-message>
+
+  <p-card *ngIf="result" class="block mt-3" [header]="result.tool + ' result'">
+    <h4 class="mt-0">Genes resolved per gene set</h4>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <span *ngFor="let entry of result.gene_counts | keyvalue">
+        <strong>{{ entry.key }}</strong>: {{ entry.value }}
+      </span>
+    </div>
+
+    <p-message
+      *ngIf="emptyGenesets.length"
+      severity="warn"
+      [text]="
+        'These gene sets resolved to no genes: ' +
+        emptyGenesets.join(', ') +
+        '. They may be empty, or use a gene identifier type this resolver does not cover.'
+      "
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <h4>Exclusive intersections</h4>
+    <p class="text-color-secondary mt-0">
+      Genes belonging to exactly that combination of gene sets, and to no other.
+    </p>
+    <p-table
+      [value]="result.intersections"
+      [scrollable]="true"
+      scrollHeight="420px"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Combination</th>
+          <th style="width: 10rem">Genes</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-intersection>
+        <tr>
+          <td>{{ label(intersection) }}</td>
+          <td>{{ intersection.size }}</td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="2">
+            No intersections. The gene sets may share no genes, or all resolved empty.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
