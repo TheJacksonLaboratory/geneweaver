@@ -335,6 +335,21 @@ repository:
 1. **Publish `geneweaver-tools` to the private `gcp-dev` index**, the source AsyncTask
    uses for `strain-recommendation` and `asynctask-mpd-plugin`.
 
+   **Wired:** `.github/workflows/publish-packages.yml` builds and publishes a workspace
+   package on a package-scoped tag:
+
+   ```bash
+   git tag tools-v0.20.0a0 && git push origin tools-v0.20.0a0
+   ```
+
+   The tag version must match `packages/tools/pyproject.toml`, or the run fails rather
+   than publishing something mislabelled. `workflow_dispatch` offers a dry run (build and
+   verify only) for checking the path without uploading. Authentication reuses the
+   `GCLOUD_REGISTRY_SA_KEY` secret the skaffold build already uses; Artifact Registry
+   takes a short-lived access token as the password with the username
+   `oauth2accesstoken`, so no keyring plugin is needed. **Nothing has been published
+   yet** — the first release is a deliberate action.
+
    The authoritative `geneweaver-tools` is **this monorepo package** (`packages/tools`,
    `0.20.0a0`). The standalone `TheJacksonLaboratory/geneweaver-tools` repo behind the
    PyPI `0.0.5` framework-only release is **archived** (last pushed 2025-01-15) and

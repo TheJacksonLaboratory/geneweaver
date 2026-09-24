@@ -368,10 +368,12 @@ AsyncTask's protocol locally.
 Registration does not put the tools in AsyncTask. Three steps, and **two of them are not changes
 to this repository** — which makes this the step most likely to stall:
 
-1. **Publish `geneweaver-tools` to the private `gcp-dev` index**, the source AsyncTask uses for
-   `strain-recommendation` and `asynctask-mpd-plugin`. This monorepo package is `0.20.0a0`; the
-   archived standalone repo's PyPI line ended at `0.0.5`, so the version jump is a release
-   decision, not a bump. No publish pipeline for `packages/*` exists in this repo today.
+1. ~~**Publish `geneweaver-tools` to the private `gcp-dev` index.**~~ **Pipeline wired** —
+   `.github/workflows/publish-packages.yml`, triggered by a package-scoped tag
+   (`tools-v0.20.0a0`), with a tag-vs-pyproject version check and a dry-run dispatch.
+   Deliberately separate from `release.yml`, which releases the API. **Nothing is published
+   yet**: cutting the first release is a decision, not a mechanical step, and the archived
+   standalone repo's PyPI line ended at `0.0.5` against this package's `0.20.0a0`.
 2. **Add `geneweaver-tools[sklearn]` to `asynctask`'s dependencies** (Bitbucket, separate review
    path), and confirm its image can satisfy the extra.
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
