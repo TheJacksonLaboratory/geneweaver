@@ -184,8 +184,9 @@ local, dev and sqa, so the KS term never fires.
   change.** AsyncTask already hosts sibling plugins: `strain-recommendation`,
   `asynctask-mpd-plugin`, and `geneweaver-boolean-algebra 0.3.0a23` from test-pypi.
 - **The integration is a packaging problem, split across two repos.** Monorepo PR #32 declares the
-  nine tools under `[project.entry-points."jax.ats.plugins"]`, namespaced under `geneweaver.`
-  because AsyncTask's loader raises on duplicate names across *every* installed plugin. Getting
+  tools plus the Temporal workflow/activity bindings the AsyncTask worker actually
+  registers, mirroring `strain-recommendation` so nothing GeneWeaver-specific lives in
+  AsyncTask. Getting
   them to actually run there additionally needs a publish to the private `gcp-dev` index and a
   dependency added on the AsyncTask side — neither of which is a change to this repository.
 
@@ -376,12 +377,12 @@ to this repository** — which makes this the step most likely to stall:
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
    `geneweaver-boolean-algebra 0.3.0a23`, whose GitHub repo is **archived** (last push
    2025-01-15), against `packages/tools/.../boolean_algebra/` which is actively developed.
-   Namespacing under `geneweaver.` prevents a *name collision*; it does not decide which
-   implementation is authoritative. The archived-versus-maintained asymmetry argues for
+   Registering our tools in a private `geneweaver.tools` group prevents a *name
+   collision*; it does not decide which implementation is authoritative. The archived-versus-maintained asymmetry argues for
    `packages/tools`, but two implementations of one tool would be live until someone decides.
 
-*Verify:* AsyncTask's `load_plugins()` lists the nine `geneweaver.*` plugins in a deployed
-environment.
+*Verify:* AsyncTask's worker registers `GeneWeaverToolWorkflow` and its activity in a
+deployed environment, and a submitted run returns a tool result.
 
 ### A2. Input resolvers — G3-798
 

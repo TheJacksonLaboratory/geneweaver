@@ -21,25 +21,43 @@ sklearn = [
     "scikit-learn>=1.3.0",
     "scipy>=1.10.0",
 ]
+# Temporal workflow/activity bindings, so the tools can run on the AsyncTask service.
+# Kept optional: callers that only need the compute classes and schemas -- the
+# GeneWeaver API, for one -- should not pull in a workflow runtime.
+temporal = [
+    "temporalio>=1.9.0",
+]
 
-# The AsyncTask service (bitbucket.org/jacksonlaboratory/asynctask) discovers work
-# through this entry-point group and loads each target with importlib.metadata. Its
-# loader raises on duplicate plugin names across *all* installed plugins, and
-# `geneweaver-boolean-algebra` is already installed there, so every name here is
-# namespaced under `geneweaver.`.
+# Tool registry. Our own group, deliberately not `jax.ats.plugins`: AsyncTask reads
+# that group and hands whatever it finds to `start_workflow`, which only accepts a
+# Temporal workflow. Registering bare `AbstractTool` classes there would look correct
+# and fail at run time. AsyncTask is offered the workflow below; this group is what the
+# activity resolves a tool name against.
 #
-# `BinaryDBSCAN` is deliberately not registered: it is the legacy-parity fallback, not
-# the canonical implementation (see docs/tools/TOOLS_BENCHMARKS.md 1).
+# `BinaryDBSCAN` is deliberately absent: it is the legacy-parity fallback, not the
+# canonical implementation (see docs/tools/TOOLS_BENCHMARKS.md 1).
+[project.entry-points."geneweaver.tools"]
+boolean_algebra = "geneweaver.tools.boolean_algebra:BooleanAlgebra"
+combine = "geneweaver.tools.combine:Combine"
+dbscan = "geneweaver.tools.dbscan:DBSCAN"
+hypergeometric = "geneweaver.tools.hypergeometric:HyperGeometric"
+jaccard_clustering = "geneweaver.tools.jaccard_clustering:JaccardClustering"
+jaccard_similarity = "geneweaver.tools.jaccard_similarity:JaccardSimilarity"
+mset = "geneweaver.tools.mset:MSET"
+phenome_map = "geneweaver.tools.phenome_map:PhenomeMap"
+upset = "geneweaver.tools.upset:UpSet"
+
+# AsyncTask plugin registration, mirroring strain-recommendation: the package ships its
+# own workflow and activities so nothing GeneWeaver-specific lives in AsyncTask. All
+# three groups require the `temporal` extra.
 [project.entry-points."jax.ats.plugins"]
-"geneweaver.boolean_algebra" = "geneweaver.tools.boolean_algebra:BooleanAlgebra"
-"geneweaver.combine" = "geneweaver.tools.combine:Combine"
-"geneweaver.dbscan" = "geneweaver.tools.dbscan:DBSCAN"
-"geneweaver.hypergeometric" = "geneweaver.tools.hypergeometric:HyperGeometric"
-"geneweaver.jaccard_clustering" = "geneweaver.tools.jaccard_clustering:JaccardClustering"
-"geneweaver.jaccard_similarity" = "geneweaver.tools.jaccard_similarity:JaccardSimilarity"
-"geneweaver.mset" = "geneweaver.tools.mset:MSET"
-"geneweaver.phenome_map" = "geneweaver.tools.phenome_map:PhenomeMap"
-"geneweaver.upset" = "geneweaver.tools.upset:UpSet"
+GeneWeaverTools = "geneweaver.tools.temporal.workflows:GeneWeaverToolWorkflow"
+
+[project.entry-points."jax.ats.plugins.temporal.workflows"]
+GeneWeaverToolWorkflows = "geneweaver.tools.temporal:WORKFLOWS"
+
+[project.entry-points."jax.ats.plugins.temporal.activities"]
+GeneWeaverToolActivities = "geneweaver.tools.temporal:ACTIVITIES"
 
 [project.urls]
 Homepage = "https://thejacksonlaboratory.github.io/geneweaver/"
