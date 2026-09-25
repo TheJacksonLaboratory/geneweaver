@@ -5,11 +5,12 @@
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
 > **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 75 passing;
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 115 passing;
 > `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
 > and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
-> changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md).
-> **Last updated:** 2026-06-10
+> changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md). The tools are
+> registered as AsyncTask plugins (see §10).
+> **Last updated:** 2026-09-22
 
 ---
 
@@ -54,7 +55,7 @@ properties. The reimplementations follow consistent principles:
 | JaccardClustering | `jaccard_clustering` | pure (`[sklearn]`) | hierarchical dendrogram. **Improvement**: `scipy.cluster.hierarchy` (C-backed, ~O(n² log n)) vs legacy hand-rolled O(n³); methods ward/complete/average/mcquitty→weighted/single |
 | DBSCAN | `dbscan` | in-process (default) + binary wrapper | the default `DBSCAN` is the in-process scipy+sklearn impl (`[sklearn]`), validated identical to the binary and far faster (see [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1). `BinaryDBSCAN` keeps the C++ binary path (encode bipartite graph → `dbscan` binary → decode JSON clusters; no extra required). |
 | UpSet | `upset` | pure | intersection sizes per exact gene-set combination (legacy `os.system` calls were commented out) |
-| MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. |
+| MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. **Background is now passed in as a resolved gene universe**, not a `*BG.txt` file name (G3-784). |
 | PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. KS term is a pure-Python transcription of the legacy asymptotic KS (a `scipy.stats.ks_2samp` swap was reverted — [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4). All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
 
 ### Moved to the data layer (not an `AbstractTool`)
@@ -79,6 +80,11 @@ properties. The reimplementations follow consistent principles:
 - **JaccardClustering** — replaced the legacy O(n³) hand-rolled agglomerative clustering with
   `scipy.cluster.hierarchy` (correct + C-backed).
 - **MSET** — fixed the copy-paste bug where `group_2` used `group_1_background`.
+- **MSET** — the background is now supplied as data. `MSETInput` carries two resolved gene
+  universes instead of two `*BG.txt` file names, `GENEWEAVER_MSET_BACKGROUND_DIR` is gone, and the
+  default runner materialises the universes as run-scoped temp files for `MSETcpp` and removes
+  them afterwards. A pre-flight subset check names the out-of-universe genes rather than letting
+  the binary fail with `list_N not subset of its background` (G3-784; see §9 item 6).
 - **PhenomeMap** — the whole graph pipeline (subset links, transitive reduction,
   p-value/FDR trim, cut/trim) is pure and unit-tested with an injectable biclique runner —
   no compiled binary needed for tests. The empty-FDR case that crashes the legacy tool
@@ -168,7 +174,14 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
 5. Validate the remaining ported tools against the legacy worker on real gene sets. ABBA,
    PhenomeMap, HyperGeometric, and DBSCAN done — see §9.
-6. **Drop MSET's static background files — resolve the background from the DB.** The legacy
+6. **Drop MSET's static background files — resolve the background from the DB.**
+   **Status: the tools half is done** — `MSETInput` now takes resolved gene universes, so nothing
+   reads a background directory and no `*BG.txt` ships in any image. **What remains is the
+   caller's query**: a `packages/db` resolver returning the *full gene space* for an id-type +
+   species (G3-798). Until that exists, callers must supply the universe themselves.
+   For scale: the legacy cache is **602 tracked `*BG.txt` files** across three TOOLBOX
+   directories, **450 of them empty** — it was not merely stale, most of it was never populated.
+   The original reasoning follows. The legacy
    MSET ships ~301 precomputed `TOOLBOX/CS_Mset/backgroundFiles/*BG.txt` files (per species ×
    gene-db / attribution), generated by `createBackgrounds.py`. These are a *denormalized cache
    of DB data* and go **stale whenever the gene data is reloaded** — MSETcpp requires each input
@@ -249,3 +262,119 @@ Notes:
   tool filtered these only at render time, the port now filters them when building the graph
   (covered by `test_cut_does_not_leave_dangling_links`). (DBSCAN) `epsilon` was typed
   `float`, breaking the binary's integer parser — now `int` (see §4).
+
+---
+
+## 10. Running the tools in AsyncTask
+
+The tools execute in production through **AsyncTask**
+(`bitbucket.org/jacksonlaboratory/asynctask`), a Temporal-backed JAX service that runs
+analysis work as plugins. It is a separate deployed service with its own database — not a
+library this repository imports.
+
+### How AsyncTask finds a tool
+
+AsyncTask discovers plugins with `importlib.metadata` over **three** entry-point groups
+(`asynctask/src/asynctask/plugins/`): `jax.ats.plugins` for the facade, and
+`jax.ats.plugins.temporal.workflows` / `.activities` for what its Temporal worker
+registers. `create_worker` registers *only* what the latter two return, so a plugin
+present in the general group alone is discoverable but has no workflow to start.
+
+### What this package declares
+
+The plugin package owns its whole integration, the way `strain-recommendation` does —
+nothing GeneWeaver-specific lives in AsyncTask. `packages/tools/pyproject.toml` declares:
+
+| Group | Entry |
+|---|---|
+| `jax.ats.plugins` | `GeneWeaverTools` → `geneweaver.tools.temporal.workflows:GeneWeaverToolWorkflow` |
+| `jax.ats.plugins.temporal.workflows` | `geneweaver.tools.temporal:WORKFLOWS` |
+| `jax.ats.plugins.temporal.activities` | `geneweaver.tools.temporal:ACTIVITIES` |
+| `geneweaver.tools` | the nine tools, by name (`upset`, `mset`, …) |
+
+Two deliberate choices:
+
+* **The tools are registered in our own `geneweaver.tools` group, not in
+  `jax.ats.plugins`.** AsyncTask passes entries from that group to `start_workflow`,
+  which accepts only a Temporal workflow; a bare `AbstractTool` there would be
+  discovered and then fail at run time. AsyncTask is offered the *workflow*; the
+  activity resolves a tool name against our registry. This also sidesteps the
+  duplicate-name error in AsyncTask's loader, since `geneweaver-boolean-algebra` is
+  already installed there.
+* **`BinaryDBSCAN` is not registered.** It is the legacy-parity fallback; the in-process
+  `DBSCAN` is canonical (see [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1).
+
+### The Temporal bindings
+
+`geneweaver.tools.temporal` mirrors `strainrecommend.temporal`: `workflows.py` holds one
+generic `@workflow.defn` that delegates immediately to `activities.py`'s single
+`@activity.defn`, and `__init__.py` exports `WORKFLOWS` and `ACTIVITIES`. One pair serves
+every tool, since they share `run(ToolInput) -> ToolOutput` and differ only in input
+schema.
+
+The work is in the activity because tool runs are CPU-bound and some shell out to native
+binaries — neither permissible in deterministic workflow code. Retries are disabled: a
+run is fully determined by its request, so retrying repeats the computation, and failures
+are bad input or a missing binary. The 30-minute ceiling replaces legacy's 900s Celery
+soft limit.
+
+Requires the **`temporal` extra** (`temporalio`), kept optional so callers that need only
+the compute classes and schemas — the GeneWeaver API — do not pull in a workflow runtime.
+
+`packages/tools/tests/unit/test_asynctask_plugin_contract.py` restates the protocol
+locally and asserts every entry point resolves, is an `AbstractTool`, satisfies the
+protocol, and exposes its `ToolInput`/`ToolOutput`. AsyncTask is privately published, so
+the contract is mirrored rather than imported; the test fails if a tool stops being
+loadable — which would otherwise only surface inside AsyncTask.
+
+### What is still required to actually run there
+
+Registration alone does not put the tools in AsyncTask. Outstanding, and outside this
+repository:
+
+1. **Publish `geneweaver-tools` to the private `gcp-dev` index**, the source AsyncTask
+   uses for `strain-recommendation` and `asynctask-mpd-plugin`.
+
+   **Wired:** `.github/workflows/publish-packages.yml` builds and publishes a workspace
+   package on a package-scoped tag:
+
+   ```bash
+   git tag tools-v0.20.0a0 && git push origin tools-v0.20.0a0
+   ```
+
+   The tag version must match `packages/tools/pyproject.toml`, or the run fails rather
+   than publishing something mislabelled. `workflow_dispatch` offers a dry run (build and
+   verify only) for checking the path without uploading.
+
+   **One-time setup, not yet done:** the workflow needs a repository secret
+   `GCLOUD_PYTHON_REGISTRY_SA_KEY` holding a JSON key for
+   `jax-cs-registry-bitbucket@jax-cs-registry.iam.gserviceaccount.com` — the account
+   `strain-recommendation` publishes with, and one of only two service accounts holding
+   `artifactregistry.writer` on `python-dev`.
+
+   It deliberately does **not** reuse `GCLOUD_REGISTRY_SA_KEY`. That secret holds
+   `github-deployment-svc-01@jax-cloud-image-tools`, which can write to the *docker*
+   repositories but has **no binding at all** on `python-dev`, so publishing with it
+   would 403. The repo's `domain:jax.org` writer binding does not rescue this either: a
+   `domain:` binding matches Workspace users, not service accounts.
+
+   Artifact Registry takes a short-lived access token as the password with the username
+   `oauth2accesstoken`, so no keyring plugin is needed. **Nothing has been published
+   yet** — the first release is a deliberate action.
+
+   The authoritative `geneweaver-tools` is **this monorepo package** (`packages/tools`,
+   `0.20.0a0`). The standalone `TheJacksonLaboratory/geneweaver-tools` repo behind the
+   PyPI `0.0.5` framework-only release is **archived** (last pushed 2025-01-15) and
+   should be disregarded. `[tool.uv.sources]` already pins the name to the workspace
+   copy, so nothing in this repository can resolve the archived release.
+2. **Add `geneweaver-tools[sklearn,temporal]` to `asynctask`'s dependencies** — the only
+   change that repository needs. Both extras are required: `temporal` provides the
+   workflow/activity definitions, and `sklearn` because `jaccard_clustering/__init__.py`
+   imports `.tool` eagerly and raises `ImportError` without scipy/scikit-learn. (`dbscan`
+   is safe either way — it lazy-loads the in-process default via PEP 562.)
+3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
+   `geneweaver-boolean-algebra 0.3.0a23`, which overlaps
+   `packages/tools/.../boolean_algebra/`. Namespacing avoids a name collision; it does not
+   decide which implementation is authoritative.
+4. **Resolve tool inputs from the database.** Tools take fully-built input and nothing yet
+   assembles it — only ABBA has a resolver.

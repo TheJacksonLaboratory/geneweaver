@@ -1,0 +1,162 @@
+name: Publish Packages
+
+# Publishes a workspace package from `packages/` to the private Artifact Registry
+# Python index, so other services can depend on it. AsyncTask consumes
+# `geneweaver-tools` this way, exactly as it consumes `strain-recommendation`.
+#
+# Deliberately NOT part of release.yml. That workflow releases and deploys the API and
+# triggers on the root `pyproject.toml`; a library release has its own version and its
+# own consumers, and tying the two would mean either republishing the packages on every
+# API release or only publishing when the API version happens to change.
+#
+# Credentials: this publishes with `jax-cs-registry-bitbucket@jax-cs-registry`, held in
+# GCLOUD_PYTHON_REGISTRY_SA_KEY. Deliberately NOT the GCLOUD_REGISTRY_SA_KEY the skaffold
+# build uses -- that key is `github-deployment-svc-01@jax-cloud-image-tools`, which has
+# artifactregistry.writer on the *docker* repos but no binding at all on `python-dev`, so
+# publishing with it would 403. The chosen account already has writer on `python-dev` and
+# is the same one strain-recommendation publishes with.
+#
+# Note the repo-level `domain:jax.org` writer binding does not help here: a `domain:`
+# binding matches Workspace users, not service accounts.
+#
+# Release a package by tagging its version, e.g.:
+#
+#     git tag tools-v0.20.0a1 && git push origin tools-v0.20.0a1
+#
+# The tag version must match the package's `pyproject.toml`; a mismatch fails the run
+# rather than publishing something mislabelled. `workflow_dispatch` is available for the
+# first publish and for recovery.
+
+on:
+  push:
+    tags:
+      - 'tools-v*'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Workspace package to publish'
+        required: true
+        default: 'geneweaver-tools'
+        type: choice
+        options:
+          - geneweaver-tools
+      dry_run:
+        description: 'Build and verify only; do not upload'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: "Build and publish"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve package and directory
+        id: target
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PACKAGE="${{ inputs.package }}"
+          else
+            # Tag shape is <short-name>-v<version>; map the short name to its package.
+            SHORT="${GITHUB_REF_NAME%%-v*}"
+            PACKAGE="geneweaver-${SHORT}"
+          fi
+          DIR="packages/${PACKAGE#geneweaver-}"
+          if [ ! -f "${DIR}/pyproject.toml" ]; then
+            echo "::error::No package directory ${DIR} for ${PACKAGE}"
+            exit 1
+          fi
+          echo "package=${PACKAGE}" >> "$GITHUB_OUTPUT"
+          echo "dir=${DIR}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${PACKAGE} from ${DIR}"
+
+      - name: Check the tag matches the package version
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#*-v}"
+          PKG_VERSION=$(grep -m1 '^version = ' "${{ steps.target.outputs.dir }}/pyproject.toml" | cut -d '"' -f 2)
+          echo "tag: ${TAG_VERSION}    pyproject: ${PKG_VERSION}"
+          if [ "${TAG_VERSION}" != "${PKG_VERSION}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match ${{ steps.target.outputs.dir }}/pyproject.toml version ${PKG_VERSION}"
+            exit 1
+          fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Build
+        run: uv build --package "${{ steps.target.outputs.package }}" --out-dir dist
+
+      - name: Verify the distribution
+        run: |
+          set -euo pipefail
+          # A green build with no artefact is worse than a failed build.
+          test -n "$(ls -A dist)" || { echo "::error::uv build produced no artefacts"; exit 1; }
+          ls -l dist
+          # Entry points are how AsyncTask discovers the plugin; if they are missing from
+          # the wheel metadata the package installs fine and does nothing.
+          WHEEL=$(ls dist/*.whl)
+          python -c "
+          import sys, zipfile
+          names = zipfile.ZipFile('${WHEEL}').namelist()
+          ep = [n for n in names if n.endswith('entry_points.txt')]
+          if not ep:
+              sys.exit('::error::wheel has no entry_points.txt')
+          print(zipfile.ZipFile('${WHEEL}').read(ep[0]).decode())
+          "
+
+      - name: Check publish credentials are configured
+        if: github.event_name == 'push' || inputs.dry_run == false
+        env:
+          SA_KEY: ${{ secrets.GCLOUD_PYTHON_REGISTRY_SA_KEY }}
+        run: |
+          if [ -z "${SA_KEY}" ]; then
+            echo "::error::GCLOUD_PYTHON_REGISTRY_SA_KEY is not set. It must hold a JSON key for jax-cs-registry-bitbucket@jax-cs-registry.iam.gserviceaccount.com, which holds artifactregistry.writer on python-dev. GCLOUD_REGISTRY_SA_KEY will not work: that account has no binding on the Python repository."
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' || inputs.dry_run == false
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCLOUD_PYTHON_REGISTRY_SA_KEY }}'
+
+      - name: Setup Gcloud
+        if: github.event_name == 'push' || inputs.dry_run == false
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: Publish
+        if: github.event_name == 'push' || inputs.dry_run == false
+        env:
+          # Registry URL is configuration, not a literal: override with the repository
+          # variable if the index ever moves. Default is the `gcp-dev` index that
+          # asynctask's pyproject resolves from.
+          PUBLISH_URL: ${{ vars.PYTHON_REGISTRY_PUBLISH_URL || 'https://us-east1-python.pkg.dev/jax-cs-registry/python-dev/' }}
+        run: |
+          set -euo pipefail
+          # Artifact Registry accepts a short-lived access token as the password with
+          # the fixed username `oauth2accesstoken`, so no keyring plugin is needed.
+          uv publish \
+            --publish-url "${PUBLISH_URL}" \
+            --username oauth2accesstoken \
+            --password "$(gcloud auth print-access-token)" \
+            dist/*
+
+      - name: Dry run summary
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == true
+        run: echo "Dry run — built and verified ${{ steps.target.outputs.package }}, nothing uploaded."
