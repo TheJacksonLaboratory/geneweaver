@@ -344,9 +344,21 @@ repository:
 
    The tag version must match `packages/tools/pyproject.toml`, or the run fails rather
    than publishing something mislabelled. `workflow_dispatch` offers a dry run (build and
-   verify only) for checking the path without uploading. Authentication reuses the
-   `GCLOUD_REGISTRY_SA_KEY` secret the skaffold build already uses; Artifact Registry
-   takes a short-lived access token as the password with the username
+   verify only) for checking the path without uploading.
+
+   **One-time setup, not yet done:** the workflow needs a repository secret
+   `GCLOUD_PYTHON_REGISTRY_SA_KEY` holding a JSON key for
+   `jax-cs-registry-bitbucket@jax-cs-registry.iam.gserviceaccount.com` — the account
+   `strain-recommendation` publishes with, and one of only two service accounts holding
+   `artifactregistry.writer` on `python-dev`.
+
+   It deliberately does **not** reuse `GCLOUD_REGISTRY_SA_KEY`. That secret holds
+   `github-deployment-svc-01@jax-cloud-image-tools`, which can write to the *docker*
+   repositories but has **no binding at all** on `python-dev`, so publishing with it
+   would 403. The repo's `domain:jax.org` writer binding does not rescue this either: a
+   `domain:` binding matches Workspace users, not service accounts.
+
+   Artifact Registry takes a short-lived access token as the password with the username
    `oauth2accesstoken`, so no keyring plugin is needed. **Nothing has been published
    yet** — the first release is a deliberate action.
 

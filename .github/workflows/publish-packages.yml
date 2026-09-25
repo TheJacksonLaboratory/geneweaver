@@ -9,6 +9,16 @@ name: Publish Packages
 # own consumers, and tying the two would mean either republishing the packages on every
 # API release or only publishing when the API version happens to change.
 #
+# Credentials: this publishes with `jax-cs-registry-bitbucket@jax-cs-registry`, held in
+# GCLOUD_PYTHON_REGISTRY_SA_KEY. Deliberately NOT the GCLOUD_REGISTRY_SA_KEY the skaffold
+# build uses -- that key is `github-deployment-svc-01@jax-cloud-image-tools`, which has
+# artifactregistry.writer on the *docker* repos but no binding at all on `python-dev`, so
+# publishing with it would 403. The chosen account already has writer on `python-dev` and
+# is the same one strain-recommendation publishes with.
+#
+# Note the repo-level `domain:jax.org` writer binding does not help here: a `domain:`
+# binding matches Workspace users, not service accounts.
+#
 # Release a package by tagging its version, e.g.:
 #
 #     git tag tools-v0.20.0a1 && git push origin tools-v0.20.0a1
@@ -110,11 +120,21 @@ jobs:
           print(zipfile.ZipFile('${WHEEL}').read(ep[0]).decode())
           "
 
+      - name: Check publish credentials are configured
+        if: github.event_name == 'push' || inputs.dry_run == false
+        env:
+          SA_KEY: ${{ secrets.GCLOUD_PYTHON_REGISTRY_SA_KEY }}
+        run: |
+          if [ -z "${SA_KEY}" ]; then
+            echo "::error::GCLOUD_PYTHON_REGISTRY_SA_KEY is not set. It must hold a JSON key for jax-cs-registry-bitbucket@jax-cs-registry.iam.gserviceaccount.com, which holds artifactregistry.writer on python-dev. GCLOUD_REGISTRY_SA_KEY will not work: that account has no binding on the Python repository."
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         if: github.event_name == 'push' || inputs.dry_run == false
         uses: 'google-github-actions/auth@v1'
         with:
-          credentials_json: '${{ secrets.GCLOUD_REGISTRY_SA_KEY }}'
+          credentials_json: '${{ secrets.GCLOUD_PYTHON_REGISTRY_SA_KEY }}'
 
       - name: Setup Gcloud
         if: github.event_name == 'push' || inputs.dry_run == false
