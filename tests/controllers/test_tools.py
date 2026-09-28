@@ -49,6 +49,41 @@ def test_upset_endpoint_caps_the_number_of_genesets(client) -> None:
     assert response.status_code == 422
 
 
+def test_upset_endpoint_rejects_duplicate_genesets(client) -> None:
+    """A repeated id would resolve to one membership entry while claiming two sets."""
+    response = client.post("/api/tools/upset", json={"geneset_ids": [1, 1]})
+    assert response.status_code == 422
+    assert "Duplicate gene set ids" in response.text
+
+
+def test_upset_endpoint_bounds_include_zeros(client) -> None:
+    """include_zeros emits 2^n - 1 combinations, so it carries a tighter cap."""
+    response = client.post(
+        "/api/tools/upset",
+        json={"geneset_ids": list(range(1, 13)), "include_zeros": True},
+    )
+    assert response.status_code == 422
+    assert "include_zeros is limited to" in response.text
+
+
+def test_upset_endpoint_allows_include_zeros_within_the_cap(client) -> None:
+    """The cap must not block the ordinary case."""
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+            return_value={"1": ["A"], "2": ["B"]},
+        ),
+    ):
+        response = client.post(
+            "/api/tools/upset",
+            json={"geneset_ids": [1, 2], "include_zeros": True},
+        )
+    assert response.status_code == 200
+    # 2^2 - 1 = 3 combinations, including the empty intersection of both.
+    assert len(response.json()["object"]["intersections"]) == 3
+
+
 def test_in_process_runner_runs_the_real_tool() -> None:
     """The default runner executes the actual ported tool, not a stub."""
     output = InProcessToolRunner().run(

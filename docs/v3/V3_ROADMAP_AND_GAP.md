@@ -14,9 +14,12 @@
 The v3 backend (`src/geneweaver/api`) exposes **23 routes, only 4 of which change state**, and mounts
 only `genesets`, `genes`, `publications`, `species`, `search` and `monitors`. The nine ported
 analysis tools in `packages/tools` — the part of v3 with measured correctness and performance
-wins over legacy — are **not reachable through v3**: `geneweaver-tools` is a uv workspace member but
-is *not* in `geneweaver-api`'s `[project].dependencies`, and `grep -r geneweaver.tools src/`
-returns zero hits.
+wins over legacy — were **not reachable through v3** when this document was written:
+`geneweaver-tools` was a uv workspace member but not in `geneweaver-api`'s
+`[project].dependencies`, and `grep -r geneweaver.tools src/` returned zero hits.
+**Changed by PR #32** (A0 and A3 below): the dependency is declared, `POST /api/tools/upset`
+is mounted, and `/next/analyze` runs a tool against dev. The premise stands for the other
+eight tools.
 
 ### The tools-first premise
 
@@ -132,8 +135,10 @@ local, dev and sqa, so the KS term never fires.
   and `Authorization` header on `UserInternal`, then `logger.info(... {user})` renders that model;
   a debug log also renders the decoded JWT payload (`core/security.py:186,246,261-263`). Remove
   both secret-bearing logs before any production rollout and add a log-capture regression test.
-- An **uncommitted working-tree change** adds CORS middleware hardcoded to `localhost:4201`
-  (`controller/api.py:38-44`). Local-dev only; must not ship as written.
+- ~~An **uncommitted working-tree change** adds CORS middleware hardcoded to
+  `localhost:4201`.~~ **Resolved by PR #32:** CORS is environment-driven (`CORS_ORIGINS`,
+  empty by default), so no origin list is baked into the image and deployed environments
+  that serve the UI same-origin add no middleware at all.
 - **v3 shares legacy's database on dev** — both deployments consume `secretRef: geneweaver-db`
   in the same namespace. v3's pool also puts `public` ahead of `production` in its `search_path`,
   where legacy's omits `public` entirely. This is a deliberate decision as of 2026-09-22; the

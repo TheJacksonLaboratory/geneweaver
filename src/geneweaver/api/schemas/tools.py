@@ -1,6 +1,12 @@
 """Request and response schemas for running analysis tools."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+#: With `include_zeros` the tool emits every combination of the requested gene sets --
+#: 2^n - 1 of them -- rather than only those with genes. At the 20-set ceiling that is
+#: over a million rows to build and serialise, which a synchronous request has no business
+#: doing, so this case needs a much tighter bound than the sparse one.
+MAX_GENESETS_WITH_ZEROS = 10
 
 
 class UpSetRequest(BaseModel):
@@ -23,9 +29,37 @@ class UpSetRequest(BaseModel):
         default=False,
         description=(
             "Include combinations with no genes. The number of combinations is "
-            "2^n - 1, so this grows quickly with the number of gene sets."
+            f"2^n - 1, so this is capped at {MAX_GENESETS_WITH_ZEROS} gene sets."
         ),
     )
+
+    @field_validator("geneset_ids")
+    @classmethod
+    def _reject_duplicate_ids(cls, value: list[int]) -> list[int]:
+        """Refuse repeated ids rather than silently collapsing them.
+
+        Gene memberships resolve into a dict keyed by gene set id, so a repeated id
+        becomes one entry while the request still claims two. The result would then
+        describe fewer gene sets than were asked for, with no indication why.
+        """
+        duplicates = sorted({item for item in value if value.count(item) > 1})
+        if duplicates:
+            raise ValueError(
+                "Duplicate gene set ids: " + ", ".join(str(item) for item in duplicates)
+            )
+        return value
+
+    @model_validator(mode="after")
+    def _bound_zero_combinations(self) -> "UpSetRequest":
+        """Keep a synchronous run's output bounded when every combination is requested."""
+        if self.include_zeros and len(self.geneset_ids) > MAX_GENESETS_WITH_ZEROS:
+            raise ValueError(
+                f"include_zeros is limited to {MAX_GENESETS_WITH_ZEROS} gene sets "
+                f"({len(self.geneset_ids)} requested): it emits every combination, "
+                f"2^n - 1, which is "
+                f"{2 ** len(self.geneset_ids) - 1:,} for this request."
+            )
+        return self
 
 
 class UpSetIntersection(BaseModel):

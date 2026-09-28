@@ -5,7 +5,7 @@
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
 > **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 115 passing;
+> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 124 passing;
 > `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
 > and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
 > changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md). The tools are
