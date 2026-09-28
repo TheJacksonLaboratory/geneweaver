@@ -9,15 +9,22 @@ name: Publish Packages
 # own consumers, and tying the two would mean either republishing the packages on every
 # API release or only publishing when the API version happens to change.
 #
-# Credentials: this publishes with `jax-cs-registry-bitbucket@jax-cs-registry`, held in
-# GCLOUD_PYTHON_REGISTRY_SA_KEY. Deliberately NOT the GCLOUD_REGISTRY_SA_KEY the skaffold
-# build uses -- that key is `github-deployment-svc-01@jax-cloud-image-tools`, which has
-# artifactregistry.writer on the *docker* repos but no binding at all on `python-dev`, so
-# publishing with it would 403. The chosen account already has writer on `python-dev` and
-# is the same one strain-recommendation publishes with.
+# Credentials: reuses GCLOUD_REGISTRY_SA_KEY, the same secret the skaffold build uses,
+# rather than introducing a second key.
 #
-# Note the repo-level `domain:jax.org` writer binding does not help here: a `domain:`
-# binding matches Workspace users, not service accounts.
+# Which service account that secret holds cannot be read from outside GitHub, and it
+# matters here: `python-dev` is a separate Artifact Registry resource from the docker
+# repositories, with its own IAM. Only two service accounts hold
+# artifactregistry.writer on it --
+#   - jax-cs-registry-bitbucket@jax-cs-registry        (what strain-recommendation uses)
+#   - 588170873663@cloudbuild
+# plus repoAdmin/editor holders. The repo's `domain:jax.org` writer binding does not
+# apply to service accounts, only to Workspace users.
+#
+# So the publish step logs the authenticated account before uploading. If the upload
+# 403s, the log names the identity that was refused, which is the one fact needed to fix
+# it -- either grant that account artifactregistry.writer on `python-dev`, or point this
+# workflow at a secret holding one of the accounts above.
 #
 # Release a package by tagging its version, e.g.:
 #
@@ -123,10 +130,10 @@ jobs:
       - name: Check publish credentials are configured
         if: github.event_name == 'push' || inputs.dry_run == false
         env:
-          SA_KEY: ${{ secrets.GCLOUD_PYTHON_REGISTRY_SA_KEY }}
+          SA_KEY: ${{ secrets.GCLOUD_REGISTRY_SA_KEY }}
         run: |
           if [ -z "${SA_KEY}" ]; then
-            echo "::error::GCLOUD_PYTHON_REGISTRY_SA_KEY is not set. It must hold a JSON key for jax-cs-registry-bitbucket@jax-cs-registry.iam.gserviceaccount.com, which holds artifactregistry.writer on python-dev. GCLOUD_REGISTRY_SA_KEY will not work: that account has no binding on the Python repository."
+            echo "::error::GCLOUD_REGISTRY_SA_KEY is not set. It must hold a JSON key for a service account with artifactregistry.writer on the python-dev repository."
             exit 1
           fi
 
@@ -134,11 +141,21 @@ jobs:
         if: github.event_name == 'push' || inputs.dry_run == false
         uses: 'google-github-actions/auth@v1'
         with:
-          credentials_json: '${{ secrets.GCLOUD_PYTHON_REGISTRY_SA_KEY }}'
+          credentials_json: '${{ secrets.GCLOUD_REGISTRY_SA_KEY }}'
 
       - name: Setup Gcloud
         if: github.event_name == 'push' || inputs.dry_run == false
         uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: Report the publishing identity
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: |
+          set -euo pipefail
+          ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+          echo "Publishing as: ${ACCOUNT}"
+          echo "If the upload is refused, this account lacks artifactregistry.writer on"
+          echo "the python-dev repository -- grant it, or use a secret holding an account"
+          echo "that has it (see the header of this workflow)."
 
       - name: Publish
         if: github.event_name == 'push' || inputs.dry_run == false

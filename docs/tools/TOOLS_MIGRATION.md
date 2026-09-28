@@ -346,17 +346,19 @@ repository:
    than publishing something mislabelled. `workflow_dispatch` offers a dry run (build and
    verify only) for checking the path without uploading.
 
-   **One-time setup, not yet done:** the workflow needs a repository secret
-   `GCLOUD_PYTHON_REGISTRY_SA_KEY` holding a JSON key for
-   `jax-cs-registry-bitbucket@jax-cs-registry.iam.gserviceaccount.com` — the account
-   `strain-recommendation` publishes with, and one of only two service accounts holding
-   `artifactregistry.writer` on `python-dev`.
+   Authentication reuses the existing `GCLOUD_REGISTRY_SA_KEY` secret, the same one the
+   skaffold build uses, rather than adding a second key.
 
-   It deliberately does **not** reuse `GCLOUD_REGISTRY_SA_KEY`. That secret holds
-   `github-deployment-svc-01@jax-cloud-image-tools`, which can write to the *docker*
-   repositories but has **no binding at all** on `python-dev`, so publishing with it
-   would 403. The repo's `domain:jax.org` writer binding does not rescue this either: a
-   `domain:` binding matches Workspace users, not service accounts.
+   One caveat worth knowing before the first release: `python-dev` is a separate Artifact
+   Registry resource from the docker repositories and carries its own IAM. Only two
+   service accounts hold `artifactregistry.writer` on it —
+   `jax-cs-registry-bitbucket@jax-cs-registry` (which `strain-recommendation` publishes
+   with) and `588170873663@cloudbuild` — and the repository's `domain:jax.org` writer
+   binding covers Workspace users, not service accounts. Which account the secret holds
+   cannot be read from outside GitHub, so the workflow **logs the authenticated account
+   before uploading**: if the upload is refused, the log names the identity that was
+   refused, and the fix is either to grant it writer on `python-dev` or to point the
+   workflow at a secret holding one of the two accounts above.
 
    Artifact Registry takes a short-lived access token as the password with the username
    `oauth2accesstoken`, so no keyring plugin is needed. **Nothing has been published

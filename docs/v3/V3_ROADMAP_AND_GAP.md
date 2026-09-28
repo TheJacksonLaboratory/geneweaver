@@ -371,12 +371,13 @@ to this repository** — which makes this the step most likely to stall:
 1. ~~**Publish `geneweaver-tools` to the private `gcp-dev` index.**~~ **Pipeline wired** —
    `.github/workflows/publish-packages.yml`, triggered by a package-scoped tag
    (`tools-v0.20.0a0`), with a tag-vs-pyproject version check and a dry-run dispatch.
-   Deliberately separate from `release.yml`, which releases the API. **Two things remain
-   before a release can be cut:** the repository secret `GCLOUD_PYTHON_REGISTRY_SA_KEY`
-   must be created (a key for `jax-cs-registry-bitbucket@jax-cs-registry`, which holds
-   `artifactregistry.writer` on `python-dev`; the existing `GCLOUD_REGISTRY_SA_KEY` has no
-   binding there and would 403), and the first version must be chosen — the archived
-   standalone repo's PyPI line ended at `0.0.5` against this package's `0.20.0a0`.
+   Deliberately separate from `release.yml`, which releases the API, and authenticating
+   with the existing `GCLOUD_REGISTRY_SA_KEY`. **Nothing is published yet**: the first
+   version is a decision, not a mechanical step — the archived standalone repo's PyPI line
+   ended at `0.0.5` against this package's `0.20.0a0`. The first tag push also doubles as
+   the test of whether that secret's service account holds `artifactregistry.writer` on
+   `python-dev`, which cannot be determined from outside GitHub; the workflow logs the
+   authenticated identity so a refusal names the account to fix.
 2. **Add `geneweaver-tools[sklearn]` to `asynctask`'s dependencies** (Bitbucket, separate review
    path), and confirm its image can satisfy the extra.
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
