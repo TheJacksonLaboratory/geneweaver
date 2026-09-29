@@ -51,7 +51,16 @@ def _cancellation_requested() -> bool:
     return activity.is_cancelled()
 
 
-@activity.defn
+#: Activity names share one flat namespace across every installed plugin:
+#: `asynctask.plugins.temporal.discover_activity_plugins()` collects them with no dedup, and
+#: Temporal's `Worker` raises `ValueError("More than one activity named ...")` at startup --
+#: which would take down strain-recommendation and the MPD plugins with us. So the name is
+#: explicit and prefixed, as `asynctask-mpd-plugin` does (`mpd_effects_download_drs_input`),
+#: rather than defaulting to the bare function name `run_tool`.
+ACTIVITY_NAME = "geneweaver_run_tool"
+
+
+@activity.defn(name=ACTIVITY_NAME)
 def run_tool(input_data: dict) -> dict:
     """Run one GeneWeaver tool and return its output as JSON-able primitives.
 

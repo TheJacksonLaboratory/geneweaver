@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ApplicationError
 
 with workflow.unsafe.imports_passed_through():
     from geneweaver.tools.framework.binary import TOOL_RUN_TIMEOUT_SECONDS
@@ -63,8 +64,19 @@ class GeneWeaverToolWorkflow:
         # has already crossed into workflow input and an activity argument, either of which
         # Temporal could have refused first -- so the attributable error would never be
         # reached. Both checks are pure and deterministic, so they are replay-safe.
-        check_tool_allowed(input_data["tool"])
-        check_payload_size(input_data)
+        #
+        # Re-raised as a non-retryable ApplicationError, and that is not cosmetic: a plain
+        # exception raised directly inside `@workflow.run` makes Temporal retry the workflow
+        # task forever, treating it as possible replay non-determinism rather than a failed
+        # run. That is exactly the G3-739 symptom this workflow's timeout exists to avoid.
+        # `asynctask-mpd-plugin` hit it as IS-799 and documents it; the same rule applies to
+        # any validation we add here later. The checks themselves stay ValueError-raising so
+        # the FastAPI submission path can use them without importing temporalio.
+        try:
+            check_tool_allowed(input_data["tool"])
+            check_payload_size(input_data)
+        except ValueError as error:
+            raise ApplicationError(str(error), non_retryable=True) from error
 
         return await workflow.execute_activity(
             run_tool,

@@ -187,3 +187,33 @@ def test_plugin_declares_its_input_and_output_types(name: str, entry_points: dic
     tool = entry_points[name].load()()
     assert issubclass(tool.tool_input, ToolInput)
     assert issubclass(tool.tool_output, ToolOutput)
+
+
+def test_the_activity_name_is_prefixed_not_generic() -> None:
+    """Activity names are global across every plugin in the shared AsyncTask worker.
+
+    `discover_activity_plugins()` flat-lists them with no dedup, and Temporal's `Worker`
+    raises on a duplicate name at startup -- taking down strain-recommendation and the MPD
+    plugins too. A bare `run_tool` is exactly the kind of name another plugin might also
+    pick, so it is registered explicitly with a prefix.
+    """
+    from geneweaver.tools.temporal.activities import ACTIVITY_NAME, run_tool
+
+    assert ACTIVITY_NAME == "geneweaver_run_tool"
+    assert run_tool.__temporal_activity_definition.name == ACTIVITY_NAME
+
+
+def test_workflow_validation_failures_are_non_retryable() -> None:
+    """A plain exception inside `@workflow.run` makes Temporal retry the task forever.
+
+    Not a style point: it presents as a run that never finishes (G3-739), and
+    `asynctask-mpd-plugin` confirmed it under IS-799. Guarding it here because the guard
+    lives in workflow code, where the mistake is easy to reintroduce.
+    """
+    import inspect
+
+    from geneweaver.tools.temporal import workflows
+
+    source = inspect.getsource(workflows.GeneWeaverToolWorkflow.run)
+    assert "ApplicationError" in source
+    assert "non_retryable=True" in source
