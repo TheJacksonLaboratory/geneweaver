@@ -113,7 +113,12 @@ COPY packages ./packages
 # `sklearn` is still installed: this image serves only MSET and PhenomeMap, but PhenomeMap
 # uses scipy, and the extra keeps one lockfile resolution shared with the other image
 # rather than a second, subtly different dependency set.
-RUN uv sync --frozen --no-dev --package geneweaver-tools --extra sklearn --extra temporal
+#
+# `db` is what the Python-profile image does not need: MSET's background is the full gene
+# space for a species, resolved from the database inside the activity because it is far too
+# large to send through Temporal (G3-784).
+RUN uv sync --frozen --no-dev --package geneweaver-tools \
+      --extra sklearn --extra temporal --extra db
 
 # Fail the build rather than at run time: an image whose binaries are not where the tools
 # look for them starts cleanly and fails every run.
@@ -130,6 +135,15 @@ missing = [v for v in ('GENEWEAVER_MSET_BINARY', 'GENEWEAVER_BICLIQUE_BINARY', \
            if not (os.environ.get(v) and os.access(os.environ[v], os.X_OK))]; \
 assert not missing, f'binaries missing or not executable: {missing}'; \
 print('serves:', ', '.join(served))"
+
+# MSET cannot run without these: the universe reference is expanded against the database in
+# the activity, so a missing driver or resolver would fail every MSET run at run time.
+RUN python -c "\
+import psycopg; \
+from geneweaver.db.tool_input import gene_universe, species_by_geneset; \
+from geneweaver.tools.temporal.resolvers import INPUT_RESOLVERS; \
+assert 'mset' in INPUT_RESOLVERS, 'the MSET input resolver is not registered'; \
+print('database input resolution available for:', ', '.join(sorted(INPUT_RESOLVERS)))"
 
 # Regression guard for G3-804.
 #

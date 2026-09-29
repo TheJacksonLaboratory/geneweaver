@@ -52,15 +52,16 @@ INLINE_PAYLOAD_NOTE = (
     "G3-784/G3-798, not a change to make here."
 )
 
-#: Tools not yet cleared to run through AsyncTask, and why. The API's in-process runner is
-#: unaffected: these limits are Temporal's, not the tool's.
-MSET_ASYNCTASK_BLOCKED = (
-    "MSET sends two full gene universes inline. A ~100,000-identifier universe measures "
-    "1.82 MiB in gene symbols -- 89% of Temporal's 2 MiB limit -- and 2.68 MiB in MGI "
-    "accessions, which is over it. " + INLINE_PAYLOAD_NOTE
-)
-
-ASYNCTASK_BLOCKED_TOOLS: dict[str, str] = {"mset": MSET_ASYNCTASK_BLOCKED}
+#: Tools not cleared to run through AsyncTask, and why. Empty since G3-784: MSET was the
+#: only entry, because it sent two full gene universes inline -- 1.82 MiB in gene symbols
+#: for a ~100,000-identifier universe, 2.68 MiB in MGI accessions. It now sends a reference
+#: that `temporal.resolvers` expands inside the activity, so the payload is the two member
+#: lists and nothing else.
+#:
+#: Kept rather than deleted: the size limit is a property of Temporal, and the next tool
+#: with a large inline input needs somewhere to say so. The size guard below still applies
+#: to every tool.
+ASYNCTASK_BLOCKED_TOOLS: dict[str, str] = {}
 
 
 def payload_size(input_data: Any) -> int:

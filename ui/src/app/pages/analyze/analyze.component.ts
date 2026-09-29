@@ -101,12 +101,16 @@ export class AnalyzeComponent {
     {
       label: 'MSET',
       value: 'mset',
-      disabledReason: 'Needs the DB-resolved gene universe (G3-784 / G3-798).',
+      // G3-784 is done: the gene universe now resolves in the Temporal activity, so MSET
+      // runs through AsyncTask. What this page still needs is the API endpoint and the
+      // member-list resolver for two gene sets.
+      disabledReason: 'Needs its API endpoint and member-list resolver (G3-798 / G3-801).',
     },
     {
       label: 'PhenomeMap',
       value: 'phenomemap',
-      disabledReason: 'Blocked: the biclique binary SIGTRAPs (G3-804).',
+      // G3-804 is fixed, so the binary works; this page still needs the endpoint.
+      disabledReason: 'Needs its API endpoint and gene-rank resolver (G3-798 / G3-801).',
     },
   ];
 

@@ -37,6 +37,16 @@ def _identifiers(count: int, kind: str = "symbol") -> list[str]:
     ]
 
 
+def check_tool_allowed_with(blocked: dict, tool: str) -> None:
+    """Run the block check against a substituted map, leaving the real one alone."""
+    from unittest.mock import patch
+
+    from geneweaver.tools.temporal import payload as payload_module
+
+    with patch.object(payload_module, "ASYNCTASK_BLOCKED_TOOLS", blocked):
+        payload_module.check_tool_allowed(tool)
+
+
 def _mset_payload(universe: int, kind: str = "symbol") -> dict:
     """An MSET-shaped request, under a tool name that is not blocked.
 
@@ -122,16 +132,24 @@ def test_a_realistic_small_universe_still_fits() -> None:
     assert payload_size(_mset_payload(20_000)) < MAX_PAYLOAD_BYTES
 
 
-def test_mset_is_not_cleared_for_asynctask() -> None:
-    """PR #32 review: MSET must not be declared AsyncTask-ready until re-measured."""
-    assert "mset" in ASYNCTASK_BLOCKED_TOOLS
-    assert "G3-784" in ASYNCTASK_BLOCKED_TOOLS["mset"]
+def test_no_tool_is_blocked_from_asynctask() -> None:
+    """MSET was the only entry, and G3-784 removed the reason for it.
+
+    Its background is now a reference that `temporal.resolvers` expands in the activity, so
+    the payload no longer carries two gene universes.
+    """
+    assert ASYNCTASK_BLOCKED_TOOLS == {}
 
 
-def test_running_mset_through_the_activity_explains_why_it_is_blocked() -> None:
-    """A blocked tool fails with a reason, not a schema error from deep inside the tool."""
+def test_the_block_mechanism_still_works_if_something_is_added() -> None:
+    """The map is empty, not gone: the next tool with a large inline input needs it."""
     with pytest.raises(ValueError, match="cannot run through AsyncTask yet"):
-        run_tool({"tool": "mset", "input": {}})
+        check_tool_allowed_with({"widget": "because reasons"}, "widget")
+
+
+def test_an_allowed_tool_passes_the_block_check() -> None:
+    """A tool absent from the map runs."""
+    check_tool_allowed_with({"widget": "nope"}, "mset")
 
 
 def test_an_oversized_payload_fails_before_the_tool_is_loaded() -> None:
@@ -169,9 +187,28 @@ def test_default_json_separators_would_overstate_the_payload() -> None:
 
 
 def test_submission_checks_policy_before_size() -> None:
-    """The primary guard, at the boundary where the payload has not yet reached Temporal."""
-    with pytest.raises(ValueError, match="cannot run through AsyncTask yet"):
-        check_submission({"tool": "mset", "input": {"group_1_background": ["A"] * 10}})
+    """A blocked tool reports why, not a size that happens to be over.
+
+    Ordering matters: an oversized payload for a blocked tool should name the block, which
+    is actionable, rather than the size, which is not.
+    """
+    from unittest.mock import patch
+
+    from geneweaver.tools.temporal import payload as payload_module
+
+    oversized = _mset_payload(150_000)
+    oversized["tool"] = "widget"
+    with (
+        patch.object(payload_module, "ASYNCTASK_BLOCKED_TOOLS", {"widget": "blocked"}),
+        pytest.raises(ValueError, match="cannot run through AsyncTask yet"),
+    ):
+        payload_module.check_submission(oversized)
+
+
+def test_submission_rejects_a_malformed_request() -> None:
+    """Shape is checked before anything else -- indexing it would have raised KeyError."""
+    with pytest.raises(ValueError, match="must name a tool"):
+        check_submission({"input": {}})
 
 
 def test_submission_allows_an_ordinary_request() -> None:
@@ -222,3 +259,26 @@ class TestRequestShape:
 
         with pytest.raises(ValueError, match="must be an object"):
             requested_tool(request_body)
+
+
+def test_a_universe_reference_is_orders_of_magnitude_smaller() -> None:
+    """The measurement behind G3-784, and the reason MSET is no longer blocked.
+
+    Inline, two full universes in MGI accessions measured 2.68 MiB -- over Temporal's 2 MiB
+    limit. As a reference expanded in the activity, the same request is a few kilobytes.
+    """
+    inline = _mset_payload(100_000, "mgi")
+    reference = {
+        "tool": "mset",
+        "input": {
+            "group_1_genes": _identifiers(300, "mgi"),
+            "group_2_genes": _identifiers(300, "mgi"),
+            "number_of_samples": 1000,
+            "over_representation": True,
+        },
+        "universe": {"geneset_ids": [101, 102]},
+    }
+
+    assert payload_size(inline) > TEMPORAL_DEFAULT_LIMIT_BYTES
+    assert payload_size(reference) < MAX_PAYLOAD_BYTES / 100
+    assert payload_size(inline) / payload_size(reference) > 100

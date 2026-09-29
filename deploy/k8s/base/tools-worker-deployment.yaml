@@ -56,9 +56,8 @@ metadata:
   labels:
     app: geneweaver-tools-native-worker
 spec:
-  # Runs: PhenomeMap works now that G3-804 (the biclique heap overflow) is fixed. MSET is
-  # still refused by policy for its inline-universe payload (G3-784), so this worker serves
-  # one of its two tools today.
+  # Serves both its tools: G3-804 fixed the biclique heap overflow, and G3-784 replaced
+  # MSET's inline gene universes with a reference resolved here against the database.
   replicas: 1
   selector:
     matchLabels:
@@ -76,6 +75,11 @@ spec:
           envFrom:
             - configMapRef:
                 name: geneweaver-tools-config
+            # MSET resolves its gene universe from the database (G3-784), so this worker
+            # needs the same credentials as the API. The Python-profile worker does not:
+            # none of its tools touch a database, and the connection is opened lazily.
+            - secretRef:
+                name: geneweaver-db
           env:
             - name: GENEWEAVER_TOOLS_PROFILE
               value: "native"

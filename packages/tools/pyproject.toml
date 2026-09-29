@@ -21,6 +21,13 @@ sklearn = [
     "scikit-learn>=1.3.0",
     "scipy>=1.10.0",
 ]
+# Resolving large tool input from the database, for the Temporal activity only (G3-784:
+# MSET's gene universe is ~100,000 identifiers, too large to send through Temporal). The
+# tools themselves never take a connection; see temporal/resolvers.py.
+db = [
+    "geneweaver-db>=0.20.0a0",
+    "psycopg[binary]>=3.1.0",
+]
 # Temporal workflow/activity bindings, so the tools can run on the AsyncTask service.
 # Kept optional: callers that only need the compute classes and schemas -- the
 # GeneWeaver API, for one -- should not pull in a workflow runtime.

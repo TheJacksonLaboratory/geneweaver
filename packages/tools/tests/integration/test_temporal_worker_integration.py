@@ -30,7 +30,11 @@ BAD_REQUEST_TIMEOUT_SECONDS = 30
 BAD_REQUESTS = [
     ({"input": {}}, "must name a tool"),
     ({"tool": ""}, "must name a tool"),
-    ({"tool": "mset", "input": {}}, "cannot run through AsyncTask yet"),
+    # Input the tool's own schema rejects, exercising the activity's translation of a
+    # pydantic ValidationError into a non-retryable failure. Uses a python-profile tool
+    # deliberately: `mset` routes to the native queue, which this test does not serve, so
+    # it would sit on `schedule_to_start_timeout` instead of failing on its input.
+    ({"tool": "upset", "input": {"geneset_ids": "not-a-list"}}, "rejected its input"),
     ({"tool": "nonexistent", "input": {}}, "No GeneWeaver tool registered"),
 ]
 

@@ -14,8 +14,10 @@ from typing import Any
 
 from geneweaver.tools.framework.binary import progress_hook
 from geneweaver.tools.temporal.payload import check_payload_size, check_tool_allowed
+from geneweaver.tools.temporal.resolvers import resolve_input
 from geneweaver.tools.temporal.routing import check_tool_served_here
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 #: Our own registry of runnable tools, distinct from the `jax.ats.plugins` group that
 #: AsyncTask reads. Keeping them separate means AsyncTask is only ever offered the
@@ -93,7 +95,28 @@ def run_tool(input_data: dict) -> dict:
     check_tool_served_here(name)
 
     tool = load_tool(name)
-    tool_input = tool.tool_input(**input_data.get("input", {}))
+
+    # Expands anything the request referenced rather than carried -- MSET's gene universe
+    # is ~100,000 identifiers, too large to send through Temporal (G3-784). Resolved here,
+    # in the activity, because workflow code cannot touch a database and the tools must not.
+    #
+    # Converted to a non-retryable ApplicationError rather than allowed to propagate: a bad
+    # request is not going to become good on a second attempt, and a pydantic
+    # `ValidationError` escaping an activity leaves the task being retried rather than
+    # failing the run -- observed as a submission that never finished.
+    try:
+        resolved = resolve_input(name, input_data)
+    except ValueError as error:
+        raise ApplicationError(
+            f"{name} input could not be resolved: {error}", non_retryable=True
+        ) from error
+
+    try:
+        tool_input = tool.tool_input(**resolved)
+    except Exception as error:
+        raise ApplicationError(
+            f"{name} rejected its input: {error}", type="InvalidToolInput", non_retryable=True
+        ) from error
     activity.logger.info("Running GeneWeaver tool %s (payload %d bytes)", name, size)
 
     # Lets a native binary heartbeat and observe cancellation from inside the tool, which

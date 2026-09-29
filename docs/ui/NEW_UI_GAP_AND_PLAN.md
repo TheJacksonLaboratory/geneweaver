@@ -148,7 +148,7 @@ This is the heaviest area and has its own layered breakdown (the pure tools take
 
 **6.1 Data-layer input resolvers (`packages/db`)** — one per tool, reproducing the legacy SQL; only ABBA exists today. Transcriptions already live inside `scripts/validation/validate_*.py` and can be promoted:
 - Combine/Jaccard* → `TOOLSET_SQL` (membership, homology pairs, labels) + pairwise counts; JaccardSimilarity also needs `jaccard_distribution_results` (⚠️ empty in current DBs).
-- BooleanAlgebra → `GET_HOMOLOGS_SQL`. DBSCAN/UpSet/PhenomeMap → gene symbols per set (+ gene ranks for PhenomeMap, ⚠️ uniformly `0.0` in local/dev/sqa). MSET → two gene lists + the **DB-resolved gene universe** for each (G3-784: the ~301 `*BG.txt` files are gone; `MSETInput.group_*_background` is now a `list[str]` of resolved identifiers). ⚠️ Two full universes inline sit at the edge of Temporal's 2 MiB default message limit — 1.82 MiB for a 100k-gene universe in gene symbols (89% of it), 2.68 MiB in MGI accessions, which is over. MSET is therefore not yet cleared to run through AsyncTask, and has not been re-measured against a real universe — see `packages/tools/.../temporal/payload.py`.
+- BooleanAlgebra → `GET_HOMOLOGS_SQL`. DBSCAN/UpSet/PhenomeMap → gene symbols per set (+ gene ranks for PhenomeMap, ⚠️ uniformly `0.0` in local/dev/sqa). MSET → two gene lists + the **DB-resolved gene universe** for each (G3-784: the ~301 `*BG.txt` files are gone; `MSETInput.group_*_background` is now a `list[str]` of resolved identifiers). **G3-784 done:** the request carries a universe *reference* (`{"universe": {"geneset_ids": [...]}}` or an explicit `species_id`) which the Temporal activity expands against the database. That takes the worst-case payload from 2.68 MiB — over Temporal's 2 MiB limit — to 8.5 KB, a 327x reduction, so MSET is cleared to run through AsyncTask. ⚠️ The universe rule changed in the process (curated genes → full gene space) and that moves p-values; see the A7 decision note in `docs/v3/V3_ROADMAP_AND_GAP.md`.
 
 **6.2 Execution + job model (API)** — async required (tools run seconds→minutes). **Settled 2026-09-22: tools run as plugins inside AsyncTask.** v3 builds no queue, worker or job store.
 
@@ -208,9 +208,10 @@ AsyncTask's — which matters because adding a build toolchain to AsyncTask is a
 repository this team does not own — and tool runs stop competing for AsyncTask's shared
 activity thread pool with strain-recommendation and the MPD analyses.
 
-The native deployment runs: **G3-804 is fixed in this PR**, so PhenomeMap works. MSET is
-still refused by policy for its inline-universe payload (G3-784), so the native worker
-serves one of its two tools today.
+The native deployment serves both its tools: **G3-804** (the biclique heap overflow) and
+**G3-784** (MSET's inline gene universes) are both fixed in this PR. It is the only worker
+with database credentials, because resolving MSET's universe is the one thing a tool run
+needs a connection for.
 
 **Suggested first vertical slice:** wire **one in-process tool** (UpSet or HyperGeometric — no binary, fast) end-to-end (resolver → sync endpoint → minimal result page) to prove the pattern before wiring AsyncTask and fanning out.
 
