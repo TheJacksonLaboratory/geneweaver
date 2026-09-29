@@ -16,6 +16,7 @@ with workflow.unsafe.imports_passed_through():
 
     from .activities import run_tool
     from .payload import check_payload_size, check_tool_allowed
+    from .routing import task_queue_for
 
 #: Legacy's Celery worker used a 900s soft limit. Tool runs are minutes at worst; a
 #: generous ceiling still beats a run that hangs forever (cf. G3-739, where failed runs
@@ -31,6 +32,12 @@ TOOL_RUN_TIMEOUT = timedelta(seconds=TOOL_RUN_TIMEOUT_SECONDS)
 #: timeout is set. Comfortably above `binary.POLL_INTERVAL_SECONDS`, so an ordinary run is
 #: never declared dead for being briefly busy.
 TOOL_HEARTBEAT_TIMEOUT = timedelta(seconds=60)
+
+#: How long a task may sit unclaimed before the run fails. Without it, scheduling onto a
+#: queue whose worker is not deployed looks exactly like a slow tool: the run sits in
+#: "running" until the 30-minute deadline. This fails in a minute with a message that names
+#: the queue -- the G3-739 lesson, that a run which cannot proceed should say so.
+TOOL_SCHEDULE_TO_START_TIMEOUT = timedelta(minutes=1)
 
 
 @workflow.defn
@@ -78,10 +85,16 @@ class GeneWeaverToolWorkflow:
         except ValueError as error:
             raise ApplicationError(str(error), non_retryable=True) from error
 
+        # Routed to the worker whose image can actually run this tool: the native TOOLBOX
+        # binaries live only in the `native` image. Mirrors `asynctask-mpd-plugin`, which
+        # dispatches its heavy activity with `task_queue="mpd-effects"` rather than running
+        # it on AsyncTask's shared worker.
         return await workflow.execute_activity(
             run_tool,
             input_data,
+            task_queue=task_queue_for(input_data["tool"]),
             start_to_close_timeout=TOOL_RUN_TIMEOUT,
+            schedule_to_start_timeout=TOOL_SCHEDULE_TO_START_TIMEOUT,
             heartbeat_timeout=TOOL_HEARTBEAT_TIMEOUT,
             retry_policy=RetryPolicy(maximum_attempts=1),
         )

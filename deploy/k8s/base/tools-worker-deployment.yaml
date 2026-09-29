@@ -1,0 +1,92 @@
+# Temporal workers that run the ported analysis tools.
+#
+# Two deployments, one per dependency profile, from two images: seven tools need only
+# wheels, MSET and PhenomeMap need the compiled TOOLBOX binaries. One deployment per tool
+# would mean seven near-identical pods with nothing to isolate; `asynctask-mpd-plugin`
+# makes the same trade (four analyses, three base images). See
+# packages/tools/src/geneweaver/tools/temporal/routing.py.
+#
+# These consume their own Temporal task queues. AsyncTask still owns the workflow and the
+# run records; `GeneWeaverToolWorkflow` routes each activity to the queue below, exactly as
+# the MPD plugin dispatches to `mpd-effects`. Nothing here serves HTTP, so there is no
+# Service and no readiness probe on a port -- a worker's health is whether it is polling.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-tools-worker
+  labels:
+    app: geneweaver-tools-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geneweaver-tools-worker
+  template:
+    metadata:
+      labels:
+        app: geneweaver-tools-worker
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      containers:
+        - name: geneweaver-tools-worker
+          image: geneweaver-tools-worker
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: geneweaver-tools-config
+          env:
+            # Overrides the image default, so the profile a pod runs is visible here
+            # rather than only in the image.
+            - name: GENEWEAVER_TOOLS_PROFILE
+              value: "python"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              # These tools are CPU-bound and in-process; scipy/sklearn on a large gene
+              # set is the memory driver.
+              cpu: "2"
+              memory: "4Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geneweaver-tools-native-worker
+  labels:
+    app: geneweaver-tools-native-worker
+spec:
+  # Scaled to zero deliberately: both tools this image serves are blocked. `biclique`
+  # SIGTRAPs (G3-804) and MSET's inline-universe payload is unresolved (G3-784), so a
+  # running pod would only consume a queue it cannot serve successfully. Raise to 1 when
+  # either ticket lands -- the image and routing are already in place.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: geneweaver-tools-native-worker
+  template:
+    metadata:
+      labels:
+        app: geneweaver-tools-native-worker
+    spec:
+      serviceAccountName: workload-identity-geneweaver
+      containers:
+        - name: geneweaver-tools-native-worker
+          image: geneweaver-tools-native-worker
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: geneweaver-tools-config
+          env:
+            - name: GENEWEAVER_TOOLS_PROFILE
+              value: "native"
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              # Higher than the Python profile: MSETcpp is an OpenMP Monte Carlo sampler
+              # and biclique enumeration is combinatorial. This is the reason the two
+              # profiles are separate pods rather than one.
+              cpu: "4"
+              memory: "8Gi"

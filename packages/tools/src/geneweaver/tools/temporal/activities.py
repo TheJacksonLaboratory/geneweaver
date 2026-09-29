@@ -14,6 +14,7 @@ from typing import Any
 
 from geneweaver.tools.framework.binary import progress_hook
 from geneweaver.tools.temporal.payload import check_payload_size, check_tool_allowed
+from geneweaver.tools.temporal.routing import check_tool_served_here
 from temporalio import activity
 
 #: Our own registry of runnable tools, distinct from the `jax.ats.plugins` group that
@@ -80,6 +81,11 @@ def run_tool(input_data: dict) -> dict:
     # happens to fit.
     check_tool_allowed(name)
     size = check_payload_size(input_data)
+
+    # All nine tools are registered by one distribution, so this image advertises tools it
+    # may have no binary for. Refuse them by profile rather than letting the tool fail deep
+    # inside with a missing-binary error that says nothing about which worker ran it.
+    check_tool_served_here(name)
 
     tool = load_tool(name)
     tool_input = tool.tool_input(**input_data.get("input", {}))

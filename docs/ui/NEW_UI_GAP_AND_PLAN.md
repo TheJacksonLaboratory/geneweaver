@@ -187,7 +187,30 @@ the workflow, never a bare compute class it cannot start, and sidesteps the
 
 **6.4 UI** — `/analyze` launcher (basket + per-tool param forms), run/status polling, results list (rerun/download), and **per-tool visualizations** (net-new — the pure tools dropped all legacy SVG/HTML): Venn/circle (Boolean, JaccardSimilarity), dendrogram (JaccardClustering), cluster view (DBSCAN), UpSet plot, PhenomeMap hierarchy graph, MSET histogram.
 
-**6.5 Runtime/packaging** — DBSCAN default is in-process (no binary). PhenomeMap needs the `biclique` binary (**currently SIGTRAPs — bug to fix first**); MSET needs `MSETcpp` + libomp (the background-universe files are gone — G3-784). Decide how binaries ship in the API/worker image.
+**6.5 Runtime/packaging** — **settled: two tool-worker images, split by dependency profile.**
+
+The nine tools have two profiles, and the deployment mirrors that rather than the tool count:
+
+| Image | Profile | Tools | Needs |
+|---|---|---|---|
+| `geneweaver-tools-worker` | `python` | UpSet, HyperGeometric, Combine, BooleanAlgebra, JaccardSimilarity, JaccardClustering, DBSCAN | wheels only (`scipy`/`sklearn`) |
+| `geneweaver-tools-native-worker` | `native` | MSET, PhenomeMap | `MSETcpp` (OpenMP), `biclique`, `bstrap` (Boost), compiled from `legacy/tools-worker/tools/TOOLBOX` |
+
+DBSCAN sits in the Python profile: its in-process implementation is the default and the
+binary is only the legacy-parity fallback. One image per tool was rejected — seven would be
+near-identical with nothing to isolate; `asynctask-mpd-plugin` makes the same trade, running
+four analyses from three base images with `anova` and `gxl` sharing one.
+
+Each image runs `geneweaver.tools.temporal.worker` on its own Temporal task queue
+(`geneweaver-tools`, `geneweaver-tools-native`), and `GeneWeaverToolWorkflow` routes each
+activity to the queue whose image can serve it. So the binaries ship in **our** image, not
+AsyncTask's — which matters because adding a build toolchain to AsyncTask is a change to a
+repository this team does not own — and tool runs stop competing for AsyncTask's shared
+activity thread pool with strain-recommendation and the MPD analyses.
+
+The native deployment ships at `replicas: 0`: `biclique` still SIGTRAPs (G3-804) and MSET's
+inline-universe payload is unresolved (G3-784), so both tools it serves are blocked. The
+image and routing are in place for whenever either lands.
 
 **Suggested first vertical slice:** wire **one in-process tool** (UpSet or HyperGeometric — no binary, fast) end-to-end (resolver → sync endpoint → minimal result page) to prove the pattern before wiring AsyncTask and fanning out.
 

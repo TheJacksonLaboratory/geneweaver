@@ -6,3 +6,5 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
+  - tools-worker-configmap.yaml
+  - tools-worker-deployment.yaml
