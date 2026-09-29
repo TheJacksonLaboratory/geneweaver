@@ -12,11 +12,10 @@
 # Celery worker builds -- so behaviour matches the deployed legacy tools rather than a
 # host build.
 #
-# KNOWN ISSUE: `biclique` currently SIGTRAPs at run time (G3-804). This image builds it
-# correctly; the fault is in the source, where `bigraph.c` needs the commented-out linear
-# search instead of POSIX `hsearch`. PhenomeMap is therefore not usable yet even with this
-# image deployed. MSET additionally needs its inline-universe payload resolved (G3-784)
-# before it is cleared for Temporal; see temporal/payload.py.
+# G3-804 (biclique SIGTRAP) is fixed -- see the header of bigraph_edgelist_in in
+# legacy/tools-worker/tools/TOOLBOX/biclique_tool/bigraph.c -- so PhenomeMap works with
+# this image. MSET still needs its inline-universe payload resolved (G3-784) before it is
+# cleared for Temporal; see temporal/payload.py.
 #
 # Build from the repository root:
 #   docker build -f deploy/docker/Dockerfile.tools-native-worker \
@@ -131,6 +130,35 @@ missing = [v for v in ('GENEWEAVER_MSET_BINARY', 'GENEWEAVER_BICLIQUE_BINARY', \
            if not (os.environ.get(v) and os.access(os.environ[v], os.X_OK))]; \
 assert not missing, f'binaries missing or not executable: {missing}'; \
 print('serves:', ', '.join(served))"
+
+# Regression guard for G3-804.
+#
+# The input deliberately shares labels between the two partitions (genes "300".."302" are
+# also gene-set ids), because that is the half of the defect that reproduces on glibc: the
+# single shared hash table aliases such a label to the other partition's index, resolving
+# 397 of 400 genes instead of 400 -- in range, no crash, silently wrong. The other half,
+# the one-past-the-end write on a full table, only traps on platforms whose hcreate
+# allocates exactly the requested size (macOS); glibc's rounding to the next prime hides
+# it, so a Linux build cannot check for it here.
+RUN set -eu; \
+    python - <<'PY'
+genes = [str(i) for i in range(400)]
+sets = ["300", "301", "302"]
+edges = [(g, s) for g in genes for s in sets]
+with open("/tmp/regress.el", "w") as fh:
+    fh.write(f"{len(genes)}\t{len(sets)}\t{len(edges)}\n")
+    for g, s in edges:
+        fh.write(f"{g}\t{s}\n")
+PY
+RUN set -eu; \
+    MALLOC_CHECK_=3 /opt/toolbox/biclique /tmp/regress.el -p > /tmp/regress.out; \
+    genes=$(sed -n 2p /tmp/regress.out | tr '\t' '\n' | sed '/^$/d' | sort -u | wc -l); \
+    test "$genes" -eq 400 || { \
+      echo "ERROR: biclique resolved $genes of 400 gene labels -- cross-partition"; \
+      echo "       label aliasing has returned (G3-804)"; \
+      exit 1; }; \
+    echo "biclique regression check passed: 400/400 labels"; \
+    rm -f /tmp/regress.el /tmp/regress.out
 
 USER nobody
 

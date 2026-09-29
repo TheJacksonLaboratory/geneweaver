@@ -208,9 +208,9 @@ AsyncTask's — which matters because adding a build toolchain to AsyncTask is a
 repository this team does not own — and tool runs stop competing for AsyncTask's shared
 activity thread pool with strain-recommendation and the MPD analyses.
 
-The native deployment ships at `replicas: 0`: `biclique` still SIGTRAPs (G3-804) and MSET's
-inline-universe payload is unresolved (G3-784), so both tools it serves are blocked. The
-image and routing are in place for whenever either lands.
+The native deployment runs: **G3-804 is fixed in this PR**, so PhenomeMap works. MSET is
+still refused by policy for its inline-universe payload (G3-784), so the native worker
+serves one of its two tools today.
 
 **Suggested first vertical slice:** wire **one in-process tool** (UpSet or HyperGeometric — no binary, fast) end-to-end (resolver → sync endpoint → minimal result page) to prove the pattern before wiring AsyncTask and fanning out.
 
@@ -223,7 +223,7 @@ image and routing are in place for whenever either lands.
 - **Cross-repo delivery is the real blocker** for tool runs: `geneweaver-tools` must be published to the private `gcp-dev` index and added to `asynctask`'s dependencies (as `geneweaver-tools[sklearn,temporal]`). The publish pipeline now exists here — `.github/workflows/publish-packages.yml`, tag-triggered on `tools-v*` — but has **not yet been run**, so whether its credential can write to `python-dev` is still unverified. The AsyncTask half is a change to a repository this team does not own.
 - **Visualizations are real frontend work** — the ported tools intentionally return data only; every tool's chart is net-new in Angular.
 - **Inert data:** `gene_rank` (PhenomeMap KS) and `jaccard_distribution_results` (JaccardSimilarity p-value) are empty/zero across local/dev/sqa — confirm whether they're ever populated before investing in those result views.
-- **biclique SIGTRAP** blocks PhenomeMap regardless of wiring.
+- ~~**biclique SIGTRAP** blocks PhenomeMap regardless of wiring.~~ **Fixed in this PR** (G3-804): a one-past-the-end write on a full `hsearch` table, which macOS libmalloc turns into SIGTRAP, plus cross-partition label aliasing that silently merged vertices on every platform. Both have regression guards.
 - **Un-migrated tools** (GeneSetViewer, TricliqueViewer, NetworkSimilarity, NESS, FindVariants, SimilarGenesets): decide scope — port or drop.
 - **Auth scope:** does the new UI need full SSO + account management parity, or is read-only public browsing acceptable for an initial public launch?
 
@@ -264,7 +264,7 @@ not yet broken into stories.
 | 3 | [G3-801](https://jacksonlaboratory.atlassian.net/browse/G3-801) — API: tool run endpoints | §6.3 |
 | 3 | [G3-802](https://jacksonlaboratory.atlassian.net/browse/G3-802) — UI: `/analyze` launcher + results management | §6.4 |
 | 3 | [G3-803](https://jacksonlaboratory.atlassian.net/browse/G3-803) — UI: per-tool result visualisations | §6.4 |
-| 3 | [G3-804](https://jacksonlaboratory.atlassian.net/browse/G3-804) — tool runtime & binary packaging (incl. `biclique` SIGTRAP) | §6.5 |
+| 3 | [G3-804](https://jacksonlaboratory.atlassian.net/browse/G3-804) — tool runtime & binary packaging (incl. `biclique` SIGTRAP) — **done in this PR** | §6.5 |
 
 Start with G3-787 → G3-789 (nothing else can be built cleanly without them), then G3-799 as the
 earliest demonstrable end-to-end capability.

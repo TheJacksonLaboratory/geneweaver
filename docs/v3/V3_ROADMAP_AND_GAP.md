@@ -226,7 +226,7 @@ review, so confirm current descriptions, parents and statuses before applying th
 | Action | Tickets | Why |
 |---|---|---|
 | ~~Merge / pick one~~ **Done** | **G3-750** vs **G3-800** | Resolved by the A1 spike. **G3-800 closed as Won't Do (2026-09-22)** with a comment recording the finding and re-homing its still-live requirements (user attribution, diagnosable failures, retention, the legacy status/file contract) onto G3-801. **G3-750 survives**; its first slice is PR #32. |
-| **Merge** | **G3-751** into **G3-804** | Both are "build & ship the TOOLBOX binaries". G3-804 also owns the `biclique` SIGTRAP, which is the actual blocker. |
+| **Merge / close** | **G3-751** into **G3-804** | Both are "build & ship the TOOLBOX binaries". Both are **delivered in this PR**: the two worker images build the binaries, and the `biclique` SIGTRAP is fixed. |
 | **Split** | **G3-799** | Its UI result page belongs to the UI phase under the API-only decision. Keep resolver + sync endpoint; move the result page out. |
 | **Re-split epics** | **G3-786** | Named "New GeneWeaver UI" but owns nine **API** tickets (792, 793, 795, 796, 798, 799, 800, 801, 804). A separate `v3 API` epic — or moving them under G3-763 — makes the critical path visible in Jira. |
 | **Re-parent** | **G3-764**, **G3-777** | v3 search sits in G3-763 while the search UI sits in G3-786; they share one filter foundation. |
@@ -411,7 +411,7 @@ blocked on data or binaries.
 | 3 | DBSCAN (in-process), JaccardClustering | gene symbols per set; similarity matrix | `[sklearn]` extra |
 | 4 | JaccardSimilarity | `validate_jaccard_similarity.py` | `extsrc.jaccard_distribution_results` **empty** in current DBs |
 | 5 | MSET | two gene lists + background | **A7** |
-| 6 | PhenomeMap | gene symbols + `gene_rank` | `biclique` **SIGTRAP**; `gene_rank` uniformly **0.0** on local/dev/sqa |
+| 6 | PhenomeMap | gene symbols + `gene_rank` | ~~`biclique` **SIGTRAP**~~ fixed (G3-804); `gene_rank` still uniformly **0.0** on local/dev/sqa, so the KS term stays inert |
 
 *Verify:* per-resolver unit tests against a known gene-set fixture, then compare resolver output
 against what the legacy worker receives — **on metrics, not raw `ode_gene_id`s**, because dev's
@@ -513,7 +513,14 @@ the tools now execute: MSET needs `MSETcpp` + `libomp` and PhenomeMap needs `bic
 need correcting, and the build work lands in a repo this team does not own — the same
 cross-repo dependency as A1b, so sequence them together.
 
-**Fix the `biclique` SIGTRAP first**; it blocks PhenomeMap regardless of how the wiring is done.
+~~**Fix the `biclique` SIGTRAP first**~~ — **done.** `bigraph_edgelist_in` sized its label
+hash table exactly and ignored `hsearch(ENTER)` failures, so a full table led to a
+one-past-the-end write on `_label_v1` (SIGTRAP under macOS libmalloc; masked on glibc by
+prime rounding), and both partitions sharing one global table aliased any label present in
+both to the wrong index — silently merging vertices on every platform. Keys are now
+prefixed per partition, the table has headroom, `ENTER` is checked, and the bounds check
+runs before the append. Guarded in the native image build and by
+`test_phenome_map_biclique_regression.py`.
 `TOOLS_MIGRATION.md` §9 notes the recovered binary needs the commented-out linear-search block in
 `bigraph.c` rather than POSIX `hsearch`. Then `MSETcpp` + `libomp`. Env-derived paths only —
 never a hardcoded `/srv/...` — and **no `|| echo "WARN: ..."` around compile steps**: assert each

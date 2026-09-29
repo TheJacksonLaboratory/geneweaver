@@ -56,11 +56,10 @@ metadata:
   labels:
     app: geneweaver-tools-native-worker
 spec:
-  # Scaled to zero deliberately: both tools this image serves are blocked. `biclique`
-  # SIGTRAPs (G3-804) and MSET's inline-universe payload is unresolved (G3-784), so a
-  # running pod would only consume a queue it cannot serve successfully. Raise to 1 when
-  # either ticket lands -- the image and routing are already in place.
-  replicas: 0
+  # Runs: PhenomeMap works now that G3-804 (the biclique heap overflow) is fixed. MSET is
+  # still refused by policy for its inline-universe payload (G3-784), so this worker serves
+  # one of its two tools today.
+  replicas: 1
   selector:
     matchLabels:
       app: geneweaver-tools-native-worker
