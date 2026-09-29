@@ -29,9 +29,11 @@ from geneweaver.tools.framework import AbstractTool, ToolInput, ToolOutput
 
 TOOL_GROUP = "geneweaver.tools"
 
-#: Plugin name -> the class it must resolve to. Names are namespaced under
-#: ``geneweaver.`` because AsyncTask's loader raises on duplicates across *every*
-#: installed plugin, and ``geneweaver-boolean-algebra`` is already installed there.
+#: Tool name -> the class it must resolve to, in the **private** ``geneweaver.tools``
+#: group. Plain names, not namespaced: this group is read by our own activity, never by
+#: AsyncTask, so it cannot collide with the already-installed
+#: ``geneweaver-boolean-algebra`` plugin. Only `GeneWeaverTools` is offered to AsyncTask,
+#: from ``jax.ats.plugins`` -- see `test_asynctask_entry_points`.
 EXPECTED_PLUGINS = {
     "boolean_algebra": "BooleanAlgebra",
     "combine": "Combine",
@@ -91,7 +93,7 @@ def entry_points() -> dict:
 
 
 def test_every_expected_tool_is_registered(entry_points: dict) -> None:
-    """All nine canonical tools are discoverable by AsyncTask."""
+    """All nine canonical tools are discoverable by the GeneWeaver activity."""
     assert set(entry_points) == set(EXPECTED_PLUGINS)
 
 

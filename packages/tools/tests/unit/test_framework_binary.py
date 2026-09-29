@@ -2,12 +2,17 @@
 
 import subprocess
 import sys
+import time
 
 import pytest
 from geneweaver.tools.framework.binary import (
     DEFAULT_TIMEOUT_SECONDS,
+    MAX_TIMEOUT_SECONDS,
     TIMEOUT_ENV_VAR,
+    TOOL_RUN_TIMEOUT_SECONDS,
+    RunCancelled,
     binary_timeout,
+    progress_hook,
     run_binary,
 )
 
@@ -58,3 +63,73 @@ def test_failing_binary_is_not_raised_by_the_runner() -> None:
     """Callers raise their own errors -- each binary reports failure differently."""
     result = run_binary([sys.executable, "-c", "import sys; sys.exit(3)"])
     assert result.returncode == 3
+
+
+def test_an_over_limit_override_is_capped_not_honoured(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A bound at or above the activity deadline reinstates worker exhaustion.
+
+    Temporal would abandon the activity while the binary kept a worker thread and its child
+    alive, which is the failure this module exists to prevent -- so the value is capped.
+    """
+    monkeypatch.setenv(TIMEOUT_ENV_VAR, str(TOOL_RUN_TIMEOUT_SECONDS * 10))
+    assert binary_timeout() == float(MAX_TIMEOUT_SECONDS)
+
+
+def test_an_under_limit_override_is_honoured_exactly(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The cap must not disturb a legitimate override."""
+    monkeypatch.setenv(TIMEOUT_ENV_VAR, str(MAX_TIMEOUT_SECONDS - 1))
+    assert binary_timeout() == float(MAX_TIMEOUT_SECONDS - 1)
+
+
+def test_the_cap_is_the_boundary_itself(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The cap value itself is allowed through unchanged."""
+    monkeypatch.setenv(TIMEOUT_ENV_VAR, str(MAX_TIMEOUT_SECONDS))
+    assert binary_timeout() == float(MAX_TIMEOUT_SECONDS)
+
+
+def test_cancellation_terminates_the_child_promptly() -> None:
+    """A cancelled run must not hold its child until the timeout expires.
+
+    The whole point of the poll loop: with a blocking wait this process would sit here for
+    the full bound. Uses a real long-lived child, and asserts it is gone afterwards.
+    """
+    calls: list[float] = []
+
+    def hook() -> bool:
+        calls.append(time.monotonic())
+        return len(calls) >= 2  # let one poll pass, then ask to stop
+
+    started = time.monotonic()
+    with progress_hook(hook), pytest.raises(RunCancelled, match="was cancelled"):
+        run_binary([sys.executable, "-c", "import time; time.sleep(120)"], timeout=120)
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 20, f"cancellation took {elapsed:.1f}s; it should not wait for the bound"
+    assert len(calls) >= 2
+
+
+def test_the_hook_is_polled_during_a_run() -> None:
+    """Heartbeating depends on this being called while the binary is still running."""
+    calls = 0
+
+    def hook() -> bool:
+        nonlocal calls
+        calls += 1
+        return False
+
+    with progress_hook(hook):
+        result = run_binary([sys.executable, "-c", "import time; time.sleep(2.5)"])
+    assert result.returncode == 0
+    assert calls >= 2, f"hook called {calls} times during a 2.5s run"
+
+
+def test_no_hook_installed_runs_normally() -> None:
+    """Tools call this directly outside Temporal; there is no hook then."""
+    assert run_binary([sys.executable, "-c", "print('fine')"]).stdout.strip() == "fine"
+
+
+def test_the_hook_does_not_leak_past_its_block() -> None:
+    """A ContextVar set without reset would apply the previous run's hook to the next."""
+    with progress_hook(lambda: True):
+        pass
+    assert run_binary([sys.executable, "-c", "print('ok')"]).returncode == 0

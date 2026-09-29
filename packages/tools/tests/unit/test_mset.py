@@ -1,7 +1,6 @@
 """Tests for the MSET tool (wraps the MSET C++ binary via an injectable runner)."""
 
 import pathlib
-import subprocess
 import types
 
 import pytest
@@ -14,6 +13,7 @@ from geneweaver.tools.mset import (
     intersect_genes,
     parse_tsv_dict,
 )
+from geneweaver.tools.mset import tool as mset_tool
 from geneweaver.tools.mset.tool import _subprocess_runner
 
 
@@ -158,7 +158,7 @@ def test_default_runner_materialises_the_universes(monkeypatch: pytest.MonkeyPat
     """The universes are written from the input, not read from a background directory."""
     seen: dict = {}
 
-    def fake_run(cmd, cwd, capture_output, text, check, timeout=None):
+    def fake_run(cmd, cwd=None, timeout=None):
         seen["cmd"] = cmd
         seen["files"] = {
             pathlib.Path(p).name: pathlib.Path(p).read_text().split() for p in cmd[2:6]
@@ -167,7 +167,7 @@ def test_default_runner_materialises_the_universes(monkeypatch: pytest.MonkeyPat
         pathlib.Path(cwd, "mset_hist.tsv").write_text("0\t2\n")
         return types.SimpleNamespace(returncode=0, stderr="")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(mset_tool, "run_binary", fake_run)
 
     data, hist = _subprocess_runner("/nonexistent/MSETcpp")(
         ["a", "b"], ["b"], ["a", "b", "z"], ["b", "q"], 250, False
@@ -188,13 +188,13 @@ def test_default_runner_cleans_up_its_temp_dir(monkeypatch: pytest.MonkeyPatch) 
     """Large universes must not accumulate on disk across runs."""
     workdirs: list[str] = []
 
-    def fake_run(cmd, cwd, capture_output, text, check, timeout=None):
+    def fake_run(cmd, cwd=None, timeout=None):
         workdirs.append(cwd)
         pathlib.Path(cwd, "mset_output.tsv").write_text("k\tv\n")
         pathlib.Path(cwd, "mset_hist.tsv").write_text("k\tv\n")
         return types.SimpleNamespace(returncode=0, stderr="")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(mset_tool, "run_binary", fake_run)
     _subprocess_runner("/nonexistent/MSETcpp")(["a"], ["a"], ["a"], ["a"], 10, True)
 
     assert workdirs and not pathlib.Path(workdirs[0]).exists()

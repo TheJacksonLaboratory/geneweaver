@@ -12,10 +12,8 @@ schema, which each tool declares and which is used to validate the request.
 import importlib.metadata
 from typing import Any
 
-from geneweaver.tools.temporal.payload import (
-    ASYNCTASK_BLOCKED_TOOLS,
-    check_payload_size,
-)
+from geneweaver.tools.framework.binary import progress_hook
+from geneweaver.tools.temporal.payload import check_payload_size, check_tool_allowed
 from temporalio import activity
 
 #: Our own registry of runnable tools, distinct from the `jax.ats.plugins` group that
@@ -43,6 +41,16 @@ def load_tool(name: str) -> Any:
     )
 
 
+def _cancellation_requested() -> bool:
+    """Heartbeat, and report whether Temporal has asked for this activity to stop.
+
+    Heartbeating is what makes cancellation observable at all: Temporal delivers it to the
+    activity context, and an activity that never heartbeats never learns of it.
+    """
+    activity.heartbeat()
+    return activity.is_cancelled()
+
+
 @activity.defn
 def run_tool(input_data: dict) -> dict:
     """Run one GeneWeaver tool and return its output as JSON-able primitives.
@@ -56,14 +64,20 @@ def run_tool(input_data: dict) -> dict:
     """
     name = input_data["tool"]
 
-    # Checked before the payload size: a blocked tool should say why it is blocked rather
-    # than report a size that happens to be under the limit for a small input.
-    if name in ASYNCTASK_BLOCKED_TOOLS:
-        raise ValueError(f"{name} cannot run through AsyncTask yet. {ASYNCTASK_BLOCKED_TOOLS[name]}")
-
+    # Defense in depth. The submission path and the workflow both check these first, because
+    # by this point the payload has already crossed two boundaries Temporal could have
+    # refused -- a check only here would never be reached for a genuinely oversized request.
+    # Policy before size, so a blocked tool says why rather than reporting a size that
+    # happens to fit.
+    check_tool_allowed(name)
     size = check_payload_size(input_data)
 
     tool = load_tool(name)
     tool_input = tool.tool_input(**input_data.get("input", {}))
     activity.logger.info("Running GeneWeaver tool %s (payload %d bytes)", name, size)
-    return tool.run(tool_input).model_dump(mode="json")
+
+    # Lets a native binary heartbeat and observe cancellation from inside the tool, which
+    # knows nothing about Temporal. Without it a cancelled run keeps this worker thread and
+    # its child process alive until the subprocess bound expires.
+    with progress_hook(_cancellation_requested):
+        return tool.run(tool_input).model_dump(mode="json")

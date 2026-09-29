@@ -13,15 +13,23 @@ from geneweaver.tools.temporal.activities import run_tool
 from geneweaver.tools.temporal.payload import (
     ASYNCTASK_BLOCKED_TOOLS,
     MAX_PAYLOAD_BYTES,
+    PAYLOAD_FRAMING_BYTES,
     TEMPORAL_DEFAULT_LIMIT_BYTES,
     check_payload_size,
+    check_submission,
     payload_size,
 )
 
 
-def _symbols(count: int) -> list[str]:
-    """Identifiers of realistic length, so measured sizes mean something."""
+def _identifiers(count: int, kind: str = "symbol") -> list[str]:
+    """Identifiers of realistic length, so measured sizes mean something.
+
+    Both shapes matter: the verdict at a 100,000-gene universe differs between short gene
+    symbols and long MGI accessions.
+    """
     random.seed(0)
+    if kind == "mgi":
+        return [f"MGI:{random.randint(1000000, 9999999)}" for _ in range(count)]
     return [
         "".join(random.choices(string.ascii_uppercase, k=2))
         + "".join(random.choices(string.ascii_lowercase + string.digits, k=random.randint(1, 8)))
@@ -29,14 +37,21 @@ def _symbols(count: int) -> list[str]:
     ]
 
 
-def _mset_payload(universe: int) -> dict:
+def _mset_payload(universe: int, kind: str = "symbol") -> dict:
+    """An MSET-shaped request, under a tool name that is not blocked.
+
+    Uses `upset` so the size checks are reachable: `mset` is refused by policy before any
+    measurement, which is tested separately.
+    """
     return {
-        "tool": "upset",  # not `mset`: that is blocked outright, tested separately
+        "tool": "upset",
         "input": {
-            "group_1_genes": _symbols(300),
-            "group_2_genes": _symbols(300),
-            "group_1_background": _symbols(universe),
-            "group_2_background": _symbols(universe),
+            "group_1_genes": _identifiers(300, kind),
+            "group_2_genes": _identifiers(300, kind),
+            "group_1_background": _identifiers(universe, kind),
+            "group_2_background": _identifiers(universe, kind),
+            "number_of_samples": 1000,
+            "over_representation": True,
         },
     }
 
@@ -54,13 +69,13 @@ def test_a_small_payload_passes_and_reports_its_size() -> None:
 
 def test_a_payload_at_the_limit_is_allowed() -> None:
     """The boundary itself passes -- the check is `>`, not `>=`."""
-    payload = {"tool": "upset", "input": {"genes": _symbols(10)}}
+    payload = {"tool": "upset", "input": {"genes": _identifiers(10)}}
     assert check_payload_size(payload, limit=payload_size(payload)) > 0
 
 
 def test_a_payload_one_byte_over_the_limit_is_refused() -> None:
     """One byte past the boundary is refused -- the check is strict."""
-    payload = {"tool": "upset", "input": {"genes": _symbols(10)}}
+    payload = {"tool": "upset", "input": {"genes": _identifiers(10)}}
     with pytest.raises(ValueError, match="over the"):
         check_payload_size(payload, limit=payload_size(payload) - 1)
 
@@ -76,18 +91,30 @@ def test_the_error_names_the_tool_and_the_offending_field() -> None:
     assert "MiB" in message
 
 
-def test_two_full_universes_exceed_temporals_default_limit() -> None:
-    """The measurement behind the guard.
+def test_a_full_universe_of_gene_symbols_fits_but_only_just() -> None:
+    """The corrected measurement, and why MSET is blocked rather than merely guarded.
 
-    `mset/tool.py` puts a full gene universe at ~100,000 identifiers. Two of them inline,
-    JSON-encoded, cross Temporal's 2 MiB default -- which is why MSET is not cleared for
-    AsyncTask execution rather than merely guarded.
+    An earlier version of this test asserted the opposite. It measured with `json.dumps`'s
+    default `", "`/`": "` separators, which overstates the payload by ~10.5% -- enough to
+    invert the verdict. Temporal emits compact JSON: this fixture is ~1.82 MiB, *under* the
+    2 MiB limit, at 89% of it.
     """
-    size = payload_size(_mset_payload(100_000))
-    assert size > TEMPORAL_DEFAULT_LIMIT_BYTES, (
-        f"two 100k universes measured {size / 1024 / 1024:.2f} MiB; if this is now under "
-        "the limit, re-measure against a real universe before clearing MSET"
+    size = payload_size(_mset_payload(100_000, "symbol"))
+    assert size < TEMPORAL_DEFAULT_LIMIT_BYTES
+    assert size / TEMPORAL_DEFAULT_LIMIT_BYTES > 0.85, (
+        "headroom has grown; re-check whether MSET still needs to be blocked"
     )
+
+
+def test_the_same_universe_in_mgi_accessions_does_not_fit() -> None:
+    """Identifier length decides it -- which is why the headroom above is not dependable."""
+    assert payload_size(_mset_payload(100_000, "mgi")) > TEMPORAL_DEFAULT_LIMIT_BYTES
+
+
+def test_a_larger_universe_does_not_fit_in_either_shape() -> None:
+    """Beyond a full universe, identifier length stops mattering -- both are over."""
+    for kind in ("symbol", "mgi"):
+        assert payload_size(_mset_payload(150_000, kind)) > TEMPORAL_DEFAULT_LIMIT_BYTES
 
 
 def test_a_realistic_small_universe_still_fits() -> None:
@@ -113,7 +140,41 @@ def test_an_oversized_payload_fails_before_the_tool_is_loaded() -> None:
         run_tool(_mset_payload(150_000))
 
 
-def test_payload_size_matches_json_encoding() -> None:
-    """The guard must measure what actually goes over the wire."""
-    payload = {"tool": "upset", "input": {"genes": ["A", "B"]}}
-    assert payload_size(payload) == len(json.dumps(payload).encode())
+def test_payload_size_matches_temporals_own_converter() -> None:
+    """Pins the pure measurement to the real converter, byte for byte.
+
+    `payload_size` deliberately uses plain `json` so it is safe inside Temporal's workflow
+    sandbox, which makes this the test that keeps it honest. If AsyncTask changes its data
+    converter, this fails.
+    """
+    from temporalio.converter import DataConverter
+
+    payload = _mset_payload(2_000)
+    encoded = DataConverter.default.payload_converter.to_payloads([payload])[0]
+
+    assert payload_size(payload) == len(encoded.data) + PAYLOAD_FRAMING_BYTES
+    assert len(encoded.SerializeToString()) - len(encoded.data) == PAYLOAD_FRAMING_BYTES
+
+
+def test_default_json_separators_would_overstate_the_payload() -> None:
+    """Guards the specific mistake that produced a false verdict.
+
+    Documented as a test because the failure mode is invisible: the naive measurement is
+    ~10.5% high, which only matters near the limit -- exactly where MSET sits.
+    """
+    payload = _mset_payload(100_000)
+    naive = len(json.dumps(payload).encode())
+    assert naive > payload_size(payload)
+    assert naive > TEMPORAL_DEFAULT_LIMIT_BYTES > payload_size(payload)
+
+
+def test_submission_checks_policy_before_size() -> None:
+    """The primary guard, at the boundary where the payload has not yet reached Temporal."""
+    with pytest.raises(ValueError, match="cannot run through AsyncTask yet"):
+        check_submission({"tool": "mset", "input": {"group_1_background": ["A"] * 10}})
+
+
+def test_submission_allows_an_ordinary_request() -> None:
+    """The ordinary path returns the measured size for logging."""
+    payload = {"tool": "upset", "input": {"geneset_ids": [1, 2]}}
+    assert check_submission(payload) == payload_size(payload)

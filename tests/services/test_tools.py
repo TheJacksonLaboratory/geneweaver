@@ -130,10 +130,7 @@ def test_upset_request_bounds_match_the_ui() -> None:
 
     from geneweaver.api.schemas.tools import MAX_GENESETS_WITH_ZEROS, UpSetRequest
 
-    component = (
-        Path(__file__).parents[2]
-        / "ui/src/app/pages/analyze/analyze.component.ts"
-    )
+    component = Path(__file__).parents[2] / "ui/src/app/pages/analyze/analyze.component.ts"
     if not component.is_file():
         pytest.skip("UI sources not present in this checkout")
     source = component.read_text()
