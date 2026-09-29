@@ -4,9 +4,10 @@
 # namespaces are dev, sqa, stage and prod, matching AsyncTask's own worker configuration so
 # the tools land in the same Temporal namespace as the runs that schedule them.
 #
-# The task-queue names must be identical for every pod that could replay a workflow: a
-# workflow that scheduled an activity on one queue must schedule it on the same queue on
-# replay, so these belong in shared configuration rather than per-pod env.
+# The task-queue names are deliberately absent: they are constants in the plugin, not
+# configuration. `GeneWeaverToolWorkflow` schedules activities from inside *AsyncTask's*
+# worker, so a value set here would reach only the consumer and every run would sit
+# unclaimed on a queue nobody produced to. See temporal/routing.py.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -19,8 +20,6 @@ data:
   # Overridden per overlay; the base value keeps a mis-wired overlay from silently landing
   # in a shared namespace.
   TEMPORAL_NAMESPACE: "default"
-  GENEWEAVER_TOOLS_TASK_QUEUE: "geneweaver-tools"
-  GENEWEAVER_TOOLS_NATIVE_TASK_QUEUE: "geneweaver-tools-native"
   # Low on purpose: a tool run can saturate a core for minutes, so concurrency per pod is
   # kept small and throughput comes from replicas. asynctask-mpd-plugin uses 5.
   MAX_CONCURRENT_ACTIVITIES: "5"

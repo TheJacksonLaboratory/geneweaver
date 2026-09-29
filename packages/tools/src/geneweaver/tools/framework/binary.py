@@ -143,32 +143,40 @@ def run_binary(
     # Popen and poll rather than `subprocess.run(timeout=...)`: a blocking wait cannot
     # observe cancellation, and an activity that cannot be cancelled holds its worker
     # thread and this child until the bound expires.
+    # Popen and poll rather than `subprocess.run(timeout=...)`: a blocking wait cannot
+    # observe cancellation, and an activity that cannot be cancelled holds its worker
+    # thread and this child until the bound expires.
     with subprocess.Popen(
         cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     ) as process:
-        while True:
-            try:
-                stdout, stderr = process.communicate(timeout=POLL_INTERVAL_SECONDS)
-            except subprocess.TimeoutExpired:
-                pass
-            else:
-                return subprocess.CompletedProcess(
-                    cmd, process.returncode, stdout=stdout, stderr=stderr
-                )
+        # `finally`, not just the raise paths below: anything can unwind this frame --
+        # `CancelledError` injected into the activity thread, a hook that raises, a
+        # KeyboardInterrupt -- and `Popen.__exit__` *waits* for the child instead of
+        # killing it, which would leave the binary running after its caller is gone.
+        try:
+            while True:
+                try:
+                    stdout, stderr = process.communicate(timeout=POLL_INTERVAL_SECONDS)
+                except subprocess.TimeoutExpired:
+                    pass
+                else:
+                    return subprocess.CompletedProcess(
+                        cmd, process.returncode, stdout=stdout, stderr=stderr
+                    )
 
-            elapsed = time.monotonic() - started
-            if elapsed > limit:
-                _stop(process)
-                raise RuntimeError(
-                    f"{os.path.basename(cmd[0])} exceeded {limit:g}s and was killed. Either "
-                    f"the input is larger than this tool handles, or the binary is hung -- "
-                    f"{TIMEOUT_ENV_VAR} raises the limit for a legitimately long run, up to "
-                    f"{MAX_TIMEOUT_SECONDS:g}s."
-                )
+                elapsed = time.monotonic() - started
+                if elapsed > limit:
+                    raise RuntimeError(
+                        f"{os.path.basename(cmd[0])} exceeded {limit:g}s and was killed. "
+                        f"Either the input is larger than this tool handles, or the binary "
+                        f"is hung -- {TIMEOUT_ENV_VAR} raises the limit for a legitimately "
+                        f"long run, up to {MAX_TIMEOUT_SECONDS:g}s."
+                    )
 
-            if hook is not None and hook():
-                _stop(process)
-                raise RunCancelled(
-                    f"{os.path.basename(cmd[0])} was cancelled after {elapsed:.0f}s "
-                    f"and its process terminated."
-                )
+                if hook is not None and hook():
+                    raise RunCancelled(
+                        f"{os.path.basename(cmd[0])} was cancelled after {elapsed:.0f}s "
+                        f"and its process terminated."
+                    )
+        finally:
+            _stop(process)

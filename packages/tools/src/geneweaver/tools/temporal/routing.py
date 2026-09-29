@@ -14,11 +14,18 @@ with `anova` and `gxl` sharing one. Grouping by dependency profile also keeps MS
 Carlo sampling and PhenomeMap's biclique enumeration -- the two slow tools -- off the worker
 serving fast interactive runs.
 
-Task queue names come from the environment so the same image can serve a differently named
-queue per cluster. They are resolved once at import, which makes them constant for the life
-of a worker process: a workflow that scheduled an activity on one queue must schedule it on
-the same queue when its history is replayed, so every pod sharing a deployment must share
-this configuration (as it does, via one ConfigMap).
+Task queue names are **constants, deliberately not configuration**, which is an exception to
+this repository's rule that infrastructure comes from the environment. The rule assumes one
+process reads the value; here two do, in different repositories. `task_queue_for` is called
+from workflow code, which runs inside *AsyncTask's* worker, while the queue is consumed by
+*our* worker. An environment override reaches only the consumer, so the producer would keep
+scheduling to the old name and every run would sit unclaimed until it timed out -- a
+split-brain that no test in either repository could see. Renaming a queue therefore means
+releasing a new `geneweaver-tools` version, which is the only change both sides observe at
+once.
+
+Being constants also makes them replay-safe: a workflow that scheduled an activity on one
+queue must schedule it on the same queue when its history is replayed.
 """
 
 import os
@@ -35,15 +42,10 @@ PROFILES = (PYTHON_PROFILE, NATIVE_PROFILE)
 #: Selects what a worker serves and which queue it consumes. Set per deployment.
 PROFILE_ENV_VAR = "GENEWEAVER_TOOLS_PROFILE"
 
-#: Overrides the queue names, per the repository rule that infrastructure is configuration.
-PYTHON_QUEUE_ENV_VAR = "GENEWEAVER_TOOLS_TASK_QUEUE"
-NATIVE_QUEUE_ENV_VAR = "GENEWEAVER_TOOLS_NATIVE_TASK_QUEUE"
-
-DEFAULT_PYTHON_QUEUE = "geneweaver-tools"
-DEFAULT_NATIVE_QUEUE = "geneweaver-tools-native"
-
-PYTHON_TASK_QUEUE = os.environ.get(PYTHON_QUEUE_ENV_VAR) or DEFAULT_PYTHON_QUEUE
-NATIVE_TASK_QUEUE = os.environ.get(NATIVE_QUEUE_ENV_VAR) or DEFAULT_NATIVE_QUEUE
+#: Part of the plugin's contract with AsyncTask, like the entry-point names. See the module
+#: docstring for why these are not environment-configurable.
+PYTHON_TASK_QUEUE = "geneweaver-tools"
+NATIVE_TASK_QUEUE = "geneweaver-tools-native"
 
 
 def task_queue_for(tool: str) -> str:

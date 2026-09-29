@@ -178,3 +178,47 @@ def test_submission_allows_an_ordinary_request() -> None:
     """The ordinary path returns the measured size for logging."""
     payload = {"tool": "upset", "input": {"geneset_ids": [1, 2]}}
     assert check_submission(payload) == payload_size(payload)
+
+
+class TestRequestShape:
+    """`requested_tool` guards the workflow's first indexing operation.
+
+    A malformed request used to raise `KeyError` from inside `@workflow.run`, which is not a
+    `ValueError` and so escaped the non-retryable wrapper -- returning the run to Temporal's
+    indefinite workflow-task retry. AsyncTask sees this plugin's schema as plain `dict`, so
+    it does not reject such a request first.
+    """
+
+    def test_a_well_formed_request_yields_its_tool(self) -> None:
+        """The ordinary path returns the tool name."""
+        from geneweaver.tools.temporal.payload import requested_tool
+
+        assert requested_tool({"tool": "upset", "input": {}}) == "upset"
+
+    @pytest.mark.parametrize(
+        "request_body",
+        [
+            {},
+            {"input": {}},
+            {"tool": None},
+            {"tool": ""},
+            {"tool": "   "},
+            {"tool": 7},
+            {"tool": ["upset"]},
+        ],
+        ids=["empty", "no-tool", "none", "blank", "whitespace", "int", "list"],
+    )
+    def test_a_malformed_request_raises_value_error(self, request_body: dict) -> None:
+        """ValueError specifically -- that is what the workflow converts to non-retryable."""
+        from geneweaver.tools.temporal.payload import requested_tool
+
+        with pytest.raises(ValueError):
+            requested_tool(request_body)
+
+    @pytest.mark.parametrize("request_body", [None, "upset", 42, ["upset"]])
+    def test_a_non_mapping_request_raises_value_error(self, request_body: object) -> None:
+        """Not a dict at all -- indexing would have raised TypeError, also unwrapped."""
+        from geneweaver.tools.temporal.payload import requested_tool
+
+        with pytest.raises(ValueError, match="must be an object"):
+            requested_tool(request_body)

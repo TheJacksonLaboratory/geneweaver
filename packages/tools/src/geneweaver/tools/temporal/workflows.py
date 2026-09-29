@@ -15,7 +15,7 @@ with workflow.unsafe.imports_passed_through():
     from geneweaver.tools.framework.binary import TOOL_RUN_TIMEOUT_SECONDS
 
     from .activities import run_tool
-    from .payload import check_payload_size, check_tool_allowed
+    from .payload import check_payload_size, check_tool_allowed, requested_tool
     from .routing import task_queue_for
 
 #: Legacy's Celery worker used a 900s soft limit. Tool runs are minutes at worst; a
@@ -80,7 +80,8 @@ class GeneWeaverToolWorkflow:
         # any validation we add here later. The checks themselves stay ValueError-raising so
         # the FastAPI submission path can use them without importing temporalio.
         try:
-            check_tool_allowed(input_data["tool"])
+            tool = requested_tool(input_data)
+            check_tool_allowed(tool)
             check_payload_size(input_data)
         except ValueError as error:
             raise ApplicationError(str(error), non_retryable=True) from error
@@ -92,7 +93,7 @@ class GeneWeaverToolWorkflow:
         return await workflow.execute_activity(
             run_tool,
             input_data,
-            task_queue=task_queue_for(input_data["tool"]),
+            task_queue=task_queue_for(tool),
             start_to_close_timeout=TOOL_RUN_TIMEOUT,
             schedule_to_start_timeout=TOOL_SCHEDULE_TO_START_TIMEOUT,
             heartbeat_timeout=TOOL_HEARTBEAT_TIMEOUT,

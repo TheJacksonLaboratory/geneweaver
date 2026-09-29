@@ -368,6 +368,22 @@ AsyncTask's protocol locally.
 
 `NEW_UI_GAP_AND_PLAN.md` §6.2 recommended the Redis queue; corrected in PR #32.
 
+### A1c. Cross-repo items AsyncTask must wire up
+
+Two guards exist in `geneweaver-tools` but cannot have a caller here, because the code that
+would call them is AsyncTask's. Both are exported so wiring them is a small change there
+rather than a reimplementation:
+
+1. **`temporal.payload.check_submission`** — rejects a blocked tool or an oversized payload
+   *before* `client.start_workflow()`. AsyncTask's `TemporalAdapter.submit()` passes the
+   request straight through, so today the earliest guard we control is
+   `GeneWeaverToolWorkflow.run`, already past the first Temporal boundary. A request too
+   large for Temporal is refused there by the transport, naming no tool and no field.
+2. **Task-queue agreement** — `geneweaver-tools` and `geneweaver-tools-native` are constants
+   in `temporal/routing.py`, not configuration, precisely because the producer (the workflow,
+   in AsyncTask's worker) and the consumer (our worker) are in different processes and
+   repositories. Renaming a queue means releasing a new `geneweaver-tools` version.
+
 ### A1b. Publish and install the plugins — **the real remaining blocker**
 
 Registration does not put the tools in AsyncTask. Three steps, and **two of them are not changes

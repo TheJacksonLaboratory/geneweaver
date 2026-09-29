@@ -19,6 +19,7 @@ Two deployments run this module, distinguished only by `GENEWEAVER_TOOLS_PROFILE
 """
 
 import asyncio
+import concurrent.futures
 import logging
 import os
 
@@ -106,17 +107,25 @@ async def run() -> None:
 
     client = await Client.connect(uri, namespace=namespace)
 
-    # Activities run in a thread pool: they are synchronous and CPU-bound, and some block
-    # in a subprocess. `framework.binary` polls rather than blocking so cancellation is
-    # still delivered.
-    async with Worker(
-        client,
-        task_queue=queue,
-        workflows=WORKFLOWS,
-        activities=ACTIVITIES,
-        max_concurrent_activities=max_concurrent_activities(),
-    ):
-        await asyncio.Future()
+    # `run_tool` is synchronous, so Temporal *requires* an executor: without one the
+    # `Worker` constructor raises "Activity geneweaver_run_tool is not async so an
+    # activity_executor must be present" and the pod crash-loops. AsyncTask's own
+    # `create_worker` supplies one, which is why the in-AsyncTask path worked and this did
+    # not. Sized to the concurrency limit so a slot is never waiting on a thread, and
+    # closed on shutdown so a rolling restart does not leave binaries running.
+    concurrency = max_concurrent_activities()
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=concurrency, thread_name_prefix="geneweaver-tool"
+    ) as activity_executor:
+        async with Worker(
+            client,
+            task_queue=queue,
+            workflows=WORKFLOWS,
+            activities=ACTIVITIES,
+            activity_executor=activity_executor,
+            max_concurrent_activities=concurrency,
+        ):
+            await asyncio.Future()
 
 
 def main() -> None:

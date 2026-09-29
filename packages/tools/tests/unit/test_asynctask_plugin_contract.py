@@ -201,19 +201,3 @@ def test_the_activity_name_is_prefixed_not_generic() -> None:
 
     assert ACTIVITY_NAME == "geneweaver_run_tool"
     assert run_tool.__temporal_activity_definition.name == ACTIVITY_NAME
-
-
-def test_workflow_validation_failures_are_non_retryable() -> None:
-    """A plain exception inside `@workflow.run` makes Temporal retry the task forever.
-
-    Not a style point: it presents as a run that never finishes (G3-739), and
-    `asynctask-mpd-plugin` confirmed it under IS-799. Guarding it here because the guard
-    lives in workflow code, where the mistake is easy to reintroduce.
-    """
-    import inspect
-
-    from geneweaver.tools.temporal import workflows
-
-    source = inspect.getsource(workflows.GeneWeaverToolWorkflow.run)
-    assert "ApplicationError" in source
-    assert "non_retryable=True" in source

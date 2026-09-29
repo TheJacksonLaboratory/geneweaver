@@ -100,6 +100,29 @@ def check_payload_size(input_data: dict, limit: int | None = None) -> int:
     return size
 
 
+def requested_tool(input_data: object) -> str:
+    """Read the tool name out of a request, rejecting anything malformed.
+
+    AsyncTask sees this plugin's input schema as plain ``dict``, so its API does not require
+    the key and a submission can arrive without it. Indexing directly would raise
+    ``KeyError``, which is not a ``ValueError`` and so escaped the workflow's non-retryable
+    wrapper -- putting the run back into Temporal's indefinite workflow-task retry.
+
+    :raises ValueError: If the request is not a mapping, or has no usable ``tool``.
+    """
+    if not isinstance(input_data, dict):
+        raise ValueError(
+            f"A tool request must be an object with a 'tool' key; got {type(input_data).__name__}."
+        )
+    tool = input_data.get("tool")
+    if not isinstance(tool, str) or not tool.strip():
+        raise ValueError(
+            f"A tool request must name a tool in its 'tool' key; got {tool!r}. "
+            "Expected {'tool': 'upset', 'input': {...}}."
+        )
+    return tool
+
+
 def check_tool_allowed(tool: str) -> None:
     """Refuse a tool not yet cleared for AsyncTask execution.
 
@@ -114,12 +137,20 @@ def check_tool_allowed(tool: str) -> None:
 def check_submission(input_data: dict) -> int:
     """Validate a payload before it is handed to Temporal at all.
 
-    The primary guard, for the submission path: policy first, then size, so a blocked tool
-    reports why it is blocked rather than a size that happens to be under the limit.
+    Policy first, then size, so a blocked tool reports why it is blocked rather than a size
+    that happens to be under the limit.
+
+    **This has no caller in this repository, and cannot have one.** The submission path is
+    AsyncTask's: its `TemporalAdapter.submit()` passes the request straight to
+    `client.start_workflow()`. Until AsyncTask calls this (or runs a plugin validation hook),
+    the earliest guard we control is `GeneWeaverToolWorkflow.run`, which is already past the
+    first Temporal boundary. Exported deliberately so that wiring is a one-line change in
+    AsyncTask rather than a reimplementation; tracked as a cross-repo item in
+    `docs/v3/V3_ROADMAP_AND_GAP.md`.
 
     :return: The measured payload size.
     """
-    check_tool_allowed(input_data.get("tool", "unknown"))
+    check_tool_allowed(requested_tool(input_data))
     return check_payload_size(input_data)
 
 

@@ -61,7 +61,12 @@ def _cancellation_requested() -> bool:
 ACTIVITY_NAME = "geneweaver_run_tool"
 
 
-@activity.defn(name=ACTIVITY_NAME)
+# `no_thread_cancel_exception`: by default Temporal injects `CancelledError` into the
+# activity thread, which can unwind `run_binary` at an arbitrary point -- and
+# `Popen.__exit__` *waits* for the child rather than killing it, so the binary would keep
+# running after the activity ended. Cancellation is instead observed cooperatively, by the
+# progress hook below polling `activity.is_cancelled()` between subprocess polls.
+@activity.defn(name=ACTIVITY_NAME, no_thread_cancel_exception=True)
 def run_tool(input_data: dict) -> dict:
     """Run one GeneWeaver tool and return its output as JSON-able primitives.
 
