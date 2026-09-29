@@ -158,7 +158,7 @@ def test_default_runner_materialises_the_universes(monkeypatch: pytest.MonkeyPat
     """The universes are written from the input, not read from a background directory."""
     seen: dict = {}
 
-    def fake_run(cmd, cwd, capture_output, text, check):
+    def fake_run(cmd, cwd, capture_output, text, check, timeout=None):
         seen["cmd"] = cmd
         seen["files"] = {
             pathlib.Path(p).name: pathlib.Path(p).read_text().split() for p in cmd[2:6]
@@ -188,7 +188,7 @@ def test_default_runner_cleans_up_its_temp_dir(monkeypatch: pytest.MonkeyPatch) 
     """Large universes must not accumulate on disk across runs."""
     workdirs: list[str] = []
 
-    def fake_run(cmd, cwd, capture_output, text, check):
+    def fake_run(cmd, cwd, capture_output, text, check, timeout=None):
         workdirs.append(cwd)
         pathlib.Path(cwd, "mset_output.tsv").write_text("k\tv\n")
         pathlib.Path(cwd, "mset_hist.tsv").write_text("k\tv\n")

@@ -22,11 +22,11 @@ from __future__ import annotations
 
 import os
 import shutil
-import subprocess
 import tempfile
 from collections.abc import Callable
 
 from geneweaver.tools.framework.abstract import AbstractTool
+from geneweaver.tools.framework.binary import run_binary
 
 from .schema import MSETInput, MSETOutput
 
@@ -119,7 +119,7 @@ def _subprocess_runner(binary_path: str) -> MSETRunner:
                 paths["background_2.txt"],
                 "-O" if over else "-U",
             ]
-            result = subprocess.run(cmd, cwd=workdir, capture_output=True, text=True, check=False)
+            result = run_binary(cmd, cwd=workdir)
             if result.returncode != 0:
                 raise RuntimeError(
                     f"MSET binary failed (exit {result.returncode}): {result.stderr.strip()}"

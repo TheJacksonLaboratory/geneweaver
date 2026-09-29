@@ -343,7 +343,7 @@ Phase A is **7, the frozen parity baseline**, because A2 and A8 measure against 
 
 ### A0. Wire the tools package in — **done in PR #32**
 
-`geneweaver-tools[sklearn]` is now in root `pyproject.toml` `[project].dependencies`.
+`geneweaver-tools[sklearn]` is now in root `pyproject.toml` `[project].dependencies`. The API needs only `sklearn`, because it runs tools **in-process** and is not a Temporal worker; `asynctask` needs `[sklearn,temporal]` (see A1b item 2). Two different consumers, two different extra sets — not a contradiction.
 `[tool.uv.sources]` already pinned the name to `packages/tools`, so the lock resolves it
 `editable = "packages/tools"` — never the archived PyPI `0.0.5`, which ships the `AbstractTool`
 framework only and none of the nine tools. The `sklearn` extra is required, not optional:
@@ -366,7 +366,7 @@ short: AsyncTask is a separate deployed service, not a library; its plugin proto
 owed was the entry-point declaration, delivered in PR #32 with a contract test that mirrors
 AsyncTask's protocol locally.
 
-`NEW_UI_GAP_AND_PLAN.md` §6.2 still recommends the Redis queue and should be corrected.
+`NEW_UI_GAP_AND_PLAN.md` §6.2 recommended the Redis queue; corrected in PR #32.
 
 ### A1b. Publish and install the plugins — **the real remaining blocker**
 
@@ -383,8 +383,11 @@ to this repository** — which makes this the step most likely to stall:
    the test of whether that secret's service account holds `artifactregistry.writer` on
    `python-dev`, which cannot be determined from outside GitHub; the workflow logs the
    authenticated identity so a refusal names the account to fix.
-2. **Add `geneweaver-tools[sklearn]` to `asynctask`'s dependencies** (Bitbucket, separate review
-   path), and confirm its image can satisfy the extra.
+2. **Add `geneweaver-tools[sklearn,temporal]` to `asynctask`'s dependencies** (Bitbucket,
+   separate review path), and confirm its image can satisfy both extras. The `temporal` extra is
+   **not** optional: without it `geneweaver.tools.temporal` will not import, so the three
+   Temporal entry points resolve to nothing and AsyncTask registers no workflow. The branch
+   `feat/geneweaver-tools-plugin` installs both.
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
    `geneweaver-boolean-algebra 0.3.0a23`, whose GitHub repo is **archived** (last push
    2025-01-15), against `packages/tools/.../boolean_algebra/` which is actively developed.
@@ -667,7 +670,7 @@ Ordered by how much each blocks switching legacy off.
 | 8 | **Results retention, volume & file outputs** — now partly AsyncTask's: it persists run state, but legacy wrote `<task_id>.*` artifacts to a 100Gi RWM GCSFuse PVC and the compat contract still serves them | legacy `toolbase.py:27`; AsyncTask's artifact story to be established in A4 | **Yes** — promoted by decision 4 |
 | 8b | **Tool result-file rendering** — ported tools return data only; legacy emitted `.odemat/.el/.bic/.dot/.graphml/.csv/.svg` per run. Unchanged by the spike: AsyncTask runs the tools, it does not render legacy artifacts | `toolbase.py:27` + per-tool writers; needed by `/api/tool/get/{file,link}` | **Yes** — gates Phase E §4–5 |
 | ~~9~~ | ~~**v3 worker / queue / Redis deployment**~~ — **resolved 2026-09-22**: AsyncTask supplies the queue (Temporal), worker and run store. v3 builds none of it | see §2 | No longer applicable |
-| 9c | **Cross-repo delivery of the tool plugins** — publishing `geneweaver-tools` to the private `gcp-dev` index and adding it to `asynctask`'s dependencies. No publish pipeline for `packages/*` exists here, and the second half is in a repo this team does not own | §5 A1b; PR #32 covers only the entry-point declaration | **Yes** — gates every tool actually running |
+| 9c | **Cross-repo delivery of the tool plugins** — publishing `geneweaver-tools` to the private `gcp-dev` index and adding it to `asynctask`'s dependencies. The publish pipeline now exists (`.github/workflows/publish-packages.yml`, tag-triggered on `tools-v*`) but has **not yet been run**, so the credential question is still open; the second half is in a repo this team does not own | §5 A1b; PR #32 adds the entry-point declaration, the publish workflow and the AsyncTask plugin contract test | **Yes** — gates every tool actually running |
 | 9d | **BooleanAlgebra duplication** — AsyncTask installs the archived `geneweaver-boolean-algebra 0.3.0a23` alongside the maintained `packages/tools` implementation; namespacing avoids a collision but not the ambiguity | §5 A1b item 3 | Decide before tool runs ship |
 | 9b | **Shared dev-database guardrails** — v3 and legacy share one database by decision (2026-09-22). Scope **reduced** by the spike: A4 no longer writes run rows, so the first writes into legacy's dev data arrive in Phase B. Guardrail 7, the frozen parity baseline, is what still gates Phase A | `deploy/k8s/base/deployment.yaml:25-26` vs `legacy/deploy/k8s/base/deployment.yaml:83-84`; see §4 | **Yes** — gates Phase B, C, E |
 | 10 | **Decommission & cutover plan** — URL redirects, `production.result` ownership/schema and writer cutover, artifact migration/retention, dual-run rollback window, client/API-key migration, freezing the legacy release pipeline | nothing in any epic | **Yes** |

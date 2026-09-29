@@ -12,6 +12,10 @@ schema, which each tool declares and which is used to validate the request.
 import importlib.metadata
 from typing import Any
 
+from geneweaver.tools.temporal.payload import (
+    ASYNCTASK_BLOCKED_TOOLS,
+    check_payload_size,
+)
 from temporalio import activity
 
 #: Our own registry of runnable tools, distinct from the `jax.ats.plugins` group that
@@ -40,15 +44,26 @@ def load_tool(name: str) -> Any:
 
 
 @activity.defn
-def run_tool(request: dict) -> dict:
+def run_tool(input_data: dict) -> dict:
     """Run one GeneWeaver tool and return its output as JSON-able primitives.
 
-    :param request: ``{"tool": "upset", "input": {...}}``. The input is validated by the
+    :param input_data: ``{"tool": "upset", "input": {...}}``. The input is validated by the
         tool's own schema, so a malformed payload fails here with a pydantic error
         rather than deep inside the tool.
     :return: The tool's output, dumped to primitives for Temporal to serialise.
+    :raises ValueError: If the tool is not cleared for AsyncTask execution, or its payload
+        is too large for a Temporal argument.
     """
-    tool = load_tool(request["tool"])
-    tool_input = tool.tool_input(**request.get("input", {}))
-    activity.logger.info("Running GeneWeaver tool %s", request["tool"])
+    name = input_data["tool"]
+
+    # Checked before the payload size: a blocked tool should say why it is blocked rather
+    # than report a size that happens to be under the limit for a small input.
+    if name in ASYNCTASK_BLOCKED_TOOLS:
+        raise ValueError(f"{name} cannot run through AsyncTask yet. {ASYNCTASK_BLOCKED_TOOLS[name]}")
+
+    size = check_payload_size(input_data)
+
+    tool = load_tool(name)
+    tool_input = tool.tool_input(**input_data.get("input", {}))
+    activity.logger.info("Running GeneWeaver tool %s (payload %d bytes)", name, size)
     return tool.run(tool_input).model_dump(mode="json")

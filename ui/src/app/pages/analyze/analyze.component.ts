@@ -28,6 +28,19 @@ interface UpSetResult {
   intersections: UpSetIntersection[];
 }
 
+/**
+ * Request bounds, mirroring `UpSetRequest` in `api/schemas/tools.py`.
+ *
+ * Duplicated deliberately: the point is to say *why* a run is rejected before spending a
+ * round trip on a 422 whose generic detail the user cannot act on. If the API bounds move,
+ * these move with them -- `test_upset_request_bounds_match_the_ui` in the API suite fails
+ * if they diverge.
+ */
+const MAX_GENESETS = 20;
+const MIN_GENESETS = 2;
+/** Combinations grow as 2^n - 1, so expanding the empty ones is capped lower. */
+const MAX_GENESETS_WITH_ZEROS = 10;
+
 interface ToolOption {
   label: string;
   value: string;
@@ -130,12 +143,38 @@ export class AnalyzeComponent {
     });
   }
 
+  /**
+   * Why the current selection cannot be run, or `undefined` if it can.
+   *
+   * Reported locally rather than as a server 422: the API's detail message is correct but
+   * arrives after the request, and the Run button should not offer a call that is known to
+   * fail.
+   */
+  get limitViolation(): string | undefined {
+    const count = this.genesetIds.length;
+    if (count < MIN_GENESETS) {
+      return undefined; // Not an error yet -- the user is still typing.
+    }
+    if (count > MAX_GENESETS) {
+      return `Select at most ${MAX_GENESETS} gene sets; ${count} entered.`;
+    }
+    if (this.includeZeros && count > MAX_GENESETS_WITH_ZEROS) {
+      return (
+        `Including empty combinations is limited to ${MAX_GENESETS_WITH_ZEROS} gene sets ` +
+        `(${count} entered), because the number of combinations grows as 2^n - 1. ` +
+        `Clear the checkbox, or use fewer gene sets.`
+      );
+    }
+    return undefined;
+  }
+
   get canRun(): boolean {
     return (
       !this.running &&
       !this.selectedToolReason &&
       this.invalidEntries.length === 0 &&
-      this.genesetIds.length >= 2
+      this.genesetIds.length >= MIN_GENESETS &&
+      !this.limitViolation
     );
   }
 

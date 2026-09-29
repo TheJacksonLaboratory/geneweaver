@@ -24,8 +24,23 @@ class GeneWeaverToolWorkflow:
     """Run a single GeneWeaver analysis tool."""
 
     @workflow.run
-    async def run(self, request: dict) -> dict:
+    async def run(self, input_data: dict) -> dict:
         """Execute the requested tool and return its output.
+
+        The parameter **must** be named ``input_data``. AsyncTask's plugin facade does
+        `inspect.signature(plugin.run).parameters["input_data"]` in `validate_schemas`,
+        and `load_plugins()` catches the resulting `ValueError` and silently omits the
+        plugin from its registry -- so a different name means the tools are never
+        discovered, with only a warning in the service's log. Both precedents
+        (`StrainRecommendWorkflow`, `DRSTestWorkflow`) use the same name.
+
+        Annotations on the parameter and the return are required for the same reason:
+        `validate_schemas` rejects `inspect.Parameter.empty` for either.
+
+        `dict` rather than a pydantic model: AsyncTask installs its own data converter,
+        so a plain mapping is the payload shape that needs no assumptions about it. The
+        activity validates against the tool's own input schema, which is where the real
+        contract lives.
 
         Retries are disabled deliberately. A tool run is expensive and fully determined
         by its request, so retrying repeats the whole computation for no benefit;
@@ -33,7 +48,7 @@ class GeneWeaverToolWorkflow:
         """
         return await workflow.execute_activity(
             run_tool,
-            request,
+            input_data,
             start_to_close_timeout=TOOL_RUN_TIMEOUT,
             retry_policy=RetryPolicy(maximum_attempts=1),
         )

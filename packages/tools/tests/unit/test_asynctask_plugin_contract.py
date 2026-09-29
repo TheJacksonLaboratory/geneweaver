@@ -21,6 +21,7 @@ failure message for that case says so, because the symptom is otherwise confusin
 """
 
 import importlib.metadata
+import inspect
 from typing import Protocol, runtime_checkable
 
 import pytest
@@ -54,6 +55,17 @@ class AsyncTaskPlugin(Protocol):
 
     def run(self, input_data):
         """Run the plugin against its input and return its output."""
+
+
+def _registered_asynctask_plugin() -> type:
+    """The single class registered under `jax.ats.plugins` -- what the facade validates."""
+    registered = [
+        ep
+        for ep in importlib.metadata.entry_points(group="jax.ats.plugins")
+        if ep.value.startswith("geneweaver.tools")
+    ]
+    assert len(registered) == 1, f"expected one plugin, found {registered}"
+    return registered[0].load()
 
 
 def _declared_entry_points() -> dict:
@@ -103,6 +115,33 @@ def test_tools_are_not_registered_directly_with_asynctask() -> None:
     assert registered == {
         "GeneWeaverTools": "geneweaver.tools.temporal.workflows:GeneWeaverToolWorkflow"
     }
+
+
+def test_plugin_run_signature_satisfies_asynctask_schema_validation() -> None:
+    """Reproduce AsyncTask's `Plugin.validate_schemas` exactly.
+
+    The `runtime_checkable` protocol check above is not enough: it only confirms a `run`
+    attribute exists. AsyncTask's facade goes further and does
+
+        inspect.signature(plugin.run).parameters["input_data"]
+
+    then rejects either annotation being `inspect.Parameter.empty`. A failure raises
+    `ValueError("Unknown plugin type")`, which `load_plugins()` catches and logs -- the
+    plugin is then **silently absent** from the registry, with nothing failing loudly.
+
+    This test caught a real defect: the workflow parameter was named `request`, which
+    would have dropped every GeneWeaver tool from AsyncTask at discovery.
+    """
+    workflow = _registered_asynctask_plugin()
+    signature = inspect.signature(workflow.run)
+
+    # The name lookup the facade performs, and its two annotation requirements.
+    assert "input_data" in signature.parameters, (
+        f"AsyncTask looks up a parameter named 'input_data'; found "
+        f"{list(signature.parameters)}. The plugin would be dropped at discovery."
+    )
+    assert signature.parameters["input_data"].annotation is not inspect.Parameter.empty
+    assert signature.return_annotation is not inspect.Parameter.empty
 
 
 def test_temporal_entry_points_are_declared() -> None:

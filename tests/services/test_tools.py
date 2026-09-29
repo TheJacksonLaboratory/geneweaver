@@ -117,3 +117,44 @@ def test_run_upset_anonymous_uses_public_user_id(mock_cursor) -> None:
         tool_service.run_upset(mock_cursor, [1], user=None, runner=runner)
 
     assert readable.call_args.args[1] == 0
+
+
+def test_upset_request_bounds_match_the_ui() -> None:
+    """The Analyze page duplicates these bounds; drift makes its message wrong.
+
+    `ui/src/app/pages/analyze/analyze.component.ts` reports locally why a run is refused
+    instead of spending a round trip on a 422. That is only correct while the two agree, and
+    nothing else couples them -- so this asserts the coupling rather than trusting a comment.
+    """
+    from pathlib import Path
+
+    from geneweaver.api.schemas.tools import MAX_GENESETS_WITH_ZEROS, UpSetRequest
+
+    component = (
+        Path(__file__).parents[2]
+        / "ui/src/app/pages/analyze/analyze.component.ts"
+    )
+    if not component.is_file():
+        pytest.skip("UI sources not present in this checkout")
+    source = component.read_text()
+
+    # Pydantic records the two bounds as separate `annotated_types` entries.
+    bounds = {
+        kind: getattr(entry, kind)
+        for entry in UpSetRequest.model_fields["geneset_ids"].metadata
+        for kind in ("min_length", "max_length")
+        if hasattr(entry, kind)
+    }
+    assert set(bounds) == {"min_length", "max_length"}, (
+        f"UpSetRequest.geneset_ids no longer declares both bounds: {bounds}"
+    )
+
+    for name, value in (
+        ("MAX_GENESETS", bounds["max_length"]),
+        ("MIN_GENESETS", bounds["min_length"]),
+        ("MAX_GENESETS_WITH_ZEROS", MAX_GENESETS_WITH_ZEROS),
+    ):
+        assert f"const {name} = {value};" in source, (
+            f"{name} in analyze.component.ts does not match the API's {value}; "
+            "the page will enable or refuse runs the API disagrees with"
+        )

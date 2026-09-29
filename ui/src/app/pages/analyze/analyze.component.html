@@ -20,7 +20,8 @@
           ariaLabel="Gene set IDs to analyze"
         ></p-chips>
         <small class="block mt-2 text-color-secondary">
-          Type an ID and press enter. At least two, at most twenty.
+          Type an ID and press enter. At least two, at most twenty -- or ten with empty
+          combinations included.
         </small>
       </div>
 
@@ -60,6 +61,13 @@
       *ngIf="invalidEntries.length"
       severity="warn"
       [text]="'Not valid gene set IDs: ' + invalidEntries.join(', ')"
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <p-message
+      *ngIf="limitViolation"
+      severity="warn"
+      [text]="limitViolation"
       styleClass="w-full mb-3"
     ></p-message>
 
