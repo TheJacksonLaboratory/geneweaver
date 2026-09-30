@@ -368,7 +368,7 @@ AsyncTask's protocol locally.
 
 `NEW_UI_GAP_AND_PLAN.md` §6.2 recommended the Redis queue; corrected in PR #32.
 
-### A7 decision — MSET's background is now the full gene space ⚠️ **needs the curation scientist**
+### A7 decision — MSET's background is now the full gene space ⚠️ **measured; needs sign-off**
 
 G3-784 is implemented (see `temporal/resolvers.py`), and it **changes published MSET
 results**. `CLAUDE.md` is explicit that a membership rule change is a semantics decision, not
@@ -397,12 +397,65 @@ MSET result was computed against the smaller universe. So this is not a bug fix 
 numbers alone — old and new runs are not comparable, and anything published from a legacy
 MSET run keeps its old universe implicitly.
 
-**Not yet measured.** The affected population (how much p-values move, across how many
-plausible gene-set pairs) has not been quantified: it needs a database, and no local or dev
-connection was available while this was written. `CLAUDE.md` requires measuring before
-proposing — the P/Q boundary was assumed to be "a handful of rows" and was 590 gene sets —
-so **treat the rule as implemented but not approved**, and measure before MSET results are
-shown to users or published.
+**Measured on dev (2026-09-30)**, via the Cloud SQL proxy to
+`jax-compsci-nc-dev-01:us-east1:jax-dev-10-guided-jay`. Both rules were computed against the
+*same* database, so these numbers isolate the rule change from dev's Dec-2025 gene reload.
+Scripts: `scripts/analysis/mset_universe_impact/`.
+
+**1. The universe always grows** — 1.33x to 18.4x, never shrinks:
+
+| sp | species | old (Tier I–III) | new (all) | ratio |
+|---:|---|---:|---:|---:|
+| 1 | Mus musculus | 32,356 | 66,866 | 2.07x |
+| 2 | Homo sapiens | 30,711 | 40,956 | 1.33x |
+| 3 | Rattus norvegicus | 28,189 | 60,093 | 2.13x |
+| 4 | Danio rerio | 12,343 | 141,861 | 11.49x |
+| 5 | Drosophila melanogaster | 10,575 | 34,377 | 3.25x |
+| 6 | Macaca mulatta | 3,854 | 16,915 | 4.39x |
+| 8 | Caenorhabditis elegans | 4,196 | 46,927 | 11.18x |
+| 9 | Saccharomyces cerevisiae | 5,153 | 8,021 | 1.56x |
+| 10 | Gallus gallus | 1,707 | 26,016 | 15.24x |
+| 11 | Canis familiaris | 2,324 | 42,692 | 18.37x |
+
+So the direction is uniform: **p-values only ever get smaller.** Nothing becomes less
+significant.
+
+**2. p-values move modestly for typical pairs.** 200 random curated (Tier I–III) same-species
+pairs per species, sizes 10–1000 genes, p computed as the hypergeometric tail — validated
+against the real `MSETcpp` binary to within 0.6% across p = 0.01–0.58, so the analytic form
+is a faithful stand-in for its Monte Carlo:
+
+| | Mus musculus | Homo sapiens |
+|---|---:|---:|
+| pairs with any overlap | 63/200 | 73/200 |
+| p moves down / up | 63 / **0** | 73 / **0** |
+| typical shift (median) | p ÷ 2.1x | p ÷ 1.6x |
+| p90 shift | p ÷ 155x | p ÷ 7x |
+| near the boundary (0.001<p<0.5) | p ÷ 2.06x | p ÷ 1.33x |
+| verdict flips ns → significant at α=0.05 | 9 (4%) | 6 (3%) |
+| verdict flips significant → ns | **0** | **0** |
+
+**3. The bigger effect is runs that are impossible today.** A Tier I–III sample shows *no*
+refusals — unsurprising, since the old background is built from Tier I–III sets, so their
+genes are in it by construction. The refusals land on Tier IV/V and unassigned sets (G3-783),
+and there they are common:
+
+| species | Tier IV/V sets (10–1000 genes) | refused by the old background |
+|---|---:|---:|
+| Mus musculus | 18,490 | **~7,950 (43%)** |
+| Homo sapiens | 5,551 | **~444 (8%)** |
+
+And they are refused over almost nothing: of the refused mouse sets, a median of **0.7%** of
+their genes fall outside the old universe (human: 2.9%). MSET declines the entire analysis
+because of a handful of genes.
+
+**What this means for the decision.** The change is not neutral — about **3–4% of typical
+pairs cross α=0.05**, always toward "more significant", and a p-value near the boundary
+roughly halves. Historical MSET results are therefore not comparable with new ones. Against
+that, the old rule makes MSET unusable for ~8,000 mouse gene sets. **Recommendation: adopt
+the new rule**, and treat any legacy MSET number as carrying its old universe implicitly
+rather than back-filling. Still needs the curation scientist's sign-off, because the
+α-crossings are a change to published conclusions, not just to plumbing.
 
 ### A1c. Cross-repo items AsyncTask must wire up
 
