@@ -1,4 +1,4 @@
-name: Publish Packages
+name: Publish Python Packages — internal dev index
 
 # Releases the workspace packages at the exact version in `pyproject.toml`.
 #
@@ -52,7 +52,7 @@ jobs:
           fi
 
   publish:
-    name: "Release"
+    name: "Package publish: Dev index (internal)"
     needs: [check-tag]
     # `always()` so a workflow_dispatch run, where check-tag is skipped, still proceeds.
     if: always() && (needs.check-tag.result == 'success' || needs.check-tag.result == 'skipped')

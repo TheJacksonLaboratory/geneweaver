@@ -1,4 +1,4 @@
-name: 'Publish Workspace Package'
+name: 'Publish Python Packages (internal index)'
 
 # Builds a workspace package from `packages/` and publishes it to a private Artifact
 # Registry Python index, so other services can depend on it.
@@ -67,7 +67,7 @@ on:
 
 jobs:
   publish:
-    name: "Build and publish"
+    name: "Build, verify and upload"
     runs-on: ubuntu-latest
     # No `permissions:` block, matching _skaffold-build-k8s.yml: authentication uses the
     # service-account key in GCLOUD_REGISTRY_SA_KEY, not OIDC, so `id-token: write` buys

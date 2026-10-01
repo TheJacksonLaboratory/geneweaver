@@ -82,7 +82,7 @@ jobs:
       required-coverage: ${{ vars.REQUIRED_COVERAGE }}
 
   build:
-    name: "Build: Dev"
+    name: "Image build: Dev"
     needs: [test, check-coverage]
     uses: ./.github/workflows/_skaffold-build-k8s.yml
     secrets: inherit
@@ -99,7 +99,7 @@ jobs:
   # geneweaver-core >=0.20.0a0, and the public index only carries core up to 0.10.0a5, so
   # tools on its own is a package nobody can install.
   publish-packages:
-    name: "Publish: Dev index"
+    name: "Package publish: Dev index (internal)"
     needs: [test]
     uses: ./.github/workflows/_publish-package.yml
     secrets: inherit
