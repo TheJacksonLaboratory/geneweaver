@@ -100,17 +100,34 @@ jobs:
           else
             VERSION="$BASE"
           fi
-          # Every package in the chain moves together, so the inter-package constraints
-          # (tools requires core >= the workspace version) stay satisfiable. Rewritten in
-          # the CI workspace only: `version-check` runs on its own clean checkout.
+          # Every package in the chain moves to the same version, *and* their constraints
+          # on each other are repinned to it. Both halves are required: a `.devN` version
+          # sorts BELOW its base, so a wheel built as 0.20.0a0.devN while still declaring
+          # `geneweaver-core>=0.20.0a0` is unsatisfiable -- the core it was built with is
+          # lower than the constraint demands. Rewritten in the CI workspace only;
+          # `version-check` runs on its own clean checkout.
           for PKG in ${{ inputs.packages }}; do
-            python - "packages/${PKG#geneweaver-}/pyproject.toml" "$VERSION" <<'PY'
+            python - "packages/${PKG#geneweaver-}/pyproject.toml" "$VERSION" ${{ inputs.packages }} <<'PY'
           import re, sys
-          path, version = sys.argv[1], sys.argv[2]
+          path, version, siblings = sys.argv[1], sys.argv[2], sys.argv[3:]
           text = open(path).read()
           text = re.sub(r'^version = "[^"]+"', f'version = "{version}"', text, count=1, flags=re.M)
+          for sibling in siblings:
+              # Only strings that already carry a version specifier, e.g.
+              # "geneweaver-core>=0.20.0a0" or "geneweaver-db>=0.20.0a0,<1.0.0". Requiring
+              # the specifier is what keeps this off the bare `name = "geneweaver-core"`
+              # field, which must not be rewritten.
+              text = re.sub(
+                  rf'"{re.escape(sibling)}[><=~!][^"]*"',
+                  f'"{sibling}>={version}"',
+                  text,
+              )
           open(path, "w").write(text)
           PY
+          done
+          echo "--- resulting constraints:"
+          for PKG in ${{ inputs.packages }}; do
+            grep -nE '"geneweaver-[a-z]+' "packages/${PKG#geneweaver-}/pyproject.toml" || true
           done
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Publishing [${{ inputs.packages }}] as ${VERSION} (declared ${BASE})"
@@ -171,7 +188,9 @@ jobs:
           if [ -n "$EXTRAS" ]; then SPEC="${TARGET}[${EXTRAS}]"; fi
           uv venv /tmp/smoke --python '${{ inputs.smoke_python }}'
           VIRTUAL_ENV=/tmp/smoke uv pip install --find-links dist "$SPEC"
-          VIRTUAL_ENV=/tmp/smoke uv run python - <<'PY'
+          # The smoke interpreter directly, not `uv run`: inside this repository `uv run`
+          # resolves the workspace project and would ignore VIRTUAL_ENV entirely.
+          /tmp/smoke/bin/python - <<'PY'
           import importlib.metadata as md
           groups = ("jax.ats.plugins", "jax.ats.plugins.temporal.workflows",
                     "jax.ats.plugins.temporal.activities")
