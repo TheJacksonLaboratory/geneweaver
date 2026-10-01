@@ -23,7 +23,7 @@ from .schema import (
 
 try:
     import numpy as np
-    from scipy.cluster.hierarchy import linkage, to_tree
+    from scipy.cluster.hierarchy import linkage
     from scipy.spatial.distance import squareform
 except ImportError as exc:  # pragma: no cover - exercised only without the extra
     raise ImportError(
@@ -41,17 +41,37 @@ _METHOD_MAP = {
 }
 
 
-def _to_cluster_node(node: object, geneset_ids: list[str]) -> ClusterNode:
-    """Convert a scipy ClusterNode tree into the serialisable ClusterNode schema."""
-    if node.is_leaf():
-        return ClusterNode(geneset_id=geneset_ids[node.id])
-    return ClusterNode(
-        distance=float(node.dist),
-        children=[
-            _to_cluster_node(node.get_left(), geneset_ids),
-            _to_cluster_node(node.get_right(), geneset_ids),
-        ],
-    )
+def _tree_from_linkage(linkage_matrix: object, geneset_ids: list[str]) -> ClusterNode:
+    """Build the dendrogram from a SciPy linkage matrix.
+
+    Does the job of ``scipy.cluster.hierarchy.to_tree``, deliberately without calling it.
+    `to_tree` validates its input through SciPy's array-API compatibility layer, which
+    probes for Google's JAX by doing ``getattr(sys.modules["jax"], "Array")``. In this
+    project ``jax`` is a namespace package belonging to *Jackson Laboratory's*
+    ``jax-apiutils``, so that attribute does not exist and SciPy raises
+    ``AttributeError: module 'jax' has no attribute 'Array'`` -- which means this tool
+    fails for any caller that has imported ``jax.apiutils``, as the GeneWeaver API always
+    has. Nothing about the clustering needs that code path.
+
+    The linkage matrix format is stable and documented: row ``i`` merges the clusters named
+    by ``Z[i, 0]`` and ``Z[i, 1]`` at distance ``Z[i, 2]``, forming cluster ``n + i``. An
+    index below ``n`` is an original gene set; at or above ``n`` it is the cluster formed by
+    row ``index - n``. Left/right follow columns 0 and 1, matching `to_tree`.
+
+    Built iteratively rather than recursively: rows are ordered so every cluster exists
+    before it is referenced, and a deep dendrogram would otherwise risk the recursion limit.
+    """
+    leaf_count = len(geneset_ids)
+    nodes: dict[int, ClusterNode] = {
+        index: ClusterNode(geneset_id=geneset_id) for index, geneset_id in enumerate(geneset_ids)
+    }
+    for row_index, row in enumerate(linkage_matrix):
+        left, right, distance = int(row[0]), int(row[1]), float(row[2])
+        nodes[leaf_count + row_index] = ClusterNode(
+            distance=distance, children=[nodes[left], nodes[right]]
+        )
+    # The last merge is the root: it is the only cluster nothing else contains.
+    return nodes[leaf_count + len(linkage_matrix) - 1]
 
 
 def cluster_tree(
@@ -68,7 +88,7 @@ def cluster_tree(
     distance = (distance + distance.T) / 2.0
     condensed = squareform(distance, checks=False)
     linkage_matrix = linkage(condensed, method=_METHOD_MAP[method])
-    return _to_cluster_node(to_tree(linkage_matrix), geneset_ids)
+    return _tree_from_linkage(linkage_matrix, geneset_ids)
 
 
 class JaccardClustering(AbstractTool):

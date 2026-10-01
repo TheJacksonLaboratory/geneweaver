@@ -38,7 +38,7 @@
         ></p-dropdown>
       </div>
 
-      <div class="field col-12 md:col-2 flex align-items-end">
+      <div class="field col-12 md:col-2 flex align-items-end" *ngIf="isUpSet">
         <div class="field-checkbox mb-0">
           <p-checkbox
             inputId="includeZeros"
@@ -51,11 +51,79 @@
     </div>
 
     <p-message
+      *ngIf="toolsLoading"
+      severity="info"
+      text="Loading the available tools…"
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <p-message
+      *ngIf="toolsError"
+      severity="error"
+      [text]="'Could not load the tool list: ' + toolsError"
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <p-message
       *ngIf="selectedToolReason"
       severity="info"
       [text]="selectedToolReason"
       styleClass="w-full mb-3"
     ></p-message>
+
+    <!-- Qualifies a result that will succeed, so it is shown before running too. -->
+    <p-message
+      *ngIf="selectedToolCaveat && !selectedToolReason"
+      severity="warn"
+      [text]="selectedToolCaveat"
+      styleClass="w-full mb-3"
+    ></p-message>
+
+    <!-- The two tools whose schemas have no usable default. Everything else is
+         server-defaulted; when runs move to AsyncTask this form is generated from
+         odestatic.tool_param rather than written out. -->
+    <div class="formgrid grid" *ngIf="selectedTool === 'dbscan' && !selectedToolReason">
+      <div class="field col-6 md:col-3">
+        <label for="epsilon" class="block mb-2">Epsilon</label>
+        <input
+          id="epsilon"
+          type="number"
+          min="1"
+          pInputText
+          class="w-full"
+          [(ngModel)]="epsilon"
+        />
+      </div>
+      <div class="field col-6 md:col-3">
+        <label for="minPoints" class="block mb-2">Minimum points</label>
+        <input
+          id="minPoints"
+          type="number"
+          min="1"
+          pInputText
+          class="w-full"
+          [(ngModel)]="minPoints"
+        />
+      </div>
+    </div>
+
+    <div class="formgrid grid" *ngIf="selectedTool === 'boolean_algebra' && !selectedToolReason">
+      <div class="field col-12 md:col-4">
+        <label for="relation" class="block mb-2">Relation</label>
+        <p-dropdown
+          inputId="relation"
+          [options]="[
+            { label: 'Intersection', value: 'intersection' },
+            { label: 'Union', value: 'union' },
+            { label: 'Except', value: 'except' }
+          ]"
+          [(ngModel)]="relation"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+        ></p-dropdown>
+      </div>
+    </div>
 
     <p-message
       *ngIf="invalidEntries.length"
@@ -154,3 +222,33 @@
     </p-table>
   </p-card>
 </div>
+
+<!-- Every tool other than UpSet returns its own output shape. The ported tools dropped
+     legacy's SVG rendering, so each chart is net-new front-end work (roadmap F); until
+     then the result is shown as data so the tool can be exercised and checked. -->
+<p-card
+  *ngIf="genericResult"
+  class="block mt-3"
+  [header]="genericResult.tool + ' result'"
+>
+  <p class="mt-0 text-color-secondary">
+    Genes resolved per gene set:
+    <span *ngFor="let entry of genericResult.gene_counts | keyvalue">
+      {{ entry.key }}: {{ entry.value }}&nbsp;
+    </span>
+  </p>
+
+  <p-message
+    *ngIf="genericResult.caveat"
+    severity="warn"
+    [text]="genericResult.caveat"
+    styleClass="w-full mb-3"
+  ></p-message>
+
+  <p class="text-color-secondary">
+    This tool has no visualisation yet — the raw result is shown so it can be checked.
+  </p>
+  <pre class="overflow-auto p-3 surface-100 border-round" style="max-height: 28rem">{{
+    genericResult.result | json
+  }}</pre>
+</p-card>

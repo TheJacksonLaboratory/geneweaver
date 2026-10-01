@@ -95,3 +95,73 @@ def test_in_process_runner_runs_the_real_tool() -> None:
     )
     sizes = {tuple(i.genesets): i.size for i in output.intersections}
     assert sizes == {("1", "2"): 1, ("1",): 1}
+
+
+def test_list_tools_reports_every_registered_tool(client) -> None:
+    """The Analyze page builds its picker from this, so it must be complete."""
+    response = client.get("/api/tools")
+
+    assert response.status_code == 200
+    tools = response.json()["object"]["tools"]
+    assert len(tools) == 9
+    for missing_before in (
+        "boolean_algebra",
+        "combine",
+        "jaccard_clustering",
+        "jaccard_similarity",
+    ):
+        assert missing_before in tools
+    assert tools["mset"]["available"] is False
+    assert tools["upset"]["available"] is True
+
+
+def test_generic_endpoint_runs_a_tool(client) -> None:
+    """DBSCAN through the generic route, with its required parameters."""
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+            return_value={"1": ["A", "B", "C"], "2": ["B", "C", "D"]},
+        ),
+    ):
+        response = client.post(
+            "/api/tools/dbscan",
+            json={"geneset_ids": [1, 2], "parameters": {"epsilon": 1, "min_points": 2}},
+        )
+
+    assert response.status_code == 200
+    body = response.json()["object"]
+    assert body["tool"] == "dbscan"
+    assert body["gene_counts"] == {"1": 3, "2": 3}
+    assert "ran" in body["result"]
+
+
+def test_generic_endpoint_refuses_a_binary_backed_tool_with_409(client) -> None:
+    """Registered but not runnable here: a conflict with server state, not a bad request."""
+    with patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True):
+        response = client.post("/api/tools/mset", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 409
+    assert "native-worker" in response.json()["detail"]
+
+
+def test_generic_endpoint_returns_404_for_an_unknown_tool(client) -> None:
+    """A name that is not registered at all."""
+    response = client.post("/api/tools/nonexistent", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 404
+
+
+def test_generic_endpoint_refuses_unreadable_genesets(client) -> None:
+    """The access gate applies to every tool, not just the UpSet route."""
+    with patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=False):
+        response = client.post("/api/tools/hypergeometric", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 403
+
+
+def test_generic_endpoint_rejects_duplicate_genesets(client) -> None:
+    """Duplicates would silently describe fewer gene sets than were asked for."""
+    response = client.post("/api/tools/upset", json={"geneset_ids": [1, 1]})
+
+    assert response.status_code == 422

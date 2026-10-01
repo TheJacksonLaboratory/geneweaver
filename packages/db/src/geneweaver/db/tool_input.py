@@ -15,7 +15,6 @@ about users. Callers must gate first.
 from typing import Any
 
 from geneweaver.core.enum import GeneIdentifier
-from geneweaver.db.gene import symbols_by_geneset_id
 from psycopg import Cursor
 
 
@@ -31,23 +30,143 @@ def _symbol(row: Any) -> str:
 
 
 def gene_symbols_by_geneset(cursor: Cursor, geneset_ids: list[int]) -> dict[str, list[str]]:
-    """Map each gene set id to its preferred gene symbols.
+    """Map each gene set id to its preferred, in-threshold gene symbols.
 
-    This is the input shape shared by the membership-based tools -- UpSet, DBSCAN and
-    PhenomeMap all want "the genes in each of these sets".
+    This is the input shape shared by the membership-based tools -- UpSet, DBSCAN,
+    HyperGeometric, JaccardClustering and PhenomeMap all want "the genes in each of these
+    sets".
 
-    Uses the same filter the legacy tools did (``gdb_id = 7``, ``ode_pref = 't'``), so a
-    set resolves to the same symbols the legacy worker would have received.
+    Uses the filter the legacy tools did: ``gdb_id = 7`` and ``ode_pref = 't'`` for the
+    preferred symbol, and **``gsv_in_threshold``** for membership. That last one matters:
+    every resolver in ``scripts/validation/`` filters on it, as legacy's ``TOOLSET_SQL``
+    does, and without it a gene set contributes genes the legacy worker would have
+    excluded. On dev, 5.7% of gene sets carry below-threshold genes, so for those sets the
+    unfiltered result is a different analysis, not a rounding difference.
+
+    Tables are schema-qualified rather than relying on ``search_path``: v3 puts ``public``
+    first where legacy omits it, so an unqualified name does not necessarily resolve to the
+    same table in both (see G3-827).
 
     :param cursor: The database cursor.
     :param geneset_ids: The gene sets to resolve, in the caller's order.
     :return: ``{geneset_id_as_str: [symbol, ...]}``, preserving input order.
     """
-    memberships: dict[str, list[str]] = {}
-    for geneset_id in geneset_ids:
-        rows = symbols_by_geneset_id(cursor, geneset_id)
-        memberships[str(geneset_id)] = [_symbol(row) for row in rows]
+    memberships: dict[str, list[str]] = {str(geneset_id): [] for geneset_id in geneset_ids}
+    if not geneset_ids:
+        return memberships
+    cursor.execute(
+        """
+        SELECT gv.gs_id, g.ode_ref_id
+        FROM extsrc.geneset_value gv
+        JOIN extsrc.gene g ON g.ode_gene_id = gv.ode_gene_id
+        WHERE gv.gs_id = ANY(%(geneset_ids)s)
+          AND gv.gsv_in_threshold
+          AND g.gdb_id = 7
+          AND g.ode_pref = 't';
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    for row in cursor.fetchall():
+        geneset_id, symbol = (row["gs_id"], row["ode_ref_id"]) if isinstance(row, dict) else row
+        if symbol is not None:
+            memberships[str(geneset_id)].append(symbol)
     return memberships
+
+
+def membership_rows(cursor: Cursor, geneset_ids: list[int]) -> list[list]:
+    """``(gs_id, ode_gene_id, ode_ref_id)`` for in-threshold members -- Combine's matrix.
+
+    Promoted from legacy ``TOOLSET_SQL[0]``, schema-qualified.
+    """
+    cursor.execute(
+        """
+        SELECT gv.gs_id, gv.ode_gene_id, g.ode_ref_id
+        FROM extsrc.geneset_value gv
+        JOIN extsrc.gene g ON g.ode_gene_id = gv.ode_gene_id
+        WHERE gv.gsv_in_threshold AND gv.gs_id = ANY(%(geneset_ids)s) AND g.ode_pref;
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    return [
+        list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()
+    ]
+
+
+def homology_pairs(cursor: Cursor, geneset_ids: list[int]) -> list[list]:
+    """``(left_ode_gene_id, right_ode_gene_id, hom_id)`` across the given gene sets.
+
+    Promoted from legacy ``TOOLSET_SQL[1]``, schema-qualified. Combine and BooleanAlgebra
+    use it to treat orthologous genes as the same gene across species.
+    """
+    cursor.execute(
+        """
+        SELECT a.ode_gene_id AS left_ode_gene_id,
+               b.ode_gene_id AS right_ode_gene_id,
+               a.hom_id
+        FROM extsrc.homology a, extsrc.homology b
+        WHERE a.hom_id = b.hom_id
+          AND a.ode_gene_id <> b.ode_gene_id
+          AND a.ode_gene_id IN (SELECT DISTINCT ode_gene_id FROM extsrc.geneset_value
+                                WHERE gsv_in_threshold AND gs_id = ANY(%(geneset_ids)s))
+          AND b.ode_gene_id IN (SELECT DISTINCT ode_gene_id FROM extsrc.geneset_value
+                                WHERE gsv_in_threshold AND gs_id = ANY(%(geneset_ids)s))
+        GROUP BY left_ode_gene_id, right_ode_gene_id, a.hom_id;
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    return [
+        list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()
+    ]
+
+
+def geneset_labels(cursor: Cursor, geneset_ids: list[int]) -> list[list]:
+    """``(gs_id, gs_name, gs_abbreviation)`` -- Combine's column headers.
+
+    Promoted from legacy ``TOOLSET_SQL[2]``, schema-qualified.
+    """
+    cursor.execute(
+        """
+        SELECT gs_id, gs_name, gs_abbreviation
+        FROM production.geneset
+        WHERE gs_id = ANY(%(geneset_ids)s);
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    return [
+        list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()
+    ]
+
+
+def jaccard_distributions(cursor: Cursor) -> list[dict]:
+    """Null distributions JaccardSimilarity turns similarity into a p-value with.
+
+    Grouped into one distribution per ``(set_size1, set_size2, homology)``, which is the
+    shape ``JaccardDistribution`` wants.
+
+    Note on the data: the roadmap records this table as empty across local/dev/sqa, which
+    is why the tool was treated as inert. On dev it holds 2,731 rows -- so the claim is at
+    least out of date there. Coverage is what matters, not row count: a pair whose sizes
+    have no distribution still gets no p-value, so callers should check the result rather
+    than assume.
+    """
+    cursor.execute(
+        """
+        SELECT set_size1, set_size2, homology, jaccard_coef, frequency
+        FROM extsrc.jaccard_distribution_results
+        ORDER BY set_size1, set_size2, jaccard_coef;
+        """
+    )
+    grouped: dict[tuple, list[tuple[float, int]]] = {}
+    for row in cursor.fetchall():
+        if isinstance(row, dict):
+            key = (row["set_size1"], row["set_size2"], row["homology"])
+            grouped.setdefault(key, []).append((float(row["jaccard_coef"]), int(row["frequency"])))
+        else:
+            grouped.setdefault((row[0], row[1], row[2]), []).append((float(row[3]), int(row[4])))
+    return [
+        {"set_size1": a, "set_size2": b, "homology": hom, "frequencies": freqs}
+        for (a, b, hom), freqs in grouped.items()
+    ]
 
 
 def species_by_geneset(cursor: Cursor, geneset_ids: list[int]) -> dict[int, int]:

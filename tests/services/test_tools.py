@@ -155,3 +155,81 @@ def test_upset_request_bounds_match_the_ui() -> None:
             f"{name} in analyze.component.ts does not match the API's {value}; "
             "the page will enable or refuse runs the API disagrees with"
         )
+
+
+class TestToolAvailability:
+    """What the API reports it can run, which the UI's picker is built from."""
+
+    def test_every_registered_tool_is_reported(self) -> None:
+        """The picker used to list five of nine; the list must come from the registry."""
+        assert len(tool_service.available_tools()) == 9
+        assert set(tool_service.tool_availability()) == set(tool_service.available_tools())
+
+    def test_the_binary_backed_tools_are_unavailable_in_process(self) -> None:
+        """The API image carries no TOOLBOX binaries -- those run on the native worker."""
+        availability = tool_service.tool_availability()
+        for name in ("mset", "phenome_map"):
+            assert availability[name]["available"] is False
+            assert "AsyncTask" in availability[name]["reason"]
+
+    def test_the_other_seven_are_available(self) -> None:
+        """Pins the set, so adding a tool without a resolver fails here."""
+        availability = tool_service.tool_availability()
+        runnable = sorted(n for n, s in availability.items() if s["available"])
+        assert runnable == [
+            "boolean_algebra",
+            "combine",
+            "dbscan",
+            "hypergeometric",
+            "jaccard_clustering",
+            "jaccard_similarity",
+            "upset",
+        ]
+
+    def test_jaccard_similarity_carries_its_caveat(self) -> None:
+        """It runs, but its p-values depend on distribution coverage."""
+        state = tool_service.tool_availability()["jaccard_similarity"]
+        assert state["available"] is True
+        assert "p-value" in state["caveat"]
+
+    def test_every_available_tool_has_an_input_builder(self) -> None:
+        """Otherwise a run fails on the tool's own schema rather than saying why."""
+        for name, state in tool_service.tool_availability().items():
+            if state["available"]:
+                assert name in tool_service.INPUT_BUILDERS
+
+
+class TestRunToolGuards:
+    """`run_tool` must refuse clearly, and must gate before doing any work."""
+
+    def test_an_unknown_tool_raises_lookup_error(self, mock_cursor) -> None:
+        """Distinct from "cannot run here" -- the endpoint maps it to 404."""
+        with pytest.raises(LookupError, match="nonexistent"):
+            tool_service.run_tool(mock_cursor, "nonexistent", [1, 2])
+
+    @pytest.mark.parametrize("name", ["mset", "phenome_map"])
+    def test_a_binary_backed_tool_raises_value_error(self, name: str, mock_cursor) -> None:
+        """Distinct from LookupError: registered, but not runnable here (409, not 404)."""
+        with pytest.raises(ValueError, match="native-worker"):
+            tool_service.run_tool(mock_cursor, name, [1, 2])
+
+    def test_an_unavailable_tool_is_refused_before_the_access_gate(self, mock_cursor) -> None:
+        """No point querying readability for a run that cannot happen."""
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable,
+            pytest.raises(ValueError),
+        ):
+            tool_service.run_tool(mock_cursor, "mset", [1, 2])
+        readable.assert_not_called()
+
+    def test_an_unreadable_geneset_is_refused_before_the_tool_runs(self, mock_cursor) -> None:
+        """The security-relevant ordering: gate, then resolve."""
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=False),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset"
+            ) as resolve,
+            pytest.raises(HTTPException),
+        ):
+            tool_service.run_tool(mock_cursor, "upset", [1, 2])
+        resolve.assert_not_called()
