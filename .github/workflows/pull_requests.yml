@@ -18,6 +18,7 @@ on:
       - '.github/workflows/_check-coverage-action.yml'
       - '.github/workflows/_skaffold-build-k8s.yml'
       - '.github/workflows/_skaffold-deploy-k8s.yml'
+      - '.github/workflows/_publish-package.yml'
 
 jobs:
   format-lint:
@@ -87,6 +88,26 @@ jobs:
     secrets: inherit
     with:
       default_image_repo: "us-east1-docker.pkg.dev/jax-cs-registry/docker-test/geneweaver"
+
+  # Publishes the workspace packages to the dev/sqa Python index from the PR itself, with
+  # no merge and no tag -- the same shape as the image build above, and as legacy's
+  # pipeline. AsyncTask lives in another repository and cannot test its integration until
+  # the package exists, so gating this behind a merge to main would mean the integration is
+  # only ever exercised after it is too late to change.
+  #
+  # The whole dependency chain is published, in order: geneweaver-tools 0.20.0a0 requires
+  # geneweaver-core >=0.20.0a0, and the public index only carries core up to 0.10.0a5, so
+  # tools on its own is a package nobody can install.
+  publish-packages:
+    name: "Publish: Dev index"
+    needs: [test]
+    uses: ./.github/workflows/_publish-package.yml
+    secrets: inherit
+    with:
+      packages: "geneweaver-core geneweaver-db geneweaver-tools"
+      smoke_package: "geneweaver-tools"
+      extras: "sklearn temporal"
+      dev_release: true
 
   deploy:
     name: "Deploy: Dev"

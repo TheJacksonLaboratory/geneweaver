@@ -1,0 +1,240 @@
+name: 'Publish Workspace Package'
+
+# Builds a workspace package from `packages/` and publishes it to a private Artifact
+# Registry Python index, so other services can depend on it.
+#
+# Mirrors how the legacy pipeline treats container images: build and publish run on the
+# PR, unconditionally, and only the *deploy* sits behind an environment review gate. A
+# consumer in another repository (AsyncTask) can therefore pick up a branch's package
+# without that branch being merged, which is the whole point -- the integration cannot be
+# tested until the package exists.
+#
+# Versioning. Artifact Registry rejects re-uploading a version that already exists, so a
+# PR build cannot publish the bare version from `pyproject.toml`. It publishes
+# `<version>.dev<run_number>` instead: PEP 440 valid, monotonic across runs, and a genuine
+# pre-release of the version being worked towards.
+#
+# One consequence worth knowing, because it is silent if you get it wrong:
+# `0.20.0a0.dev5` sorts *below* `0.20.0a0`, so a caret constraint like `^0.20.0a0` will
+# **not** resolve to it. A consumer wanting a PR build either pins it exactly (what the job
+# summary gives you) or allows pre-releases with `>=0.20.0a0.dev0`. That ordering is
+# deliberate: a dev build should never outrank a real release.
+
+on:
+  workflow_call:
+    inputs:
+      packages:
+        description: >
+          Space-separated workspace packages to publish, in dependency order. The whole
+          chain must go: geneweaver-tools 0.20.0a0 requires geneweaver-core >=0.20.0a0,
+          and PyPI only carries core up to 0.10.0a5, so publishing tools alone yields a
+          package nobody can install.
+        required: true
+        type: string
+      smoke_package:
+        description: 'Which package to load entry points from in the smoke test'
+        required: false
+        default: ''
+        type: string
+      extras:
+        description: 'Space-separated extras whose imports to smoke-test after build'
+        required: false
+        default: ''
+        type: string
+      smoke_python:
+        description: >
+          Python version for the smoke environment. Defaults to AsyncTask's 3.11, so the
+          wheels are proved against the consumer's interpreter rather than the newest one
+          the runner happens to have -- numpy and scikit-learn only ship wheels for a
+          window of versions, and resolution differs outside it.
+        required: false
+        default: '3.11'
+        type: string
+      dev_release:
+        description: 'Publish <version>.dev<run_number> rather than the bare version'
+        required: false
+        default: true
+        type: boolean
+      publish_url:
+        description: 'Artifact Registry Python index to publish to'
+        required: false
+        default: 'https://us-east1-python.pkg.dev/jax-cs-registry/python-dev/'
+        type: string
+    outputs:
+      version:
+        description: 'The version that was published'
+        value: ${{ jobs.publish.outputs.version }}
+
+jobs:
+  publish:
+    name: "Build and publish"
+    runs-on: ubuntu-latest
+    # No `permissions:` block, matching _skaffold-build-k8s.yml: authentication uses the
+    # service-account key in GCLOUD_REGISTRY_SA_KEY, not OIDC, so `id-token: write` buys
+    # nothing -- and a reusable workflow cannot be granted more than its caller holds.
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set the versions to publish
+        id: version
+        run: |
+          set -euo pipefail
+          BASE=""
+          for PKG in ${{ inputs.packages }}; do
+            TOML="packages/${PKG#geneweaver-}/pyproject.toml"
+            if [ ! -f "$TOML" ]; then
+              echo "::error::No package directory for ${PKG}"
+              exit 1
+            fi
+            PKG_BASE=$(grep -m1 '^version = ' "$TOML" | cut -d '"' -f 2)
+            BASE="${BASE:-$PKG_BASE}"
+            if [ "$PKG_BASE" != "$BASE" ]; then
+              echo "::error::${PKG} is ${PKG_BASE}, expected ${BASE}; run ./scripts/sync-versions.sh"
+              exit 1
+            fi
+          done
+          if [ "${{ inputs.dev_release }}" = "true" ]; then
+            VERSION="${BASE}.dev${{ github.run_number }}"
+          else
+            VERSION="$BASE"
+          fi
+          # Every package in the chain moves together, so the inter-package constraints
+          # (tools requires core >= the workspace version) stay satisfiable. Rewritten in
+          # the CI workspace only: `version-check` runs on its own clean checkout.
+          for PKG in ${{ inputs.packages }}; do
+            python - "packages/${PKG#geneweaver-}/pyproject.toml" "$VERSION" <<'PY'
+          import re, sys
+          path, version = sys.argv[1], sys.argv[2]
+          text = open(path).read()
+          text = re.sub(r'^version = "[^"]+"', f'version = "{version}"', text, count=1, flags=re.M)
+          open(path, "w").write(text)
+          PY
+          done
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing [${{ inputs.packages }}] as ${VERSION} (declared ${BASE})"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          for PKG in ${{ inputs.packages }}; do
+            echo "=== building ${PKG}"
+            uv build --package "${PKG}" --out-dir dist
+          done
+
+      - name: Verify the distributions
+        run: |
+          set -euo pipefail
+          # A green build with no artefact is worse than a failed build.
+          test -n "$(ls -A dist)" || { echo "::error::uv build produced no artefacts"; exit 1; }
+          ls -l dist
+          for PKG in ${{ inputs.packages }}; do
+            UNDER=$(echo "$PKG" | tr '-' '_')
+            ls dist/${UNDER}-${{ steps.version.outputs.version }}-*.whl >/dev/null 2>&1 \
+              || { echo "::error::no wheel for ${PKG} at ${{ steps.version.outputs.version }}"; exit 1; }
+          done
+          if [ -n "${{ inputs.smoke_package }}" ]; then
+            UNDER=$(echo "${{ inputs.smoke_package }}" | tr '-' '_')
+            WHEEL=$(ls dist/${UNDER}-*.whl)
+            # Entry points are how AsyncTask discovers the plugin; missing from the wheel
+            # metadata, the package installs fine and does nothing.
+            python - "$WHEEL" <<'PY'
+          import sys, zipfile
+          wheel = sys.argv[1]
+          names = zipfile.ZipFile(wheel).namelist()
+          entry_points = [n for n in names if n.endswith("entry_points.txt")]
+          if not entry_points:
+              sys.exit("::error::wheel has no entry_points.txt")
+          print(zipfile.ZipFile(wheel).read(entry_points[0]).decode())
+          PY
+          fi
+
+      - name: Smoke-test the built wheels together
+        if: inputs.smoke_package != ''
+        run: |
+          set -euo pipefail
+          # Installs the built wheels into a clean environment, resolving *only* from
+          # ./dist for the workspace packages. This is what catches a chain that cannot be
+          # installed -- publishing geneweaver-tools without geneweaver-core at a matching
+          # version produces a package whose dependency is unsatisfiable anywhere.
+          EXTRAS=$(echo "${{ inputs.extras }}" | tr ' ' ',')
+          UNDER=$(echo "${{ inputs.smoke_package }}" | tr '-' '_')
+          TARGET=$(ls dist/${UNDER}-*.whl)
+          SPEC="${TARGET}"
+          if [ -n "$EXTRAS" ]; then SPEC="${TARGET}[${EXTRAS}]"; fi
+          uv venv /tmp/smoke --python '${{ inputs.smoke_python }}'
+          VIRTUAL_ENV=/tmp/smoke uv pip install --find-links dist "$SPEC"
+          VIRTUAL_ENV=/tmp/smoke uv run python - <<'PY'
+          import importlib.metadata as md
+          groups = ("jax.ats.plugins", "jax.ats.plugins.temporal.workflows",
+                    "jax.ats.plugins.temporal.activities")
+          for group in groups:
+              found = list(md.entry_points(group=group))
+              assert found, f"no entry points in {group}"
+              for entry_point in found:
+                  entry_point.load()
+                  print(f"{group}: {entry_point.name} loads")
+          print("installed:", md.version("geneweaver-tools"))
+          PY
+
+      - name: Check publish credentials are configured
+        env:
+          SA_KEY: ${{ secrets.GCLOUD_REGISTRY_SA_KEY }}
+        run: |
+          if [ -z "${SA_KEY}" ]; then
+            echo "::error::GCLOUD_REGISTRY_SA_KEY is not set. It must hold a JSON key for a service account with artifactregistry.writer on the target index."
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCLOUD_REGISTRY_SA_KEY }}'
+
+      - name: Setup Gcloud
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: Report the publishing identity
+        run: |
+          set -euo pipefail
+          ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+          echo "Publishing as: ${ACCOUNT}"
+          echo "If the upload is refused, this account lacks artifactregistry.writer on the"
+          echo "target index -- grant it, or point this workflow at a secret holding an"
+          echo "account that has it."
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          # Artifact Registry accepts a short-lived access token as the password with the
+          # fixed username `oauth2accesstoken`, so no keyring plugin is needed.
+          uv publish \
+            --publish-url "${{ inputs.publish_url }}" \
+            --username oauth2accesstoken \
+            --password "$(gcloud auth print-access-token)" \
+            dist/*
+
+      - name: Summarise how to consume it
+        run: |
+          {
+            echo "### Published \`${{ inputs.packages }}\` at \`${{ steps.version.outputs.version }}\`"
+            echo
+            echo "Index: \`${{ inputs.publish_url }}\`"
+            echo
+            echo "A dev build sorts *below* its base version, so a caret constraint will not"
+            echo "pick it up. To consume this exact build (Poetry):"
+            echo
+            echo '```toml'
+            echo 'geneweaver-tools = { version = "${{ steps.version.outputs.version }}", extras = ["sklearn", "temporal"], source = "gcp-dev" }'
+            echo '```'
+            echo
+            echo "Or track the newest dev build by allowing pre-releases:"
+            echo '`>=$(echo ${{ steps.version.outputs.version }} | cut -d. -f1-3).dev0`'
+          } >> "$GITHUB_STEP_SUMMARY"
