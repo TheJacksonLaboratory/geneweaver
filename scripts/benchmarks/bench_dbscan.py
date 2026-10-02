@@ -55,18 +55,17 @@ def run_binary(gene_symbols, epsilon, min_pts):
 def run_sklearn(gene_symbols, epsilon, min_pts):
     """Time the in-process (default) DBSCAN end-to-end."""
     t0 = time.perf_counter()
-    out = DBSCAN().run(
-        DBSCANInput(gene_symbols=gene_symbols, epsilon=epsilon, min_points=min_pts)
-    )
+    out = DBSCAN().run(DBSCANInput(gene_symbols=gene_symbols, epsilon=epsilon, min_points=min_pts))
     return out.clusters, (time.perf_counter() - t0) * 1000
 
 
 def agreement_section():
+    rows = []
     print("=== AGREEMENT (real graph) ===")
     graph_json = os.environ.get("GENEWEAVER_DBSCAN_GRAPH_JSON")
     if not graph_json:
         print("  (set GENEWEAVER_DBSCAN_GRAPH_JSON to a gene-symbols dump to run this)\n")
-        return
+        return rows
     with open(graph_json) as fh:
         gene_symbols = json.load(fh)
     for eps, mp in [(1, 2), (1, 3), (2, 3), (2, 5)]:
@@ -76,15 +75,26 @@ def agreement_section():
         # also report coverage overlap to characterise *how* they differ
         bg = {g for c in bc for g in c}
         sg = {g for c in sc for g in c}
+        rows.append(
+            {
+                "epsilon": eps,
+                "min_points": mp,
+                "binary_clusters": len(bc),
+                "sklearn_clusters": len(sc),
+                "identical": bool(same),
+            }
+        )
         print(
             f"  eps={eps} minPts={mp}: binary {len(bc)} clusters / {len(bg)} genes, "
             f"sklearn {len(sc)} clusters / {len(sg)} genes  -> "
             f"{'IDENTICAL' if same else f'differ (clustered-gene Jaccard {len(bg & sg)}/{len(bg | sg)})'}"
         )
     print()
+    return rows
 
 
 def speed_section():
+    rows = []
     print("=== SPEED (synthetic, eps=2 minPts=3) ===")
     header = f"{'genes':>6} {'sets':>5} | {'binary(ms)':>11} | {'sklearn(ms)':>12} | {'speedup':>8} | agree"
     print(header)
@@ -105,19 +115,49 @@ def speed_section():
             note = f"binary failed: {str(e)[:40]}"
         sc, st = run_sklearn(gs, 2, 3)
         if bt is None:
+            rows.append(
+                {
+                    "genes": n_genes,
+                    "sets": n_sets,
+                    "binary_ms": None,
+                    "sklearn_ms": round(st, 2),
+                    "speedup": None,
+                    "agree": None,
+                }
+            )
             print(f"{n_genes:>6} {n_sets:>5} | {'--':>11} | {st:>12.1f} | {'--':>8} | {note}")
             continue
         speedup = bt / st if st else float("inf")
         agree = as_clusters(bc) == as_clusters(sc)
+        rows.append(
+            {
+                "genes": n_genes,
+                "sets": n_sets,
+                "binary_ms": round(bt, 2),
+                "sklearn_ms": round(st, 2),
+                "speedup": round(speedup, 2),
+                "agree": bool(agree),
+            }
+        )
         print(
             f"{n_genes:>6} {n_sets:>5} | {bt:>11.1f} | {st:>12.1f} | "
             f"{speedup:>7.2f}x | {'yes' if agree else 'no'}"
         )
+    return rows
+
+
+RESULTS = os.path.join(os.path.dirname(__file__), "results")
 
 
 def main():
-    agreement_section()
-    speed_section()
+    agreement = agreement_section()
+    speed = speed_section()
+    # Measurements on disk so the charts are drawn from them, not from hand-copied numbers.
+    os.makedirs(RESULTS, exist_ok=True)
+    path = os.path.join(RESULTS, "dbscan.json")
+    with open(path, "w") as handle:
+        json.dump({"agreement": agreement, "speed": speed}, handle, indent=2)
+    print(f"wrote {path}")
 
 
 if __name__ == "__main__":

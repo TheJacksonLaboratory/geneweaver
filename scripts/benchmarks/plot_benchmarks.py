@@ -13,6 +13,7 @@ PNGs are written to docs/tools/img/.
 
 from __future__ import annotations
 
+import json
 import os
 
 import matplotlib
@@ -21,12 +22,35 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "tools", "img")
+RESULTS = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(OUT, exist_ok=True)
+
+
+def load(name):
+    """Read a benchmark's measurements.
+
+    Every series below used to be a literal list copied by hand out of a benchmark run.
+    That cannot be checked and cannot go stale visibly: the chart and the table in
+    TOOLS_BENCHMARKS.md could disagree with what the code now does and nothing would say
+    so. The benchmarks write JSON into `results/`; this reads it.
+
+    :raises SystemExit: If the measurements are missing, naming the script to run. Drawing
+        a chart from no data would be worse than not drawing one.
+    """
+    path = os.path.join(RESULTS, f"{name}.json")
+    if not os.path.exists(path):
+        raise SystemExit(
+            f"missing {path} -- run scripts/benchmarks/bench_{name}.py first "
+            "(DBSCAN additionally needs GENEWEAVER_DBSCAN_BINARY)"
+        )
+    with open(path) as handle:
+        return json.load(handle)
+
 
 plt.rcParams.update({"figure.dpi": 130, "font.size": 10, "axes.grid": True, "grid.alpha": 0.3})
 
-PORT = "#1b7837"   # green  - the Python port / in-process impl
-LEG = "#762a83"    # purple - the legacy / binary baseline
+PORT = "#1b7837"  # green  - the Python port / in-process impl
+LEG = "#762a83"  # purple - the legacy / binary baseline
 
 
 def save(fig, name):
@@ -39,10 +63,11 @@ def save(fig, name):
 
 # --- 1. DBSCAN: in-process sklearn vs the C++ binary -------------------------------------
 def plot_dbscan():
-    genes = [100, 500, 1000, 2000, 5000]
-    binary = [17.2, 540.4, 3634.4, 26774.3, 358390.8]
-    sklearn = [5.0, 45.9, 212.9, 955.6, 5877.2]
-    speedup = [b / s for b, s in zip(binary, sklearn)]
+    rows = [row for row in load("dbscan")["speed"] if row["binary_ms"] is not None]
+    genes = [row["genes"] for row in rows]
+    binary = [row["binary_ms"] for row in rows]
+    sklearn = [row["sklearn_ms"] for row in rows]
+    speedup = [row["speedup"] for row in rows]
 
     fig, ax = plt.subplots(figsize=(7, 4.2))
     ax.plot(genes, binary, "o-", color=LEG, label="C++ binary (subprocess)")
@@ -53,17 +78,25 @@ def plot_dbscan():
     ax.set_ylabel("end-to-end wall time (ms, log scale)")
     ax.set_title("DBSCAN — in-process port vs C++ binary (eps=2, minPts=3)")
     for x, b, s, sp in zip(genes, binary, sklearn, speedup):
-        ax.annotate(f"{sp:.0f}×", (x, s), textcoords="offset points", xytext=(0, -14),
-                    ha="center", fontsize=8, color=PORT)
+        ax.annotate(
+            f"{sp:.0f}×",
+            (x, s),
+            textcoords="offset points",
+            xytext=(0, -14),
+            ha="center",
+            fontsize=8,
+            color=PORT,
+        )
     ax.legend()
     save(fig, "dbscan_speed.png")
 
 
 # --- 2. JaccardClustering: scipy linkage vs hand-rolled agglomerative --------------------
 def plot_jaccard():
-    n = [10, 25, 50, 100, 150, 200]
-    legacy = [0.1, 1.1, 7.6, 57.9, 189.3, 446.2]
-    scipy = [2.5, 0.4, 0.8, 1.6, 2.2, 4.3]
+    rows = load("jaccard_clustering")["speed"]
+    n = [row["genesets"] for row in rows]
+    legacy = [row["legacy_ms"] for row in rows]
+    scipy = [row["port_ms"] for row in rows]
 
     fig, ax = plt.subplots(figsize=(7, 4.2))
     ax.plot(n, legacy, "o-", color=LEG, label="legacy hand-rolled (Python)")
@@ -75,18 +108,26 @@ def plot_jaccard():
     # speedup callouts for the meaningful (warmed-up) sizes
     for x, le, sc in zip(n, legacy, scipy):
         if x >= 50:
-            ax.annotate(f"{le / sc:.0f}×", (x, le), textcoords="offset points",
-                        xytext=(0, 6), ha="center", fontsize=8, color=PORT)
+            ax.annotate(
+                f"{le / sc:.0f}×",
+                (x, le),
+                textcoords="offset points",
+                xytext=(0, 6),
+                ha="center",
+                fontsize=8,
+                color=PORT,
+            )
     ax.legend()
     save(fig, "jaccard_speed.png")
 
 
 # --- 3. HyperGeometric: math.comb port vs legacy combtl-float ----------------------------
 def plot_hypergeometric():
-    universe = [50, 100, 200, 400, 800]
-    legacy = [3.5, 8.6, 26.1, 103.2, 403.7]
-    port = [1.2, 3.0, 10.4, 54.4, 354.9]
-    ratio = [le / p for le, p in zip(legacy, port)]
+    rows = load("hypergeometric")["speed"]
+    universe = [row["universe"] for row in rows]
+    legacy = [row["legacy_ms"] for row in rows]
+    port = [row["port_ms"] for row in rows]
+    ratio = [row["ratio"] for row in rows]
 
     x = range(len(universe))
     w = 0.38
@@ -99,18 +140,26 @@ def plot_hypergeometric():
     ax.set_ylabel("wall time (ms, 200 tables)")
     ax.set_title("HyperGeometric — exact math.comb vs legacy combtl  (port also fixes a bug)")
     for i, (le, r) in enumerate(zip(legacy, ratio)):
-        ax.annotate(f"{r:.1f}×", (i, le), textcoords="offset points", xytext=(0, 4),
-                    ha="center", fontsize=8, color=PORT)
+        ax.annotate(
+            f"{r:.1f}×",
+            (i, le),
+            textcoords="offset points",
+            xytext=(0, 4),
+            ha="center",
+            fontsize=8,
+            color=PORT,
+        )
     ax.legend()
     save(fig, "hypergeometric_speed.png")
 
 
 # --- 4. PhenomeMap KS: legacy asymptotic KS vs scipy.stats.ks_2samp (reverted) -----------
 def plot_phenomemap_ks():
-    n = [10, 50, 200, 1000]
-    legacy = [23.6, 45.3, 149.3, 1167.5]
-    scipy = [258.4, 287.0, 429.1, 1517.5]
-    dp = [1.12e-01, 4.10e-02, 1.81e-02, 3.33e-02]
+    rows = load("phenomemap_ks")["speed"]
+    n = [row["n"] for row in rows]
+    legacy = [row["legacy_ms"] for row in rows]
+    scipy = [row["scipy_ms"] for row in rows]
+    dp = [row["max_abs_dp"] for row in rows]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.2))
     x = range(len(n))
@@ -137,9 +186,26 @@ def plot_phenomemap_ks():
 
 # --- 5. Verdict summary: speedup of the port across tools --------------------------------
 def plot_summary():
-    labels = ["DBSCAN\n(5k genes)", "JaccardClustering\n(200 sets)",
-              "HyperGeometric\n(universe 50)", "PhenomeMap KS\n(n=200)"]
-    speedups = [60.98, 104.5, 2.92, 149.3 / 429.1]
+    # Largest size at which the comparison is actually possible, per tool. For DBSCAN that
+    # is the largest graph the *binary* can still process: past it the binary fails with
+    # E2BIG rather than running slowly, so there is no ratio to report.
+    dbscan = [row for row in load("dbscan")["speed"] if row["speedup"] is not None]
+    jaccard = load("jaccard_clustering")["speed"][-1]
+    hyper = load("hypergeometric")["speed"][0]
+    ks = [row for row in load("phenomemap_ks")["speed"] if row["n"] == 200][0]
+
+    labels = [
+        f"DBSCAN\n({dbscan[-1]['genes']} genes)",
+        f"JaccardClustering\n({jaccard['genesets']} sets)",
+        f"HyperGeometric\n(universe {hyper['universe']})",
+        f"PhenomeMap KS\n(n={ks['n']})",
+    ]
+    speedups = [
+        dbscan[-1]["speedup"],
+        jaccard["speedup"],
+        hyper["ratio"],
+        ks["legacy_ms"] / ks["scipy_ms"],
+    ]
     colors = [PORT, PORT, PORT, LEG]
 
     fig, ax = plt.subplots(figsize=(7.5, 4.2))
@@ -149,12 +215,23 @@ def plot_summary():
     ax.set_ylabel("speedup of Python impl  (×, log scale)")
     ax.set_title("Port vs legacy — speedup by tool  (>1 = Python faster)")
     for bar, sp in zip(bars, speedups):
-        ax.annotate(f"{sp:.2f}×" if sp < 10 else f"{sp:.0f}×",
-                    (bar.get_x() + bar.get_width() / 2, sp),
-                    textcoords="offset points", xytext=(0, 4), ha="center", fontsize=9)
-    ax.annotate("scipy SLOWER → reverted", xy=(3, speedups[3]),
-                xytext=(3, 0.62), ha="center", fontsize=8, color=LEG,
-                arrowprops={"arrowstyle": "->", "color": LEG, "lw": 0.8})
+        ax.annotate(
+            f"{sp:.2f}×" if sp < 10 else f"{sp:.0f}×",
+            (bar.get_x() + bar.get_width() / 2, sp),
+            textcoords="offset points",
+            xytext=(0, 4),
+            ha="center",
+            fontsize=9,
+        )
+    ax.annotate(
+        "scipy SLOWER → reverted",
+        xy=(3, speedups[3]),
+        xytext=(3, 0.62),
+        ha="center",
+        fontsize=8,
+        color=LEG,
+        arrowprops={"arrowstyle": "->", "color": LEG, "lw": 0.8},
+    )
     save(fig, "speedup_summary.png")
 
 

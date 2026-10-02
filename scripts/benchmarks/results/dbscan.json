@@ -1,0 +1,74 @@
+{
+  "agreement": [
+    {
+      "epsilon": 1,
+      "min_points": 2,
+      "binary_clusters": 1,
+      "sklearn_clusters": 1,
+      "identical": true
+    },
+    {
+      "epsilon": 1,
+      "min_points": 3,
+      "binary_clusters": 1,
+      "sklearn_clusters": 1,
+      "identical": true
+    },
+    {
+      "epsilon": 2,
+      "min_points": 3,
+      "binary_clusters": 1,
+      "sklearn_clusters": 1,
+      "identical": true
+    },
+    {
+      "epsilon": 2,
+      "min_points": 5,
+      "binary_clusters": 1,
+      "sklearn_clusters": 1,
+      "identical": true
+    }
+  ],
+  "speed": [
+    {
+      "genes": 100,
+      "sets": 20,
+      "binary_ms": 7.48,
+      "sklearn_ms": 3.62,
+      "speedup": 2.07,
+      "agree": true
+    },
+    {
+      "genes": 500,
+      "sets": 100,
+      "binary_ms": 421.74,
+      "sklearn_ms": 74.5,
+      "speedup": 5.66,
+      "agree": true
+    },
+    {
+      "genes": 1000,
+      "sets": 200,
+      "binary_ms": 3200.88,
+      "sklearn_ms": 299.47,
+      "speedup": 10.69,
+      "agree": true
+    },
+    {
+      "genes": 2000,
+      "sets": 400,
+      "binary_ms": null,
+      "sklearn_ms": 1260.38,
+      "speedup": null,
+      "agree": null
+    },
+    {
+      "genes": 5000,
+      "sets": 1000,
+      "binary_ms": null,
+      "sklearn_ms": 7550.6,
+      "speedup": null,
+      "agree": null
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "equivalence": [
+    {
+      "check": "legacy",
+      "method": "average",
+      "genesets": 8,
+      "merges": 7,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "legacy",
+      "method": "average",
+      "genesets": 12,
+      "merges": 11,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "legacy",
+      "method": "average",
+      "genesets": 20,
+      "merges": 19,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "legacy",
+      "method": "average",
+      "genesets": 30,
+      "merges": 29,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "complete",
+      "genesets": 8,
+      "merges": 7,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "complete",
+      "genesets": 12,
+      "merges": 11,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "complete",
+      "genesets": 20,
+      "merges": 19,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "average",
+      "genesets": 8,
+      "merges": 7,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "average",
+      "genesets": 12,
+      "merges": 11,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "average",
+      "genesets": 20,
+      "merges": 19,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "single",
+      "genesets": 8,
+      "merges": 7,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "single",
+      "genesets": 12,
+      "merges": 11,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "single",
+      "genesets": 20,
+      "merges": 19,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "mcquitty",
+      "genesets": 8,
+      "merges": 7,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "mcquitty",
+      "genesets": 12,
+      "merges": 11,
+      "max_abs_diff": 0.0,
+      "passed": true
+    },
+    {
+      "check": "textbook",
+      "method": "mcquitty",
+      "genesets": 20,
+      "merges": 19,
+      "max_abs_diff": 0.0,
+      "passed": true
+    }
+  ],
+  "speed": [
+    {
+      "genesets": 10,
+      "legacy_ms": 0.11,
+      "port_ms": 0.07,
+      "speedup": 1.65
+    },
+    {
+      "genesets": 25,
+      "legacy_ms": 1.13,
+      "port_ms": 0.13,
+      "speedup": 8.4
+    },
+    {
+      "genesets": 50,
+      "legacy_ms": 8.02,
+      "port_ms": 0.47,
+      "speedup": 17.08
+    },
+    {
+      "genesets": 100,
+      "legacy_ms": 60.36,
+      "port_ms": 0.95,
+      "speedup": 63.51
+    },
+    {
+      "genesets": 150,
+      "legacy_ms": 214.36,
+      "port_ms": 1.97,
+      "speedup": 108.57
+    },
+    {
+      "genesets": 200,
+      "legacy_ms": 561.99,
+      "port_ms": 3.53,
+      "speedup": 159.16
+    }
+  ]
+}

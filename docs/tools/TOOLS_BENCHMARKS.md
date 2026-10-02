@@ -9,13 +9,36 @@
 > Postgres (`gw-local-pg`, host `127.0.0.1:5433`, 50k gene sets / 2.0M geneset values) and the
 > locally-built `dbscan`/`biclique` binaries. **Last updated:** 2026-06-11
 
+## How to reproduce
+
+Every number below is written by a benchmark into `scripts/benchmarks/results/*.json`, and
+`plot_benchmarks.py` draws the charts from those files. Nothing in this document or in the
+charts is transcribed by hand any more -- it previously was, which is how a headline figure
+survived after it had stopped being reproducible.
+
+```bash
+uv run scripts/benchmarks/bench_jaccard_clustering.py   # pure compute
+uv run scripts/benchmarks/bench_hypergeometric.py       # pure compute
+uv run scripts/benchmarks/bench_phenomemap_ks.py        # pure compute
+GENEWEAVER_DBSCAN_BINARY=... uv run scripts/benchmarks/bench_dbscan.py
+uv run scripts/benchmarks/plot_benchmarks.py
+```
+
+`bench_jaccard_clustering.py` exits non-zero if the port stops matching its references, so
+it is a check and not only a measurement. DBSCAN needs the compiled `dbscan` binary; the
+figures here were measured on Linux (`python:3.12-slim`, TOOLBOX built from source), which
+is what the deployed native worker runs -- `MAX_ARG_STRLEN` is platform-specific and that
+matters for the result.
+
+**Last measured:** 2026-10-02.
+
 ## Verdict summary
 
 | Tool | What the port changed | Better than original? | Evidence |
 |---|---|---|---|
-| **DBSCAN** | in-process scipy+sklearn vs. the C++ binary | **Yes — now the default** | identical clusters (real + synthetic); **3.4×→61× faster**; removes the compiled-binary/subprocess/ARG_MAX dependency. The in-process impl is now the canonical `DBSCAN`; the binary is `BinaryDBSCAN`. |
-| **JaccardClustering** | `scipy.cluster.hierarchy` vs. hand-rolled agglomerative | **Yes** | identical merge distances (avg linkage, diff 0.0); **up to 105× faster** |
-| **HyperGeometric** | `math.comb` vs. legacy incremental-float `combtl` | **Yes** | fixes the lt/tt bug + exact integers; also **1.1×–2.9× faster** |
+| **DBSCAN** | in-process scipy+sklearn vs. the C++ binary | **Yes — now the default** | identical clusters at every setting tried (4/4 real, 3/3 synthetic); **2.1×→10.7× faster** over the range the binary can still run; past ~1,000 genes the binary **cannot run at all** (`E2BIG`), which is the stronger result. The in-process impl is the canonical `DBSCAN`; the binary is `BinaryDBSCAN`. |
+| **JaccardClustering** | `scipy.cluster.hierarchy` vs. hand-rolled agglomerative | **Yes** | merge distances identical to the verbatim legacy `average_cluster` (diff 0.0 at n=8/12/20/30) **and** to an independent textbook implementation of complete/average/single/mcquitty (diff 0.0); **up to 143× faster** |
+| **HyperGeometric** | `math.comb` vs. legacy incremental-float `combtl` | **Yes** | fixes the lt/tt bug + exact integers; also **1.04×–2.98× faster** |
 | **PhenomeMap (KS term)** | `scipy.stats.ks_2samp` vs. legacy hand-rolled KS | **No — reverted** | scipy is **slower** (1.3×–11×) *and* changes results (exact vs. asymptotic, up to ~0.11); reverted to the faithful asymptotic KS (see below) |
 
 ![Speedup of the Python implementation by tool](img/speedup_summary.png)
@@ -79,11 +102,20 @@ BFS — roughly O(V·E) per seed — which scales badly.
 
 | genes | sets | binary (ms) | sklearn (ms) | speedup |
 |---|---|---|---|---|
-| 100 | 20 | 17.2 | 5.0 | 3.4× |
-| 500 | 100 | 540.4 | 45.9 | 11.8× |
-| 1,000 | 200 | 3,634 | 213 | 17× |
-| 2,000 | 400 | 26,774 | 956 | 28× |
-| 5,000 | 1,000 | 358,391 | 5,877 | **61×** |
+| 100 | 20 | 7.5 | 3.6 | 2.1× |
+| 500 | 100 | 421.7 | 74.5 | 5.7× |
+| 1,000 | 200 | 3,200.9 | 299.5 | 10.7× |
+| 2,000 | 400 | **fails — `E2BIG`** | 1,260 | n/a |
+| 5,000 | 1,000 | **fails — `E2BIG`** | 7,551 | n/a |
+
+**The binary has a hard input ceiling.** Both `BinaryDBSCAN` and this benchmark pass the
+encoded graph as a single `argv` entry (`run_binary([binary, encoded, eps, minpts])`), and
+Linux caps one argument at `MAX_ARG_STRLEN` = 128 KiB. At 2,000 genes the encoding exceeds
+that and `execve` fails with `E2BIG` (`[Errno 7] Argument list too long`) before the binary
+runs. So past ~1,000 genes the comparison is not "slower" but "does not work"; the
+in-process port handled 5,000 genes in 7.6 s. An earlier version of this table reported
+26.8 s and 358 s for the 2,000- and 5,000-gene cases; those are not reproducible here and
+the headline **61×** derived from them should not be relied on.
 
 ![DBSCAN — in-process port vs C++ binary](img/dbscan_speed.png)
 
@@ -103,21 +135,36 @@ their members (`ward` even rebuilds TP/FP/FN over **all genes × all gene-set pa
 merge). The port uses `scipy.cluster.hierarchy.linkage` on the condensed Jaccard-distance
 matrix (C-backed, ~O(n² log n)).
 
-**Equivalence:** legacy `average_cluster` vs. scipy `average` linkage — merge distances
-**identical** (max diff 0.0) at n = 8/12/20. The legacy `complete`/`average`/`single` are the
-textbook per-member max/avg/min linkages, so scipy reproduces them; `mcquitty` = WPGMA =
-scipy `weighted`. **Exception:** the legacy `ward` is *non-standard* (it recomputes Jaccard
-from the merged gene union, not Lance–Williams Ward), so scipy's `ward` (the textbook one)
-will differ — flagged, not a defect of the port.
+**Equivalence** — now checked by `bench_jaccard_clustering.py` rather than asserted. The
+previous version of that script promised an equivalence comparison in its docstring and did
+not implement one: it discarded both return values and only timed, so this claim was not
+reproducible from the repository. Two checks now run:
+
+1. **port vs verbatim legacy `average_cluster`** — merge distances identical, max diff
+   **0.0** at n = 8/12/20/**30**.
+2. **port vs an independent textbook implementation** of `complete`/`average`/`single`/
+   `mcquitty` (max / mean / min / WPGMA, written from the definition, not from the legacy
+   code) — max diff **0.0** at n = 8/12/20 for all four.
+
+One correction worth recording, because it cost an hour: the legacy stores
+`newtree.jac = 1 - minval`, i.e. the *similarity* at each merge, while the port reports the
+*distance*. Comparing the two directly makes a correct port look badly wrong (diffs of
+~0.2). The first run of the new check did exactly that.
+
+**Exception:** the legacy `ward` is *non-standard* — it recomputes Jaccard from the merged
+gene union rather than using Lance–Williams — so scipy's textbook `ward` will differ. It is
+excluded from the equivalence check by design, not overlooked. The API defaults to
+`average`, and the UI exposes no method picker, so only verified methods are reachable
+today.
 
 **Speed** (`scripts/benchmarks/bench_jaccard_clustering.py`, method=average):
 
 | gene sets | legacy (ms) | scipy (ms) | speedup |
 |---|---|---|---|
-| 50 | 7.6 | 0.8 | 9.0× |
-| 100 | 57.9 | 1.6 | 37× |
-| 150 | 189.3 | 2.2 | 87× |
-| 200 | 446.2 | 4.3 | **105×** |
+| 50 | 7.7 | 0.3 | 23.6× |
+| 100 | 56.9 | 0.9 | 61.0× |
+| 150 | 186.3 | 1.5 | 122.0× |
+| 200 | 439.5 | 3.1 | 142.6× |
 
 ![JaccardClustering — scipy linkage vs hand-rolled](img/jaccard_speed.png)
 
@@ -136,11 +183,11 @@ but `math.comb` (C) actually **beats** the legacy cached Python `combtl` loop:
 
 | universe (table total) | legacy (ms) | port (ms) | ratio |
 |---|---|---|---|
-| 50 | 3.5 | 1.2 | 2.9× |
-| 100 | 8.6 | 3.0 | 2.8× |
-| 200 | 26.1 | 10.4 | 2.5× |
-| 400 | 103.2 | 54.4 | 1.9× |
-| 800 | 403.7 | 354.9 | 1.1× |
+| 50 | 3.6 | 1.2 | 2.98× |
+| 100 | 8.3 | 3.1 | 2.69× |
+| 200 | 29.9 | 10.6 | 2.81× |
+| 400 | 106.5 | 57.2 | 1.86× |
+| 800 | 399.7 | 384.5 | 1.04× |
 
 ![HyperGeometric — exact math.comb vs legacy combtl](img/hypergeometric_speed.png)
 
@@ -152,12 +199,12 @@ bigint cost erodes the margin to ~parity). Clear win.
 The port had swapped the legacy hand-rolled two-sample KS for `scipy.stats.ks_2samp`,
 documented as an "improvement". Benchmarking disproved that:
 
-| sample n | legacy KS (ms) | scipy KS (ms) | max \|Δp\| vs legacy |
+| sample n | legacy asymptotic (ms) | scipy `ks_2samp` (ms) | max \|Δp\| |
 |---|---|---|---|
-| 10 | 23.6 | 258.4 | 0.112 |
-| 50 | 45.3 | 287.0 | 0.041 |
-| 200 | 149.3 | 429.1 | 0.018 |
-| 1,000 | 1,167.5 | 1,517.5 | 0.033 |
+| 10 | 24.2 | 269.2 | 1.12e-01 |
+| 50 | 45.2 | 300.5 | 4.10e-02 |
+| 200 | 151.2 | 449.1 | 1.81e-02 |
+| 1,000 | 843.2 | 1,330.0 | 3.33e-02 |
 
 ![PhenomeMap KS — why the scipy swap was reverted](img/phenomemap_ks.png)
 
@@ -218,3 +265,80 @@ uv run --extra sklearn --project packages/tools python scripts/benchmarks/bench_
 uv run --with matplotlib --extra sklearn --project packages/tools \
   python scripts/benchmarks/plot_benchmarks.py
 ```
+
+---
+
+## Remaining improvement opportunities (reviewed 2026-10-02)
+
+The port is better than legacy on every tool it changed. This is the separate question:
+where is there still a worthwhile improvement *over the port*? Ordered by value.
+
+### 1. MSET: replace the Monte Carlo with the exact hypergeometric ⭐ highest value
+
+MSET samples from the background to estimate how often an overlap as large as the observed
+one arises by chance. Sampling without replacement from a fixed universe *is* the
+hypergeometric distribution, so the quantity it estimates has a closed form.
+
+Measured against `MSETcpp` at 200,000 trials (Linux, TOOLBOX from source):
+
+| N | K | n | k | MSET MC | exact | MC/exact | MC time | exact time |
+|---|---|---|---|---|---|---|---|---|
+| 5,000 | 100 | 150 | 5 | 0.180050 | 0.180375 | 0.998× | 526 ms | 0.46 ms |
+| 5,000 | 100 | 150 | 8 | 0.009895 | 0.009835 | 1.006× | 385 ms | 0.43 ms |
+| 20,000 | 200 | 300 | 6 | 0.080395 | 0.081378 | 0.988× | 1,235 ms | 2.86 ms |
+| 20,000 | 200 | 300 | 10 | 0.000825 | 0.000913 | 0.904× | 1,189 ms | 2.87 ms |
+| 50,000 | 300 | 400 | 5 | 0.094965 | 0.094456 | 1.005× | 2,224 ms | 7.60 ms |
+| 50,000 | 500 | 500 | 12 | 0.005065 | 0.004972 | 1.019× | 4,808 ms | 18.18 ms |
+
+The agreement is within 1.9%, and the residual is Monte Carlo sampling error — the MC is
+the approximation here, not the exact form. Four consequences, all improvements:
+
+* **~100–260× faster**, and no 1/trials resolution floor (5e-6 at 200k trials), so small
+  p-values stop being clipped.
+* **The `MSETcpp` binary becomes unnecessary**, which means MSET runs in the API process
+  like the other seven tools and needs no native worker.
+* **G3-784's payload problem disappears entirely.** The exact test needs the universe's
+  *cardinality*, not its members — four integers instead of ~100,000 identifiers. No
+  reference, no resolution, no 2 MiB limit.
+* **The A7 semantics decision gets simpler**: with only `|universe|` involved, "which genes
+  are in the universe" reduces to a single `COUNT`.
+
+Caveats before acting: MSET also returns a null-distribution histogram, which an analytic
+form does not produce (it is a presentation artifact — the intersection gene list is
+computed directly either way); and this was measured on synthetic inputs, so it needs
+validating against the real tool on real gene sets before replacing anything. Like the
+universe rule, swapping an estimator changes published numbers and belongs with the
+curation scientist, not in a refactor.
+
+### 2. JaccardSimilarity: derive the p-value instead of reading a precomputed null
+
+Its p-value comes from `extsrc.jaccard_distribution_results`, whose coverage is partial —
+1,278 size pairs on dev, so a request outside them gets no p-value at all (observed: 4 of 6
+pairs covered on one real group, 0 of 1 on another). The Jaccard index of two random sets
+drawn from a universe has the same hypergeometric structure as above, so the same
+substitution applies: compute it, and the stale-table dependency and its regeneration job
+both go away. Same validation and approval requirement as MSET.
+
+### 3. HyperGeometric: the exact-integer advantage decays on large tables
+
+The port is 2.98× faster at universe 50 but only **1.04×** at universe 800 — `math.comb` on
+large integers costs more as the table grows, and the legacy's float accumulation gets
+relatively cheaper. Correctness is not in question (the port fixes legacy's two-tailed bug
+on 35/45 pairs), but for large universes a log-gamma formulation would likely restore the
+margin while staying accurate enough for a p-value. Worth measuring before committing.
+
+### 4. JaccardClustering: the `ward` divergence is still unresolved
+
+Legacy `ward` recomputes Jaccard from the merged gene union rather than using
+Lance–Williams, so it is not textbook Ward and the port does not reproduce it. Today that
+is harmless — the API defaults to `average` and the UI offers no method picker — but if
+`ward` is ever exposed, it needs either a faithful transcription of the legacy rule or an
+explicit decision that the textbook one supersedes it.
+
+### 5. No further improvement identified
+
+**UpSet**, **Combine** and **BooleanAlgebra** are straightforward set/matrix operations
+already in pure Python, with no binary, no stale cache and no numerical subtlety.
+**PhenomeMap** still needs `biclique`, and its KS term was deliberately kept as the legacy
+asymptotic form (the scipy swap was slower *and* changed results); the measurements above
+re-confirm both.
