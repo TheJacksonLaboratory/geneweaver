@@ -76,6 +76,10 @@ def run_tool(
     Responds 403 if any requested gene set is not readable, 404 for an unknown tool, and
     409 for a tool that is registered but cannot run in this process -- with the reason,
     so the caller knows whether to wait for AsyncTask or fix the request.
+
+    Only `UnknownToolError` becomes a 404, not any `LookupError`: an `IndexError` raised
+    inside a tool is also a LookupError, and catching the base class reported a bug in the
+    tool as a missing tool.
     """
     try:
         result = tool_service.run_tool(
@@ -85,7 +89,7 @@ def run_tool(
             user=user,
             parameters=request.parameters,
         )
-    except LookupError as error:
+    except tool_service.UnknownToolError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except ValueError as error:
         # Registered but not runnable here: a conflict with the server's state, not a

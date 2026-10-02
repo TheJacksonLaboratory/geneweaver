@@ -233,3 +233,70 @@ class TestRunToolGuards:
         ):
             tool_service.run_tool(mock_cursor, "upset", [1, 2])
         resolve.assert_not_called()
+
+
+class TestBooleanAlgebraInput:
+    """BooleanAlgebra needs homology-annotated membership, not ortholog pairs.
+
+    Getting this wrong returned zero results for every request and raised `IndexError` on a
+    cross-species one, because the tool indexes columns 3 and 4 of each row.
+    """
+
+    def test_it_uses_homolog_annotations_not_homology_pairs(self, mock_cursor) -> None:
+        """The two resolvers return different shapes; only one is right here."""
+        rows = [[101, 5, "Abca1", 1, 379075, "GO:1"]]
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+                return_value={1: 1, 2: 1},
+            ),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homolog_annotations",
+                return_value=rows,
+            ) as annotations,
+            patch("geneweaver.api.services.tools.db_tool_input.homology_pairs") as pairs,
+        ):
+            built = tool_service.INPUT_BUILDERS["boolean_algebra"](
+                mock_cursor, [1, 2], {}, {"relation": "intersection"}
+            )
+
+        annotations.assert_called_once()
+        pairs.assert_not_called()
+        assert built["homolog_data"] == rows
+
+    def test_rows_carry_the_six_columns_the_tool_indexes(self, mock_cursor) -> None:
+        """Columns 3 (sp_id) and 4 (gs_id) are what the tool reads; 3 columns is not enough."""
+        rows = [[101, 5, "Abca1", 1, 379075, "GO:1"]]
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+                return_value={1: 1},
+            ),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homolog_annotations",
+                return_value=rows,
+            ),
+        ):
+            built = tool_service.INPUT_BUILDERS["boolean_algebra"](mock_cursor, [1], {}, {})
+        assert all(len(row) == 6 for row in built["homolog_data"])
+
+    def test_species_are_deduplicated(self, mock_cursor) -> None:
+        """Gene sets from one species must yield one species id, not one per gene set."""
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+                return_value={1: 1, 2: 1, 3: 2},
+            ),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homolog_annotations",
+                return_value=[],
+            ),
+        ):
+            built = tool_service.INPUT_BUILDERS["boolean_algebra"](mock_cursor, [1, 2, 3], {}, {})
+        assert built["species_ids"] == [1, 2]
+
+
+def test_unknown_tool_error_is_distinct_from_a_tool_crash() -> None:
+    """Both are LookupError; only one means "no such tool"."""
+    assert issubclass(tool_service.UnknownToolError, LookupError)
+    assert not isinstance(IndexError("x"), tool_service.UnknownToolError)

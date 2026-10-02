@@ -233,3 +233,55 @@ def gene_universe(
         {"species_id": species_id, "gene_id_type": gene_id_type},
     )
     return [_symbol(row) for row in cursor.fetchall()]
+
+
+def homolog_annotations(
+    cursor: Cursor, geneset_ids: list[int], species_ids: list[int]
+) -> list[list]:
+    """Gene membership annotated with Homologene groups -- BooleanAlgebra's input.
+
+    Rows are ``(hom_source_id, ode_gene_id, ode_ref_id, sp_id, gs_id, gs_abbreviation)``.
+    ``hom_source_id`` is NULL for a gene with no homolog in the requested species, which is
+    load-bearing: BooleanAlgebra keys on it to decide whether a gene can be identified
+    across species or only within one, so dropping those rows changes the answer.
+
+    This is **not** the same as :func:`homology_pairs`, which returns ortholog pairs for
+    Combine. Promoted from legacy ``GET_HOMOLOGS_SQL`` (``CS_Boolean/service.py``), with two
+    changes: the tables are schema-qualified rather than relying on ``search_path``
+    (G3-827), and the gene set ids and species are bound as parameters instead of being
+    formatted into the string -- legacy interpolated them, which is the pattern `CLAUDE.md`
+    forbids.
+
+    :param cursor: The database cursor.
+    :param geneset_ids: The gene sets whose members to return.
+    :param species_ids: Species to look for homologs in.
+    """
+    cursor.execute(
+        """
+        SELECT hom.hom_source_id, g.ode_gene_id, g.ode_ref_id, g.sp_id,
+               gv.gs_id, gs.gs_abbreviation
+        FROM extsrc.gene g
+        JOIN extsrc.geneset_value gv ON gv.ode_gene_id = g.ode_gene_id
+        JOIN production.geneset gs ON gs.gs_id = gv.gs_id
+        LEFT JOIN (
+            SELECT ode_gene_id, hom_source_id
+            FROM extsrc.homology
+            WHERE hom_source_name = 'Homologene'
+              AND hom_source_id IN (
+                  SELECT h.hom_source_id
+                  FROM extsrc.homology h
+                  JOIN extsrc.geneset_value gv2 ON gv2.ode_gene_id = h.ode_gene_id
+                  WHERE gv2.gs_id = ANY(%(geneset_ids)s) AND gv2.gsv_in_threshold
+              )
+              AND sp_id = ANY(%(species_ids)s)
+        ) hom ON g.ode_gene_id = hom.ode_gene_id
+        WHERE gv.gs_id = ANY(%(geneset_ids)s)
+          AND gv.gsv_in_threshold
+          AND g.ode_pref = TRUE
+        ORDER BY hom.hom_source_id, gv.gs_id;
+        """,
+        {"geneset_ids": list(geneset_ids), "species_ids": list(species_ids)},
+    )
+    return [
+        list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()
+    ]

@@ -2,6 +2,7 @@
 
 from unittest.mock import patch
 
+import pytest
 from geneweaver.tools.upset import UpSet, UpSetInput
 
 from geneweaver.api.services.tool_runner import InProcessToolRunner
@@ -165,3 +166,34 @@ def test_generic_endpoint_rejects_duplicate_genesets(client) -> None:
     response = client.post("/api/tools/upset", json={"geneset_ids": [1, 1]})
 
     assert response.status_code == 422
+
+
+def test_a_tool_raising_indexerror_is_not_reported_as_a_missing_tool(client) -> None:
+    """`IndexError` is a `LookupError`, so catching the base class mapped a bug to 404.
+
+    That actually happened: BooleanAlgebra was handed the wrong row shape and raised
+    `IndexError: list index out of range`, which the endpoint reported as 404 "no such
+    tool" -- pointing a debugging effort at routing instead of at the resolver.
+    """
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+            return_value={"1": ["A"], "2": ["B"]},
+        ),
+        patch(
+            "geneweaver.api.services.tools.INPUT_BUILDERS",
+            {"dbscan": lambda *_: (_ for _ in ()).throw(IndexError("list index out of range"))},
+        ),
+        pytest.raises(IndexError),
+    ):
+        # The generic route, not /tools/upset -- that one has its own handler and would
+        # never reach the patched builder.
+        client.post("/api/tools/dbscan", json={"geneset_ids": [1, 2]})
+
+
+def test_an_unknown_tool_is_still_a_404(client) -> None:
+    """The narrowed exception must not stop reporting a genuinely missing tool."""
+    response = client.post("/api/tools/not-a-tool", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 404

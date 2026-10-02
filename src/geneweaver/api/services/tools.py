@@ -30,6 +30,16 @@ from geneweaver.api.services import tool_inputs
 from geneweaver.api.services.geneset import determine_user_id
 from geneweaver.api.services.tool_runner import InProcessToolRunner, ToolRunner
 
+
+class UnknownToolError(LookupError):
+    """Raised when no tool is registered under the requested name.
+
+    A subclass of LookupError for backwards compatibility, but a *distinct* type on
+    purpose: `IndexError` and `KeyError` are also LookupErrors, so catching the base class
+    at the endpoint reported a bug inside a tool as "no such tool" with a 404.
+    """
+
+
 #: Registry the tools are loaded from -- the same group the Temporal activity dispatches
 #: against, so the API and the worker can never disagree about what a tool name means.
 TOOL_ENTRY_POINT_GROUP = "geneweaver.tools"
@@ -136,12 +146,12 @@ def available_tools() -> list[str]:
 def load_tool(name: str) -> Any:
     """Resolve a registered tool by name.
 
-    :raises LookupError: If no tool is registered under that name.
+    :raises UnknownToolError: If no tool is registered under that name.
     """
     for entry_point in importlib.metadata.entry_points(group=TOOL_ENTRY_POINT_GROUP):
         if entry_point.name == name:
             return entry_point.load()()
-    raise LookupError(f"No tool registered as {name!r}. Available: {available_tools()}.")
+    raise UnknownToolError(f"No tool registered as {name!r}. Available: {available_tools()}.")
 
 
 def _as_strings(geneset_ids: list[int]) -> list[str]:
@@ -217,12 +227,19 @@ def _combine_input(cursor, geneset_ids, memberships, parameters) -> dict:
 
 def _boolean_algebra_input(cursor, geneset_ids, memberships, parameters) -> dict:
     species = db_tool_input.species_by_geneset(cursor, geneset_ids)
+    # Distinct species, not one per gene set: the tool groups genes by species to decide
+    # what can be identified across them, and a repeated species id would double-count.
+    species_ids = sorted({species.get(geneset_id, 0) for geneset_id in geneset_ids})
     return {
         "relation": str(parameters.get("relation", "union")).lower(),
         "at_least": int(parameters.get("at_least", 2)),
         "geneset_ids": list(geneset_ids),
-        "species_ids": [species.get(geneset_id, 0) for geneset_id in geneset_ids],
-        "homolog_data": db_tool_input.homology_pairs(cursor, geneset_ids),
+        "species_ids": species_ids,
+        # `homolog_annotations`, not `homology_pairs`: this tool wants gene membership
+        # annotated with Homologene groups (6 columns, NULLs included), which is a
+        # different query. Passing the ortholog pairs instead returned no results at all
+        # and raised IndexError on a cross-species request.
+        "homolog_data": db_tool_input.homolog_annotations(cursor, geneset_ids, species_ids),
     }
 
 
@@ -276,7 +293,7 @@ def run_tool(
     :param parameters: Per-tool options; each builder documents what it reads.
     :param runner: Execution backend; defaults to running in-process.
     :return: ``{tool, geneset_ids, gene_counts, caveat, result}``.
-    :raises LookupError: If the tool is not registered.
+    :raises UnknownToolError: If the tool is not registered.
     :raises ValueError: If the tool cannot run in this process.
     :raises UnauthorizedException: If any gene set is not readable by the caller.
     """
@@ -285,7 +302,7 @@ def run_tool(
     if tool_name not in INPUT_BUILDERS or tool_name in IN_PROCESS_UNAVAILABLE:
         state = tool_availability().get(tool_name)
         if state is None:
-            raise LookupError(f"No tool registered as {tool_name!r}.")
+            raise UnknownToolError(f"No tool registered as {tool_name!r}.")
         raise ValueError(state["reason"])
 
     # Before anything else: the tools know nothing about users, so a missing gate here
