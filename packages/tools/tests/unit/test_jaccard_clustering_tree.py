@@ -107,26 +107,46 @@ print(compared)
     assert int(result.stdout.strip()) >= 200, "too few comparisons to be meaningful"
 
 
-def test_scipys_to_tree_is_what_breaks_not_our_builder() -> None:
-    """Pins the diagnosis, so a future reader does not undo the workaround.
+def test_our_builder_works_regardless_of_whether_scipy_does() -> None:
+    """Records whether this SciPy has the defect, without depending on it.
 
-    With `jax.apiutils` imported, SciPy's own `to_tree` raises while ours works on the same
-    linkage matrix. If SciPy or jax-apiutils ever fixes this, this test fails and the
-    workaround can go.
+    The probe that breaks `to_tree` was added between SciPy 1.15 and 1.17, and this project
+    resolves both: 1.15.3 on Python 3.10, 1.17.1 on 3.11+. So asserting that SciPy *raises*
+    passes on 3.11/3.12 and fails on 3.10 -- which is exactly how the first version of this
+    test broke CI.
+
+    What holds on every version is the part worth asserting: our builder works with
+    `jax.apiutils` imported. Whether SciPy also works is reported, so a reader can see
+    whether the workaround is currently load-bearing or merely harmless, rather than
+    guessing.
     """
     import jax.apiutils  # noqa: F401
+    import scipy
     from scipy.cluster.hierarchy import to_tree
 
     geneset_ids = [f"gs{i}" for i in range(4)]
     similarity = np.asarray(_random_similarity(4, 2), dtype=float)
     distance = 1.0 - similarity
     np.fill_diagonal(distance, 0.0)
-    linkage_matrix = linkage(squareform((distance + distance.T) / 2.0, checks=False), "average")
+    linkage_matrix = linkage(
+        squareform((distance + distance.T) / 2.0, checks=False), "average"
+    )
 
-    with pytest.raises(AttributeError, match="jax"):
-        to_tree(linkage_matrix)
-
+    # The invariant: ours works whatever SciPy does.
     assert _tree_from_linkage(linkage_matrix, geneset_ids) is not None
+
+    try:
+        to_tree(linkage_matrix)
+    except AttributeError as error:
+        # Affected SciPy: the workaround is the only reason this tool runs in the API.
+        assert "jax" in str(error), (
+            f"SciPy {scipy.__version__} raised an AttributeError that is not the jax "
+            f"namespace collision: {error}"
+        )
+    else:
+        # Unaffected SciPy: nothing to assert, and the workaround costs nothing. Kept
+        # rather than removed because the API runs on 3.11+, where it is required.
+        assert scipy.__version__ is not None
 
 
 def test_fewer_than_two_genesets_has_no_tree() -> None:
