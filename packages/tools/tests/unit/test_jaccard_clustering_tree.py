@@ -128,9 +128,7 @@ def test_our_builder_works_regardless_of_whether_scipy_does() -> None:
     similarity = np.asarray(_random_similarity(4, 2), dtype=float)
     distance = 1.0 - similarity
     np.fill_diagonal(distance, 0.0)
-    linkage_matrix = linkage(
-        squareform((distance + distance.T) / 2.0, checks=False), "average"
-    )
+    linkage_matrix = linkage(squareform((distance + distance.T) / 2.0, checks=False), "average")
 
     # The invariant: ours works whatever SciPy does.
     assert _tree_from_linkage(linkage_matrix, geneset_ids) is not None
