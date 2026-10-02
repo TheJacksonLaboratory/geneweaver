@@ -11,7 +11,20 @@ authors = [
 ]
 
 dependencies = [
-    "geneweaver-core>=0.20.0a0",
+    # pydantic, not geneweaver-core. The tools import `pydantic` in ten places and
+    # `geneweaver.core` in none -- core was declared but unused, and pydantic was used but
+    # undeclared, arriving transitively through core. Verified by installing the wheel with
+    # `--no-deps` and no core present: all nine tools and all three `jax.ats.plugins*`
+    # entry points still load.
+    #
+    # This is not only tidiness. AsyncTask installs `strain-recommendation`, which pins
+    # `geneweaver-client <0.11.0` and so `geneweaver-core <0.11.0`; a floor of
+    # `geneweaver-core >=0.20.0a0` here made the two mutually exclusive and the AsyncTask
+    # lock unsolvable. Dropping an unused dependency removes that conflict outright.
+    #
+    # `geneweaver-core` still arrives with the `db` extra, via `geneweaver-db`, which is
+    # where it is genuinely used (`GeneIdentifier` in `db.tool_input`).
+    "pydantic>=2.8.0",
 ]
 
 [project.optional-dependencies]

@@ -50,7 +50,19 @@ def _causes(error: BaseException) -> list[BaseException]:
 
 
 async def _exercise() -> list[str]:
-    """Start a server and worker, then run one good request and the bad ones."""
+    """Start the real two-worker topology, then run one good request and the bad ones.
+
+    Mirrors production rather than simplifying it:
+
+    * an **orchestration** worker on a separate queue registering `WORKFLOWS` only --
+      standing in for AsyncTask's worker, which is where the plugin's workflow runs;
+    * our **compute** worker on `geneweaver-tools` registering `ACTIVITIES` only, exactly
+      as `temporal.worker` builds it.
+
+    So this also checks the cross-queue routing: the workflow is started on one queue and
+    its activity has to be picked up on another. A single worker registering both would
+    have passed even if `task_queue_for` were wrong.
+    """
     from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS
     from geneweaver.tools.temporal.routing import PYTHON_TASK_QUEUE
     from temporalio.client import WorkflowFailureError
@@ -58,6 +70,7 @@ async def _exercise() -> list[str]:
     from temporalio.worker import Worker
 
     workflow = WORKFLOWS[0]
+    orchestration_queue = "asynctask-stand-in"
     findings: list[str] = []
 
     try:
@@ -67,15 +80,20 @@ async def _exercise() -> list[str]:
 
     async with env:
         with ThreadPoolExecutor(max_workers=4) as executor:
-            async with Worker(
-                env.client,
-                task_queue=PYTHON_TASK_QUEUE,
-                workflows=WORKFLOWS,
-                activities=ACTIVITIES,
-                activity_executor=executor,
-                max_concurrent_activities=4,
+            async with (
+                Worker(
+                    env.client,
+                    task_queue=orchestration_queue,
+                    workflows=WORKFLOWS,
+                ),
+                Worker(
+                    env.client,
+                    task_queue=PYTHON_TASK_QUEUE,
+                    activities=ACTIVITIES,
+                    activity_executor=executor,
+                    max_concurrent_activities=4,
+                ),
             ):
-                # The whole path: validation, routing, activity, tool, result.
                 result = await env.client.execute_workflow(
                     workflow.run,
                     {
@@ -86,7 +104,7 @@ async def _exercise() -> list[str]:
                         },
                     },
                     id="integration-upset",
-                    task_queue=PYTHON_TASK_QUEUE,
+                    task_queue=orchestration_queue,
                 )
                 if "intersections" not in result:
                     findings.append(f"upset returned no intersections: {sorted(result)}")
@@ -100,7 +118,7 @@ async def _exercise() -> list[str]:
                                 workflow.run,
                                 request,
                                 id=f"integration-bad-{index}",
-                                task_queue=PYTHON_TASK_QUEUE,
+                                task_queue=orchestration_queue,
                             ),
                             timeout=BAD_REQUEST_TIMEOUT_SECONDS,
                         )
@@ -111,8 +129,6 @@ async def _exercise() -> list[str]:
                             "retried instead of failing"
                         )
                     except WorkflowFailureError as error:
-                        # `str(error)` is only "Workflow execution failed"; the reason is
-                        # on the cause chain.
                         reason = " | ".join(str(cause) for cause in _causes(error))
                         if expected not in reason:
                             findings.append(f"{request} failed with: {reason[:200]}")

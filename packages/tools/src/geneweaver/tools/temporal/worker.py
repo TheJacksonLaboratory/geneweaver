@@ -23,7 +23,7 @@ import concurrent.futures
 import logging
 import os
 
-from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS
+from geneweaver.tools.temporal import ACTIVITIES
 from geneweaver.tools.temporal.activities import available_tools
 from geneweaver.tools.temporal.routing import (
     NATIVE_PROFILE,
@@ -117,10 +117,18 @@ async def run() -> None:
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=concurrency, thread_name_prefix="geneweaver-tool"
     ) as activity_executor:
+        # Activities only, no `workflows=`. This mirrors `asynctask-mpd-plugin`, whose own
+        # workers register activities alone: the workflow runs on *AsyncTask's* worker,
+        # which is where the plugin is installed and where `jax.ats.plugins.temporal.
+        # workflows` is read, and it dispatches the heavy activity here by task queue.
+        # Registering the workflow on this worker too was harmless but muddied the
+        # ownership -- orchestration is AsyncTask's, compute is ours.
+        #
+        # `WORKFLOWS` is still exported for AsyncTask to register; it is simply not served
+        # from this process.
         async with Worker(
             client,
             task_queue=queue,
-            workflows=WORKFLOWS,
             activities=ACTIVITIES,
             activity_executor=activity_executor,
             max_concurrent_activities=concurrency,

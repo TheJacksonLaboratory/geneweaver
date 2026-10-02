@@ -1,5 +1,7 @@
 """Tests for the tool worker's configuration."""
 
+import contextlib
+
 import pytest
 from geneweaver.tools.temporal import worker
 from geneweaver.tools.temporal.routing import (
@@ -53,8 +55,8 @@ def test_the_default_concurrency_is_conservative() -> None:
     assert 1 <= DEFAULT_MAX_CONCURRENT_ACTIVITIES <= 10
 
 
-def test_the_worker_registers_the_workflow_and_activity() -> None:
-    """What the worker passes to Temporal must be what the plugin declares."""
+def test_the_plugin_declares_the_workflow_and_activity() -> None:
+    """What the plugin exports must be what AsyncTask and our worker expect."""
     from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS
     from geneweaver.tools.temporal.activities import ACTIVITY_NAME
 
@@ -62,61 +64,50 @@ def test_the_worker_registers_the_workflow_and_activity() -> None:
     assert [a.__temporal_activity_definition.name for a in ACTIVITIES] == [ACTIVITY_NAME]
 
 
-def test_the_activity_worker_constructs_with_a_real_executor() -> None:
-    """`run_tool` is synchronous, so Temporal demands an `activity_executor`.
+def test_the_worker_serves_activities_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Orchestration belongs to AsyncTask; this process only computes.
 
-    Without one the `Worker` constructor raises and the pod crash-loops. Asserting which
-    callables appear in `ACTIVITIES` could not catch that, so this exercises the SDK's own
-    validation -- the same check that rejected the first version of this worker.
+    `asynctask-mpd-plugin`'s workers register activities alone for the same reason -- the
+    workflow runs where the plugin is installed, and dispatches here by task queue. A
+    worker that also served workflows would blur which side owns orchestration.
+
+    Asserted from the arguments actually handed to `Worker`, not from the source text: an
+    earlier version of this test grepped for "workflows=" and matched the comment
+    explaining its absence.
     """
-    from concurrent.futures import ThreadPoolExecutor
+    import asyncio
 
-    from geneweaver.tools.temporal import ACTIVITIES
-    from temporalio.converter import DataConverter
-    from temporalio.worker._activity import _ActivityWorker
+    from geneweaver.tools.temporal import worker as worker_module
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        _ActivityWorker(
-            bridge_worker=lambda: None,
-            task_queue="test",
-            activities=ACTIVITIES,
-            activity_executor=executor,
-            shared_state_manager=None,
-            data_converter=DataConverter.default,
-            interceptors=[],
-            metric_meter=None,
-            client=None,
-            encode_headers=False,
-        )
+    captured: dict = {}
 
+    class _StubWorker:
+        def __init__(self, client, **kwargs):
+            captured.update(kwargs)
 
-def test_omitting_the_executor_is_what_the_sdk_rejects() -> None:
-    """Pins the reason the executor is required, so it is not dropped as boilerplate."""
-    from geneweaver.tools.temporal import ACTIVITIES
-    from temporalio.converter import DataConverter
-    from temporalio.worker._activity import _ActivityWorker
+        async def __aenter__(self):
+            raise _Stop  # stop `run` once the worker is built
 
-    with pytest.raises(ValueError, match="not async so an activity_executor must be present"):
-        _ActivityWorker(
-            bridge_worker=lambda: None,
-            task_queue="test",
-            activities=ACTIVITIES,
-            activity_executor=None,
-            shared_state_manager=None,
-            data_converter=DataConverter.default,
-            interceptors=[],
-            metric_meter=None,
-            client=None,
-            encode_headers=False,
-        )
+        async def __aexit__(self, *_):
+            return False
 
+    class _Stop(Exception):
+        pass
 
-def test_the_activity_opts_out_of_thread_cancel_injection() -> None:
-    """Injected `CancelledError` can unwind `run_binary` at an arbitrary point.
+    async def _connect(*_args, **_kwargs):
+        return object()
 
-    `Popen.__exit__` waits for the child rather than killing it, so the binary would outlive
-    the activity. Cancellation is observed cooperatively through the progress hook instead.
-    """
-    from geneweaver.tools.temporal.activities import run_tool
+    monkeypatch.setenv("GENEWEAVER_TOOLS_PROFILE", "python")
+    monkeypatch.setattr(worker_module, "Worker", _StubWorker)
+    monkeypatch.setattr(worker_module.Client, "connect", _connect)
 
-    assert run_tool.__temporal_activity_definition.no_thread_cancel_exception is True
+    with contextlib.suppress(_Stop):
+        asyncio.run(worker_module.run())
+
+    assert "activities" in captured, "the worker must register the tool activity"
+    assert captured["activities"], "activity list is empty"
+    assert "workflows" not in captured, (
+        "the worker registered workflows; orchestration is AsyncTask's, not ours"
+    )
+    # A synchronous activity needs an executor, or Temporal refuses to build the worker.
+    assert captured.get("activity_executor") is not None
