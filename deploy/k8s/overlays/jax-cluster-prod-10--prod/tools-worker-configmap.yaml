@@ -1,0 +1,8 @@
+# Puts this environment's tool workers in the matching Temporal namespace, so a
+# run scheduled by AsyncTask in prod is served by the prod workers.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geneweaver-tools-config
+data:
+  TEMPORAL_NAMESPACE: "prod"

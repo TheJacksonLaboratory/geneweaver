@@ -38,13 +38,13 @@ from __future__ import annotations
 import bisect
 import math
 import os
-import subprocess
 import tempfile
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from geneweaver.tools.framework.abstract import AbstractTool
+from geneweaver.tools.framework.binary import run_binary
 
 from .schema import (
     BicliqueLink,
@@ -279,9 +279,7 @@ def _subprocess_biclique_runner(binary_path: str) -> BicliqueRunner:
         el_path = os.path.join(workdir, "graph.el")
         with open(el_path, "w") as handle:
             handle.write(edge_list_text)
-        result = subprocess.run(
-            [binary_path, el_path, "-p"], capture_output=True, text=True, check=False
-        )
+        result = run_binary([binary_path, el_path, "-p"])
         if result.returncode != 0:
             raise RuntimeError(
                 f"biclique binary failed (exit {result.returncode}): {result.stderr.strip()}"
@@ -379,12 +377,7 @@ class PhenomeMap(AbstractTool):
             bic_path = os.path.join(workdir, "graph.bic")
             with open(bic_path, "w") as handle:
                 handle.write(bic_text)
-            proc = subprocess.run(
-                [binary_path, bic_path, "x", "-i", "1000 0.75", "-t", "12"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            proc = run_binary([binary_path, bic_path, "x", "-i", "1000 0.75", "-t", "12"])
             displayed: set[int] = set()
             edges: dict[tuple[int, int], float] = {}
             reading_nodes = True

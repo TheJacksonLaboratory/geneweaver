@@ -42,13 +42,14 @@ edit_uri: edit/main/docs/
 
 # Internal engineering notes that live under docs/ but are NOT part of the public
 # documentation site: CI/CD workflow copies and migration plans, tool migration and
-# benchmark write-ups, new-UI planning, and the docs README. Excluded rather than
+# benchmark write-ups, new-UI and v3 planning, and the docs README. Excluded rather than
 # added to the nav, so `mkdocs build --strict` stays clean without publishing them.
 exclude_docs: |
   README.md
   ci-cd/
   tools/
   ui/
+  v3/
 extra:
   generator: true
   social:

@@ -4,3 +4,5 @@ namespace: dev
 resources:
   - ../../base
   - ingress.yaml
+patchesStrategicMerge:
+  - tools-worker-configmap.yaml

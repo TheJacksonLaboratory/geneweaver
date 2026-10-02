@@ -1,0 +1,179 @@
+# GeneWeaver tools worker -- native profile.
+#
+# Serves the two tools that shell out to compiled TOOLBOX binaries:
+#   MSET       -> MSETcpp  (CS_Mset,       needs OpenMP)
+#   PhenomeMap -> biclique (biclique_tool) and bstrap (needs Boost thread/system)
+#
+# Everything else is served by Dockerfile.tools-worker, which needs no toolchain at all.
+# Splitting here rather than per tool keeps the compile step off the seven tools that do
+# not need it; see packages/tools/src/geneweaver/tools/temporal/routing.py.
+#
+# The binaries are compiled from the legacy TOOLBOX sources -- the same sources the legacy
+# Celery worker builds -- so behaviour matches the deployed legacy tools rather than a
+# host build.
+#
+# G3-804 (biclique SIGTRAP) is fixed -- see the header of bigraph_edgelist_in in
+# legacy/tools-worker/tools/TOOLBOX/biclique_tool/bigraph.c -- so PhenomeMap works with
+# this image. MSET still needs its inline-universe payload resolved (G3-784) before it is
+# cleared for Temporal; see temporal/payload.py.
+#
+# Build from the repository root:
+#   docker build -f deploy/docker/Dockerfile.tools-native-worker \
+#     -t geneweaver-tools-native-worker .
+#
+# Match the deployed architecture when building on Apple silicon:
+#   docker build --platform linux/amd64 ...
+
+# ---------------------------------------------------------------------------
+# Builder -- compiles the TOOLBOX binaries, then is discarded.
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim AS toolbox-builder
+
+# `libpqxx` is deliberately absent: only distribution_generator and the other
+# database-backed TOOLBOX tools need it, and none of the three built here do. Skipping it
+# avoids building libpqxx 6.4.8 from source, which the legacy worker image must do because
+# the legacy sources use the pre-7 API.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      make \
+      libboost-thread-dev \
+      libboost-system-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY legacy/tools-worker/tools/TOOLBOX ./TOOLBOX
+
+# The repository has prebuilt binaries checked in, and they are Mach-O (arm64) from a
+# developer's Mac. Left in place, `make` treats them as up to date and skips the build,
+# producing an image whose "binaries" cannot execute on Linux. Stale .o files do the same.
+RUN set -eu; cd TOOLBOX; \
+    find . -name '*.o' -delete; \
+    for f in $(find . -type f -perm -u+x); do \
+      case "$(head -c4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')" in \
+        cffaedfe|cefaedfe|feedface|feedfacf|7f454c46) \
+          echo "removing prebuilt binary $f"; rm -f "$f";; \
+      esac; \
+    done
+
+# No `|| echo "WARN: ..."` around these: a swallowed compile failure produces a green build
+# with a missing artifact that only surfaces as a broken tool run (the
+# distribution_generator.o incident). Each make must succeed on its own.
+RUN set -eux; cd TOOLBOX/CS_Mset       && make
+RUN set -eux; cd TOOLBOX/biclique_tool && make
+RUN set -eux; cd TOOLBOX/bstrap        && make
+
+# Assert what the build was supposed to produce, and that it is a Linux ELF that runs here.
+# `make` succeeding does not prove the expected filename exists.
+RUN set -eu; cd TOOLBOX; \
+    for b in CS_Mset/MSETcpp biclique_tool/biclique bstrap/bstrap; do \
+      test -x "$b" || { echo "ERROR: $b was not built"; exit 1; }; \
+      case "$(head -c4 "$b" | od -An -tx1 | tr -d ' \n')" in \
+        7f454c46) ;; \
+        *) echo "ERROR: $b is not a Linux ELF binary"; exit 1;; \
+      esac; \
+      echo "built $b"; \
+    done; \
+    mkdir -p /out; \
+    cp CS_Mset/MSETcpp biclique_tool/biclique bstrap/bstrap /out/
+
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_PYTHON_DOWNLOADS=0 \
+    PATH="/app/.venv/bin:${PATH}" \
+    GENEWEAVER_TOOLS_PROFILE=native \
+    GENEWEAVER_MSET_BINARY=/opt/toolbox/MSETcpp \
+    GENEWEAVER_BICLIQUE_BINARY=/opt/toolbox/biclique \
+    GENEWEAVER_BSTRAP_BINARY=/opt/toolbox/bstrap
+
+# Runtime libraries only -- no compiler. `libgomp1` is MSETcpp's OpenMP runtime (it links
+# libstdc++ statically, so that is not needed). The Boost *dev* packages are used rather
+# than the versioned runtime ones (libboost-system1.74.0 and friends) so the Debian release
+# of the base image can change without breaking this line; they are a few MB.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libgomp1 \
+      libboost-thread-dev \
+      libboost-system-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /bin/uv
+COPY --from=toolbox-builder /out/ /opt/toolbox/
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock README.md ./
+COPY packages ./packages
+
+# `sklearn` is still installed: this image serves only MSET and PhenomeMap, but PhenomeMap
+# uses scipy, and the extra keeps one lockfile resolution shared with the other image
+# rather than a second, subtly different dependency set.
+#
+# `db` is what the Python-profile image does not need: MSET's background is the full gene
+# space for a species, resolved from the database inside the activity because it is far too
+# large to send through Temporal (G3-784).
+RUN uv sync --frozen --no-dev --package geneweaver-tools \
+      --extra sklearn --extra temporal --extra db
+
+# Fail the build rather than at run time: an image whose binaries are not where the tools
+# look for them starts cleanly and fails every run.
+RUN python -c "\
+import os, shutil; \
+from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS; \
+from geneweaver.tools.temporal.activities import available_tools; \
+from geneweaver.tools.temporal.routing import NATIVE_PROFILE, tools_for_profile; \
+assert WORKFLOWS and ACTIVITIES, 'temporal entry points did not load'; \
+served = tools_for_profile(NATIVE_PROFILE, available_tools()); \
+assert sorted(served) == ['mset', 'phenome_map'], f'unexpected native tools: {served}'; \
+missing = [v for v in ('GENEWEAVER_MSET_BINARY', 'GENEWEAVER_BICLIQUE_BINARY', \
+                       'GENEWEAVER_BSTRAP_BINARY') \
+           if not (os.environ.get(v) and os.access(os.environ[v], os.X_OK))]; \
+assert not missing, f'binaries missing or not executable: {missing}'; \
+print('serves:', ', '.join(served))"
+
+# MSET cannot run without these: the universe reference is expanded against the database in
+# the activity, so a missing driver or resolver would fail every MSET run at run time.
+RUN python -c "\
+import psycopg; \
+from geneweaver.db.tool_input import gene_universe, species_by_geneset; \
+from geneweaver.tools.temporal.resolvers import INPUT_RESOLVERS; \
+assert 'mset' in INPUT_RESOLVERS, 'the MSET input resolver is not registered'; \
+print('database input resolution available for:', ', '.join(sorted(INPUT_RESOLVERS)))"
+
+# Regression guard for G3-804.
+#
+# The input deliberately shares labels between the two partitions (genes "300".."302" are
+# also gene-set ids), because that is the half of the defect that reproduces on glibc: the
+# single shared hash table aliases such a label to the other partition's index, resolving
+# 397 of 400 genes instead of 400 -- in range, no crash, silently wrong. The other half,
+# the one-past-the-end write on a full table, only traps on platforms whose hcreate
+# allocates exactly the requested size (macOS); glibc's rounding to the next prime hides
+# it, so a Linux build cannot check for it here.
+RUN set -eu; \
+    python - <<'PY'
+genes = [str(i) for i in range(400)]
+sets = ["300", "301", "302"]
+edges = [(g, s) for g in genes for s in sets]
+with open("/tmp/regress.el", "w") as fh:
+    fh.write(f"{len(genes)}\t{len(sets)}\t{len(edges)}\n")
+    for g, s in edges:
+        fh.write(f"{g}\t{s}\n")
+PY
+RUN set -eu; \
+    MALLOC_CHECK_=3 /opt/toolbox/biclique /tmp/regress.el -p > /tmp/regress.out; \
+    genes=$(sed -n 2p /tmp/regress.out | tr '\t' '\n' | sed '/^$/d' | sort -u | wc -l); \
+    test "$genes" -eq 400 || { \
+      echo "ERROR: biclique resolved $genes of 400 gene labels -- cross-partition"; \
+      echo "       label aliasing has returned (G3-804)"; \
+      exit 1; }; \
+    echo "biclique regression check passed: 400/400 labels"; \
+    rm -f /tmp/regress.el /tmp/regress.out
+
+USER nobody
+
+CMD ["python", "-m", "geneweaver.tools.temporal.worker"]

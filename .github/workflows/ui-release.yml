@@ -19,7 +19,7 @@ jobs:
     uses: ./.github/workflows/_ui-code-integrity.yml
 
   build:
-    name: "UI Build: All Environments"
+    name: "UI image build: All Environments"
     needs: [ code-integrity ]
     runs-on: ubuntu-latest
     defaults:

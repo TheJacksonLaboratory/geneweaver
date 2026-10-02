@@ -28,10 +28,10 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 from collections.abc import Callable
 
 from geneweaver.tools.framework.abstract import AbstractTool
+from geneweaver.tools.framework.binary import run_binary
 
 from .schema import DBSCANInput, DBSCANOutput
 
@@ -85,12 +85,7 @@ def _subprocess_runner(binary_path: str) -> BinaryRunner:
     """Default runner: invoke the compiled dbscan binary via subprocess."""
 
     def run(encoded: str, epsilon: int, min_points: int) -> str:
-        result = subprocess.run(
-            [binary_path, encoded, str(epsilon), str(min_points)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        result = run_binary([binary_path, encoded, str(epsilon), str(min_points)])
         if result.returncode != 0:
             raise RuntimeError(
                 f"dbscan binary failed (exit {result.returncode}): {result.stderr.strip()}"

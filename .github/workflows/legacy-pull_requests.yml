@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/_legacy-tests.yml
 
   build:
-    name: "Legacy Build: Dev"
+    name: "Legacy image build: Dev"
     needs: [ test ]
     uses: ./.github/workflows/_skaffold-build-k8s.yml
     secrets: inherit

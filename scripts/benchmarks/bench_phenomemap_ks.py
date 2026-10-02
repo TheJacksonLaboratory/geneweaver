@@ -15,6 +15,8 @@ Usage:
 
 from __future__ import annotations
 
+import json
+import os
 import random
 import time
 
@@ -45,12 +47,16 @@ def legacy_ks(data1, data2):
     return d, prob
 
 
+RESULTS = os.path.join(os.path.dirname(__file__), "results")
+
+
 def main():
     print("=== PhenomeMap KS: legacy hand-rolled vs scipy.stats.ks_2samp (2000 calls each) ===")
     header = f"{'sample n':>8} | {'legacy(ms)':>11} | {'scipy(ms)':>10} | {'max |Δp|':>10}"
     print(header)
     print("-" * len(header))
     rng = random.Random(0)
+    rows = []
     for n in [10, 50, 200, 1000]:
         pairs = [
             (
@@ -69,10 +75,24 @@ def main():
         scipy_ms = (time.perf_counter() - t0) * 1000
 
         max_dp = max(abs(lp - sp) for lp, sp in zip(legacy_p, scipy_p, strict=True))
+        rows.append(
+            {
+                "n": n,
+                "legacy_ms": round(legacy_ms, 2),
+                "scipy_ms": round(scipy_ms, 2),
+                "max_abs_dp": max_dp,
+            }
+        )
         print(f"{n:>8} | {legacy_ms:>11.1f} | {scipy_ms:>10.1f} | {max_dp:>10.2e}")
 
     print("\n  (scipy is slower and the p-values diverge for small n, so the port keeps the")
     print("   faithful legacy asymptotic KS -- pure-Python tool.ks_2samp_pvalue, no scipy)")
+
+    os.makedirs(RESULTS, exist_ok=True)
+    path = os.path.join(RESULTS, "phenomemap_ks.json")
+    with open(path, "w") as handle:
+        json.dump({"speed": rows}, handle, indent=2)
+    print(f"wrote {path}")
 
 
 if __name__ == "__main__":

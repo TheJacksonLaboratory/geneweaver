@@ -3,11 +3,19 @@
 > Comparison of the **legacy** GeneWeaver web app (`legacy/` — Flask + Jinja + Celery) against
 > the **new** UI (`ui/` — Angular 18 / Nx, served at `/next`), and the plan to close the gap.
 > The new UI is currently an early **read-only search experiment**; most of the legacy product
-> is not yet built. **Last updated:** 2026-08-10
+> is not yet built. **Last updated:** 2026-09-23
 >
 > **Status:** this roadmap is now broken into tracked work under epic
 > [G3-786](https://jacksonlaboratory.atlassian.net/browse/G3-786) — see §9 for the story map.
 > Phases 0–3 are filed; Phases 4–5 remain documented here only.
+>
+> **Sequencing superseded (2026-09-21):** `docs/v3/V3_ROADMAP_AND_GAP.md` re-orders this plan to
+> put the **analysis-tools spine first** (§6 here, i.e. G3-798 → G3-799 → the job model → G3-801
+> → binaries) ahead of the Phase 0 UI foundations, so the measured tool wins in
+> `docs/tools/TOOLS_BENCHMARKS.md` become reachable. It also adds the backend gaps this document
+> does not cover — legacy REST API compatibility, API-key auth, the curator/admin authorization
+> model, groups at the db layer, and the cutover plan. The phase *contents* below still stand;
+> only the order does not.
 
 ---
 
@@ -76,9 +84,9 @@ Status legend: ✅ done · 🟡 partial · ❌ missing.
 | D | Upload: single + batch `.gw`, ID transpose | ✅ | — | ❌ | `batch` controller is a stub **and is not mounted** in `controller/api.py` |
 | E | Projects | ✅ | — | ❌ | **project endpoints (none)**; `production.project` exists |
 | F | Groups & sharing | ✅ | — | ❌ | group endpoints (none) |
-| G | **Analysis tools + launcher + results** | ✅ (13 tools) | — | ❌ | **tools endpoints + job model (none)** — see §6 |
+| G | **Analysis tools + launcher + results** | ✅ (13 tools) | UpSet only, synchronous | 🟡 | `POST /api/tools/upset` and the `/analyze` page land in PR #32 — one tool, run in-process, no run id or polling. The other eight are gated on their resolvers (G3-798); async execution comes from AsyncTask — see §6 |
 | H | Curation & publication workflow | ✅ | — | ❌ | curation endpoints (none) |
-| I | Results (list/status/download/rerun) | ✅ | — | ❌ | result/job model (none); `production.result` exists |
+| I | Results (list/status/download/rerun) | ✅ | — | ❌ | no v3 endpoints; run state lives in AsyncTask, not `production.result` |
 | J | Export: batch/OmicsSoft/HBA | ✅ | geneset CSV/JSON only | 🟡 | export endpoints |
 | K | Notifications & messaging | ✅ | — | ❌ | notification endpoints |
 | L | Admin | ✅ | — | ❌ | admin endpoints |
@@ -121,7 +129,7 @@ UI: upload wizard (single + batch), Projects page, group management, sharing mod
 **Exit:** a user can create gene sets and organize them into projects/groups.
 
 ### Phase 3 — Analysis tools (the core) — see §6 for the deep plan
-Backend: tool input resolvers in `db`, async job model on the running Redis, `POST /tools/{tool}` + `GET /tools/runs/{id}`.
+Backend: tool input resolvers in `db`, tool execution via **AsyncTask** (see §6.2), `POST /tools/{tool}` + `GET /tools/runs/{id}`.
 UI: `/analyze` launcher (pick gene sets from basket + per-tool params), run/status polling, **per-tool result visualizations**, results list + rerun + download.
 **Exit:** a user can run the migrated tools from the UI and view results — the legacy "Analyze" experience.
 
@@ -140,27 +148,83 @@ This is the heaviest area and has its own layered breakdown (the pure tools take
 
 **6.1 Data-layer input resolvers (`packages/db`)** — one per tool, reproducing the legacy SQL; only ABBA exists today. Transcriptions already live inside `scripts/validation/validate_*.py` and can be promoted:
 - Combine/Jaccard* → `TOOLSET_SQL` (membership, homology pairs, labels) + pairwise counts; JaccardSimilarity also needs `jaccard_distribution_results` (⚠️ empty in current DBs).
-- BooleanAlgebra → `GET_HOMOLOGS_SQL`. DBSCAN/UpSet/PhenomeMap → gene symbols per set (+ gene ranks for PhenomeMap, ⚠️ uniformly `0.0` in local/dev/sqa). MSET → two gene lists + background files.
+- BooleanAlgebra → `GET_HOMOLOGS_SQL`. DBSCAN/UpSet/PhenomeMap → gene symbols per set (+ gene ranks for PhenomeMap, ⚠️ uniformly `0.0` in local/dev/sqa). MSET → two gene lists + the **DB-resolved gene universe** for each (G3-784: the ~301 `*BG.txt` files are gone; `MSETInput.group_*_background` is now a `list[str]` of resolved identifiers). **G3-784 done:** the request carries a universe *reference* (`{"universe": {"geneset_ids": [...]}}` or an explicit `species_id`) which the Temporal activity expands against the database. That takes the worst-case payload from 2.68 MiB — over Temporal's 2 MiB limit — to 8.5 KB, a 327x reduction, so MSET is cleared to run through AsyncTask. ⚠️ The universe rule changed in the process (curated genes → full gene space) and that moves p-values; see the A7 decision note in `docs/v3/V3_ROADMAP_AND_GAP.md`.
 
-**6.2 Execution + job model (API)** — async required (tools run seconds→minutes). Recommended: a task queue on the **already-running Redis** (`gw-redis:6379`) with `production.result` (or a new table) as the job store keyed by a run hash, mirroring legacy (`res_status/res_data/res_completed/usr_id/gs_ids`).
+**6.2 Execution + job model (API)** — async required (tools run seconds→minutes). **Settled 2026-09-22: tools run as plugins inside AsyncTask.** v3 builds no queue, worker or job store.
+
+`bitbucket.org/jacksonlaboratory/asynctask` v0.6.0a1 is a separate deployed JAX service, **Temporal**-backed, with its own database, API routers and deployment. It discovers work through the `jax.ats.plugins` entry-point group and requires one method:
+
+```python
+@runtime_checkable
+class AsyncTaskPlugin(Protocol[InputType, OutputType]):
+    def run(self, input_data: InputType) -> OutputType: ...
+```
+
+That protocol is necessary but **not sufficient**, and the shape delivered in PR #32 differs
+from what this section originally assumed. AsyncTask's `Plugin.validate_schemas()` additionally
+does `inspect.signature(plugin.run).parameters["input_data"]` — a literal name lookup — and
+`load_plugins()` swallows the resulting `ValueError`, so a non-conforming plugin is *silently*
+dropped from the registry rather than failing loudly.
+
+So `packages/tools` registers **one** AsyncTask plugin, not nine, mirroring
+`strain-recommendation`:
+
+| Group | Name | Target |
+|---|---|---|
+| `jax.ats.plugins` | `GeneWeaverTools` | `temporal.workflows:GeneWeaverToolWorkflow` |
+| `jax.ats.plugins.temporal.workflows` | `GeneWeaverToolWorkflows` | `temporal:WORKFLOWS` |
+| `jax.ats.plugins.temporal.activities` | `GeneWeaverToolActivities` | `temporal:ACTIVITIES` |
+
+All three need the `temporal` extra. The nine tools live in a **separate, private** registry
+group — `geneweaver.tools`, with plain names (`upset`, `mset`, …) — which the generic activity
+dispatches through. Keeping them out of `jax.ats.plugins` means AsyncTask is only ever offered
+the workflow, never a bare compute class it cannot start, and sidesteps the
+`geneweaver-boolean-algebra` name collision without namespacing each tool.
+
+*Superseded:* the earlier recommendation here — a task queue on the "already-running Redis" (`gw-redis:6379`) with `production.result` as the job store — was wrong on both counts. That Redis belongs to the **legacy** stack; v3's `deploy/k8s` has no Redis and no worker. G3-800, which tracked that design, is **closed as Won't Do**. What remains is integration and contract mapping, not implementation — see `docs/v3/V3_ROADMAP_AND_GAP.md` §5 A4.
 
 **6.3 API endpoints** — `POST /api/tools/{tool}` (validate params → resolve inputs → enqueue → return run id); `GET /api/tools/runs/{id}` (status + result); optionally expose `odestatic.tool`/`tool_param` so the UI renders parameter forms dynamically. Enforce auth0 user + gene-set group-access gate.
 
 **6.4 UI** — `/analyze` launcher (basket + per-tool param forms), run/status polling, results list (rerun/download), and **per-tool visualizations** (net-new — the pure tools dropped all legacy SVG/HTML): Venn/circle (Boolean, JaccardSimilarity), dendrogram (JaccardClustering), cluster view (DBSCAN), UpSet plot, PhenomeMap hierarchy graph, MSET histogram.
 
-**6.5 Runtime/packaging** — DBSCAN default is in-process (no binary). PhenomeMap needs the `biclique` binary (**currently SIGTRAPs — bug to fix first**); MSET needs `MSETcpp` + libomp + background-universe files. Decide how binaries ship in the API/worker image.
+**6.5 Runtime/packaging** — **settled: two tool-worker images, split by dependency profile.**
 
-**Suggested first vertical slice:** wire **one in-process tool** (UpSet or HyperGeometric — no binary, fast) end-to-end (resolver → sync endpoint → minimal result page) to prove the pattern before adding the Redis worker and fanning out.
+The nine tools have two profiles, and the deployment mirrors that rather than the tool count:
+
+| Image | Profile | Tools | Needs |
+|---|---|---|---|
+| `geneweaver-tools-worker` | `python` | UpSet, HyperGeometric, Combine, BooleanAlgebra, JaccardSimilarity, JaccardClustering, DBSCAN | wheels only (`scipy`/`sklearn`) |
+| `geneweaver-tools-native-worker` | `native` | MSET, PhenomeMap | `MSETcpp` (OpenMP), `biclique`, `bstrap` (Boost), compiled from `legacy/tools-worker/tools/TOOLBOX` |
+
+DBSCAN sits in the Python profile: its in-process implementation is the default and the
+binary is only the legacy-parity fallback. One image per tool was rejected — seven would be
+near-identical with nothing to isolate; `asynctask-mpd-plugin` makes the same trade, running
+four analyses from three base images with `anova` and `gxl` sharing one.
+
+Each image runs `geneweaver.tools.temporal.worker` on its own Temporal task queue
+(`geneweaver-tools`, `geneweaver-tools-native`), and `GeneWeaverToolWorkflow` routes each
+activity to the queue whose image can serve it. So the binaries ship in **our** image, not
+AsyncTask's — which matters because adding a build toolchain to AsyncTask is a change to a
+repository this team does not own — and tool runs stop competing for AsyncTask's shared
+activity thread pool with strain-recommendation and the MPD analyses.
+
+The native deployment serves both its tools: **G3-804** (the biclique heap overflow) and
+**G3-784** (MSET's inline gene universes) are both fixed in this PR. It is the only worker
+with database credentials, because resolving MSET's universe is the one thing a tool run
+needs a connection for.
+
+**Suggested first vertical slice:** wire **one in-process tool** (UpSet or HyperGeometric — no binary, fast) end-to-end (resolver → sync endpoint → minimal result page) to prove the pattern before wiring AsyncTask and fanning out.
 
 ---
 
 ## 7. Risks, decisions & open questions
 
 - **Backend is the critical path.** Most UI areas are blocked on endpoints that don't exist; UI and API work must be planned together, not UI-first.
-- **Execution model decision** (Phase 3): full task queue vs. hybrid (BackgroundTasks for cheap tools, queue for heavy). Redis already running suggests a queue was intended.
+- ~~**Execution model decision** (Phase 3)~~ — **decided 2026-09-22**: AsyncTask/Temporal (§6.2). The open questions moved with it: what AsyncTask guarantees about status transitions, cancellation, retention, artifact storage and result authorisation, all of which must be established from its code rather than assumed. G3-736 (ORCID users could not access runs) and G3-739 (runs spinning forever after failure) are evidence that they cannot.
+- **Cross-repo delivery is the real blocker** for tool runs: `geneweaver-tools` must be published to the private `gcp-dev` index and added to `asynctask`'s dependencies (as `geneweaver-tools[sklearn,temporal]`). The publish pipeline now exists here — `.github/workflows/publish-packages.yml`, tag-triggered on `tools-v*` — but has **not yet been run**, so whether its credential can write to `python-dev` is still unverified. The AsyncTask half is a change to a repository this team does not own.
 - **Visualizations are real frontend work** — the ported tools intentionally return data only; every tool's chart is net-new in Angular.
 - **Inert data:** `gene_rank` (PhenomeMap KS) and `jaccard_distribution_results` (JaccardSimilarity p-value) are empty/zero across local/dev/sqa — confirm whether they're ever populated before investing in those result views.
-- **biclique SIGTRAP** blocks PhenomeMap regardless of wiring.
+- ~~**biclique SIGTRAP** blocks PhenomeMap regardless of wiring.~~ **Fixed in this PR** (G3-804): a one-past-the-end write on a full `hsearch` table, which macOS libmalloc turns into SIGTRAP, plus cross-partition label aliasing that silently merged vertices on every platform. Both have regression guards.
 - **Un-migrated tools** (GeneSetViewer, TricliqueViewer, NetworkSimilarity, NESS, FindVariants, SimilarGenesets): decide scope — port or drop.
 - **Auth scope:** does the new UI need full SSO + account management parity, or is read-only public browsing acceptable for an initial public launch?
 
@@ -197,11 +261,11 @@ not yet broken into stories.
 | 2 | [G3-797](https://jacksonlaboratory.atlassian.net/browse/G3-797) — UI: upload wizard, projects, groups | §5 P2 |
 | 3 | [G3-798](https://jacksonlaboratory.atlassian.net/browse/G3-798) — `packages/db`: tool input resolvers | §6.1 |
 | 3 | [G3-799](https://jacksonlaboratory.atlassian.net/browse/G3-799) — **vertical slice**: one in-process tool end-to-end | §6 |
-| 3 | [G3-800](https://jacksonlaboratory.atlassian.net/browse/G3-800) — API: async job model + Redis queue | §6.2 |
+| 3 | ~~[G3-800](https://jacksonlaboratory.atlassian.net/browse/G3-800) — API: async job model + Redis queue~~ — **Won't Do**; superseded by AsyncTask, work folded into G3-750/G3-801 | §6.2 |
 | 3 | [G3-801](https://jacksonlaboratory.atlassian.net/browse/G3-801) — API: tool run endpoints | §6.3 |
 | 3 | [G3-802](https://jacksonlaboratory.atlassian.net/browse/G3-802) — UI: `/analyze` launcher + results management | §6.4 |
 | 3 | [G3-803](https://jacksonlaboratory.atlassian.net/browse/G3-803) — UI: per-tool result visualisations | §6.4 |
-| 3 | [G3-804](https://jacksonlaboratory.atlassian.net/browse/G3-804) — tool runtime & binary packaging (incl. `biclique` SIGTRAP) | §6.5 |
+| 3 | [G3-804](https://jacksonlaboratory.atlassian.net/browse/G3-804) — tool runtime & binary packaging (incl. `biclique` SIGTRAP) — **done in this PR** | §6.5 |
 
 Start with G3-787 → G3-789 (nothing else can be built cleanly without them), then G3-799 as the
 earliest demonstrable end-to-end capability.

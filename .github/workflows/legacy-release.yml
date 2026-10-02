@@ -98,7 +98,7 @@ jobs:
     uses: ./.github/workflows/_legacy-tests.yml
 
   build:
-    name: "Legacy Build"
+    name: "Legacy image build: Release"
     needs: [ version, test ]
     if: ${{ needs.version.outputs.should_release == 'true' }}
     uses: ./.github/workflows/_skaffold-build-k8s.yml
