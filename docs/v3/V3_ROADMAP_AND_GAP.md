@@ -594,6 +594,21 @@ legacy-shaped status poll against a v3 run returns the documented compatibility 
 `POST /api/tools/{tool}`, `GET /api/tools/runs/{id}`, run listing/cancel/delete/rerun, result
 download.
 
+**Status (2026-10-06): submission and polling are done, proxying.** v3 gates access, builds the
+input, and calls AsyncTask's `POST /runs` / `GET /runs/{id}` / `GET /runs/{id}/results` **as the
+user**, forwarding their bearer token: both services validate the same Auth0 tenant and audience,
+so AsyncTask's own owner check is what keeps one user from another's run, and v3 keeps no run
+table. `POST /tools/{tool}` (and `/tools/upset`) waits `ASYNCTASK_WAIT_SECONDS`, returning the
+result as before or **202** with a `run_id`; `GET /tools/runs/{run_id}` polls. MSET sends a
+universe *reference*, resolved by the worker (A7). Anonymous callers keep the in-process path for
+the seven Python tools, since AsyncTask has no user to run as; MSET and PhenomeMap ask them to sign
+in. Gated on `ASYNCTASK_API_URL`, set only in the dev overlay. Code: `services/asynctask.py`.
+
+Still open: listing, cancel, delete, rerun and result download; the Analyze page polling a 202
+(runs measured 0.4–2.8s on dev against a 30s wait, so it is not yet reachable in practice); and
+failure detail -- AsyncTask records only a failed *status*, so a failed run is reported with its
+Temporal workflow id rather than a cause.
+
 **Settle first whether these endpoints proxy AsyncTask or re-expose it.** AsyncTask has its own
 API routers, so v3 could forward submissions and status through to it, or present its own surface
 over it. Proxying is less code and one source of truth; re-exposing gives control over the legacy

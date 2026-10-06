@@ -56,6 +56,17 @@ class GeneweaverAPIConfig(BaseSettings):
     JWT_PERMISSION_PREFIX: str = "approle"
     AUTH_CLIENT_ID: str = "aE6dpT04mGlvPeUXl4RYGSnCjvHEuawd"
 
+    # AsyncTask's API root, e.g. http://asynctask-api.dev.svc.cluster.local/asynctask/api.
+    # Unset by default, which keeps every tool run in-process -- so an environment only
+    # sends runs to AsyncTask once its overlay sets this, and one whose AsyncTask lacks
+    # the geneweaver-tools plugin is never pointed at it.
+    ASYNCTASK_API_URL: str | None = None
+    # How long `POST /tools/{tool}` waits for a run before answering 202 with its run id.
+    ASYNCTASK_WAIT_SECONDS: float = 30.0
+    ASYNCTASK_POLL_SECONDS: float = 1.0
+    # Per HTTP call to AsyncTask, not per run.
+    ASYNCTASK_REQUEST_TIMEOUT_SECONDS: float = 10.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=False,

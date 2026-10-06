@@ -1,19 +1,14 @@
 """How a tool gets executed -- the seam between the API and the execution backend.
 
-Tools run in production through **AsyncTask** (`bitbucket.org/jacksonlaboratory/asynctask`),
-a Temporal-backed service that loads them as `jax.ats.plugins` entry points. Reaching that
-needs two changes outside this repository: publishing `geneweaver-tools` to the private
-`gcp-dev` index, and adding it to `asynctask`'s dependencies.
+Tools run out of process through **AsyncTask** (`bitbucket.org/jacksonlaboratory/asynctask`),
+a Temporal-backed service that loads them as the `GeneWeaverTools` plugin. That path is
+`services/asynctask.py`, chosen per request in `services/tools.py`: it acts as the signed-in
+user, so it cannot serve anonymous callers, and it is off wherever `ASYNCTASK_API_URL` is
+unset.
 
-Until those land, tools run **in-process and synchronously** so the `/next` UI can exercise
-the whole chain against dev. This module is the one place that knows the difference.
-Swapping to AsyncTask means adding an `AsyncTaskToolRunner` here and choosing it in
-`dependencies.py` -- the service layer, the endpoints and the UI do not change.
-
-In-process execution is only viable because the first tools exposed are the cheap ones.
-UpSet is pure Python over set membership. It is **not** a general answer: MSET and
-PhenomeMap shell out to binaries, and the roadmap's A4 notes that tool runs take
-seconds to minutes, which is why AsyncTask exists.
+This module is the **in-process** backend for everything else. In-process execution is only
+viable because the seven tools it serves are pure Python and fast; MSET and PhenomeMap shell
+out to binaries the API image does not carry, and run only on AsyncTask.
 """
 
 from typing import Protocol

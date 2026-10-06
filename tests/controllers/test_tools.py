@@ -197,3 +197,86 @@ def test_an_unknown_tool_is_still_a_404(client) -> None:
     response = client.post("/api/tools/not-a-tool", json={"geneset_ids": [1, 2]})
 
     assert response.status_code == 404
+
+
+# --- AsyncTask outcomes, as HTTP statuses ------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raised", "expected"),
+    [
+        ("pending", 202),
+        ("sign_in", 401),
+        ("bad_request", 422),
+        ("failed", 502),
+        ("asynctask_403", 403),
+        ("asynctask_down", 502),
+    ],
+)
+def test_run_tool_maps_asynctask_outcomes(client, raised, expected) -> None:
+    """Run tool maps asynctask outcomes."""
+    from geneweaver.api.services import tools as tool_service
+    from geneweaver.api.services.asynctask import AsyncTaskError
+
+    errors = {
+        "pending": tool_service.ToolRunPending("upset", [1, 2], 11, "running"),
+        "sign_in": tool_service.SignInRequired("sign in"),
+        "bad_request": tool_service.ToolRequestError("two only"),
+        "failed": tool_service.ToolRunFailed("failed"),
+        "asynctask_403": AsyncTaskError("Unauthorized.", status_code=403),
+        "asynctask_down": AsyncTaskError("unreachable"),
+    }
+    with patch("geneweaver.api.services.tools.run_tool", side_effect=errors[raised]):
+        response = client.post("/api/tools/mset", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == expected
+    if raised == "pending":
+        assert response.json()["object"] == {
+            "tool": "upset",
+            "geneset_ids": [1, 2],
+            "run_id": 11,
+            "status": "running",
+        }
+
+
+def test_get_tool_run_returns_the_run(client) -> None:
+    """Get tool run returns the run."""
+    run = {"run_id": 11, "status": "completed", "workflow_id": "w", "result": {"nodes": []}}
+    with patch("geneweaver.api.services.tools.get_tool_run", return_value=run):
+        response = client.get("/api/tools/runs/11")
+
+    assert response.status_code == 200
+    assert response.json()["object"] == run
+
+
+def test_get_tool_run_passes_through_an_ownership_refusal(client) -> None:
+    """Another user's run is AsyncTask's 403, not a 404 or an outage."""
+    from geneweaver.api.services.asynctask import AsyncTaskError
+
+    with patch(
+        "geneweaver.api.services.tools.get_tool_run",
+        side_effect=AsyncTaskError("Unauthorized.", status_code=403),
+    ):
+        response = client.get("/api/tools/runs/11")
+
+    assert response.status_code == 403
+
+
+def test_get_tool_run_is_404_where_asynctask_is_off(client) -> None:
+    """Get tool run is 404 where asynctask is off."""
+    with patch("geneweaver.api.services.tools.asynctask_configured", return_value=False):
+        response = client.get("/api/tools/runs/11")
+
+    assert response.status_code == 404
+
+
+def test_upset_endpoint_reports_a_pending_run_as_202(client) -> None:
+    """The typed endpoint maps AsyncTask outcomes exactly as the generic one does."""
+    from geneweaver.api.services import tools as tool_service
+
+    pending = tool_service.ToolRunPending("upset", [1, 2], 11, "running")
+    with patch("geneweaver.api.services.tools.run_upset", side_effect=pending):
+        response = client.post("/api/tools/upset", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 202
+    assert response.json()["object"]["run_id"] == 11
