@@ -51,7 +51,7 @@ COMPLETED = "completed"
 
 
 class AsyncTaskError(RuntimeError):
-    """AsyncTask refused a call or could not be reached.
+    """AsyncTask refused a call, could not be reached, or answered outside its contract.
 
     ``status_code`` is AsyncTask's HTTP status where there was one, so the endpoint can pass
     through an ownership refusal (403) or a missing run (404) rather than reporting every
@@ -61,6 +61,14 @@ class AsyncTaskError(RuntimeError):
     def __init__(self, message: str, status_code: int | None = None) -> None:
         super().__init__(message)
         self.status_code = status_code
+
+
+class AsyncTaskTimeout(AsyncTaskError):
+    """A single call to AsyncTask ran out of time.
+
+    Distinct so that `wait` can treat a slow *poll* as "still running" -- the run itself is
+    unaffected -- while a slow *submission* is still an error.
+    """
 
 
 @dataclass
@@ -105,12 +113,27 @@ class AsyncTaskClient:
         self.session = session or requests.Session()
         self.headers = {"Authorization": f"Bearer {token}"}
 
-    def _call(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+    def _call(
+        self, method: str, path: str, timeout: float | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Make one call and return the ``object`` of AsyncTask's response envelope.
+
+        Everything that is not a well-formed envelope -- a transport failure, an error
+        status, a non-JSON body (an ingress error page served as 200), or a body without a
+        mapping under ``object`` -- is raised as an `AsyncTaskError`, so the endpoint reports
+        an upstream fault (502) rather than crashing with a decoding error (500).
+        """
         url = f"{self.base_url}{path}"
         try:
             response = self.session.request(
-                method, url, headers=self.headers, timeout=self.request_timeout, **kwargs
+                method,
+                url,
+                headers=self.headers,
+                timeout=self.request_timeout if timeout is None else timeout,
+                **kwargs,
             )
+        except requests.Timeout as error:
+            raise AsyncTaskTimeout(f"AsyncTask timed out ({method} {path}): {error}") from error
         except requests.RequestException as error:
             raise AsyncTaskError(f"AsyncTask is unreachable ({method} {path}): {error}") from error
         if response.status_code >= 400:
@@ -119,8 +142,35 @@ class AsyncTaskClient:
                 f"{response.text[:500]}",
                 status_code=response.status_code,
             )
-        body = response.json()
-        return body.get("object") or {}
+        try:
+            body = response.json()
+        except ValueError as error:
+            raise AsyncTaskError(
+                f"AsyncTask answered {method} {path} with a body that is not JSON: "
+                f"{response.text[:200]!r}"
+            ) from error
+        obj = body.get("object") if isinstance(body, dict) else None
+        if not isinstance(obj, dict):
+            raise AsyncTaskError(
+                f"AsyncTask answered {method} {path} without an object in its response "
+                f"envelope: {str(body)[:200]}"
+            )
+        return obj
+
+    @staticmethod
+    def _run_state(run: dict[str, Any], method: str, path: str) -> RunState:
+        """Read a run out of AsyncTask's response, refusing one without an id or status."""
+        run_id = run.get("id")
+        if not isinstance(run_id, int) or isinstance(run_id, bool) or "status" not in run:
+            raise AsyncTaskError(
+                f"AsyncTask answered {method} {path} with a run missing its id or status: "
+                f"{str(run)[:200]}"
+            )
+        return RunState(
+            run_id=run_id,
+            workflow_id=run.get("workflow_id"),
+            status=status_name(run["status"]),
+        )
 
     def submit(self, envelope: dict[str, Any], name: str) -> RunState:
         """Start a run of the `GeneWeaverTools` plugin.
@@ -133,32 +183,53 @@ class AsyncTaskClient:
             "/runs",
             json={"task_type": TASK_TYPE, "name": name, "values": envelope},
         )
-        return RunState(
-            run_id=run["id"],
-            workflow_id=run.get("workflow_id"),
-            status=status_name(run.get("status")),
-        )
+        return self._run_state(run, "POST", "/runs")
 
-    def get(self, run_id: int) -> RunState:
-        """A run's current status, with its result attached once it has completed."""
-        run = self._call("GET", f"/runs/{run_id}")
-        state = RunState(
-            run_id=run_id,
-            workflow_id=run.get("workflow_id"),
-            status=status_name(run.get("status")),
-        )
+    def get(self, run_id: int, timeout: float | None = None) -> RunState:
+        """A run's current status, with its result attached once it has completed.
+
+        :param timeout: A budget in seconds shared by both calls -- the result fetch gets only
+            what the status check left -- overriding the client's per-call default.
+        """
+        started = time.monotonic()
+        path = f"/runs/{run_id}"
+        state = self._run_state(self._call("GET", path, timeout=timeout), "GET", path)
         if state.status == COMPLETED:
-            state.result = self._call("GET", f"/runs/{run_id}/results").get("values")
+            result_path = f"{path}/results"
+            left = None
+            if timeout is not None:
+                left = timeout - (time.monotonic() - started)
+                if left <= 0:
+                    raise AsyncTaskTimeout(f"No time left to fetch GET {result_path}.")
+            values = self._call("GET", result_path, timeout=left).get("values")
+            if not isinstance(values, dict):
+                raise AsyncTaskError(
+                    f"AsyncTask answered GET {result_path} without a result object: "
+                    f"{str(values)[:200]}"
+                )
+            state.result = values
         return state
 
     def wait(self, state: RunState, timeout: float, poll_interval: float) -> RunState:
         """Poll until the run finishes or `timeout` seconds pass, whichever is first.
 
-        Returns the last state seen; a run still ``running`` at the deadline is not an
-        error, the caller hands back its id instead.
+        The budget is a ceiling, not a target: sleeps are capped at what remains, nothing is
+        polled once it is spent, and each poll's HTTP calls are bounded by the remainder. A
+        poll that runs out of time returns the last state seen rather than raising -- the
+        run is unaffected, so the caller hands back its id to poll later instead of
+        reporting an outage.
         """
         deadline = time.monotonic() + timeout
-        while not state.finished and time.monotonic() < deadline:
-            time.sleep(poll_interval)
-            state = self.get(state.run_id)
+        while not state.finished:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(poll_interval, remaining))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                state = self.get(state.run_id, timeout=min(self.request_timeout, remaining))
+            except AsyncTaskTimeout:
+                break
         return state

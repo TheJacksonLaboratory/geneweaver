@@ -16,9 +16,15 @@ and returns the result as before; a run still going at that point is answered **
 its `run_id`, which `GET /tools/runs/{run_id}` polls. Anonymous callers, and every caller
 where AsyncTask is not configured, run in-process and synchronously as before.
 
-Access is via `optional_full_user`, matching `/genesets/search`: an anonymous caller may
-run a tool over gene sets that are publicly readable, and nothing else. The gate lives in
-the service layer so it cannot be skipped by a future endpoint.
+Access is via `optional_full_user_released`, matching `/genesets/search`: an anonymous
+caller may run a tool over gene sets that are publicly readable, and nothing else. The gate
+lives in the service layer so it cannot be skipped by a future endpoint.
+
+**No database connection is held across a run.** Each run endpoint does its database work
+(user lookup, access gate, input resolution) on short-lived cursors from
+`deps.cursor_factory`, returns them to the pool, and only then executes -- which may mean
+waiting on AsyncTask for `ASYNCTASK_WAIT_SECONDS`. Holding the request's connection through
+that wait would let eight concurrent runs exhaust the pool for every other request.
 """
 
 from collections.abc import Callable
@@ -41,8 +47,8 @@ router = APIRouter(prefix="/tools", tags=["tools"])
 def run_upset(
     request: Annotated[UpSetRequest, Body(description="Gene sets to intersect.")],
     http_response: HTTPResponse,
-    user: UserInternal = Security(deps.optional_full_user),
-    cursor: deps.Cursor | None = Depends(deps.cursor),
+    user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
 ) -> Response:
     """Run UpSet over two or more gene sets.
 
@@ -50,15 +56,18 @@ def run_upset(
     behind an UpSet plot. Responds 403 if any requested gene set is not readable; the
     AsyncTask outcomes are as for `POST /tools/{tool}`.
     """
-    return _run_and_map(
-        http_response,
-        lambda: tool_service.run_upset(
-            cursor,
-            geneset_ids=request.geneset_ids,
-            user=user,
-            include_zeros=request.include_zeros,
-        ),
-    )
+
+    def run() -> Any:
+        with open_cursor() as cursor:
+            prepared = tool_service.prepare_upset(
+                cursor,
+                geneset_ids=request.geneset_ids,
+                user=user,
+                include_zeros=request.include_zeros,
+            )
+        return tool_service.execute_upset(prepared)
+
+    return _run_and_map(http_response, run)
 
 
 @router.get("")
@@ -105,18 +114,19 @@ def _run_and_map(http_response: HTTPResponse, run: Callable[[], Any]) -> Respons
         return Response(object=pending.body)
     except tool_service.ToolRunFailed as error:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
+    except tool_service.ToolUnavailable as error:
+        # Registered but not runnable here: a conflict with the server's state, not a
+        # malformed request. Its own exception type, so a parameter error -- pydantic's
+        # ValidationError is a ValueError -- can never land here.
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
     except AsyncTaskError as error:
         raise _asynctask_http_error(error) from error
-    except ValueError as error:
-        # Registered but not runnable here: a conflict with the server's state, not a
-        # malformed request, so not a 422.
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
 
 
 @router.get("/runs/{run_id}")
 def get_tool_run(
     run_id: Annotated[int, Path(description="A run id returned by POST /tools/{tool}.")],
-    user: UserInternal = Security(deps.optional_full_user),
+    user: UserInternal = Security(deps.optional_full_user_released),
 ) -> Response:
     """Poll a tool run submitted to AsyncTask.
 
@@ -127,7 +137,7 @@ def get_tool_run(
         return Response(object=tool_service.get_tool_run(run_id, user))
     except tool_service.SignInRequired as error:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
-    except ValueError as error:
+    except tool_service.ToolUnavailable as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except AsyncTaskError as error:
         raise _asynctask_http_error(error) from error
@@ -138,8 +148,8 @@ def run_tool(
     tool: Annotated[str, Path(description="Tool name, as listed by GET /tools.")],
     request: Annotated[ToolRunRequest, Body(description="Gene sets and tool options.")],
     http_response: HTTPResponse,
-    user: UserInternal = Security(deps.optional_full_user),
-    cursor: deps.Cursor | None = Depends(deps.cursor),
+    user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
 ) -> Response:
     """Run one tool over two or more gene sets.
 
@@ -154,13 +164,16 @@ def run_tool(
     inside a tool is also a LookupError, and catching the base class reported a bug in the
     tool as a missing tool.
     """
-    return _run_and_map(
-        http_response,
-        lambda: tool_service.run_tool(
-            cursor,
-            tool_name=tool,
-            geneset_ids=request.geneset_ids,
-            user=user,
-            parameters=request.parameters,
-        ),
-    )
+
+    def run() -> Any:
+        with open_cursor() as cursor:
+            prepared = tool_service.prepare_tool_run(
+                cursor,
+                tool_name=tool,
+                geneset_ids=request.geneset_ids,
+                user=user,
+                parameters=request.parameters,
+            )
+        return tool_service.execute_tool_run(prepared)
+
+    return _run_and_map(http_response, run)

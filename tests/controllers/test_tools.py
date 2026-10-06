@@ -1,6 +1,6 @@
 """Tests for the tool-run endpoints."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from geneweaver.tools.upset import UpSet, UpSetInput
@@ -201,6 +201,8 @@ def test_an_unknown_tool_is_still_a_404(client) -> None:
 
 # --- AsyncTask outcomes, as HTTP statuses ------------------------------------------
 
+PENDING_SHAPE = {"tool": "upset", "geneset_ids": [1, 2], "gene_counts": {"1": 2}, "caveat": None}
+
 
 @pytest.mark.parametrize(
     ("raised", "expected"),
@@ -219,24 +221,22 @@ def test_run_tool_maps_asynctask_outcomes(client, raised, expected) -> None:
     from geneweaver.api.services.asynctask import AsyncTaskError
 
     errors = {
-        "pending": tool_service.ToolRunPending("upset", [1, 2], 11, "running"),
+        "pending": tool_service.ToolRunPending(PENDING_SHAPE, 11, "running"),
         "sign_in": tool_service.SignInRequired("sign in"),
         "bad_request": tool_service.ToolRequestError("two only"),
         "failed": tool_service.ToolRunFailed("failed"),
         "asynctask_403": AsyncTaskError("Unauthorized.", status_code=403),
         "asynctask_down": AsyncTaskError("unreachable"),
     }
-    with patch("geneweaver.api.services.tools.run_tool", side_effect=errors[raised]):
+    with (
+        patch("geneweaver.api.services.tools.prepare_tool_run"),
+        patch("geneweaver.api.services.tools.execute_tool_run", side_effect=errors[raised]),
+    ):
         response = client.post("/api/tools/mset", json={"geneset_ids": [1, 2]})
 
     assert response.status_code == expected
     if raised == "pending":
-        assert response.json()["object"] == {
-            "tool": "upset",
-            "geneset_ids": [1, 2],
-            "run_id": 11,
-            "status": "running",
-        }
+        assert response.json()["object"] == {**PENDING_SHAPE, "run_id": 11, "status": "running"}
 
 
 def test_get_tool_run_returns_the_run(client) -> None:
@@ -274,9 +274,119 @@ def test_upset_endpoint_reports_a_pending_run_as_202(client) -> None:
     """The typed endpoint maps AsyncTask outcomes exactly as the generic one does."""
     from geneweaver.api.services import tools as tool_service
 
-    pending = tool_service.ToolRunPending("upset", [1, 2], 11, "running")
-    with patch("geneweaver.api.services.tools.run_upset", side_effect=pending):
+    pending = tool_service.ToolRunPending(PENDING_SHAPE, 11, "running")
+    with (
+        patch("geneweaver.api.services.tools.prepare_upset"),
+        patch("geneweaver.api.services.tools.execute_upset", side_effect=pending),
+    ):
         response = client.post("/api/tools/upset", json={"geneset_ids": [1, 2]})
 
     assert response.status_code == 202
     assert response.json()["object"]["run_id"] == 11
+
+
+# --- request errors are 422; only an unavailable tool is 409 -----------------------
+
+
+def _readable(memberships=None):
+    return (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+            return_value=memberships or {"1": ["A", "B"], "2": ["B", "C"]},
+        ),
+    )
+
+
+def test_a_malformed_dbscan_parameter_is_422_not_409(client) -> None:
+    """The caller must fix it; it says nothing about the deployment."""
+    readable, memberships = _readable()
+    with readable, memberships:
+        response = client.post(
+            "/api/tools/dbscan", json={"geneset_ids": [1, 2], "parameters": {"epsilon": "x"}}
+        )
+
+    assert response.status_code == 422
+    assert "dbscan" in response.json()["detail"]
+
+
+def test_a_malformed_mset_parameter_is_422_and_nothing_is_submitted(client) -> None:
+    """Validated against MSETInput before AsyncTask is called."""
+    asynctask = Mock()
+    readable, memberships = _readable()
+    with (
+        readable,
+        memberships,
+        patch("geneweaver.api.services.tools.asynctask_configured", return_value=True),
+        patch("geneweaver.api.services.tools.asynctask_client_for", return_value=asynctask),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+            return_value={1: 1, 2: 1},
+        ),
+    ):
+        response = client.post(
+            "/api/tools/mset",
+            json={"geneset_ids": [1, 2], "parameters": {"number_of_samples": "many"}},
+        )
+
+    assert response.status_code == 422
+    asynctask.submit.assert_not_called()
+
+
+def test_a_tool_unavailable_here_is_409(client) -> None:
+    """The one case that is a conflict with this environment rather than the request."""
+    with patch("geneweaver.api.services.tools.asynctask_configured", return_value=False):
+        response = client.post("/api/tools/mset", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 409
+    assert "MSETcpp" in response.json()["detail"]
+
+
+# --- the database connection is released before the run executes ------------------
+
+
+@pytest.mark.parametrize(
+    ("path", "prepare", "execute"),
+    [
+        ("/api/tools/dbscan", "prepare_tool_run", "execute_tool_run"),
+        ("/api/tools/upset", "prepare_upset", "execute_upset"),
+    ],
+)
+def test_the_connection_is_back_in_the_pool_before_execution(
+    app, client, path, prepare, execute
+) -> None:
+    """A run may wait 30s on AsyncTask; holding the lease through it starves the pool."""
+    from contextlib import contextmanager
+
+    from geneweaver.api.dependencies import cursor_factory
+
+    leases = {"open": 0}
+
+    @contextmanager
+    def tracked():
+        leases["open"] += 1
+        try:
+            yield Mock()
+        finally:
+            leases["open"] -= 1
+
+    def execute_checking_the_lease(prepared, runner=None):
+        assert leases["open"] == 0, "a connection is still leased during execution"
+        return {"ok": True}
+
+    previous = app.dependency_overrides.get(cursor_factory)
+    app.dependency_overrides[cursor_factory] = lambda: tracked
+    try:
+        with (
+            patch(f"geneweaver.api.services.tools.{prepare}") as prepared,
+            patch(
+                f"geneweaver.api.services.tools.{execute}",
+                side_effect=execute_checking_the_lease,
+            ),
+        ):
+            response = client.post(path, json={"geneset_ids": [1, 2]})
+    finally:
+        app.dependency_overrides[cursor_factory] = previous
+
+    assert response.status_code == 200
+    prepared.assert_called_once()
