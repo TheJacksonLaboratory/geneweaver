@@ -1,4 +1,4 @@
-name: 'Skaffold Build'
+name: 'Skaffold Build (container images)'
 on:
   workflow_call:
     inputs:

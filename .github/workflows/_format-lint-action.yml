@@ -26,8 +26,13 @@ jobs:
       - name: Install dependencies with uv
         run: uv sync --only-group dev
 
+      # `packages/tools/` is included because it is published to the private index and
+      # consumed by asynctask, so its source is as external as `src/`. The other workspace
+      # packages are deliberately left out for now: `packages/core` and `packages/db` each
+      # have a pre-existing formatting failure, and fixing those belongs in its own change
+      # rather than riding along here.
       - name: Run Ruff Linter
-        run: uv run --only-group dev ruff check src/ tests/
+        run: uv run --only-group dev ruff check src/ tests/ packages/tools/
 
       - name: Run Ruff Formatter
-        run: uv run --only-group dev ruff format --check src/ tests/
+        run: uv run --only-group dev ruff format --check src/ tests/ packages/tools/

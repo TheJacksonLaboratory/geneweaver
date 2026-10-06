@@ -4,3 +4,5 @@ namespace: sqa
 resources:
   - ../../base
   - ingress.yaml
+patchesStrategicMerge:
+  - tools-worker-configmap.yaml

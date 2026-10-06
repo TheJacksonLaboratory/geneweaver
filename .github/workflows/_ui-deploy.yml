@@ -38,8 +38,39 @@ jobs:
       - name: Setup Gcloud
         uses: 'google-github-actions/setup-gcloud@v1'
 
+      # `dist/<env>/*`, not `dist/<env>/.`: the trailing `/.` means "the contents of" to
+      # gsutil, but `gcloud storage cp` copies the *directory*, so every upload landed in
+      # `gs://<bucket>/<env>/` while the pod's init container copies `gs://<bucket>/*` and
+      # nginx serves the root. The deploy reported success and changed nothing -- dev was
+      # serving a build from 2026-04-14 until this was found. The glob is expanded by the
+      # shell, so each top-level entry is copied into the bucket root.
       - name: Upload static build to GCS deployment bucket
-        run: gcloud storage cp --recursive "dist/${{ inputs.environment }}/." "gs://${{ vars.DEPLOYMENT_BUCKET }}"
+        run: gcloud storage cp --recursive "dist/${{ inputs.environment }}"/* "gs://${{ vars.DEPLOYMENT_BUCKET }}"
+
+      # An upload that silently puts files somewhere nobody reads is the failure above.
+      # Assert the entry point actually landed at the bucket root, and is the build we just
+      # uploaded rather than an older one left behind.
+      - name: Verify the upload landed where nginx serves from
+        run: |
+          set -euo pipefail
+          BUCKET="gs://${{ vars.DEPLOYMENT_BUCKET }}"
+          # No --hex: `objects describe` reports md5_hash base64-encoded, which is also
+          # what `gcloud storage hash` emits by default. Mixing the two never matches.
+          LOCAL_HASH=$(gcloud storage hash "dist/${{ inputs.environment }}/index.html" \
+            --format='value(md5_hash)')
+          REMOTE_HASH=$(gcloud storage objects describe "${BUCKET}/index.html" \
+            --format='value(md5_hash)' 2>/dev/null || echo "MISSING")
+          echo "local  index.html md5: ${LOCAL_HASH}"
+          echo "bucket index.html md5: ${REMOTE_HASH}"
+          if [ "${REMOTE_HASH}" = "MISSING" ]; then
+            echo "::error::${BUCKET}/index.html does not exist -- the upload did not reach the bucket root"
+            exit 1
+          fi
+          if [ "${LOCAL_HASH}" != "${REMOTE_HASH}" ]; then
+            echo "::error::${BUCKET}/index.html does not match the build just uploaded"
+            exit 1
+          fi
+          echo "index.html is live at the bucket root"
 
       - name: Get GKE credentials
         uses: 'google-github-actions/get-gke-credentials@v1'

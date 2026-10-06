@@ -11,6 +11,17 @@ build:
       context: .
       docker:
           dockerfile: Dockerfile
+    # Two tool-worker images, split by dependency profile rather than per tool: seven of
+    # the nine tools need only wheels, two need the compiled TOOLBOX binaries. See
+    # packages/tools/src/geneweaver/tools/temporal/routing.py.
+    - image: geneweaver-tools-worker
+      context: .
+      docker:
+          dockerfile: deploy/docker/Dockerfile.tools-worker
+    - image: geneweaver-tools-native-worker
+      context: .
+      docker:
+          dockerfile: deploy/docker/Dockerfile.tools-native-worker
   local:
     useBuildkit: true
 test:

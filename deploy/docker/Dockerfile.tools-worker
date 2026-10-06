@@ -1,0 +1,60 @@
+# GeneWeaver tools worker -- Python-only profile.
+#
+# Serves the seven tools that need nothing but wheels: UpSet, HyperGeometric, Combine,
+# BooleanAlgebra, JaccardSimilarity, JaccardClustering and DBSCAN (whose in-process
+# implementation is the default; the binary is only the legacy-parity fallback).
+#
+# MSET and PhenomeMap are *not* served here -- they shell out to TOOLBOX binaries and are
+# served by Dockerfile.tools-native-worker. The split is by dependency profile rather than
+# per tool, because seven of the nine have identical requirements; see
+# packages/tools/src/geneweaver/tools/temporal/routing.py for the reasoning.
+#
+# Build from the repository root:
+#   docker build -f deploy/docker/Dockerfile.tools-worker -t geneweaver-tools-worker .
+
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_PYTHON_DOWNLOADS=0 \
+    PATH="/app/.venv/bin:${PATH}" \
+    GENEWEAVER_TOOLS_PROFILE=python
+
+# Pinned, matching the root Dockerfile so both images resolve identically.
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /bin/uv
+
+WORKDIR /app
+
+# Manifests and lockfile first so the dependency layer caches independently of source.
+COPY pyproject.toml uv.lock README.md ./
+COPY packages ./packages
+
+# Only the tools package and the extras it needs. `src/` (geneweaver-api) is deliberately
+# absent: this image serves tool runs, not HTTP, and leaving the web stack out drops ~149
+# packages along with their attack surface.
+RUN uv sync --frozen --no-dev --package geneweaver-tools --extra sklearn --extra temporal
+
+# Fail the build here rather than at run time. A worker whose entry points did not register
+# starts cleanly, consumes its queue and fails every task -- the failure mode this package's
+# AsyncTask contract test exists to catch, and it is cheaper to catch in the build.
+RUN python -c "\
+from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS; \
+from geneweaver.tools.temporal.activities import available_tools; \
+from geneweaver.tools.temporal.routing import PYTHON_PROFILE, tools_for_profile; \
+served = tools_for_profile(PYTHON_PROFILE, available_tools()); \
+assert WORKFLOWS and ACTIVITIES, 'temporal entry points did not load'; \
+assert len(served) == 7, f'expected 7 python-profile tools, got {served}'; \
+print('serves:', ', '.join(served))"
+
+# Sanity-check that the tools which need sklearn can actually import it: the extra is easy
+# to omit, and JaccardClustering raises ImportError at module level without it.
+RUN python -c "\
+from geneweaver.tools.jaccard_clustering import JaccardClustering; \
+from geneweaver.tools.dbscan import DBSCAN; \
+print('sklearn-backed tools import cleanly')"
+
+USER nobody
+
+CMD ["python", "-m", "geneweaver.tools.temporal.worker"]

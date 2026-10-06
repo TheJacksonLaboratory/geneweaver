@@ -13,6 +13,14 @@ class GeneweaverAPIConfig(BaseSettings):
 
     API_PREFIX: str = "/api"
 
+    # Browser origins allowed to call this API cross-origin. Empty by default, which
+    # disables CORS entirely -- deployed environments serve the UI same-origin behind the
+    # ingress and need none. Set CORS_ORIGINS for local development, e.g. the Angular dev
+    # server, which serves on 4200 (`ui/project.json` serve-static, and Angular's
+    # default): CORS_ORIGINS='["http://localhost:4200"]'
+    # Add the port you actually used if you override it, e.g. `nx serve --port 4201`.
+    CORS_ORIGINS: list[str] = []
+
     DB_HOST: str
     DB_USERNAME: str
     DB_PASSWORD: str

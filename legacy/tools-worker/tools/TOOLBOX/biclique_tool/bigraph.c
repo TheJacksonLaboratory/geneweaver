@@ -89,6 +89,7 @@ BiGraph * bigraph_edgelist_in(FILE *fp)
   unsigned int n1, n2, e;
   int k1=0, k2=0, edges=0, r, i;
   char word1[100], word2[100];
+  char key1[102], key2[102];
   BiGraph *G;
   int *id, *id1, *id2;
   ENTRY item;
@@ -101,65 +102,89 @@ BiGraph * bigraph_edgelist_in(FILE *fp)
   
   G = bigraph_make(n1, n2);
   
-  /* create a hash table */
-  (void) hcreate(n1+n2);
+  /* Create the label -> index hash table.
+   *
+   * Sized with headroom rather than exactly n1+n2. POSIX hsearch cannot grow, and
+   * hsearch(..., ENTER) fails once the table is full -- which on macOS, whose hcreate
+   * allocates exactly the requested number of entries, happens on every non-trivial
+   * input. The failure was previously ignored, so the label was never recorded, the next
+   * FIND for it missed, and the else-branch below appended past the end of _label_v1 --
+   * a one-element heap overflow that macOS libmalloc detects and turns into SIGTRAP
+   * (G3-804). glibc rounds nel up to a prime, gets incidental headroom and so survives,
+   * which is why the deployed Linux build worked while local builds trapped.
+   *
+   * The commented-out linear search this replaced is correct but O(n^2) in the number of
+   * distinct labels; PhenomeMap graphs reach tens of thousands of genes, so it is not a
+   * usable substitute.
+   */
+  if (hcreate(2 * ((size_t) n1 + n2) + 16) == 0) {
+    perror("bigraph_edgelist_in: hcreate");
+    exit(1);
+  }
   id1 = (int *) malloc(n1 * sizeof(int));
   id2 = (int *) malloc(n2 * sizeof(int));
-  
+  if (id1 == NULL || id2 == NULL) {
+    perror("bigraph_edgelist_in: malloc");
+    exit(1);
+  }
+
   while ((r = fscanf(fp, "%s\t%s", word1, word2)) != EOF) {
 	if (r != 2) {
 	  fprintf(stderr, "Bad file format: label1 label2 incorrect\n");
 	  exit(1);
 	}
 
-/*
-	u = -1; 
-	v = -1;
-    for (i = 0; i < k1; i++)
-	  if (strcmp(word1, G->_label_v1[i]) == 0) { u = i; break; }
-    for (i = 0; i < k2; i++)
-	  if (strcmp(word2, G->_label_v2[i]) == 0) { v = i; break; }
-	if (u == -1) { u = k1; G->_label_v1[k1++] = strdup(word1); }
-	if (v == -1) { v = k2; G->_label_v2[k2++] = strdup(word2); }
-*/
+    /* The two partitions share one hash table -- POSIX provides only a single global
+     * one -- so keys are prefixed by side. Without this a label appearing as both a gene
+     * and a gene-set id resolves to the other partition's index: in range, silently
+     * wrong, and it merges two distinct vertices in the output. */
+    key1[0] = '1'; strncpy(key1 + 1, word1, sizeof(key1) - 2); key1[sizeof(key1) - 1] = '\0';
+    key2[0] = '2'; strncpy(key2 + 1, word2, sizeof(key2) - 2); key2[sizeof(key2) - 1] = '\0';
 
-    item.key = word1;
+    item.key = key1;
 	if ((found_item = hsearch(item, FIND)) != NULL) {
 		id = (int *) (found_item->data);
 		u = *id;
 	}
 	else {
-		u = k1; 
+		/* Checked before the write, not after: the original bounds check sat below
+		 * bigraph_add_edge, so an overflowing index had already been stored. */
+		if (k1 >= n1) {
+		  fprintf(stderr, "Bad file format: too many left vertex labels\n");
+		  exit(1);
+		}
+		u = k1;
 		G->_label_v1[k1++] = strdup(word1);
-		item.key = G->_label_v1[u];
+		item.key = strdup(key1);
 		id1[u] = u;
 		item.data = (void *) (id1+u);
-		(void) hsearch(item, ENTER);
+		if (hsearch(item, ENTER) == NULL) {
+		  perror("bigraph_edgelist_in: hsearch ENTER");
+		  exit(1);
+		}
 	}
 
-	item.key = word2;
+	item.key = key2;
 	if ((found_item = hsearch(item, FIND)) != NULL) {
 		id = (int *) (found_item->data);
 		v = *id;
 	}
 	else {
-		v = k2; 
+		if (k2 >= n2) {
+		  fprintf(stderr, "Bad file format: too many right vertex labels\n");
+		  exit(1);
+		}
+		v = k2;
 		G->_label_v2[k2++] = strdup(word2);
-		item.key = G->_label_v2[v];
+		item.key = strdup(key2);
 		id2[v] = v;
 		item.data = (void *) (id2+v);
-		(void) hsearch(item, ENTER);
+		if (hsearch(item, ENTER) == NULL) {
+		  perror("bigraph_edgelist_in: hsearch ENTER");
+		  exit(1);
+		}
 	}
 
-	if (k1 > n1) {
-	  fprintf(stderr, "Bad file format: too many left vertex labels\n");
-	  exit(1);
-	}
-	if (k2 > n2) {
-	  fprintf(stderr, "Bad file format: too many right vertex labels\n");
-	  exit(1);
-	}
-	
     bigraph_add_edge(G, u, v);
 	edges++;
   }

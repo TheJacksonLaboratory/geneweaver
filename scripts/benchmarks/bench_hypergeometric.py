@@ -13,6 +13,7 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import os
 import random
 import sys
@@ -86,11 +87,15 @@ def make_tables(n_tables, universe, seed=0):
     return tables
 
 
+RESULTS = os.path.join(os.path.dirname(__file__), "results")
+
+
 def main():
     print("=== HyperGeometric: legacy combtl-float vs port math.comb (200 tables each) ===")
     header = f"{'universe':>8} | {'legacy(ms)':>11} | {'port(ms)':>9} | {'ratio':>6} | note"
     print(header)
     print("-" * (len(header) + 8))
+    rows = []
     for universe in [50, 100, 200, 400, 800]:
         tables = make_tables(200, universe)
 
@@ -107,10 +112,25 @@ def main():
 
         ratio = legacy_ms / port_ms if port_ms else float("inf")
         faster = "port faster" if ratio > 1 else "legacy faster (float vs bigint)"
+        rows.append(
+            {
+                "universe": universe,
+                "legacy_ms": round(legacy_ms, 2),
+                "port_ms": round(port_ms, 2),
+                "ratio": round(ratio, 3),
+            }
+        )
         print(f"{universe:>8} | {legacy_ms:>11.1f} | {port_ms:>9.1f} | {ratio:>5.2f}x | {faster}")
 
     print("\n  (correctness, not speed, is the point: the port fixes the lt/tt accumulation")
     print("   bug and uses exact integers -- see scripts/validation/validate_hypergeometric.py)")
+
+    # Measurements on disk so the charts are drawn from them rather than from literals.
+    os.makedirs(RESULTS, exist_ok=True)
+    path = os.path.join(RESULTS, "hypergeometric.json")
+    with open(path, "w") as handle:
+        json.dump({"speed": rows}, handle, indent=2)
+    print(f"wrote {path}")
 
 
 if __name__ == "__main__":
