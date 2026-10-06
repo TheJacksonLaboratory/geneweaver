@@ -282,3 +282,27 @@ def test_a_universe_reference_is_orders_of_magnitude_smaller() -> None:
     assert payload_size(inline) > TEMPORAL_DEFAULT_LIMIT_BYTES
     assert payload_size(reference) < MAX_PAYLOAD_BYTES / 100
     assert payload_size(inline) / payload_size(reference) > 100
+
+
+def test_the_size_guard_imports_without_temporalio() -> None:
+    """The API installs geneweaver-tools without the `temporal` extra and calls this guard.
+
+    Run in a fresh interpreter, because this test process has already imported temporalio.
+    """
+    import subprocess
+    import sys
+
+    probe = (
+        "import sys; import geneweaver.tools.framework.payload_size; "
+        "sys.exit(1 if 'temporalio' in sys.modules else 0)"
+    )
+    assert subprocess.run([sys.executable, "-c", probe], check=False).returncode == 0
+
+
+def test_the_temporal_module_re_exports_the_guard() -> None:
+    """The workflow and activity keep importing it from `temporal.payload`."""
+    from geneweaver.tools.framework import payload_size
+    from geneweaver.tools.temporal import payload
+
+    assert payload.check_payload_size is payload_size.check_payload_size
+    assert payload.MAX_PAYLOAD_BYTES == payload_size.MAX_PAYLOAD_BYTES
