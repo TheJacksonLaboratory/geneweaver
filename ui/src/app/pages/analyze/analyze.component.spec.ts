@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { Observable, of, throwError } from 'rxjs';
 
-import { AnalyzeComponent } from './analyze.component';
+import { AnalyzeComponent, RUN_POLL_INTERVAL_MS } from './analyze.component';
 
 /** What `GET /tools` returns: every registered tool, runnable or not. */
 const TOOL_LIST = {
@@ -245,5 +245,164 @@ describe('AnalyzeComponent tool list', () => {
     component.selectedTool = 'boolean_algebra';
     component.run();
     expect(posted.at(-1)?.body).toMatchObject({ parameters: { relation: 'intersection' } });
+  });
+});
+
+/**
+ * A run AsyncTask has not finished within the API's wait comes back as 202 with a run id.
+ * The page must poll it, not treat that body as a completed, empty result.
+ */
+describe('AnalyzeComponent pending runs', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+  let postBody: unknown;
+  let pollResponses: unknown[];
+  let polled: string[];
+
+  const PENDING = {
+    tool: 'dbscan',
+    geneset_ids: [1, 2],
+    gene_counts: { '1': 3, '2': 4 },
+    caveat: null,
+    run_id: 42,
+    status: 'running',
+  };
+
+  const apiStub = {
+    get: (path: string) => {
+      if (path === '/tools') {
+        return of({ object: { tools: TOOL_LIST } });
+      }
+      polled.push(path);
+      return of({ object: pollResponses.shift() });
+    },
+    post: () => of({ object: postBody }),
+  };
+
+  beforeEach(async () => {
+    polled = [];
+    pollResponses = [];
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.genesetIdInput = ['1', '2'];
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    component.ngOnDestroy();
+    jest.useRealTimers();
+  });
+
+  it('polls a pending run through a running poll to its result', () => {
+    postBody = PENDING;
+    pollResponses = [
+      { run_id: 42, status: 'running', result: null },
+      { run_id: 42, status: 'completed', result: { clusters: [], ran: true } },
+    ];
+    component.selectedTool = 'dbscan';
+
+    component.run();
+    // Accepted, not finished: still running, nothing rendered as a result yet.
+    expect(component.running).toBe(true);
+    expect(component.pendingRunId).toBe(42);
+    expect(component.genericResult).toBeUndefined();
+
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+    expect(polled).toEqual(['/tools/runs/42']);
+    expect(component.running).toBe(true);
+
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+    expect(polled).toHaveLength(2);
+    expect(component.running).toBe(false);
+    expect(component.pendingRunId).toBeUndefined();
+    expect(component.genericResult).toEqual({
+      tool: 'dbscan',
+      geneset_ids: [1, 2],
+      gene_counts: { '1': 3, '2': 4 },
+      caveat: null,
+      result: { clusters: [], ran: true },
+    });
+
+    // Finished means finished: no further polls.
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS * 3);
+    expect(polled).toHaveLength(2);
+  });
+
+  it('rebuilds the UpSet result from the raw tool output', () => {
+    postBody = { ...PENDING, tool: 'upset' };
+    pollResponses = [
+      {
+        run_id: 42,
+        status: 'completed',
+        result: { intersections: [{ genesets: ['1', '2'], size: 2 }] },
+      },
+    ];
+    component.selectedTool = 'upset';
+
+    component.run();
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+
+    expect(component.result).toEqual({
+      tool: 'UpSet',
+      geneset_ids: [1, 2],
+      gene_counts: { '1': 3, '2': 4 },
+      intersections: [{ geneset_ids: ['1', '2'], size: 2 }],
+    });
+  });
+
+  it('reports a run that stops without completing as an error', () => {
+    postBody = PENDING;
+    pollResponses = [{ run_id: 42, status: 'failed', workflow_id: 'ats:GeneWeaverTools:x' }];
+    component.selectedTool = 'dbscan';
+
+    component.run();
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+
+    expect(component.running).toBe(false);
+    expect(component.genericResult).toBeUndefined();
+    expect(component.errorMessage).toContain('ended failed');
+    expect(component.errorMessage).toContain('ats:GeneWeaverTools:x');
+  });
+
+  it('stops polling when cleared', () => {
+    postBody = PENDING;
+    pollResponses = [{ run_id: 42, status: 'running' }];
+    component.selectedTool = 'dbscan';
+
+    component.run();
+    component.clear();
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS * 3);
+
+    expect(polled).toHaveLength(0);
+    expect(component.running).toBe(false);
+  });
+
+  it('does not mistake a completed result that carries a run id for a pending one', () => {
+    postBody = {
+      tool: 'dbscan',
+      geneset_ids: [1, 2],
+      gene_counts: {},
+      run_id: 42,
+      executed_by: 'asynctask',
+      result: { ran: true },
+    };
+    component.selectedTool = 'dbscan';
+
+    component.run();
+
+    expect(component.running).toBe(false);
+    expect(component.pendingRunId).toBeUndefined();
+    expect(component.genericResult?.result).toEqual({ ran: true });
   });
 });
