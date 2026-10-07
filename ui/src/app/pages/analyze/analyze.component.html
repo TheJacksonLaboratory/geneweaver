@@ -156,6 +156,12 @@
       ></p-button>
     </div>
 
+    <!-- Analyses need a signed-in user; say so before the user fills in the form. -->
+    <div *ngIf="session.current && !signedIn" class="mt-3 text-sm sign-in-required">
+      Running an analysis requires signing in.
+      <a *ngIf="session.current?.loginAvailable" class="ml-1" [href]="session.signInUrl()">Sign in</a>
+    </div>
+
     <p-progressBar
       *ngIf="running"
       mode="indeterminate"

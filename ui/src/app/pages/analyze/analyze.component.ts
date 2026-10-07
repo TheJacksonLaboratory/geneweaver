@@ -17,6 +17,7 @@ import { TableModule } from 'primeng/table';
 
 /* Local Imports */
 import { environment } from '../../../environments/environment';
+import { SessionService } from '../../services/session.service';
 
 interface UpSetIntersection {
   geneset_ids: string[];
@@ -193,7 +194,10 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   /** BooleanAlgebra's operation. */
   relation: 'union' | 'intersection' | 'except' = 'intersection';
 
-  constructor(private apiBaseServiceFactory: ApiBaseServiceFactory) {
+  constructor(
+    private apiBaseServiceFactory: ApiBaseServiceFactory,
+    public session: SessionService,
+  ) {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
   }
 
@@ -300,8 +304,14 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     return undefined;
   }
 
+  /** Running an analysis requires signing in; the API refuses anonymous runs with 401. */
+  get signedIn(): boolean {
+    return this.session.authenticated;
+  }
+
   get canRun(): boolean {
     return (
+      this.signedIn &&
       !this.running &&
       !this.toolsLoading &&
       this.tools.length > 0 &&
@@ -468,7 +478,9 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
       );
     }
     if (error?.status === 401) {
-      return detail ?? 'Sign in to run this tool.';
+      // The session may have expired mid-visit; ask again rather than show a bare 401.
+      this.session.refresh();
+      return detail ?? 'Sign in to run an analysis.';
     }
     if (error?.status === 422) {
       return detail ?? 'Those parameters were rejected. Check the gene set ids.';

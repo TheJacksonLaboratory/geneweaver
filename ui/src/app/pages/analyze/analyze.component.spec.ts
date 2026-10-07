@@ -3,6 +3,19 @@ import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { Observable, of, throwError } from 'rxjs';
 
 import { AnalyzeComponent, RUN_POLL_INTERVAL_MS } from './analyze.component';
+import { SessionService } from '../../services/session.service';
+
+/** A signed-in session; analyses require one. Tests of the signed-out page set it to false. */
+const sessionStub = {
+  authenticated: true,
+  get current() {
+    return { loginAvailable: true, authenticated: this.authenticated };
+  },
+  refresh: () => undefined,
+  signInUrl: () => '/api/sessions/login?next=%2Fnext%2Fanalyze',
+  signOutUrl: () => '/api/sessions/logout',
+};
+const sessionProvider = { provide: SessionService, useValue: sessionStub };
 
 /** What `GET /tools` returns: every registered tool, runnable or not. */
 const TOOL_LIST = {
@@ -48,7 +61,10 @@ describe('AnalyzeComponent', () => {
     toolsResponse = () => of({ object: { tools: TOOL_LIST } });
     await TestBed.configureTestingModule({
       imports: [AnalyzeComponent],
-      providers: [{ provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory }],
+      providers: [
+        { provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory },
+        sessionProvider,
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -162,6 +178,7 @@ describe('AnalyzeComponent tool list', () => {
           provide: ApiBaseServiceFactory,
           useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
         },
+        sessionProvider,
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -290,6 +307,7 @@ describe('AnalyzeComponent pending runs', () => {
           provide: ApiBaseServiceFactory,
           useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
         },
+        sessionProvider,
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -404,5 +422,51 @@ describe('AnalyzeComponent pending runs', () => {
     expect(component.running).toBe(false);
     expect(component.pendingRunId).toBeUndefined();
     expect(component.genericResult?.result).toEqual({ ran: true });
+  });
+});
+
+describe('AnalyzeComponent signed out', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+
+  const apiStub = {
+    get: () => of({ object: { tools: TOOL_LIST } }),
+    post: () => of({ object: {} }),
+  };
+
+  beforeEach(async () => {
+    sessionStub.authenticated = false;
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+        sessionProvider,
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    sessionStub.authenticated = true;
+  });
+
+  it('cannot run an analysis', () => {
+    component.genesetIdInput = ['1', '2'];
+    expect(component.canRun).toBe(false);
+  });
+
+  it('says why, with a way to sign in that returns here', () => {
+    fixture.detectChanges();
+    const notice: HTMLElement = fixture.nativeElement.querySelector('.sign-in-required');
+    expect(notice.textContent).toContain('requires signing in');
+    expect(notice.querySelector('a')?.getAttribute('href')).toBe(
+      '/api/sessions/login?next=%2Fnext%2Fanalyze',
+    );
   });
 });
