@@ -18,6 +18,9 @@ import { TableModule } from 'primeng/table';
 /* Local Imports */
 import { environment } from '../../../environments/environment';
 import { SessionService } from '../../services/session.service';
+import { ToolResultComponent } from './visualizations/tool-result.component';
+import { UpsetPlotComponent } from './visualizations/upset-plot.component';
+import { upsetModel, UpSetModel } from './visualizations/models';
 
 interface UpSetIntersection {
   geneset_ids: string[];
@@ -156,6 +159,8 @@ const TOOL_LABELS: Record<string, string> = {
     MessageModule,
     ProgressBarModule,
     TableModule,
+    ToolResultComponent,
+    UpsetPlotComponent,
   ],
   templateUrl: './analyze.component.html',
 })
@@ -180,7 +185,22 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   toolsError?: string;
 
   running = false;
-  result?: UpSetResult;
+  /** The plot's model, rebuilt only when the result changes, so it is not redrawn on
+   * every change-detection pass. */
+  upsetPlot?: UpSetModel;
+  private upsetResult?: UpSetResult;
+
+  get result(): UpSetResult | undefined {
+    return this.upsetResult;
+  }
+
+  set result(value: UpSetResult | undefined) {
+    this.upsetResult = value;
+    // Tolerant of a short response: a missing field must not leave the page stuck running.
+    this.upsetPlot = value
+      ? upsetModel(value.geneset_ids ?? [], value.gene_counts ?? {}, value.intersections ?? [])
+      : undefined;
+  }
   genericResult?: ToolRunResult;
   errorMessage?: string;
   /** Set while a run accepted by AsyncTask is being polled to completion. */

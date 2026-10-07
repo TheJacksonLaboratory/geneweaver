@@ -200,6 +200,8 @@
       styleClass="w-full mb-3"
     ></p-message>
 
+    <app-upset-plot *ngIf="upsetPlot" [model]="upsetPlot"></app-upset-plot>
+
     <h4>Exclusive intersections</h4>
     <p class="text-color-secondary mt-0">
       Genes belonging to exactly that combination of gene sets, and to no other.
@@ -233,9 +235,8 @@
   </p-card>
 </div>
 
-<!-- Every tool other than UpSet returns its own output shape. The ported tools dropped
-     legacy's SVG rendering, so each chart is net-new front-end work (roadmap F); until
-     then the result is shown as data so the tool can be exercised and checked. -->
+<!-- Every tool other than UpSet returns its own output shape; app-tool-result picks the
+     chart for it (G3-803) and keeps the raw output underneath. -->
 <p-card
   *ngIf="genericResult"
   class="block mt-3"
@@ -255,10 +256,9 @@
     styleClass="w-full mb-3"
   ></p-message>
 
-  <p class="text-color-secondary">
-    This tool has no visualisation yet — the raw result is shown so it can be checked.
-  </p>
-  <pre class="overflow-auto p-3 surface-100 border-round" style="max-height: 28rem">{{
-    genericResult.result | json
-  }}</pre>
+  <app-tool-result
+    [tool]="genericResult.tool"
+    [result]="genericResult.result"
+    [geneCounts]="genericResult.gene_counts"
+  ></app-tool-result>
 </p-card>
