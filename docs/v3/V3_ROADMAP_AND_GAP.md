@@ -601,9 +601,9 @@ so AsyncTask's own owner check is what keeps one user from another's run, and v3
 table. `POST /tools/{tool}` (and `/tools/upset`) waits `ASYNCTASK_WAIT_SECONDS`, returning the
 result as before or **202** with a `run_id`; `GET /tools/runs/{run_id}` polls, and the Analyze page
 polls a 202 to completion. MSET sends a universe *reference*, resolved by the worker (A7).
-Anonymous callers keep the in-process path for the seven Python tools, since AsyncTask has no user
-to run as; MSET and PhenomeMap ask them to sign in. Gated on `ASYNCTASK_API_URL`, set only in the
-dev overlay. Code: `services/asynctask.py`.
+Every run needs a signed-in user (see *Sign-in* below); where AsyncTask is not configured the seven
+Python tools run in-process, still only for signed-in users. Gated on `ASYNCTASK_API_URL`, set only
+in the dev overlay. Code: `services/asynctask.py`.
 
 Every request is validated **before** submission -- each tool's own schema (MSET's with its
 worker-resolved backgrounds stubbed), MSET's two-gene-set and single-species rules, and Temporal's
@@ -620,7 +620,10 @@ secret -- implemented on FastAPI at `/api/sessions/{login,callback,me,logout}`
 `Auth0HTTPBearer` accepts that cookie wherever it accepts a bearer header, with an `Origin`
 check on cookie-authenticated writes. Off until `AUTH_LOGIN_CLIENT_SECRET` and
 `AUTH_SESSION_KEY` (the `geneweaver-api-auth` Secret) and `AUTH_PUBLIC_URL` are set; prod's
-public URL is undecided, so prod stays off.
+public URL is undecided, so prod stays off. **The sign-in requirement applies regardless:** an
+anonymous `POST /tools/...` is a 401 for every registered tool in every environment, so where
+sign-in is not configured the UI offers no way to sign in and cannot run analyses at all -- only
+API callers sending a bearer token can.
 
 Still open: listing, cancel, delete, rerun and result download; and failure detail -- AsyncTask
 records only a failed *status*, so a failed run is reported with its Temporal workflow id rather

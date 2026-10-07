@@ -586,10 +586,13 @@ def prepare_tool_run(
     state = tool_availability().get(tool_name)
     if state is None:
         raise UnknownToolError(f"No tool registered as {tool_name!r}.")
+    # Before availability: every registered analysis refuses an anonymous caller the same
+    # way (401), whatever this environment can run. Otherwise an anonymous MSET request where
+    # AsyncTask is not configured got 409, and the answer depended on deployment and tool.
+    _require_user(user)
     if not state["available"]:
         raise ToolUnavailable(state["reason"])
 
-    _require_user(user)
     asynctask = asynctask_client_for(user)
     if tool_name in ASYNCTASK_ONLY_BUILDERS and asynctask is None:
         # Signed in, AsyncTask configured, yet no client: the user has no token to act as.

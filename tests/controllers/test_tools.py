@@ -411,3 +411,19 @@ def test_anonymous_runs_are_401(app, client, path) -> None:
     assert response.status_code == 401
     assert "Sign in" in response.json()["detail"]
     readable.assert_not_called()
+
+
+@pytest.mark.parametrize("tool", ["mset", "phenome_map"])
+def test_anonymous_is_401_even_for_a_tool_unavailable_here(app, client, tool) -> None:
+    """Sign-in is checked before availability, so the answer never depends on the deployment."""
+    from geneweaver.api.dependencies import optional_full_user_released
+
+    previous = app.dependency_overrides.get(optional_full_user_released)
+    app.dependency_overrides[optional_full_user_released] = lambda: None
+    try:
+        with patch("geneweaver.api.services.tools.asynctask_configured", return_value=False):
+            response = client.post(f"/api/tools/{tool}", json={"geneset_ids": [1, 2]})
+    finally:
+        app.dependency_overrides[optional_full_user_released] = previous
+
+    assert response.status_code == 401

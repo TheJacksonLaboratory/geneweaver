@@ -254,3 +254,120 @@ def test_me_reports_the_user_and_never_the_token(app, client, login_settings):
         "name": "A User",
     }
     assert "secret-token" not in str(body)
+
+
+# --- review follow-ups: every Auth0-side failure is the documented 502 ------------------
+
+
+def _finish(client, token_response=None, verify=None):
+    """Run a callback against a scripted token response and verifier."""
+    state, sealed = _start(client)
+    with (
+        patch(
+            "geneweaver.api.controller.auth.requests.post",
+            return_value=token_response or _token_response(),
+        ),
+        patch(
+            "geneweaver.api.controller.auth.deps.auth.get_user",
+            new=verify or AsyncMock(return_value=Mock()),
+        ),
+    ):
+        return client.get(
+            "/api/sessions/callback",
+            params={"code": "c", "state": state},
+            cookies={session.STATE_COOKIE: sealed},
+            follow_redirects=False,
+        )
+
+
+def _raw_token_response(body):
+    response = Mock(status_code=200, text="body")
+    if isinstance(body, Exception):
+        response.json.side_effect = body
+    else:
+        response.json.return_value = body
+    return response
+
+
+@pytest.mark.parametrize(
+    ("body", "why"),
+    [
+        (ValueError("Expecting value"), "not JSON"),
+        (["a", "list"], "not an object"),
+        ({"expires_in": 3600}, "no access_token"),
+        ({"access_token": "", "expires_in": 3600}, "no access_token"),
+        ({"access_token": "t", "expires_in": "soon"}, "expires_in"),
+        ({"access_token": "t", "expires_in": 0}, "expires_in"),
+        ({"access_token": "t", "expires_in": None}, "expires_in"),
+        ({"access_token": "t", "expires_in": True}, "expires_in"),
+    ],
+)
+def test_an_unusable_token_response_is_502_and_no_session(client, login_settings, body, why):
+    """A proxy's HTML or a body missing its fields is an upstream fault, not a 500."""
+    response = _finish(client, token_response=_raw_token_response(body))
+
+    assert response.status_code == 502
+    assert why in response.json()["detail"]
+    assert session.SESSION_COOKIE not in response.cookies
+
+
+@pytest.mark.parametrize("status_code", [401, 403])
+def test_a_token_the_api_refuses_is_502_not_the_callers_fault(client, login_settings, status_code):
+    """Auth0 handed back a token that fails verification: upstream, not the user's 401/403."""
+    from fastapi import HTTPException
+
+    refusing = AsyncMock(side_effect=HTTPException(status_code, detail="bad token"))
+    response = _finish(client, verify=refusing)
+
+    assert response.status_code == 502
+    assert session.SESSION_COOKIE not in response.cookies
+
+
+@pytest.mark.asyncio
+async def test_the_token_exchange_does_not_block_the_event_loop(login_settings):
+    """The callback is async; a synchronous exchange on the loop would stall every request.
+
+    The fake Auth0 call waits for a coroutine that can only run if the loop is free. Run
+    inline, it would wait out its timeout and see the coroutine never ran.
+    """
+    import asyncio
+    import threading
+
+    from starlette.requests import Request
+
+    from geneweaver.api.controller import auth
+
+    sealed = session.seal({"state": "s", "verifier": "v", "next": "/next/"})
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/sessions/callback",
+            "query_string": b"",
+            "headers": [(b"cookie", f"{session.STATE_COOKIE}={sealed}".encode())],
+        }
+    )
+    loop_ran = threading.Event()
+    observed = []
+
+    def slow_post(*args, **kwargs):
+        observed.append(loop_ran.wait(timeout=2))
+        return _token_response()
+
+    async def another_request():
+        await asyncio.sleep(0)
+        loop_ran.set()
+
+    with (
+        patch("geneweaver.api.controller.auth.requests.post", side_effect=slow_post),
+        patch(
+            "geneweaver.api.controller.auth.deps.auth.get_user",
+            new=AsyncMock(return_value=Mock()),
+        ),
+    ):
+        response, _ = await asyncio.gather(
+            auth.callback(request, code="c", state="s"), another_request()
+        )
+
+    assert observed == [True]
+    assert response.status_code == 302

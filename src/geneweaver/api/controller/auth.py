@@ -16,8 +16,9 @@ Flow:
 3. `GET /sessions/me` tells the page who is signed in. `GET /sessions/logout` clears the session and
    ends the Auth0 session too.
 
-Off -- every route 404s -- until `AUTH_LOGIN_CLIENT_ID`, `AUTH_LOGIN_CLIENT_SECRET`,
-`AUTH_SESSION_KEY` and `AUTH_PUBLIC_URL` are all set.
+Until `AUTH_LOGIN_CLIENT_ID`, `AUTH_LOGIN_CLIENT_SECRET`, `AUTH_SESSION_KEY` and
+`AUTH_PUBLIC_URL` are all set, `/login`, `/callback` and `/logout` answer 404. `/me` stays
+available and reports `login_available: false`, so the page knows to offer no sign-in.
 """
 
 import base64
@@ -31,6 +32,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Security, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 from jax.apiutils import Response
+from starlette.concurrency import run_in_threadpool
 
 from geneweaver.api import dependencies as deps
 from geneweaver.api.core import session
@@ -124,6 +126,61 @@ def login(
     return response
 
 
+def _bad_token_response(why: str) -> HTTPException:
+    return HTTPException(
+        status.HTTP_502_BAD_GATEWAY, detail=f"Auth0's token response was unusable: {why}."
+    )
+
+
+def _exchange_code(code: str, verifier: str) -> tuple[str, int]:
+    """Exchange the authorization code for an access token, with the client secret.
+
+    Synchronous on purpose (`requests`), so the async callback runs it in a worker thread.
+    The response is parsed once and its shape checked, so anything other than a usable
+    token -- a refusal, an outage, a proxy's HTML, a body missing its fields -- is the
+    documented 502 rather than a 500 from a decoding or type error.
+
+    :return: The access token and its lifetime in seconds.
+    :raises HTTPException: 502 for every way the exchange can fail.
+    """
+    try:
+        exchanged = requests.post(
+            f"https://{settings.AUTH_DOMAIN}/oauth/token",
+            data={
+                "grant_type": "authorization_code",
+                "client_id": settings.AUTH_LOGIN_CLIENT_ID,
+                "client_secret": settings.AUTH_LOGIN_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": _callback_url(),
+                "code_verifier": verifier,
+            },
+            timeout=TOKEN_REQUEST_TIMEOUT_SECONDS,
+        )
+    except requests.RequestException as err:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, detail="Auth0 could not be reached to finish sign-in."
+        ) from err
+    if exchanged.status_code != status.HTTP_200_OK:
+        # Auth0's error body names the problem (e.g. `invalid_grant`) and holds no secret.
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail=f"Auth0 refused the sign-in ({exchanged.status_code}): {exchanged.text[:200]}",
+        )
+    try:
+        body = exchanged.json()
+    except ValueError as err:
+        raise _bad_token_response("not JSON") from err
+    if not isinstance(body, dict):
+        raise _bad_token_response("not an object")
+    access_token = body.get("access_token")
+    if not isinstance(access_token, str) or not access_token:
+        raise _bad_token_response("no access_token")
+    expires_in = body.get("expires_in", session.SESSION_MAX_AGE_SECONDS)
+    if isinstance(expires_in, bool) or not isinstance(expires_in, int) or expires_in <= 0:
+        raise _bad_token_response(f"expires_in is {expires_in!r}, not a positive integer")
+    return access_token, expires_in
+
+
 @router.get("/callback")
 async def callback(
     request: Request,
@@ -134,8 +191,8 @@ async def callback(
 ) -> RedirectResponse:
     """Finish sign-in: check state, exchange the code with the client secret, set the session.
 
-    :raises HTTPException: 400 for a refused, stale or forged sign-in; 502 if Auth0's token
-        endpoint fails.
+    :raises HTTPException: 400 for a refused, stale or forged sign-in; 502 for anything wrong
+        on Auth0's side -- unreachable, refusing the code, or returning an unusable token.
     """
     _require_login()
     if error:
@@ -157,40 +214,27 @@ async def callback(
             detail="Sign-in could not be verified (expired or not started here). Try again.",
         )
 
-    try:
-        exchanged = requests.post(
-            f"https://{settings.AUTH_DOMAIN}/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "client_id": settings.AUTH_LOGIN_CLIENT_ID,
-                "client_secret": settings.AUTH_LOGIN_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": _callback_url(),
-                "code_verifier": pending["verifier"],
-            },
-            timeout=TOKEN_REQUEST_TIMEOUT_SECONDS,
-        )
-    except requests.RequestException as err:
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, detail="Auth0 could not be reached to finish sign-in."
-        ) from err
-    if exchanged.status_code != status.HTTP_200_OK:
-        # Auth0's error body names the problem (e.g. `invalid_grant`) and holds no secret.
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY,
-            detail=f"Auth0 refused the sign-in ({exchanged.status_code}): {exchanged.text[:200]}",
-        )
-    access_token = exchanged.json().get("access_token")
+    # Off the event loop: `requests` is synchronous, and this route is async (it awaits the
+    # token verification). Run inline, a slow Auth0 would stall every other request on this
+    # worker for up to the timeout.
+    access_token, expires_in = await run_in_threadpool(_exchange_code, code, pending["verifier"])
 
     # Verified exactly as any request's token is -- signature, issuer, audience, expiry --
-    # before it is stored. A token the API would refuse never becomes a session.
-    user = await deps.auth.get_user(
-        SecurityScopes(), HTTPAuthorizationCredentials(scheme="Bearer", credentials=access_token)
-    )
+    # before it is stored. A token the API would refuse never becomes a session, and that
+    # refusal is Auth0 handing back something unusable: an upstream fault (502), not the
+    # caller's 401/403.
+    try:
+        user = await deps.auth.get_user(
+            SecurityScopes(),
+            HTTPAuthorizationCredentials(scheme="Bearer", credentials=access_token),
+        )
+    except (HTTPException, KeyError, ValueError, TypeError) as err:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, detail="Auth0 returned a token this API cannot use."
+        ) from err
     if user is None:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Auth0 returned no usable token.")
 
-    expires_in = int(exchanged.json().get("expires_in") or session.SESSION_MAX_AGE_SECONDS)
     max_age = min(expires_in, session.SESSION_MAX_AGE_SECONDS)
     response = RedirectResponse(safe_return_path(pending.get("next")), status.HTTP_302_FOUND)
     _set_cookie(

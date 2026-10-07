@@ -156,12 +156,12 @@ def run_tool(
 ) -> Response:
     """Run one tool over two or more gene sets.
 
-    Responds 403 if any requested gene set is not readable, 404 for an unknown tool, and
-    409 for a tool that is registered but cannot run in this environment -- with the reason,
-    so the caller knows whether to wait for a deployment or fix the request. 401 if the tool
-    runs only on AsyncTask and the caller is not signed in; 422 if the request does not suit
-    the tool; 202 with a `run_id` if an AsyncTask run is still going after the wait; 502 if
-    AsyncTask fails the run or cannot be reached.
+    Responds 401 if the caller is not signed in -- for every registered tool, checked before
+    whether the tool can run here; 404 for an unknown tool; 403 if any requested gene set is
+    not readable; 409 for a tool that is registered but cannot run in this environment, with
+    the reason, so the caller knows whether to wait for a deployment or fix the request; 422
+    if the request does not suit the tool; 202 with a `run_id` if an AsyncTask run is still
+    going after the wait; 502 if AsyncTask fails the run or cannot be reached.
 
     Only `UnknownToolError` becomes a 404, not any `LookupError`: an `IndexError` raised
     inside a tool is also a LookupError, and catching the base class reported a bug in the

@@ -61,7 +61,9 @@ class GeneweaverAPIConfig(BaseSettings):
     # Server-side sign-in for the `/next` UI (`controller/auth.py`), the same confidential
     # authorization-code flow legacy uses: the API holds the client secret and exchanges the
     # code, and the browser only ever holds an encrypted session cookie. Sign-in is off until
-    # all four are set, so an environment without them behaves exactly as before.
+    # all four are set. Running an analysis requires a signed-in user regardless, so in an
+    # environment without them the UI offers no sign-in and *cannot run analyses at all*;
+    # only API callers sending a bearer token can.
     # The client is legacy's Auth0 application for the same tier (x9Ii... dev/sqa,
     # 5X9T... stage/prod), so a user signed in to either is recognised by the other.
     AUTH_LOGIN_CLIENT_ID: str | None = None

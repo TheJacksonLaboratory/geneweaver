@@ -206,7 +206,7 @@ class TestRunToolGuards:
     def test_a_binary_backed_tool_is_unavailable(self, name: str, mock_cursor) -> None:
         """Distinct from LookupError: registered, but not runnable here (409, not 404)."""
         with pytest.raises(tool_service.ToolUnavailable, match="native-worker"):
-            tool_service.run_tool(mock_cursor, name, [1, 2])
+            tool_service.run_tool(mock_cursor, name, [1, 2], user=Mock())
 
     def test_an_unavailable_tool_is_refused_before_the_access_gate(self, mock_cursor) -> None:
         """No point querying readability for a run that cannot happen."""
@@ -214,7 +214,7 @@ class TestRunToolGuards:
             patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable,
             pytest.raises(tool_service.ToolUnavailable),
         ):
-            tool_service.run_tool(mock_cursor, "mset", [1, 2])
+            tool_service.run_tool(mock_cursor, "mset", [1, 2], user=Mock())
         readable.assert_not_called()
 
     def test_an_unreadable_geneset_is_refused_before_the_tool_runs(self, mock_cursor) -> None:
@@ -709,3 +709,19 @@ class TestPrepareThenExecute:
 
         assert result["executed_by"] == "asynctask"
         assert mock_cursor.mock_calls == []
+
+
+def test_an_unknown_tool_is_still_404_for_an_anonymous_caller(mock_cursor) -> None:
+    """Unknown comes first: there is no analysis to sign in for."""
+    with pytest.raises(tool_service.UnknownToolError):
+        tool_service.run_tool(mock_cursor, "nonexistent", [1, 2], user=None)
+
+
+@pytest.mark.parametrize("tool", ["mset", "phenome_map"])
+def test_anonymous_is_refused_before_availability(tool, mock_cursor) -> None:
+    """Without AsyncTask these are unavailable, but an anonymous caller hears 'sign in'."""
+    with (
+        patch("geneweaver.api.services.tools.asynctask_configured", return_value=False),
+        pytest.raises(tool_service.SignInRequired),
+    ):
+        tool_service.run_tool(mock_cursor, tool, [1, 2], user=None)
