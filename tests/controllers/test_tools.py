@@ -390,3 +390,68 @@ def test_the_connection_is_back_in_the_pool_before_execution(
 
     assert response.status_code == 200
     prepared.assert_called_once()
+
+
+# --- an analysis requires a signed-in user ----------------------------------------------
+
+
+@pytest.mark.parametrize("path", ["/api/tools/upset", "/api/tools/dbscan"])
+def test_anonymous_runs_are_401(app, client, path) -> None:
+    """Both run endpoints refuse an anonymous caller before touching the database."""
+    from geneweaver.api.dependencies import optional_full_user_released
+
+    previous = app.dependency_overrides.get(optional_full_user_released)
+    app.dependency_overrides[optional_full_user_released] = lambda: None
+    try:
+        with patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable:
+            response = client.post(path, json={"geneset_ids": [1, 2]})
+    finally:
+        app.dependency_overrides[optional_full_user_released] = previous
+
+    assert response.status_code == 401
+    assert "Sign in" in response.json()["detail"]
+    readable.assert_not_called()
+
+
+@pytest.mark.parametrize("tool", ["mset", "phenome_map"])
+def test_anonymous_is_401_even_for_a_tool_unavailable_here(app, client, tool) -> None:
+    """Sign-in is checked before availability, so the answer never depends on the deployment."""
+    from geneweaver.api.dependencies import optional_full_user_released
+
+    previous = app.dependency_overrides.get(optional_full_user_released)
+    app.dependency_overrides[optional_full_user_released] = lambda: None
+    try:
+        with patch("geneweaver.api.services.tools.asynctask_configured", return_value=False):
+            response = client.post(f"/api/tools/{tool}", json={"geneset_ids": [1, 2]})
+    finally:
+        app.dependency_overrides[optional_full_user_released] = previous
+
+    assert response.status_code == 401
+
+
+# --- an anonymous request never leases a database connection --------------------------
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [("/api/tools/upset", 401), ("/api/tools/dbscan", 401), ("/api/tools/nonexistent", 404)],
+)
+def test_refusals_happen_before_a_connection_is_leased(app, client, path, expected) -> None:
+    """With the pool exhausted, an anonymous or unknown-tool request still gets its answer."""
+    from geneweaver.api.dependencies import cursor_factory, optional_full_user_released
+
+    def no_connections():
+        raise AssertionError("a connection was leased")
+
+    overrides = {
+        optional_full_user_released: lambda: None,
+        cursor_factory: lambda: no_connections,
+    }
+    previous = {key: app.dependency_overrides.get(key) for key in overrides}
+    app.dependency_overrides.update(overrides)
+    try:
+        response = client.post(path, json={"geneset_ids": [1, 2]})
+    finally:
+        app.dependency_overrides.update(previous)
+
+    assert response.status_code == expected

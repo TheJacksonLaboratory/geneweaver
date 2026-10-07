@@ -7,6 +7,13 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from jax.apiutils import CollectionResponse, Response, StreamingResponse
 
+#: GET routes that are browser redirects by protocol, not API reads. The OAuth
+#: authorization-code flow requires `/login` to send the browser to Auth0 and `/callback` to
+#: send it back to the page with a 302; a JSON envelope cannot do either. (`/logout` is a
+#: POST, so this GET-only test does not cover it.) Listed by path, so a new redirect
+#: elsewhere still fails this test.
+OAUTH_REDIRECT_ROUTES = frozenset({"/api/sessions/login", "/api/sessions/callback"})
+
 
 def get_return_type(route: APIRoute) -> type:
     """Extract the return type from a FastAPI route's response model."""
@@ -57,6 +64,8 @@ def test_get_endpoint_return_types(app: FastAPI):
 
     for route in app.routes:
         if not isinstance(route, APIRoute) or route.methods != {"GET"}:
+            continue
+        if route.path in OAUTH_REDIRECT_ROUTES:
             continue
 
         try:

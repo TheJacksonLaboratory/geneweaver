@@ -3,6 +3,19 @@
         <ng-template pTemplate>
             <div class="ml-2 text-sm">A new search experiment from GeneWeaver.</div>
             <div class="ml-2 ml-auto text-xs">v{{version}}</div>
+            <!-- Sign-in is server-side (the API holds the Auth0 client secret), so these are
+                 plain links to the API, not client-side auth calls. -->
+            <ng-container *ngIf="session.state$ | async as state">
+                <!-- Sign-out is a form POST, not a link: the API only accepts it from this site
+                     (a GET would let any other site sign the user out). -->
+                <form *ngIf="state.authenticated" class="ml-3 text-xs inline" method="post"
+                      [action]="session.signOutUrl()">
+                    {{ state.name || state.email }} ·
+                    <button type="submit" class="sign-out p-0 border-none bg-transparent cursor-pointer underline text-xs">Sign out</button>
+                </form>
+                <a *ngIf="!state.authenticated && state.loginAvailable" class="ml-3 text-xs"
+                   [href]="session.signInUrl()">Sign in</a>
+            </ng-container>
         </ng-template>
     </p-messages>
     <router-outlet />

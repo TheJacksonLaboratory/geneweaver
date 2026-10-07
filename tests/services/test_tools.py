@@ -60,7 +60,7 @@ def test_run_upset_gates_then_resolves_then_runs(mock_cursor) -> None:
             return_value=MEMBERSHIPS,
         ),
     ):
-        result = tool_service.run_upset(mock_cursor, [1, 2], user=None, runner=runner)
+        result = tool_service.run_upset(mock_cursor, [1, 2], user=Mock(), runner=runner)
 
     assert isinstance(result, UpSetResult)
     assert result.tool == "UpSet"
@@ -82,7 +82,7 @@ def test_run_upset_refuses_unreadable_genesets(mock_cursor) -> None:
         ),
         pytest.raises(HTTPException) as exc,
     ):
-        tool_service.run_upset(mock_cursor, [1, 2], user=None, runner=runner)
+        tool_service.run_upset(mock_cursor, [1, 2], user=Mock(), runner=runner)
 
     assert exc.value.status_code == 403
     assert "2" in exc.value.detail
@@ -96,27 +96,22 @@ def test_run_upset_does_not_run_the_tool_when_refused(mock_cursor) -> None:
         patch("geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset") as resolve,
         pytest.raises(HTTPException),
     ):
-        tool_service.run_upset(mock_cursor, [1], user=None, runner=runner)
+        tool_service.run_upset(mock_cursor, [1], user=Mock(), runner=runner)
 
     resolve.assert_not_called()
     assert runner.tool_input is None
 
 
-def test_run_upset_anonymous_uses_public_user_id(mock_cursor) -> None:
-    """An anonymous caller is checked as user 0, the public audience."""
-    runner = _RecordingRunner(_Output([]))
+def test_run_upset_refuses_anonymous_callers_before_any_database_work(mock_cursor) -> None:
+    """Running an analysis requires signing in; nothing is read for an anonymous caller."""
     with (
-        patch(
-            "geneweaver.api.services.tools.db_geneset.is_readable", return_value=True
-        ) as readable,
-        patch(
-            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
-            return_value={"1": []},
-        ),
+        patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable,
+        pytest.raises(tool_service.SignInRequired),
     ):
-        tool_service.run_upset(mock_cursor, [1], user=None, runner=runner)
+        tool_service.run_upset(mock_cursor, [1, 2], user=None)
 
-    assert readable.call_args.args[1] == 0
+    readable.assert_not_called()
+    mock_cursor.assert_not_called()
 
 
 def test_upset_request_bounds_match_the_ui() -> None:
@@ -211,7 +206,7 @@ class TestRunToolGuards:
     def test_a_binary_backed_tool_is_unavailable(self, name: str, mock_cursor) -> None:
         """Distinct from LookupError: registered, but not runnable here (409, not 404)."""
         with pytest.raises(tool_service.ToolUnavailable, match="native-worker"):
-            tool_service.run_tool(mock_cursor, name, [1, 2])
+            tool_service.run_tool(mock_cursor, name, [1, 2], user=Mock())
 
     def test_an_unavailable_tool_is_refused_before_the_access_gate(self, mock_cursor) -> None:
         """No point querying readability for a run that cannot happen."""
@@ -219,7 +214,7 @@ class TestRunToolGuards:
             patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable,
             pytest.raises(tool_service.ToolUnavailable),
         ):
-            tool_service.run_tool(mock_cursor, "mset", [1, 2])
+            tool_service.run_tool(mock_cursor, "mset", [1, 2], user=Mock())
         readable.assert_not_called()
 
     def test_an_unreadable_geneset_is_refused_before_the_tool_runs(self, mock_cursor) -> None:
@@ -231,7 +226,7 @@ class TestRunToolGuards:
             ) as resolve,
             pytest.raises(HTTPException),
         ):
-            tool_service.run_tool(mock_cursor, "upset", [1, 2])
+            tool_service.run_tool(mock_cursor, "upset", [1, 2], user=Mock())
         resolve.assert_not_called()
 
 
@@ -352,16 +347,30 @@ def _on_asynctask(client):
 class TestExecutionRouting:
     """Signed-in runs go to AsyncTask; anonymous ones stay in-process."""
 
-    def test_anonymous_callers_still_run_in_process(self, mock_cursor, readable_memberships):
-        """No user means nobody to submit as, so the old path is kept as it was."""
+    def test_without_asynctask_signed_in_callers_run_in_process(
+        self, mock_cursor, readable_memberships
+    ):
+        """Environments with no AsyncTask keep the in-process path, signed-in only."""
         runner = _RecordingRunner(Mock(model_dump=Mock(return_value={"ok": True})))
-        configured, _ = _on_asynctask(None)
-        with configured:
-            result = tool_service.run_tool(mock_cursor, "upset", [1, 2], user=None, runner=runner)
+        with patch("geneweaver.api.services.tools.asynctask_configured", return_value=False):
+            result = tool_service.run_tool(
+                mock_cursor, "upset", [1, 2], user=Mock(token="tok"), runner=runner
+            )
 
         assert result["executed_by"] == "in_process"
         assert result["run_id"] is None
         assert result["result"] == {"ok": True}
+
+    @pytest.mark.parametrize("configured", [True, False])
+    def test_anonymous_callers_are_refused(self, configured, mock_cursor):
+        """With or without AsyncTask, an analysis needs a signed-in user."""
+        with (
+            patch("geneweaver.api.services.tools.asynctask_configured", return_value=configured),
+            patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable,
+            pytest.raises(tool_service.SignInRequired),
+        ):
+            tool_service.run_tool(mock_cursor, "upset", [1, 2], user=None)
+        readable.assert_not_called()
 
     def test_signed_in_callers_run_on_asynctask(self, mock_cursor, readable_memberships):
         """The validated input is what crosses, in the plugin's envelope."""
@@ -567,11 +576,7 @@ class TestNativeTools:
             on = tool_service.tool_availability()
 
         assert off["mset"]["available"] is False
-        assert on["mset"] == {
-            "available": True,
-            "reason": None,
-            "caveat": tool_service.SIGN_IN_CAVEAT,
-        }
+        assert on["mset"] == {"available": True, "reason": None, "caveat": None}
         # The pure-Python tools are available either way.
         assert off["upset"]["available"] and on["upset"]["available"]
 
@@ -643,15 +648,11 @@ class TestRunUpsetRouting:
         assert fake.envelope["tool"] == "upset"
         assert fake.envelope["input"]["geneset_ids"] == ["1", "2"]
 
-    def test_anonymous_upset_stays_in_process(self, mock_cursor, readable_memberships):
-        """No user means nothing to submit as."""
-        runner = _RecordingRunner(_Output([_Intersection(["1"], 1)]))
+    def test_anonymous_upset_is_refused(self, mock_cursor, readable_memberships):
+        """No user means no analysis, on either path."""
         configured, client = _on_asynctask(None)
-        with configured, client:
-            result = tool_service.run_upset(mock_cursor, [1, 2], user=None, runner=runner)
-
-        assert runner.tool_input is not None
-        assert [(i.geneset_ids, i.size) for i in result.intersections] == [(["1"], 1)]
+        with configured, client, pytest.raises(tool_service.SignInRequired):
+            tool_service.run_upset(mock_cursor, [1, 2], user=None)
 
 
 class TestPayloadSize:
@@ -708,3 +709,19 @@ class TestPrepareThenExecute:
 
         assert result["executed_by"] == "asynctask"
         assert mock_cursor.mock_calls == []
+
+
+def test_an_unknown_tool_is_still_404_for_an_anonymous_caller(mock_cursor) -> None:
+    """Unknown comes first: there is no analysis to sign in for."""
+    with pytest.raises(tool_service.UnknownToolError):
+        tool_service.run_tool(mock_cursor, "nonexistent", [1, 2], user=None)
+
+
+@pytest.mark.parametrize("tool", ["mset", "phenome_map"])
+def test_anonymous_is_refused_before_availability(tool, mock_cursor) -> None:
+    """Without AsyncTask these are unavailable, but an anonymous caller hears 'sign in'."""
+    with (
+        patch("geneweaver.api.services.tools.asynctask_configured", return_value=False),
+        pytest.raises(tool_service.SignInRequired),
+    ):
+        tool_service.run_tool(mock_cursor, tool, [1, 2], user=None)

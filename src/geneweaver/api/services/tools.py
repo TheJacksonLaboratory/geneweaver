@@ -8,16 +8,10 @@ The flow is the same for every tool and worth keeping that way as more are added
    in-process through a `ToolRunner`;
 4. **shape** -- map the tool's output onto the API schema.
 
-**Where a run executes.** AsyncTask runs every tool, including MSET and PhenomeMap, whose
-native binaries only its worker images carry. It runs as the user (`services.asynctask`), so
-an anonymous caller cannot use it: they keep the in-process path for the seven pure-Python
-tools, exactly as before, and are asked to sign in for the two native ones. With
-`ASYNCTASK_API_URL` unset -- every environment but dev today -- nothing changes at all.
-
-Step 1 is the security-relevant one. The tools themselves know nothing about users, so a
-missing gate here means a caller could read gene sets through a tool result that they
-could not read directly. `db_geneset.is_readable` is the same check the gene set
-endpoints use, with user id 0 standing for anonymous.
+**Running an analysis requires a signed-in user**, in every environment. Where AsyncTask is
+configured (`ASYNCTASK_API_URL`) the run goes there as that user -- including MSET and
+PhenomeMap, whose native binaries only its worker images carry. Where it is not, the seven
+pure-Python tools run in-process, still only for a signed-in user.
 """
 
 import importlib.metadata
@@ -90,8 +84,9 @@ TOOL_CAVEATS: dict[str, str] = {
 def _gate_geneset_access(cursor: Cursor, user: User | None, geneset_ids: list[int]) -> None:
     """Refuse the run unless every named gene set is readable by the caller.
 
-    Anonymous callers resolve to user id 0, which `geneset_is_readable2` treats as the
-    public audience -- so an anonymous run sees public gene sets and nothing else.
+    Runs are refused for anonymous callers before this is reached (`_require_user`), but
+    the gate still treats a missing user as id 0, the public audience, so it fails closed
+    if it is ever called without one.
 
     :raises UnauthorizedException: if any gene set is not readable.
     """
@@ -128,8 +123,10 @@ def prepare_upset(
 ) -> PreparedUpSet:
     """Gate and resolve an UpSet run: everything that needs the database.
 
+    :raises SignInRequired: If the caller is anonymous.
     :raises UnauthorizedException: If any gene set is not readable by the caller.
     """
+    _require_user(user)
     _gate_geneset_access(cursor, user, geneset_ids)
     memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
     return PreparedUpSet(
@@ -238,7 +235,33 @@ class ToolUnavailable(Exception):
 
 
 class SignInRequired(Exception):
-    """The tool runs only on AsyncTask, which acts as a user, and the caller is anonymous."""
+    """The caller is anonymous, and running an analysis requires signing in."""
+
+
+def precheck_run(tool_name: str | None, user: User | None) -> None:
+    """The checks a run endpoint makes *before* it opens a database connection.
+
+    Unknown tool first (404: there is no analysis to sign in for), then sign-in (401). Both
+    are pure, so an anonymous request is refused without leasing a connection -- otherwise it
+    could wait on, or fail at, an exhausted pool instead of getting its 401. `prepare_*`
+    repeats them, so a caller that skips this is still refused.
+
+    :param tool_name: The tool, or None for the UpSet endpoint, whose tool is fixed.
+    :raises UnknownToolError: If `tool_name` is not registered.
+    :raises SignInRequired: If the caller is anonymous.
+    """
+    if tool_name is not None and tool_name not in available_tools():
+        raise UnknownToolError(f"No tool registered as {tool_name!r}.")
+    _require_user(user)
+
+
+def _require_user(user: User | None) -> None:
+    """Refuse an anonymous run before any database work.
+
+    :raises SignInRequired: If there is no signed-in user.
+    """
+    if user is None:
+        raise SignInRequired("Sign in to run an analysis.")
 
 
 class ToolRunPending(Exception):
@@ -464,10 +487,6 @@ ASYNCTASK_ONLY_BUILDERS: dict[str, Callable[..., dict]] = {
     "phenome_map": _phenome_map_envelope,
 }
 
-#: Shown with a native tool's availability once AsyncTask is configured, because the
-#: picker is listed before anyone signs in.
-SIGN_IN_CAVEAT = "Runs on AsyncTask, which requires signing in."
-
 
 def tool_availability() -> dict[str, dict[str, Any]]:
     """What each registered tool's state is, for the UI's picker.
@@ -482,9 +501,7 @@ def tool_availability() -> dict[str, dict[str, Any]]:
         reason = None
         caveat = TOOL_CAVEATS.get(name)
         if name in ASYNCTASK_ONLY_BUILDERS:
-            if on_asynctask:
-                caveat = SIGN_IN_CAVEAT
-            else:
+            if not on_asynctask:
                 reason = IN_PROCESS_UNAVAILABLE.get(name)
         elif name not in INPUT_BUILDERS:
             reason = f"{name} has no input resolver in the API yet (G3-798)."
@@ -578,7 +595,7 @@ def prepare_tool_run(
 
     :raises UnknownToolError: If the tool is not registered.
     :raises ToolUnavailable: If the tool cannot run in this environment.
-    :raises SignInRequired: If the tool needs AsyncTask and the caller is anonymous.
+    :raises SignInRequired: If the caller is anonymous.
     :raises UnauthorizedException: If any gene set is not readable by the caller.
     :raises ToolRequestError: If the request does not suit the tool.
     """
@@ -586,12 +603,17 @@ def prepare_tool_run(
     state = tool_availability().get(tool_name)
     if state is None:
         raise UnknownToolError(f"No tool registered as {tool_name!r}.")
+    # Before availability: every registered analysis refuses an anonymous caller the same
+    # way (401), whatever this environment can run. Otherwise an anonymous MSET request where
+    # AsyncTask is not configured got 409, and the answer depended on deployment and tool.
+    _require_user(user)
     if not state["available"]:
         raise ToolUnavailable(state["reason"])
 
     asynctask = asynctask_client_for(user)
     if tool_name in ASYNCTASK_ONLY_BUILDERS and asynctask is None:
-        raise SignInRequired(f"{tool_name} runs on AsyncTask, which requires signing in.")
+        # Signed in, AsyncTask configured, yet no client: the user has no token to act as.
+        raise SignInRequired(f"{tool_name} runs on AsyncTask, which needs a signed-in session.")
 
     # Before anything else: the tools know nothing about users, so a missing gate here
     # would let a caller read gene sets through a tool result.

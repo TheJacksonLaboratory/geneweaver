@@ -10,14 +10,17 @@ explanation rather than a missing-binary stack trace.
 Analyze page reads for the plot. The generic endpoint returns the tool's own output
 verbatim, which is right for eight tools and a needless reshape for the ninth.
 
-Where AsyncTask is configured (`ASYNCTASK_API_URL`), a signed-in caller's run goes there,
-including MSET and PhenomeMap. `POST /tools/{tool}` waits up to `ASYNCTASK_WAIT_SECONDS`
-and returns the result as before; a run still going at that point is answered **202** with
-its `run_id`, which `GET /tools/runs/{run_id}` polls. Anonymous callers, and every caller
-where AsyncTask is not configured, run in-process and synchronously as before.
+**Running an analysis requires a signed-in user** -- by bearer token, or by the session
+cookie that server-side sign-in (`controller/auth.py`) sets for `/next`. An anonymous run is
+refused with 401. Listing the tools (`GET /tools`) stays public.
 
-Access is via `optional_full_user_released`, matching `/genesets/search`: an anonymous
-caller may run a tool over gene sets that are publicly readable, and nothing else. The gate
+Where AsyncTask is configured (`ASYNCTASK_API_URL`), every run goes there as that user,
+including MSET and PhenomeMap. `POST /tools/{tool}` waits up to `ASYNCTASK_WAIT_SECONDS` and
+returns the result; a run still going at that point is answered **202** with its `run_id`,
+which `GET /tools/runs/{run_id}` polls. Where it is not configured, the seven Python tools run
+in-process and synchronously.
+
+The user is resolved through `optional_full_user_released`, and the gene-set access gate
 lives in the service layer so it cannot be skipped by a future endpoint.
 
 **No database connection is held across a run.** Each run endpoint does its database work
@@ -58,6 +61,7 @@ def run_upset(
     """
 
     def run() -> Any:
+        tool_service.precheck_run(None, user)
         with open_cursor() as cursor:
             prepared = tool_service.prepare_upset(
                 cursor,
@@ -153,12 +157,12 @@ def run_tool(
 ) -> Response:
     """Run one tool over two or more gene sets.
 
-    Responds 403 if any requested gene set is not readable, 404 for an unknown tool, and
-    409 for a tool that is registered but cannot run in this environment -- with the reason,
-    so the caller knows whether to wait for a deployment or fix the request. 401 if the tool
-    runs only on AsyncTask and the caller is not signed in; 422 if the request does not suit
-    the tool; 202 with a `run_id` if an AsyncTask run is still going after the wait; 502 if
-    AsyncTask fails the run or cannot be reached.
+    Responds 401 if the caller is not signed in -- for every registered tool, checked before
+    whether the tool can run here; 404 for an unknown tool; 403 if any requested gene set is
+    not readable; 409 for a tool that is registered but cannot run in this environment, with
+    the reason, so the caller knows whether to wait for a deployment or fix the request; 422
+    if the request does not suit the tool; 202 with a `run_id` if an AsyncTask run is still
+    going after the wait; 502 if AsyncTask fails the run or cannot be reached.
 
     Only `UnknownToolError` becomes a 404, not any `LookupError`: an `IndexError` raised
     inside a tool is also a LookupError, and catching the base class reported a bug in the
@@ -166,6 +170,9 @@ def run_tool(
     """
 
     def run() -> Any:
+        # Before the cursor: an anonymous or unknown-tool request must not lease a
+        # connection just to be refused.
+        tool_service.precheck_run(tool, user)
         with open_cursor() as cursor:
             prepared = tool_service.prepare_tool_run(
                 cursor,

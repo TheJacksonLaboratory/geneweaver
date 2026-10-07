@@ -289,3 +289,32 @@ async def test_missing_claim_email_error_claim(
             auto_error_auth=True,
             disallow_public=True,
         )
+
+
+@pytest.mark.asyncio
+@patch("geneweaver.api.core.security.SecurityScopes")
+@patch("geneweaver.api.core.security.jwt.get_unverified_header")
+@patch("geneweaver.api.core.security.requests")
+async def test_a_successful_authentication_does_not_log_the_token(
+    mock_requests, mock_jwt_unverified_header, mock_security_scope
+):
+    """The user model carries the raw bearer token; logging it leaks it to the pod logs.
+
+    It was logged at INFO on every authenticated request (cf. G3-761, the client secret
+    logged at startup).
+    """
+    auth = do_auth()
+    mock_jwt_unverified_header.return_value = private_key
+    token = create_test_token()
+
+    with patch("geneweaver.api.core.security.logger") as logger:
+        await auth._get_user(
+            security_scopes=mock_security_scope,
+            creds=HTTPAuthorizationCredentials(credentials=token, scheme=""),
+            auto_error_auth=True,
+            disallow_public=False,
+        )
+
+    logged = " ".join(str(call) for call in logger.mock_calls)
+    assert token not in logged
+    assert test_email in logged

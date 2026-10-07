@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from geneweaver.api import __version__
 from geneweaver.api import dependencies as deps
 from geneweaver.api.controller import (
+    auth,
     genes,
     genesets,
     monitors,
@@ -59,5 +60,6 @@ api_router.include_router(species.router)
 api_router.include_router(search.router)
 api_router.include_router(monitors.router)
 api_router.include_router(tools.router)
+api_router.include_router(auth.router)
 
 app.include_router(api_router, prefix=settings.API_PREFIX)

@@ -24,5 +24,10 @@ spec:
                 name: geneweaver-config
             - secretRef:
                 name: geneweaver-db
+            # AUTH_LOGIN_CLIENT_SECRET and AUTH_SESSION_KEY for server-side sign-in.
+            # Optional so an environment without it still starts, with sign-in off.
+            - secretRef:
+                name: geneweaver-api-auth
+                optional: true
           ports:
             - containerPort: 8000
