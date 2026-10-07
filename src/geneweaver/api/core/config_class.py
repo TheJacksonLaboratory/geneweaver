@@ -54,7 +54,27 @@ class GeneweaverAPIConfig(BaseSettings):
         "openid profile email": "read",
     }
     JWT_PERMISSION_PREFIX: str = "approle"
+    # Used only by the Swagger docs page's "Authorize" button. Browser sign-in for `/next`
+    # is AUTH_LOGIN_CLIENT_ID below.
     AUTH_CLIENT_ID: str = "aE6dpT04mGlvPeUXl4RYGSnCjvHEuawd"
+
+    # Server-side sign-in for the `/next` UI (`controller/auth.py`), the same confidential
+    # authorization-code flow legacy uses: the API holds the client secret and exchanges the
+    # code, and the browser only ever holds an encrypted session cookie. Sign-in is off until
+    # all four are set, so an environment without them behaves exactly as before.
+    # The client is legacy's Auth0 application for the same tier (x9Ii... dev/sqa,
+    # 5X9T... stage/prod), so a user signed in to either is recognised by the other.
+    AUTH_LOGIN_CLIENT_ID: str | None = None
+    # Secret: from a Kubernetes Secret, never a configmap, and never logged.
+    AUTH_LOGIN_CLIENT_SECRET: str | None = None
+    # Secret: a Fernet key (`Fernet.generate_key()`) that encrypts the session cookie.
+    # Rotating it signs everyone out.
+    AUTH_SESSION_KEY: str | None = None
+    # The site's public origin, e.g. https://geneweaver-dev.jax.org. Builds the callback URL
+    # registered with Auth0, and is the one Origin a cookie-authenticated write may come from.
+    AUTH_PUBLIC_URL: str | None = None
+    # Off only for local development over plain http.
+    AUTH_COOKIE_SECURE: bool = True
 
     # AsyncTask's API root, e.g. http://asynctask-api.dev.svc.cluster.local/asynctask/api.
     # Unset by default, which keeps every tool run in-process -- so an environment only

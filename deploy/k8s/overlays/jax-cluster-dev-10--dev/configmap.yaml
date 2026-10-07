@@ -7,3 +7,4 @@ metadata:
   name: geneweaver-config
 data:
   ASYNCTASK_API_URL: "http://asynctask-api.dev.svc.cluster.local/asynctask/api"
+  AUTH_PUBLIC_URL: "https://geneweaver-dev.jax.org"

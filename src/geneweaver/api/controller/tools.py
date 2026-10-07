@@ -10,14 +10,17 @@ explanation rather than a missing-binary stack trace.
 Analyze page reads for the plot. The generic endpoint returns the tool's own output
 verbatim, which is right for eight tools and a needless reshape for the ninth.
 
-Where AsyncTask is configured (`ASYNCTASK_API_URL`), a signed-in caller's run goes there,
-including MSET and PhenomeMap. `POST /tools/{tool}` waits up to `ASYNCTASK_WAIT_SECONDS`
-and returns the result as before; a run still going at that point is answered **202** with
-its `run_id`, which `GET /tools/runs/{run_id}` polls. Anonymous callers, and every caller
-where AsyncTask is not configured, run in-process and synchronously as before.
+**Running an analysis requires a signed-in user** -- by bearer token, or by the session
+cookie that server-side sign-in (`controller/auth.py`) sets for `/next`. An anonymous run is
+refused with 401. Listing the tools (`GET /tools`) stays public.
 
-Access is via `optional_full_user_released`, matching `/genesets/search`: an anonymous
-caller may run a tool over gene sets that are publicly readable, and nothing else. The gate
+Where AsyncTask is configured (`ASYNCTASK_API_URL`), every run goes there as that user,
+including MSET and PhenomeMap. `POST /tools/{tool}` waits up to `ASYNCTASK_WAIT_SECONDS` and
+returns the result; a run still going at that point is answered **202** with its `run_id`,
+which `GET /tools/runs/{run_id}` polls. Where it is not configured, the seven Python tools run
+in-process and synchronously.
+
+The user is resolved through `optional_full_user_released`, and the gene-set access gate
 lives in the service layer so it cannot be skipped by a future endpoint.
 
 **No database connection is held across a run.** Each run endpoint does its database work

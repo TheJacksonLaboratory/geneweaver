@@ -4,3 +4,6 @@ metadata:
   name: geneweaver-config
 data:
   AUTH_CLIENT_ID: "C0PrH88Pmjmba9ObVKaIRUITQeiA1Q4D"
+  # Legacy's production Auth0 application.
+  AUTH_LOGIN_CLIENT_ID: "5X9TlYZWVN3Ox9cVNpn2BEW3zhpFA1i1"
+  AUTH_PUBLIC_URL: "https://geneweaver-stage.jax.org"

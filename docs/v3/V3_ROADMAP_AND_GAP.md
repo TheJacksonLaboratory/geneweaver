@@ -612,6 +612,16 @@ an opaque failed run later. 409 is reserved for a tool unavailable in the enviro
 database work happens on short-lived cursors released before the remote wait, so concurrent runs
 cannot exhaust the `DB_POOL_MAX_SIZE` pool.
 
+**Sign-in (2026-10-07).** Running an analysis requires a signed-in user. `/next` signs in the
+way legacy does -- a confidential authorization-code flow in which the server holds the client
+secret -- implemented on FastAPI at `/api/sessions/{login,callback,me,logout}`
+(`controller/auth.py`). It reuses legacy's Auth0 application per tier (`x9Ii...` dev/sqa,
+`5X9T...` stage/prod), keeps the access token in an encrypted `HttpOnly` cookie, and
+`Auth0HTTPBearer` accepts that cookie wherever it accepts a bearer header, with an `Origin`
+check on cookie-authenticated writes. Off until `AUTH_LOGIN_CLIENT_SECRET` and
+`AUTH_SESSION_KEY` (the `geneweaver-api-auth` Secret) and `AUTH_PUBLIC_URL` are set; prod's
+public URL is undecided, so prod stays off.
+
 Still open: listing, cancel, delete, rerun and result download; and failure detail -- AsyncTask
 records only a failed *status*, so a failed run is reported with its Temporal workflow id rather
 than a cause.

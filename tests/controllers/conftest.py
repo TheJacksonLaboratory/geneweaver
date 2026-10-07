@@ -17,6 +17,15 @@ def mock_cursor_factory():
     return lambda: nullcontext(mock_cursor())
 
 
+def mock_signed_in_user() -> Mock:
+    """A signed-in caller for endpoints that use `optional_full_user_released`.
+
+    Running an analysis requires signing in, so the tool endpoints' tests act as a user by
+    default; tests of the anonymous case override this with `lambda: None`.
+    """
+    return Mock(token="test-token")
+
+
 def mock_full_user() -> Mock:
     """User auth mock."""
     m1 = Mock()
@@ -55,11 +64,21 @@ def app(mock_settings) -> FastAPI:
 
     returns: A mocked FastAPI application.
     """
-    from geneweaver.api.dependencies import cursor, cursor_factory, full_user
+    from geneweaver.api.dependencies import (
+        cursor,
+        cursor_factory,
+        full_user,
+        optional_full_user_released,
+    )
     from geneweaver.api.main import app
 
     app.dependency_overrides.update(
-        {full_user: mock_full_user, cursor: mock_cursor, cursor_factory: mock_cursor_factory}
+        {
+            full_user: mock_full_user,
+            cursor: mock_cursor,
+            cursor_factory: mock_cursor_factory,
+            optional_full_user_released: mock_signed_in_user,
+        }
     )
 
     return app

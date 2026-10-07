@@ -16,19 +16,56 @@ from fastapi.security import (
 from jose import jwt  # type: ignore
 from pydantic import ValidationError
 
+from geneweaver.api.core import session
 from geneweaver.api.core.exceptions import (
     Auth0UnauthenticatedException,
     Auth0UnauthorizedException,
 )
 from geneweaver.api.schemas.auth import UserInternal
 
+#: Methods a cross-site request may make with the session cookie attached; anything else
+#: must come from this site.
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
 
 class Auth0HTTPBearer(HTTPBearer):
-    """Auth0 Specific HTTP Bearer Authentication."""
+    """Auth0 Specific HTTP Bearer Authentication.
+
+    An `Authorization` header wins. Without one, the access token is taken from the
+    server-side sign-in session cookie (`core.session`), so a signed-in `/next` user
+    authenticates to every endpoint without the browser ever holding the token. Either way
+    the token is then verified identically in `Auth0._get_user`.
+    """
 
     async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
-        """Call the HTTP Bearer __call__ method."""
-        return await super().__call__(request)
+        """Read the bearer header, else the session cookie."""
+        if request.headers.get("Authorization"):
+            return await super().__call__(request)
+        token = session.session_token(request.cookies.get(session.SESSION_COOKIE))
+        if token is None:
+            return await super().__call__(request)
+        _refuse_cross_site_write(request)
+        return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+
+
+def _refuse_cross_site_write(request: Request) -> None:
+    """CSRF guard for cookie-authenticated requests.
+
+    A browser attaches the session cookie to whatever the user's browser sends here, so a
+    write authenticated *by the cookie* must prove it came from this site. `SameSite=Lax`
+    already withholds the cookie from cross-site POSTs in current browsers; this checks
+    `Origin` as well, so the guard does not rest on one browser behaviour. Bearer-token
+    requests are unaffected: a header cannot be attached by another site.
+
+    :raises HTTPException: 403 if the write's Origin is missing or not this site.
+    """
+    if request.method in SAFE_METHODS:
+        return
+    origin = request.headers.get("Origin")
+    if origin is None or origin != session.public_origin():
+        raise HTTPException(
+            403, detail="Cross-site request refused: the session may only be used from this site."
+        )
 
 
 class OAuth2ImplicitBearer(OAuth2):
@@ -243,7 +280,9 @@ class Auth0:
                     detail='Missing email claim (check auth0 rule "Add email to access token")'
                 )
 
-            logger.info(f"Successfully found user in header token: {user}")
+            # Identity only. `user` carries the raw bearer token (`token`, `auth_header`), and
+            # formatting the model would write it to the pod's logs on every request.
+            logger.info(f"Authenticated user sso_id={user.sso_id} email={user.email}")
             return user
 
         except ValidationError as e:

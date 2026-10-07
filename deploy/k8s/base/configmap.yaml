@@ -4,3 +4,7 @@ metadata:
   name: geneweaver-config
 data:
   AUTH_CLIENT_ID: "aE6dpT04mGlvPeUXl4RYGSnCjvHEuawd"
+  # Server-side sign-in for /next uses legacy's Auth0 application for the same tier:
+  # x9Ii... for dev and sqa (overridden to 5X9T... for stage and prod). Sign-in stays off
+  # until AUTH_PUBLIC_URL is set in the overlay and the geneweaver-api-auth Secret exists.
+  AUTH_LOGIN_CLIENT_ID: "x9IiBRyt8lS3lsqrz2H6aO1leRBbxyb7"

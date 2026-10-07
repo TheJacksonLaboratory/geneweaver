@@ -3,10 +3,9 @@
 Tools run out of process through **AsyncTask** (`bitbucket.org/jacksonlaboratory/asynctask`),
 a Temporal-backed service that loads them as the `GeneWeaverTools` plugin. That path is
 `services/asynctask.py`, chosen per request in `services/tools.py`: it acts as the signed-in
-user, so it cannot serve anonymous callers, and it is off wherever `ASYNCTASK_API_URL` is
-unset.
+user (every run requires one), and it is off wherever `ASYNCTASK_API_URL` is unset.
 
-This module is the **in-process** backend for everything else. In-process execution is only
+This module is the **in-process** backend for environments without AsyncTask. In-process execution is only
 viable because the seven tools it serves are pure Python and fast; MSET and PhenomeMap shell
 out to binaries the API image does not carry, and run only on AsyncTask.
 """

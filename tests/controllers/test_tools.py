@@ -390,3 +390,24 @@ def test_the_connection_is_back_in_the_pool_before_execution(
 
     assert response.status_code == 200
     prepared.assert_called_once()
+
+
+# --- an analysis requires a signed-in user ----------------------------------------------
+
+
+@pytest.mark.parametrize("path", ["/api/tools/upset", "/api/tools/dbscan"])
+def test_anonymous_runs_are_401(app, client, path) -> None:
+    """Both run endpoints refuse an anonymous caller before touching the database."""
+    from geneweaver.api.dependencies import optional_full_user_released
+
+    previous = app.dependency_overrides.get(optional_full_user_released)
+    app.dependency_overrides[optional_full_user_released] = lambda: None
+    try:
+        with patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable:
+            response = client.post(path, json={"geneset_ids": [1, 2]})
+    finally:
+        app.dependency_overrides[optional_full_user_released] = previous
+
+    assert response.status_code == 401
+    assert "Sign in" in response.json()["detail"]
+    readable.assert_not_called()
