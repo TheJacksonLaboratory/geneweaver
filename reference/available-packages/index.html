@@ -2429,8 +2429,21 @@ A package for performing boolean algebra operations on GeneWeaver data.</li>
 <li><a href="https://pypi.org/project/geneweaver-db/"><code>geneweaver-db</code></a>: 
 A package for interacting with the GeneWeaver database.</li>
 </ul>
-<p>Each package has its own documentation and code repository, which can be found in the 
-links above.</p>
+<div class="admonition note">
+<p class="admonition-title">Development has moved to the GeneWeaver monorepo</p>
+<p><code>geneweaver-core</code>, <code>geneweaver-db</code>, <code>geneweaver-client</code> and <code>geneweaver-tools</code> are
+now developed in the
+<a href="https://github.com/TheJacksonLaboratory/geneweaver">GeneWeaver monorepo</a> under
+<code>packages/</code>. The standalone repositories for <code>geneweaver-db</code>, <code>geneweaver-client</code>,
+<code>geneweaver-tools</code>, <code>geneweaver-testing</code> and <code>geneweaver-boolean-algebra</code> are
+archived. The PyPI releases above are still installable, but the monorepo is the
+source of truth and the published releases may lag it.</p>
+<p>This matters most for <strong><code>geneweaver-tools</code></strong>: the published package contains the
+<code>AbstractTool</code> framework <em>only</em>. The GeneWeaver analysis tools themselves
+(BooleanAlgebra, Combine, DBSCAN, HyperGeometric, JaccardClustering,
+JaccardSimilarity, MSET, PhenomeMap, UpSet) live in the monorepo at <code>packages/tools</code>
+and have not been published to PyPI.</p>
+</div>
 <h2 id="package-relationships">Package Relationships</h2>
 <p>The following diagram shows the relationships between the packages.</p>
 <pre class="mermaid"><code>graph LR
