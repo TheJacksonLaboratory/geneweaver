@@ -208,16 +208,16 @@ class TestRunToolGuards:
             tool_service.run_tool(mock_cursor, "nonexistent", [1, 2])
 
     @pytest.mark.parametrize("name", ["mset", "phenome_map"])
-    def test_a_binary_backed_tool_raises_value_error(self, name: str, mock_cursor) -> None:
+    def test_a_binary_backed_tool_is_unavailable(self, name: str, mock_cursor) -> None:
         """Distinct from LookupError: registered, but not runnable here (409, not 404)."""
-        with pytest.raises(ValueError, match="native-worker"):
+        with pytest.raises(tool_service.ToolUnavailable, match="native-worker"):
             tool_service.run_tool(mock_cursor, name, [1, 2])
 
     def test_an_unavailable_tool_is_refused_before_the_access_gate(self, mock_cursor) -> None:
         """No point querying readability for a run that cannot happen."""
         with (
             patch("geneweaver.api.services.tools.db_geneset.is_readable") as readable,
-            pytest.raises(ValueError),
+            pytest.raises(tool_service.ToolUnavailable),
         ):
             tool_service.run_tool(mock_cursor, "mset", [1, 2])
         readable.assert_not_called()
@@ -300,3 +300,411 @@ def test_unknown_tool_error_is_distinct_from_a_tool_crash() -> None:
     """Both are LookupError; only one means "no such tool"."""
     assert issubclass(tool_service.UnknownToolError, LookupError)
     assert not isinstance(IndexError("x"), tool_service.UnknownToolError)
+
+
+# --- where a run executes: AsyncTask or in-process ---------------------------------
+
+
+class _FakeAsyncTask:
+    """Records the envelope submitted and replays a scripted outcome."""
+
+    def __init__(self, final_status: str = "completed", result: dict | None = None) -> None:
+        from geneweaver.api.services.asynctask import RunState
+
+        self.final = RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status=final_status)
+        self.final.result = result
+        self.envelope = None
+
+    def submit(self, envelope, name):
+        from geneweaver.api.services.asynctask import RunState
+
+        self.envelope = envelope
+        return RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status="running")
+
+    def wait(self, state, timeout, poll_interval):
+        return self.final
+
+    def get(self, run_id):
+        return self.final
+
+
+@pytest.fixture
+def readable_memberships():
+    """Every gene set readable, with two small memberships."""
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+            return_value=MEMBERSHIPS,
+        ),
+    ):
+        yield
+
+
+def _on_asynctask(client):
+    """AsyncTask configured, with `client` standing in for the signed-in user's."""
+    return (
+        patch("geneweaver.api.services.tools.asynctask_configured", return_value=True),
+        patch("geneweaver.api.services.tools.asynctask_client_for", return_value=client),
+    )
+
+
+class TestExecutionRouting:
+    """Signed-in runs go to AsyncTask; anonymous ones stay in-process."""
+
+    def test_anonymous_callers_still_run_in_process(self, mock_cursor, readable_memberships):
+        """No user means nobody to submit as, so the old path is kept as it was."""
+        runner = _RecordingRunner(Mock(model_dump=Mock(return_value={"ok": True})))
+        configured, _ = _on_asynctask(None)
+        with configured:
+            result = tool_service.run_tool(mock_cursor, "upset", [1, 2], user=None, runner=runner)
+
+        assert result["executed_by"] == "in_process"
+        assert result["run_id"] is None
+        assert result["result"] == {"ok": True}
+
+    def test_signed_in_callers_run_on_asynctask(self, mock_cursor, readable_memberships):
+        """The validated input is what crosses, in the plugin's envelope."""
+        fake = _FakeAsyncTask(result={"intersections": []})
+        configured, client = _on_asynctask(fake)
+        with configured, client:
+            result = tool_service.run_tool(mock_cursor, "upset", [1, 2], user=Mock())
+
+        assert result["executed_by"] == "asynctask"
+        assert result["run_id"] == 11
+        assert result["result"] == {"intersections": []}
+        assert result["gene_counts"] == {"1": 2, "2": 2}
+        assert fake.envelope["tool"] == "upset"
+        assert fake.envelope["input"]["gene_memberships"] == MEMBERSHIPS
+
+    def test_a_bad_request_fails_before_submission(self, mock_cursor, readable_memberships):
+        """Validated locally, so it is the tool's message now, not an opaque failed run."""
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with configured, client, pytest.raises(tool_service.ToolRequestError, match="dbscan"):
+            tool_service.run_tool(
+                mock_cursor, "dbscan", [1, 2], user=Mock(), parameters={"epsilon": "x"}
+            )
+        assert fake.envelope is None
+
+    def test_a_long_run_is_handed_back_by_id(self, mock_cursor, readable_memberships):
+        """A long run is handed back by id."""
+        configured, client = _on_asynctask(_FakeAsyncTask(final_status="running"))
+        with configured, client, pytest.raises(tool_service.ToolRunPending) as pending:
+            tool_service.run_tool(mock_cursor, "upset", [1, 2], user=Mock())
+
+        # Everything but the result, so a client polling to completion can assemble the
+        # response it would have got synchronously.
+        assert pending.value.body == {
+            "tool": "upset",
+            "geneset_ids": [1, 2],
+            "gene_counts": {"1": 2, "2": 2},
+            "caveat": None,
+            "run_id": 11,
+            "status": "running",
+        }
+
+    def test_a_failed_run_names_the_workflow(self, mock_cursor, readable_memberships):
+        """AsyncTask records no cause, so the workflow id is the way to find it."""
+        configured, client = _on_asynctask(_FakeAsyncTask(final_status="failed"))
+        with configured, client, pytest.raises(tool_service.ToolRunFailed, match="ats:Gene"):
+            tool_service.run_tool(mock_cursor, "upset", [1, 2], user=Mock())
+
+    def test_the_gate_still_runs_first(self, mock_cursor):
+        """AsyncTask knows nothing about gene set permissions; v3 must refuse first."""
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with (
+            configured,
+            client,
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=False),
+            pytest.raises(HTTPException),
+        ):
+            tool_service.run_tool(mock_cursor, "upset", [1, 2], user=Mock())
+        assert fake.envelope is None
+
+
+def one_species(species: dict | None = None):
+    """Patch the gene sets' species, all mouse unless given."""
+    return patch(
+        "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+        return_value=species or {1: 1, 2: 1},
+    )
+
+
+class TestNativeTools:
+    """MSET and PhenomeMap, which only AsyncTask can run."""
+
+    def test_unavailable_where_asynctask_is_not_configured(self, mock_cursor):
+        """Unavailable where asynctask is not configured."""
+        with (
+            patch("geneweaver.api.services.tools.asynctask_configured", return_value=False),
+            pytest.raises(tool_service.ToolUnavailable, match="MSETcpp"),
+        ):
+            tool_service.run_tool(mock_cursor, "mset", [1, 2], user=Mock())
+
+    def test_anonymous_callers_are_asked_to_sign_in(self, mock_cursor):
+        """Anonymous callers are asked to sign in."""
+        configured, client = _on_asynctask(None)
+        with configured, client, pytest.raises(tool_service.SignInRequired):
+            tool_service.run_tool(mock_cursor, "phenome_map", [1, 2], user=None)
+
+    def test_mset_sends_a_universe_reference_not_the_universe(
+        self, mock_cursor, readable_memberships
+    ):
+        """~100,000 identifiers inline would breach Temporal's 2 MiB limit (G3-784)."""
+        fake = _FakeAsyncTask(result={"intersect_genes": ["B"]})
+        configured, client = _on_asynctask(fake)
+        with configured, client, one_species():
+            tool_service.run_tool(
+                mock_cursor, "mset", [1, 2], user=Mock(), parameters={"number_of_samples": 500}
+            )
+
+        # No backgrounds at all: the worker resolves them from the reference.
+        assert fake.envelope == {
+            "tool": "mset",
+            "input": {
+                "group_1_genes": ["A", "B"],
+                "group_2_genes": ["B", "C"],
+                "number_of_samples": 500,
+                "over_representation": True,
+            },
+            "universe": {"geneset_ids": [1, 2]},
+        }
+
+    def test_mset_needs_exactly_two_genesets(self, mock_cursor, readable_memberships):
+        """Mset needs exactly two genesets."""
+        configured, client = _on_asynctask(_FakeAsyncTask())
+        with configured, client, pytest.raises(tool_service.ToolRequestError, match="exactly two"):
+            tool_service.run_tool(mock_cursor, "mset", [1, 2, 3], user=Mock())
+
+    def test_mset_parses_options_rather_than_casting_them(self, mock_cursor, readable_memberships):
+        """`bool("false")` is True; a cast here would silently run the opposite test."""
+        fake = _FakeAsyncTask(result={})
+        configured, client = _on_asynctask(fake)
+        with configured, client, one_species():
+            tool_service.run_tool(
+                mock_cursor,
+                "mset",
+                [1, 2],
+                user=Mock(),
+                parameters={"over_representation": "false", "number_of_samples": "250"},
+            )
+
+        assert fake.envelope["input"]["over_representation"] is False
+        assert fake.envelope["input"]["number_of_samples"] == 250
+
+    @pytest.mark.parametrize(
+        "parameters", [{"number_of_samples": None}, {"number_of_samples": "many"}]
+    )
+    def test_mset_rejects_bad_options_before_submitting(
+        self, parameters, mock_cursor, readable_memberships
+    ):
+        """A null or non-numeric option is the caller's to fix (422), not a 500 or a 409."""
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with (
+            configured,
+            client,
+            one_species(),
+            pytest.raises(tool_service.ToolRequestError, match="mset"),
+        ):
+            tool_service.run_tool(mock_cursor, "mset", [1, 2], user=Mock(), parameters=parameters)
+        assert fake.envelope is None
+
+    def test_mset_refuses_mixed_species_before_submitting(self, mock_cursor, readable_memberships):
+        """The worker's resolver would refuse it; a run that is certain to fail is not sent."""
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with (
+            configured,
+            client,
+            one_species({1: 1, 2: 2}),
+            pytest.raises(tool_service.ToolRequestError, match="different species"),
+        ):
+            tool_service.run_tool(mock_cursor, "mset", [1, 2], user=Mock())
+        assert fake.envelope is None
+
+    def test_phenome_map_rejects_bad_options_before_submitting(
+        self, mock_cursor, readable_memberships
+    ):
+        """Validated against PhenomeMapInput here, not discovered by the worker."""
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with (
+            configured,
+            client,
+            pytest.raises(tool_service.ToolRequestError, match="phenome_map"),
+        ):
+            tool_service.run_tool(
+                mock_cursor, "phenome_map", [1, 2], user=Mock(), parameters={"min_genes": "x"}
+            )
+        assert fake.envelope is None
+
+    def test_phenome_map_passes_only_its_own_options(self, mock_cursor, readable_memberships):
+        """Phenome map passes only its own options."""
+        fake = _FakeAsyncTask(result={"nodes": []})
+        configured, client = _on_asynctask(fake)
+        with configured, client:
+            tool_service.run_tool(
+                mock_cursor,
+                "phenome_map",
+                [1, 2],
+                user=Mock(),
+                parameters={"min_genes": 2, "unrelated": True},
+            )
+
+        assert fake.envelope["tool"] == "phenome_map"
+        assert fake.envelope["input"]["gene_sets"] == MEMBERSHIPS
+        assert fake.envelope["input"]["min_genes"] == 2
+        assert "unrelated" not in fake.envelope["input"]
+
+    def test_availability_follows_configuration(self):
+        """Availability follows configuration."""
+        with patch("geneweaver.api.services.tools.asynctask_configured", return_value=False):
+            off = tool_service.tool_availability()
+        with patch("geneweaver.api.services.tools.asynctask_configured", return_value=True):
+            on = tool_service.tool_availability()
+
+        assert off["mset"]["available"] is False
+        assert on["mset"] == {
+            "available": True,
+            "reason": None,
+            "caveat": tool_service.SIGN_IN_CAVEAT,
+        }
+        # The pure-Python tools are available either way.
+        assert off["upset"]["available"] and on["upset"]["available"]
+
+
+class TestGetToolRun:
+    """Polling a run by id."""
+
+    def test_requires_asynctask(self):
+        """Requires AsyncTask to be configured."""
+        with (
+            patch("geneweaver.api.services.tools.asynctask_configured", return_value=False),
+            pytest.raises(tool_service.ToolUnavailable),
+        ):
+            tool_service.get_tool_run(11, user=Mock())
+
+    def test_requires_sign_in(self):
+        """Requires sign in."""
+        configured, client = _on_asynctask(None)
+        with configured, client, pytest.raises(tool_service.SignInRequired):
+            tool_service.get_tool_run(11, user=None)
+
+    def test_returns_status_and_result(self):
+        """Returns status and result."""
+        configured, client = _on_asynctask(_FakeAsyncTask(result={"nodes": []}))
+        with configured, client:
+            run = tool_service.get_tool_run(11, user=Mock())
+
+        assert run == {
+            "run_id": 11,
+            "status": "completed",
+            "workflow_id": "ats:GeneWeaverTools:x",
+            "result": {"nodes": []},
+        }
+
+
+class TestAsyncTaskClientFor:
+    """Whether a request gets an AsyncTask client, and as whom."""
+
+    def test_none_when_not_configured(self, monkeypatch):
+        """None when not configured."""
+        monkeypatch.setattr(tool_service.settings, "ASYNCTASK_API_URL", None)
+        assert tool_service.asynctask_client_for(Mock(token="tok")) is None
+
+    def test_none_for_anonymous(self, monkeypatch):
+        """None for anonymous."""
+        monkeypatch.setattr(tool_service.settings, "ASYNCTASK_API_URL", "http://ats/api")
+        assert tool_service.asynctask_client_for(None) is None
+
+    def test_acts_as_the_user(self, monkeypatch):
+        """Acts as the user."""
+        monkeypatch.setattr(tool_service.settings, "ASYNCTASK_API_URL", "http://ats/api")
+        client = tool_service.asynctask_client_for(Mock(token="tok"))
+        assert client.base_url == "http://ats/api"
+        assert client.headers == {"Authorization": "Bearer tok"}
+
+
+class TestRunUpsetRouting:
+    """The Analyze page's default tool routes like every other."""
+
+    def test_signed_in_upset_runs_on_asynctask(self, mock_cursor, readable_memberships):
+        """The typed result is rebuilt from AsyncTask's JSON output."""
+        fake = _FakeAsyncTask(result={"intersections": [{"genesets": ["1", "2"], "size": 1}]})
+        configured, client = _on_asynctask(fake)
+        with configured, client:
+            result = tool_service.run_upset(mock_cursor, [1, 2], user=Mock())
+
+        assert isinstance(result, UpSetResult)
+        assert [(i.geneset_ids, i.size) for i in result.intersections] == [(["1", "2"], 1)]
+        assert fake.envelope["tool"] == "upset"
+        assert fake.envelope["input"]["geneset_ids"] == ["1", "2"]
+
+    def test_anonymous_upset_stays_in_process(self, mock_cursor, readable_memberships):
+        """No user means nothing to submit as."""
+        runner = _RecordingRunner(_Output([_Intersection(["1"], 1)]))
+        configured, client = _on_asynctask(None)
+        with configured, client:
+            result = tool_service.run_upset(mock_cursor, [1, 2], user=None, runner=runner)
+
+        assert runner.tool_input is not None
+        assert [(i.geneset_ids, i.size) for i in result.intersections] == [(["1"], 1)]
+
+
+class TestPayloadSize:
+    """An oversized envelope is refused before AsyncTask sees it."""
+
+    @pytest.mark.parametrize("tool", ["upset", "phenome_map"])
+    def test_oversized_runs_are_a_request_error(self, tool, mock_cursor, readable_memberships):
+        """The gene-set cap does not bound membership size, so this guard does."""
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with (
+            configured,
+            client,
+            patch(
+                "geneweaver.api.services.tools.check_payload_size",
+                side_effect=ValueError("The payload is 3.00 MiB"),
+            ),
+            pytest.raises(tool_service.ToolRequestError, match=r"3\.00 MiB"),
+        ):
+            tool_service.run_tool(mock_cursor, tool, [1, 2], user=Mock())
+        assert fake.envelope is None
+
+    def test_the_real_guard_measures_the_envelope(self, mock_cursor):
+        """Not patched: a 20-set request with large memberships trips the real limit."""
+        big = {str(n): [f"GENE{i}" for i in range(20_000)] for n in range(1, 21)}
+        fake = _FakeAsyncTask()
+        configured, client = _on_asynctask(fake)
+        with (
+            configured,
+            client,
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+                return_value=big,
+            ),
+            pytest.raises(tool_service.ToolRequestError, match="MiB"),
+        ):
+            tool_service.run_tool(mock_cursor, "upset", list(range(1, 21)), user=Mock())
+        assert fake.envelope is None
+
+
+class TestPrepareThenExecute:
+    """The database phase and the remote phase are separable."""
+
+    def test_execute_needs_no_cursor(self, mock_cursor, readable_memberships):
+        """Everything that reads the database happens in prepare."""
+        fake = _FakeAsyncTask(result={"intersections": []})
+        configured, client = _on_asynctask(fake)
+        with configured, client:
+            prepared = tool_service.prepare_tool_run(mock_cursor, "upset", [1, 2], user=Mock())
+        mock_cursor.reset_mock()
+
+        result = tool_service.execute_tool_run(prepared)
+
+        assert result["executed_by"] == "asynctask"
+        assert mock_cursor.mock_calls == []

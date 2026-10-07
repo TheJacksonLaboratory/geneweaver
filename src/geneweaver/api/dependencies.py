@@ -2,7 +2,8 @@
 
 # ruff: noqa: B008
 import logging
-from contextlib import asynccontextmanager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, asynccontextmanager, contextmanager
 from tempfile import TemporaryDirectory
 from typing import Annotated
 
@@ -64,6 +65,26 @@ async def cursor(request: Request) -> Cursor:
 
 
 CursorDep = Annotated[Cursor, Depends(cursor)]
+
+#: Opens a cursor that is returned to the pool when its `with` block ends.
+CursorFactory = Callable[[], AbstractContextManager[Cursor]]
+
+
+def cursor_factory(request: Request) -> CursorFactory:
+    """Open short-lived cursors on demand, instead of one held for the whole request.
+
+    `cursor` leases a connection until the response is sent. That is right for a request
+    that is all database work, and wrong for one that then waits on another service: the
+    tool endpoints wait up to `ASYNCTASK_WAIT_SECONDS` for AsyncTask, and with a pool of
+    `DB_POOL_MAX_SIZE` (8) connections, eight such waits would starve every other request.
+    """
+
+    @contextmanager
+    def open_cursor() -> Iterator[Cursor]:
+        with request.app.pool.connection() as conn, conn.cursor() as cur:
+            yield cur
+
+    return open_cursor
 
 
 def _get_user_details(cursor: Cursor, user: UserInternal) -> UserInternal:
@@ -129,6 +150,21 @@ async def optional_full_user(
 
 
 OptionalFullUserDep = Annotated[UserInternal | None, Depends(optional_full_user)]
+
+
+async def optional_full_user_released(
+    open_cursor: CursorFactory = Depends(cursor_factory),
+    user: UserInternal | None = Depends(auth.get_user),
+) -> UserInternal | None:
+    """`optional_full_user`, returning its connection as soon as the user is resolved.
+
+    For endpoints that release their own connection before a long remote call: depending
+    on `optional_full_user` would lease one through `cursor` for the whole request anyway.
+    """
+    if user is None:
+        return None
+    with open_cursor() as cur:
+        return _get_user_details(cur, user)
 
 
 async def get_temp_dir() -> TemporaryDirectory:

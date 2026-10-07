@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
+import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 
 /* PrimeNG Imports */
 import { ButtonModule } from 'primeng/button';
@@ -59,8 +60,47 @@ interface ToolRunResult {
   result: Record<string, unknown>;
 }
 
+/**
+ * What `POST /tools/...` answers (202) when an AsyncTask run outlasts the API's wait:
+ * everything the completed response carries except the result, plus the run to poll.
+ */
+interface PendingRun {
+  tool: string;
+  geneset_ids: number[];
+  gene_counts: Record<string, number>;
+  caveat?: string | null;
+  run_id: number;
+  status: string;
+}
+
+/** `GET /tools/runs/{run_id}`. `result` is the tool's own output once completed. */
+interface ToolRunStatus {
+  run_id: number;
+  status: string;
+  workflow_id?: string | null;
+  result?: Record<string, unknown> | null;
+}
+
 /** Either response shape, so the two request branches unify. */
-type AnyToolResult = UpSetResult | ToolRunResult;
+type AnyToolResult = UpSetResult | ToolRunResult | PendingRun;
+
+/** How often a pending run is polled. */
+export const RUN_POLL_INTERVAL_MS = 2000;
+
+/**
+ * A 202 body rather than a result. Told apart by shape, not HTTP status, because the
+ * API service resolves every 2xx alike: a completed generic result always has `result`,
+ * a completed UpSet always has `intersections`, and only a pending run has neither.
+ */
+function isPendingRun(body: AnyToolResult | undefined): body is PendingRun {
+  return (
+    !!body &&
+    typeof (body as PendingRun).run_id === 'number' &&
+    (body as PendingRun).status === 'running' &&
+    !('result' in body) &&
+    !('intersections' in body)
+  );
+}
 
 /** The shape `describeError` reads off a failed request. */
 interface HttpFailure {
@@ -118,7 +158,7 @@ const TOOL_LABELS: Record<string, string> = {
   ],
   templateUrl: './analyze.component.html',
 })
-export class AnalyzeComponent implements OnInit {
+export class AnalyzeComponent implements OnInit, OnDestroy {
   private gwApi: ApiBaseService;
 
   /** Gene set ids as typed by the user; validated before the call. */
@@ -142,6 +182,9 @@ export class AnalyzeComponent implements OnInit {
   result?: UpSetResult;
   genericResult?: ToolRunResult;
   errorMessage?: string;
+  /** Set while a run accepted by AsyncTask is being polled to completion. */
+  pendingRunId?: number;
+  private poll?: Subscription;
 
   /** DBSCAN parameters; its schema requires both. Defaults match the smallest case the
    * validation harness exercises. */
@@ -156,6 +199,10 @@ export class AnalyzeComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadTools();
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
   }
 
   /** Fetch the registered tools and whether each can run. */
@@ -279,6 +326,7 @@ export class AnalyzeComponent implements OnInit {
     if (!this.canRun) {
       return;
     }
+    this.stopPolling();
     this.running = true;
     this.result = undefined;
     this.genericResult = undefined;
@@ -302,10 +350,17 @@ export class AnalyzeComponent implements OnInit {
 
     request$.subscribe({
       next: (response) => {
+        const body = response.object as AnyToolResult | undefined;
+        if (isPendingRun(body)) {
+          // Still running on AsyncTask after the API's wait: poll it rather than
+          // treating the 202 body as a finished, empty result.
+          this.pollUntilFinished(body);
+          return;
+        }
         if (this.isUpSet) {
-          this.result = response.object as UpSetResult;
+          this.result = body as UpSetResult;
         } else {
-          this.genericResult = response.object as ToolRunResult;
+          this.genericResult = body as ToolRunResult;
         }
         this.running = false;
       },
@@ -335,7 +390,68 @@ export class AnalyzeComponent implements OnInit {
     }
   }
 
+  /**
+   * Poll a run AsyncTask accepted until it stops, then show it as if it had returned
+   * synchronously. A run that stops without completing is an error naming its status;
+   * AsyncTask records no cause, so the workflow id is given to find one.
+   */
+  private pollUntilFinished(pending: PendingRun): void {
+    this.pendingRunId = pending.run_id;
+    const upset = pending.tool === 'upset';
+    this.poll = timer(RUN_POLL_INTERVAL_MS, RUN_POLL_INTERVAL_MS)
+      .pipe(
+        switchMap(() => this.gwApi.get<ToolRunStatus>(`/tools/runs/${pending.run_id}`)),
+        map((response) => response.object as ToolRunStatus),
+        takeWhile((run) => run.status === 'running', true),
+      )
+      .subscribe({
+        next: (run) => {
+          if (run.status === 'running') {
+            return;
+          }
+          this.pendingRunId = undefined;
+          this.running = false;
+          if (run.status !== 'completed' || !run.result) {
+            this.errorMessage =
+              `The ${TOOL_LABELS[pending.tool] ?? pending.tool} run ended ${run.status}` +
+              (run.workflow_id ? ` (workflow ${run.workflow_id}).` : '.');
+            return;
+          }
+          if (upset) {
+            const raw = run.result['intersections'] as { genesets: string[]; size: number }[];
+            this.result = {
+              tool: 'UpSet',
+              geneset_ids: pending.geneset_ids,
+              gene_counts: pending.gene_counts,
+              intersections: raw.map((item) => ({ geneset_ids: item.genesets, size: item.size })),
+            };
+          } else {
+            this.genericResult = {
+              tool: pending.tool,
+              geneset_ids: pending.geneset_ids,
+              gene_counts: pending.gene_counts,
+              caveat: pending.caveat,
+              result: run.result,
+            };
+          }
+        },
+        error: (error: HttpFailure) => {
+          this.pendingRunId = undefined;
+          this.errorMessage = this.describeError(error);
+          this.running = false;
+        },
+      });
+  }
+
+  private stopPolling(): void {
+    this.poll?.unsubscribe();
+    this.poll = undefined;
+    this.pendingRunId = undefined;
+  }
+
   clear(): void {
+    this.stopPolling();
+    this.running = false;
     this.result = undefined;
     this.genericResult = undefined;
     this.errorMessage = undefined;
@@ -350,6 +466,9 @@ export class AnalyzeComponent implements OnInit {
         'Not authorised to read one or more of those gene sets. Signed-out runs can only ' +
           'use publicly readable gene sets.'
       );
+    }
+    if (error?.status === 401) {
+      return detail ?? 'Sign in to run this tool.';
     }
     if (error?.status === 422) {
       return detail ?? 'Those parameters were rejected. Check the gene set ids.';

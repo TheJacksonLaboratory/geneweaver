@@ -4,9 +4,15 @@ The flow is the same for every tool and worth keeping that way as more are added
 
 1. **gate** -- confirm the caller may read every gene set they named;
 2. **resolve** -- turn gene set ids into the tool's input (`geneweaver.db.tool_input`);
-3. **run** -- hand the input to a `ToolRunner`, which today executes in-process and
-   later dispatches to AsyncTask;
+3. **run** -- on AsyncTask when it is configured and the caller is signed in, otherwise
+   in-process through a `ToolRunner`;
 4. **shape** -- map the tool's output onto the API schema.
+
+**Where a run executes.** AsyncTask runs every tool, including MSET and PhenomeMap, whose
+native binaries only its worker images carry. It runs as the user (`services.asynctask`), so
+an anonymous caller cannot use it: they keep the in-process path for the seven pure-Python
+tools, exactly as before, and are asked to sign in for the two native ones. With
+`ASYNCTASK_API_URL` unset -- every environment but dev today -- nothing changes at all.
 
 Step 1 is the security-relevant one. The tools themselves know nothing about users, so a
 missing gate here means a caller could read gene sets through a tool result that they
@@ -16,17 +22,24 @@ endpoints use, with user id 0 standing for anonymous.
 
 import importlib.metadata
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from geneweaver.db import geneset as db_geneset
 from geneweaver.db import tool_input as db_tool_input
+from geneweaver.tools.framework.payload_size import check_payload_size
+from geneweaver.tools.mset.schema import MSETInput
+from geneweaver.tools.phenome_map.schema import PhenomeMapInput
 from geneweaver.tools.upset import UpSet, UpSetInput
 from psycopg import Cursor
+from pydantic import ValidationError
 
+from geneweaver.api.core.config import settings
 from geneweaver.api.core.exceptions import UnauthorizedException
 from geneweaver.api.schemas.auth import User
 from geneweaver.api.schemas.tools import UpSetIntersection, UpSetResult
 from geneweaver.api.services import tool_inputs
+from geneweaver.api.services.asynctask import COMPLETED, AsyncTaskClient
 from geneweaver.api.services.geneset import determine_user_id
 from geneweaver.api.services.tool_runner import InProcessToolRunner, ToolRunner
 
@@ -97,6 +110,75 @@ def _gate_geneset_access(cursor: Cursor, user: User | None, geneset_ids: list[in
         )
 
 
+@dataclass
+class PreparedUpSet:
+    """An UpSet run with every database read done, ready to execute without a connection."""
+
+    geneset_ids: list[int]
+    gene_counts: dict[str, int]
+    tool_input: UpSetInput
+    asynctask: AsyncTaskClient | None
+
+
+def prepare_upset(
+    cursor: Cursor,
+    geneset_ids: list[int],
+    user: User | None = None,
+    include_zeros: bool = False,
+) -> PreparedUpSet:
+    """Gate and resolve an UpSet run: everything that needs the database.
+
+    :raises UnauthorizedException: If any gene set is not readable by the caller.
+    """
+    _gate_geneset_access(cursor, user, geneset_ids)
+    memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
+    return PreparedUpSet(
+        geneset_ids=geneset_ids,
+        gene_counts={key: len(genes) for key, genes in memberships.items()},
+        tool_input=UpSetInput(
+            geneset_ids=[str(geneset_id) for geneset_id in geneset_ids],
+            gene_memberships=memberships,
+            include_zeros=include_zeros,
+        ),
+        # The Analyze page's default tool comes through here rather than `run_tool`, so it
+        # must route the same way or the most-used run would never reach AsyncTask.
+        asynctask=asynctask_client_for(user),
+    )
+
+
+def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> UpSetResult:
+    """Run a prepared UpSet, in-process or on AsyncTask. Touches no database.
+
+    :raises ToolRequestError: If the payload is too large to submit.
+    :raises ToolRunPending: If an AsyncTask run outlasts the wait.
+    :raises ToolRunFailed: If an AsyncTask run fails.
+    """
+    if prepared.asynctask is None:
+        output = (runner or InProcessToolRunner()).run(UpSet(), prepared.tool_input)
+        intersections = [(item.genesets, item.size) for item in output.intersections]
+    else:
+        envelope = {"tool": "upset", "input": prepared.tool_input.model_dump(mode="json")}
+        _check_size(envelope)
+        shaped = {
+            "tool": "upset",
+            "geneset_ids": prepared.geneset_ids,
+            "gene_counts": prepared.gene_counts,
+            "caveat": None,
+        }
+        ran = _run_on_asynctask(prepared.asynctask, envelope, shaped)
+        intersections = [
+            (item["genesets"], item["size"]) for item in ran["result"]["intersections"]
+        ]
+
+    return UpSetResult(
+        geneset_ids=prepared.geneset_ids,
+        gene_counts=prepared.gene_counts,
+        intersections=[
+            UpSetIntersection(geneset_ids=genesets, size=size) for genesets, size in intersections
+        ],
+    )
+
+
 def run_upset(
     cursor: Cursor,
     geneset_ids: list[int],
@@ -106,6 +188,9 @@ def run_upset(
 ) -> UpSetResult:
     """Run UpSet over the given gene sets and return the exclusive intersection sizes.
 
+    `prepare_upset` then `execute_upset`. The endpoint calls the two halves itself, so it
+    can release its database connection before a remote wait; this is for everyone else.
+
     :param cursor: The database cursor.
     :param geneset_ids: The gene sets to intersect.
     :param user: The requesting user, or None for anonymous.
@@ -114,27 +199,8 @@ def run_upset(
     :return: The intersection sizes, largest first.
     :raises UnauthorizedException: If any gene set is not readable by the caller.
     """
-    _gate_geneset_access(cursor, user, geneset_ids)
-
-    memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
-
-    runner = runner or InProcessToolRunner()
-    output = runner.run(
-        UpSet(),
-        UpSetInput(
-            geneset_ids=[str(geneset_id) for geneset_id in geneset_ids],
-            gene_memberships=memberships,
-            include_zeros=include_zeros,
-        ),
-    )
-
-    return UpSetResult(
-        geneset_ids=geneset_ids,
-        gene_counts={key: len(genes) for key, genes in memberships.items()},
-        intersections=[
-            UpSetIntersection(geneset_ids=item.genesets, size=item.size)
-            for item in output.intersections
-        ],
+    return execute_upset(
+        prepare_upset(cursor, geneset_ids, user=user, include_zeros=include_zeros), runner
     )
 
 
@@ -152,6 +218,69 @@ def load_tool(name: str) -> Any:
         if entry_point.name == name:
             return entry_point.load()()
     raise UnknownToolError(f"No tool registered as {name!r}. Available: {available_tools()}.")
+
+
+class ToolRequestError(Exception):
+    """The request cannot be run as asked: the caller must change it (422).
+
+    Raised for every input problem -- a parameter the tool's schema rejects, the wrong
+    number of gene sets, an oversized payload -- and always *before* anything is submitted,
+    so a bad request never becomes an opaque failed run.
+    """
+
+
+class ToolUnavailable(Exception):
+    """The tool cannot run in this environment, whatever the request (409).
+
+    Its own type rather than any ValueError, so a malformed parameter -- pydantic's
+    ValidationError is a ValueError -- can never be reported as a deployment conflict.
+    """
+
+
+class SignInRequired(Exception):
+    """The tool runs only on AsyncTask, which acts as a user, and the caller is anonymous."""
+
+
+class ToolRunPending(Exception):
+    """The run was accepted but had not finished within the wait; poll it by id.
+
+    The body carries everything the completed response would except the result -- gene
+    counts and caveat included -- so a client that polls to completion can assemble the
+    same shape it would have got synchronously.
+    """
+
+    def __init__(self, shaped: dict[str, Any], run_id: int, status: str) -> None:
+        super().__init__(f"{shaped['tool']} run {run_id} is still {status}.")
+        self.body = {**shaped, "run_id": run_id, "status": status}
+
+
+class ToolRunFailed(Exception):
+    """AsyncTask ran the tool and it did not complete.
+
+    AsyncTask records only a status, never the cause, so the workflow id is carried to find
+    the cause in Temporal.
+    """
+
+
+def asynctask_configured() -> bool:
+    """Whether this environment sends tool runs to AsyncTask at all."""
+    return bool(settings.ASYNCTASK_API_URL)
+
+
+def asynctask_client_for(user: User | None) -> AsyncTaskClient | None:
+    """An AsyncTask client acting as `user`, or None if runs stay in-process for them.
+
+    None for an anonymous caller: AsyncTask authenticates every call and records an owner
+    for every run, so there is no one to submit as.
+    """
+    token = getattr(user, "token", None)
+    if not asynctask_configured() or not token:
+        return None
+    return AsyncTaskClient(
+        settings.ASYNCTASK_API_URL,
+        token,
+        request_timeout=settings.ASYNCTASK_REQUEST_TIMEOUT_SECONDS,
+    )
 
 
 def _as_strings(geneset_ids: list[int]) -> list[str]:
@@ -256,6 +385,90 @@ INPUT_BUILDERS: dict[str, Callable[..., dict]] = {
 }
 
 
+# --- AsyncTask-only builders ---------------------------------------------------------
+#
+# The native tools never run in this process, so these return the whole AsyncTask
+# envelope rather than a tool input: MSET's must carry a universe *reference* beside the
+# input, which its own schema has no field for.
+
+
+#: MSET options a caller may set; anything else is the tool's own default.
+MSET_PARAMETERS = ("number_of_samples", "over_representation")
+
+
+def _mset_envelope(cursor, geneset_ids, memberships, parameters) -> dict:
+    """Compare two gene sets against their species' full gene space.
+
+    The background is sent as a reference the worker resolves from the database (G3-784),
+    never inline: the universe is ~100,000 identifiers, at or over Temporal's 2 MiB limit.
+
+    Validated against `MSETInput` itself, with the backgrounds stubbed because the worker
+    fills them: pydantic's parsing, not Python casts -- `bool("false")` is True, which
+    would silently select the opposite test.
+    """
+    if len(geneset_ids) != 2:
+        raise ToolRequestError(
+            f"MSET compares exactly two gene sets; {len(geneset_ids)} were given."
+        )
+    # The worker's resolver refuses a mixed-species universe; refusing here makes that a
+    # 422 now instead of a guaranteed failed run.
+    species = db_tool_input.species_by_geneset(cursor, geneset_ids)
+    if len(set(species.values())) > 1:
+        raise ToolRequestError(
+            "MSET cannot compare gene sets from different species "
+            f"(found species {sorted(set(species.values()))} across gene sets {geneset_ids})."
+        )
+    first, second = (str(geneset_id) for geneset_id in geneset_ids)
+    requested = {
+        "group_1_genes": memberships.get(first, []),
+        "group_2_genes": memberships.get(second, []),
+        **{key: parameters[key] for key in MSET_PARAMETERS if key in parameters},
+    }
+    validated = MSETInput(**requested, group_1_background=[], group_2_background=[])
+    return {
+        "tool": "mset",
+        "input": validated.model_dump(
+            mode="json", include=set(requested) | {"number_of_samples", "over_representation"}
+        ),
+        "universe": {"geneset_ids": list(geneset_ids)},
+    }
+
+
+#: PhenomeMap options a caller may set; anything else is the tool's own default.
+PHENOME_MAP_PARAMETERS = (
+    "min_genes",
+    "max_level",
+    "p_value_threshold",
+    "use_fdr",
+    "disable_bootstrap",
+    "bootstrap_node_threshold",
+)
+
+
+def _phenome_map_envelope(cursor, geneset_ids, memberships, parameters) -> dict:
+    """The gene-set/gene bipartite graph, with no gene ranks.
+
+    Without ranks the link score is the gene-count ratio alone, which the tool documents
+    as supported; ranked scoring needs a ranking source v3 does not have yet.
+    """
+    validated = PhenomeMapInput(
+        gene_sets=memberships,
+        **{key: parameters[key] for key in PHENOME_MAP_PARAMETERS if key in parameters},
+    )
+    return {"tool": "phenome_map", "input": validated.model_dump(mode="json")}
+
+
+#: Tool name -> envelope builder, for tools that run only on AsyncTask.
+ASYNCTASK_ONLY_BUILDERS: dict[str, Callable[..., dict]] = {
+    "mset": _mset_envelope,
+    "phenome_map": _phenome_map_envelope,
+}
+
+#: Shown with a native tool's availability once AsyncTask is configured, because the
+#: picker is listed before anyone signs in.
+SIGN_IN_CAVEAT = "Runs on AsyncTask, which requires signing in."
+
+
 def tool_availability() -> dict[str, dict[str, Any]]:
     """What each registered tool's state is, for the UI's picker.
 
@@ -263,17 +476,180 @@ def tool_availability() -> dict[str, dict[str, Any]]:
     the page previously listed five of the nine tools, which made the port look narrower
     than it is.
     """
+    on_asynctask = asynctask_configured()
     availability = {}
     for name in available_tools():
-        reason = IN_PROCESS_UNAVAILABLE.get(name)
-        if reason is None and name not in INPUT_BUILDERS:
+        reason = None
+        caveat = TOOL_CAVEATS.get(name)
+        if name in ASYNCTASK_ONLY_BUILDERS:
+            if on_asynctask:
+                caveat = SIGN_IN_CAVEAT
+            else:
+                reason = IN_PROCESS_UNAVAILABLE.get(name)
+        elif name not in INPUT_BUILDERS:
             reason = f"{name} has no input resolver in the API yet (G3-798)."
-        availability[name] = {
-            "available": reason is None,
-            "reason": reason,
-            "caveat": TOOL_CAVEATS.get(name),
-        }
+        availability[name] = {"available": reason is None, "reason": reason, "caveat": caveat}
     return availability
+
+
+def _check_size(envelope: dict) -> None:
+    """Refuse an envelope over Temporal's payload limit before AsyncTask sees it.
+
+    The gene-set cap does not bound this -- twenty large gene sets can still exceed 2 MiB
+    -- and past the limit the failure is a transport error naming no tool or field.
+
+    :raises ToolRequestError: With the size and the largest field.
+    """
+    try:
+        check_payload_size(envelope)
+    except ValueError as error:
+        raise ToolRequestError(str(error)) from error
+
+
+def _run_on_asynctask(
+    client: AsyncTaskClient, envelope: dict, shaped: dict[str, Any]
+) -> dict[str, Any]:
+    """Submit, wait a bounded time, and return the output or raise.
+
+    :raises ToolRunPending: If the run is still going at the deadline.
+    :raises ToolRunFailed: If it finished without completing.
+    """
+    tool_name = shaped["tool"]
+    label = f"{tool_name}: " + ", ".join(map(str, shaped["geneset_ids"]))
+    state = client.submit(envelope, name=label)
+    state = client.wait(
+        state,
+        timeout=settings.ASYNCTASK_WAIT_SECONDS,
+        poll_interval=settings.ASYNCTASK_POLL_SECONDS,
+    )
+    if not state.finished:
+        raise ToolRunPending(shaped, state.run_id, state.status)
+    if state.status != COMPLETED:
+        raise ToolRunFailed(
+            f"{tool_name} run {state.run_id} ended {state.status}. AsyncTask records no "
+            f"cause; see Temporal workflow {state.workflow_id}."
+        )
+    return {"run_id": state.run_id, "result": state.result}
+
+
+@dataclass
+class PreparedRun:
+    """A tool run with every database read done, ready to execute without a connection.
+
+    Exactly one of ``envelope`` (AsyncTask) and ``tool``/``tool_input`` (in-process) is
+    used, chosen by whether ``asynctask`` is set.
+    """
+
+    shaped: dict[str, Any]
+    asynctask: AsyncTaskClient | None
+    envelope: dict[str, Any] | None = None
+    tool: Any = None
+    tool_input: Any = None
+
+
+def _validated(tool_name: str, build: Callable[[], Any]) -> Any:
+    """Build a tool's input, turning any rejection of the request into a 422.
+
+    Covers pydantic's ValidationError and the builders' own conversions (`int("x")`), both
+    ValueErrors, plus the TypeError a null parameter raises -- all of them the caller's to
+    fix, none of them a server conflict.
+    """
+    try:
+        return build()
+    except ToolRequestError:
+        raise
+    except ValidationError as error:
+        raise ToolRequestError(f"Invalid input for {tool_name}: {error}") from error
+    except (ValueError, TypeError) as error:
+        raise ToolRequestError(f"Invalid parameter for {tool_name}: {error}") from error
+
+
+def prepare_tool_run(
+    cursor: Cursor,
+    tool_name: str,
+    geneset_ids: list[int],
+    user: User | None = None,
+    parameters: dict[str, Any] | None = None,
+) -> PreparedRun:
+    """Gate, resolve and validate a run: everything that needs the database.
+
+    Validation happens here for every tool and both backends, so a bad request fails now
+    with the tool's own message rather than minutes later as an opaque failed run.
+
+    :raises UnknownToolError: If the tool is not registered.
+    :raises ToolUnavailable: If the tool cannot run in this environment.
+    :raises SignInRequired: If the tool needs AsyncTask and the caller is anonymous.
+    :raises UnauthorizedException: If any gene set is not readable by the caller.
+    :raises ToolRequestError: If the request does not suit the tool.
+    """
+    parameters = parameters or {}
+    state = tool_availability().get(tool_name)
+    if state is None:
+        raise UnknownToolError(f"No tool registered as {tool_name!r}.")
+    if not state["available"]:
+        raise ToolUnavailable(state["reason"])
+
+    asynctask = asynctask_client_for(user)
+    if tool_name in ASYNCTASK_ONLY_BUILDERS and asynctask is None:
+        raise SignInRequired(f"{tool_name} runs on AsyncTask, which requires signing in.")
+
+    # Before anything else: the tools know nothing about users, so a missing gate here
+    # would let a caller read gene sets through a tool result.
+    _gate_geneset_access(cursor, user, geneset_ids)
+
+    memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
+    shaped = {
+        "tool": tool_name,
+        "geneset_ids": geneset_ids,
+        "gene_counts": {key: len(genes) for key, genes in memberships.items()},
+        "caveat": TOOL_CAVEATS.get(tool_name),
+    }
+
+    if tool_name in ASYNCTASK_ONLY_BUILDERS:
+        envelope = _validated(
+            tool_name,
+            lambda: ASYNCTASK_ONLY_BUILDERS[tool_name](
+                cursor, geneset_ids, memberships, parameters
+            ),
+        )
+        _check_size(envelope)
+        return PreparedRun(shaped=shaped, asynctask=asynctask, envelope=envelope)
+
+    tool = load_tool(tool_name)
+    tool_input = _validated(
+        tool_name,
+        lambda: tool.tool_input(
+            **INPUT_BUILDERS[tool_name](cursor, geneset_ids, memberships, parameters)
+        ),
+    )
+    if asynctask is None:
+        return PreparedRun(shaped=shaped, asynctask=None, tool=tool, tool_input=tool_input)
+    # JSON mode so database types (Decimal, tuples) cross the wire as the schema expects.
+    envelope = {"tool": tool_name, "input": tool_input.model_dump(mode="json")}
+    _check_size(envelope)
+    return PreparedRun(shaped=shaped, asynctask=asynctask, envelope=envelope)
+
+
+def execute_tool_run(prepared: PreparedRun, runner: ToolRunner | None = None) -> dict[str, Any]:
+    """Run a prepared tool, in-process or on AsyncTask. Touches no database.
+
+    :return: ``{tool, geneset_ids, gene_counts, caveat, result, executed_by, run_id}``.
+    :raises ToolRunPending: If an AsyncTask run outlasts the wait.
+    :raises ToolRunFailed: If an AsyncTask run fails.
+    """
+    if prepared.asynctask is None:
+        output = (runner or InProcessToolRunner()).run(prepared.tool, prepared.tool_input)
+        return {
+            **prepared.shaped,
+            "executed_by": "in_process",
+            "run_id": None,
+            "result": output.model_dump(mode="json"),
+        }
+    return {
+        **prepared.shaped,
+        "executed_by": "asynctask",
+        **_run_on_asynctask(prepared.asynctask, prepared.envelope, prepared.shaped),
+    }
 
 
 def run_tool(
@@ -286,42 +662,40 @@ def run_tool(
 ) -> dict[str, Any]:
     """Gate, resolve, run and shape any registered tool.
 
+    `prepare_tool_run` then `execute_tool_run`. The endpoint calls the two halves itself,
+    so it can release its database connection before a remote wait; this is for everyone
+    else. Raises whatever either half raises.
+
     :param cursor: The database cursor.
     :param tool_name: A name from :func:`available_tools`.
     :param geneset_ids: The gene sets to analyse.
     :param user: The requesting user, or None for anonymous.
     :param parameters: Per-tool options; each builder documents what it reads.
-    :param runner: Execution backend; defaults to running in-process.
-    :return: ``{tool, geneset_ids, gene_counts, caveat, result}``.
-    :raises UnknownToolError: If the tool is not registered.
-    :raises ValueError: If the tool cannot run in this process.
-    :raises UnauthorizedException: If any gene set is not readable by the caller.
+    :param runner: In-process execution backend, used when the run does not go to
+        AsyncTask.
     """
-    parameters = parameters or {}
+    prepared = prepare_tool_run(cursor, tool_name, geneset_ids, user=user, parameters=parameters)
+    return execute_tool_run(prepared, runner)
 
-    if tool_name not in INPUT_BUILDERS or tool_name in IN_PROCESS_UNAVAILABLE:
-        state = tool_availability().get(tool_name)
-        if state is None:
-            raise UnknownToolError(f"No tool registered as {tool_name!r}.")
-        raise ValueError(state["reason"])
 
-    # Before anything else: the tools know nothing about users, so a missing gate here
-    # would let a caller read gene sets through a tool result.
-    _gate_geneset_access(cursor, user, geneset_ids)
+def get_tool_run(run_id: int, user: User | None) -> dict[str, Any]:
+    """A tool run's status, and its output once complete.
 
-    tool = load_tool(tool_name)
-    memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
-    tool_input = tool.tool_input(
-        **INPUT_BUILDERS[tool_name](cursor, geneset_ids, memberships, parameters)
-    )
+    Ownership is AsyncTask's check, made as this user: another user's run comes back 403
+    from AsyncTask and is passed through as such.
 
-    runner = runner or InProcessToolRunner()
-    output = runner.run(tool, tool_input)
-
+    :raises SignInRequired: If the caller is anonymous.
+    :raises ToolUnavailable: If this environment does not use AsyncTask.
+    """
+    if not asynctask_configured():
+        raise ToolUnavailable("Tool runs are not sent to AsyncTask in this environment.")
+    client = asynctask_client_for(user)
+    if client is None:
+        raise SignInRequired("Reading a tool run requires signing in.")
+    state = client.get(run_id)
     return {
-        "tool": tool_name,
-        "geneset_ids": geneset_ids,
-        "gene_counts": {key: len(genes) for key, genes in memberships.items()},
-        "caveat": TOOL_CAVEATS.get(tool_name),
-        "result": output.model_dump(mode="json"),
+        "run_id": state.run_id,
+        "status": state.status,
+        "workflow_id": state.workflow_id,
+        "result": state.result,
     }

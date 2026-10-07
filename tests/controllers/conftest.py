@@ -1,5 +1,6 @@
 """Fixtures for the controller tests."""
 
+from contextlib import nullcontext
 from unittest.mock import Mock
 
 import psycopg
@@ -11,6 +12,11 @@ from geneweaver.api.core.config_class import GeneweaverAPIConfig
 
 
 # Mock dependencies
+def mock_cursor_factory():
+    """Cursor-factory mock: each `with open_cursor()` yields a fresh mock cursor."""
+    return lambda: nullcontext(mock_cursor())
+
+
 def mock_full_user() -> Mock:
     """User auth mock."""
     m1 = Mock()
@@ -49,10 +55,12 @@ def app(mock_settings) -> FastAPI:
 
     returns: A mocked FastAPI application.
     """
-    from geneweaver.api.dependencies import cursor, full_user
+    from geneweaver.api.dependencies import cursor, cursor_factory, full_user
     from geneweaver.api.main import app
 
-    app.dependency_overrides.update({full_user: mock_full_user, cursor: mock_cursor})
+    app.dependency_overrides.update(
+        {full_user: mock_full_user, cursor: mock_cursor, cursor_factory: mock_cursor_factory}
+    )
 
     return app
 

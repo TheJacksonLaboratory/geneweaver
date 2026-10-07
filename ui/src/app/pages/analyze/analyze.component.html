@@ -151,7 +151,7 @@
         icon="pi pi-times"
         severity="secondary"
         [outlined]="true"
-        [disabled]="running || (!result && !errorMessage)"
+        [disabled]="(running && pendingRunId === undefined) || (!result && !errorMessage && pendingRunId === undefined)"
         (onClick)="clear()"
       ></p-button>
     </div>
@@ -162,6 +162,10 @@
       styleClass="mt-3"
       [style]="{ height: '6px' }"
     ></p-progressBar>
+    <!-- A run that outlasted the API's wait; Clear stops watching it (the run continues). -->
+    <small *ngIf="pendingRunId !== undefined" class="block mt-2 text-color-secondary">
+      Still running on AsyncTask (run {{ pendingRunId }}); checking every few seconds.
+    </small>
   </p-card>
 
   <p-message

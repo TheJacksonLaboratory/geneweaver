@@ -1,0 +1,9 @@
+# Sends signed-in users' tool runs to AsyncTask in dev, which carries the
+# geneweaver-tools plugin. Other environments leave it unset and run tools in-process
+# until their AsyncTask has the plugin.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geneweaver-config
+data:
+  ASYNCTASK_API_URL: "http://asynctask-api.dev.svc.cluster.local/asynctask/api"

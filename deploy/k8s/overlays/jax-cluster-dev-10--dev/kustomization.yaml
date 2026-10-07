@@ -6,3 +6,4 @@ resources:
   - ingress.yaml
 patchesStrategicMerge:
   - tools-worker-configmap.yaml
+  - configmap.yaml
