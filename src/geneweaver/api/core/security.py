@@ -45,7 +45,26 @@ class Auth0HTTPBearer(HTTPBearer):
         if token is None:
             return await super().__call__(request)
         _refuse_cross_site_write(request)
+        if _foreign_origin(request):
+            # A cross-origin *read* carrying the session: ignore the session, so the request
+            # runs anonymously and sees only public data (see `_foreign_origin`).
+            return await super().__call__(request)
         return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+
+
+def _foreign_origin(request: Request) -> bool:
+    """Whether the request declares an Origin other than this site.
+
+    Browsers send `Origin` on every cross-origin fetch, and omit it on same-origin GETs and
+    top-level navigations, so a missing Origin on a read is this site (or not a browser).
+
+    This matters for reads, not only writes: the ingresses allow *credentialed* CORS from
+    any `https://*.jax.org` origin, and sibling jax.org hosts are same-site, so
+    `SameSite=Lax` still sends the cookie to them. Without this, a script on another JAX
+    subdomain could read a signed-in user's private gene sets and tool results.
+    """
+    origin = request.headers.get("Origin")
+    return origin is not None and origin != session.public_origin()
 
 
 def _refuse_cross_site_write(request: Request) -> None:

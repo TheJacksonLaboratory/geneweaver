@@ -152,6 +152,30 @@ class TestCredentialSource:
         response = probe.post("/probe", cookies=_cookie(), headers=headers)
         assert response.status_code == 403
 
+    def test_a_same_site_read_with_an_origin_is_allowed(self, probe):
+        """Some browsers send Origin on same-origin GETs too."""
+        response = probe.get("/probe", cookies=_cookie(), headers={"Origin": SITE})
+        assert response.json() == {"token": "cookie-token"}
+
+    @pytest.mark.parametrize("origin", ["https://other.jax.org", "https://evil.example"])
+    def test_a_cross_origin_read_does_not_get_the_session(self, probe, origin):
+        """A foreign Origin's read runs anonymously, whatever cookie it carries.
+
+        Credentialed CORS is allowed from *.jax.org, and sibling hosts are same-site, so the
+        cookie arrives; it must not authenticate a read another site can see.
+        """
+        response = probe.get("/probe", cookies=_cookie(), headers={"Origin": origin})
+        assert response.status_code == 200
+        assert response.json() == {"token": None}
+
+    def test_a_cross_origin_bearer_read_is_unaffected(self, probe):
+        """A header is explicit; another site's app holding its own token may still call."""
+        response = probe.get(
+            "/probe",
+            headers={"Origin": "https://other.jax.org", "Authorization": "Bearer theirs"},
+        )
+        assert response.json() == {"token": "theirs"}
+
     def test_a_bearer_write_needs_no_origin(self, probe):
         """Another site cannot attach a header, so the guard does not apply."""
         response = probe.post("/probe", headers={"Authorization": "Bearer header-token"})

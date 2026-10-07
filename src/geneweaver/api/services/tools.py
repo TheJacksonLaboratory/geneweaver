@@ -238,6 +238,23 @@ class SignInRequired(Exception):
     """The caller is anonymous, and running an analysis requires signing in."""
 
 
+def precheck_run(tool_name: str | None, user: User | None) -> None:
+    """The checks a run endpoint makes *before* it opens a database connection.
+
+    Unknown tool first (404: there is no analysis to sign in for), then sign-in (401). Both
+    are pure, so an anonymous request is refused without leasing a connection -- otherwise it
+    could wait on, or fail at, an exhausted pool instead of getting its 401. `prepare_*`
+    repeats them, so a caller that skips this is still refused.
+
+    :param tool_name: The tool, or None for the UpSet endpoint, whose tool is fixed.
+    :raises UnknownToolError: If `tool_name` is not registered.
+    :raises SignInRequired: If the caller is anonymous.
+    """
+    if tool_name is not None and tool_name not in available_tools():
+        raise UnknownToolError(f"No tool registered as {tool_name!r}.")
+    _require_user(user)
+
+
 def _require_user(user: User | None) -> None:
     """Refuse an anonymous run before any database work.
 

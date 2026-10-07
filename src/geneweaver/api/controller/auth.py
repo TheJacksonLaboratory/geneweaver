@@ -13,8 +13,8 @@ Flow:
 2. `GET /sessions/callback` checks `state`, exchanges the code with the **client secret** (and the
    PKCE verifier), verifies the access token as any request's would be, sets the session
    cookie and returns to the page.
-3. `GET /sessions/me` tells the page who is signed in. `GET /sessions/logout` clears the session and
-   ends the Auth0 session too.
+3. `GET /sessions/me` tells the page who is signed in. `POST /sessions/logout`, from this site
+   only, clears the session and ends the Auth0 session too.
 
 Until `AUTH_LOGIN_CLIENT_ID`, `AUTH_LOGIN_CLIENT_SECRET`, `AUTH_SESSION_KEY` and
 `AUTH_PUBLIC_URL` are all set, `/login`, `/callback` and `/logout` answer 404. `/me` stays
@@ -207,7 +207,11 @@ async def callback(
         not pending
         or not code
         or not state
-        or not secrets.compare_digest(str(pending.get("state", "")), state)
+        # As bytes: `compare_digest` raises TypeError on a non-ASCII str, which turned a
+        # forged `state=%C3%A9` into a 500 instead of this 400.
+        or not secrets.compare_digest(
+            str(pending.get("state", "")).encode("utf-8"), state.encode("utf-8")
+        )
     ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -261,14 +265,28 @@ def me(user: UserInternal | None = Security(deps.auth.get_user)) -> Response:
     )
 
 
-@router.get("/logout")
-def logout() -> RedirectResponse:
-    """Clear the session here and at Auth0, then return to `/next`."""
+@router.post("/logout")
+def logout(request: Request) -> RedirectResponse:
+    """Clear the session here and at Auth0, then return to `/next`.
+
+    A POST from this site only. As a GET, any other site could sign the user out -- ending
+    their Auth0 session too -- just by linking or redirecting here, since `SameSite=Lax`
+    allows top-level GET navigations and nothing else would have stopped it. The page posts
+    a form, which carries this site's `Origin`; anything else is refused.
+
+    303, so the browser follows to Auth0's logout with a GET.
+
+    :raises HTTPException: 403 if the request does not come from this site.
+    """
     _require_login()
+    if request.headers.get("Origin") != session.public_origin():
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="Sign-out must be requested from this site."
+        )
     return_to = f"{settings.AUTH_PUBLIC_URL.rstrip('/')}{DEFAULT_RETURN}"
     query = urlencode({"client_id": settings.AUTH_LOGIN_CLIENT_ID, "returnTo": return_to})
     response = RedirectResponse(
-        f"https://{settings.AUTH_DOMAIN}/v2/logout?{query}", status.HTTP_302_FOUND
+        f"https://{settings.AUTH_DOMAIN}/v2/logout?{query}", status.HTTP_303_SEE_OTHER
     )
     response.delete_cookie(session.SESSION_COOKIE, path="/")
     return response

@@ -27,8 +27,9 @@ const SIGNED_OUT: SessionState = { loginAvailable: false, authenticated: false }
  *
  * Sign-in is server-side, like legacy GeneWeaver: the API is the Auth0 client, exchanges the
  * code with its client secret, and keeps the token in an encrypted `HttpOnly` cookie. So this
- * page never sees a token -- signing in and out are plain navigations to the API, and the
- * cookie rides along with every `/api` call by itself, the page and API being one origin.
+ * page never sees a token: signing in is a plain navigation to the API, signing out a form
+ * POST to it (the API refuses a sign-out that does not come from this site), and the cookie
+ * rides along with every `/api` call by itself, the page and API being one origin.
  */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -77,6 +78,7 @@ export class SessionService {
     );
   }
 
+  /** The sign-out form's action. It must be POSTed from this page, not linked to. */
   signOutUrl(): string {
     return `${environment.urls.geneWeaverApi}/sessions/logout`;
   }

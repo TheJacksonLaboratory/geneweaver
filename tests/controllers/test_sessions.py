@@ -45,10 +45,17 @@ def _token_response(status_code=200, body=None):
 class TestNotConfigured:
     """Without all four settings, sign-in does not exist here."""
 
-    @pytest.mark.parametrize("path", ["login", "callback", "logout"])
+    @pytest.mark.parametrize("path", ["login", "callback"])
     def test_routes_404(self, client, path):
         """Nothing redirects to Auth0 from an unconfigured environment."""
         assert client.get(f"/api/sessions/{path}", follow_redirects=False).status_code == 404
+
+    def test_logout_404s(self, client):
+        """Including sign-out."""
+        response = client.post(
+            "/api/sessions/logout", headers={"Origin": SITE}, follow_redirects=False
+        )
+        assert response.status_code == 404
 
     def test_me_reports_it(self, client):
         """So the page can hide the button."""
@@ -220,10 +227,13 @@ class TestCallback:
 
 
 def test_logout_clears_the_session_here_and_at_auth0(client, login_settings):
-    """Ends both, and comes back to /next."""
-    response = client.get("/api/sessions/logout", follow_redirects=False)
+    """A POST from this site ends both sessions, and comes back to /next."""
+    response = client.post(
+        "/api/sessions/logout", headers={"Origin": SITE}, follow_redirects=False
+    )
 
-    assert response.status_code == 302
+    # 303 so the browser follows to Auth0's logout with a GET.
+    assert response.status_code == 303
     location = response.headers["location"]
     assert location.startswith(f"https://{settings.AUTH_DOMAIN}/v2/logout?")
     query = _query(location)
@@ -233,6 +243,37 @@ def test_logout_clears_the_session_here_and_at_auth0(client, login_settings):
         h for h in response.headers.get_list("set-cookie") if h.startswith(session.SESSION_COOKIE)
     )
     assert "Max-Age=0" in cleared or "expires=" in cleared.lower()
+
+
+@pytest.mark.parametrize("origin", [None, "https://evil.example", "https://other.jax.org"])
+def test_logout_from_elsewhere_is_refused(client, login_settings, origin):
+    """Another site cannot sign the user out, here or at Auth0."""
+    headers = {"Origin": origin} if origin else {}
+    response = client.post("/api/sessions/logout", headers=headers, follow_redirects=False)
+
+    assert response.status_code == 403
+    assert "set-cookie" not in response.headers
+
+
+def test_logout_is_not_a_get(client, login_settings):
+    """A link or redirect -- a top-level GET, which SameSite=Lax allows -- cannot sign out."""
+    response = client.get("/api/sessions/logout", follow_redirects=False)
+    assert response.status_code == 405
+
+
+@pytest.mark.parametrize("state", ["é", "état", "\u2603"])
+def test_a_non_ascii_state_is_a_400_not_a_500(client, login_settings, state):
+    """compare_digest raises TypeError on a non-ASCII str; it must be a normal mismatch."""
+    _, sealed = _start(client)
+    with patch("geneweaver.api.controller.auth.requests.post") as post:
+        response = client.get(
+            "/api/sessions/callback",
+            params={"code": "c", "state": state},
+            cookies={session.STATE_COOKIE: sealed},
+            follow_redirects=False,
+        )
+    assert response.status_code == 400
+    post.assert_not_called()
 
 
 def test_me_reports_the_user_and_never_the_token(app, client, login_settings):

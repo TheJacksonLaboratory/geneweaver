@@ -61,6 +61,7 @@ def run_upset(
     """
 
     def run() -> Any:
+        tool_service.precheck_run(None, user)
         with open_cursor() as cursor:
             prepared = tool_service.prepare_upset(
                 cursor,
@@ -169,6 +170,9 @@ def run_tool(
     """
 
     def run() -> Any:
+        # Before the cursor: an anonymous or unknown-tool request must not lease a
+        # connection just to be refused.
+        tool_service.precheck_run(tool, user)
         with open_cursor() as cursor:
             prepared = tool_service.prepare_tool_run(
                 cursor,

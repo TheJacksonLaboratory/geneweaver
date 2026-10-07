@@ -33,4 +33,18 @@ describe('AppComponent', () => {
     const link = fixture.nativeElement.querySelector('a[href="/api/sessions/login"]');
     expect(link?.textContent).toContain('Sign in');
   });
+
+  it('signs out with a form POST, not a link', async () => {
+    const service = TestBed.inject(SessionService) as unknown as {
+      state$: BehaviorSubject<unknown>;
+    };
+    service.state$.next({ loginAvailable: true, authenticated: true, email: 'a@jax.org' });
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const form: HTMLFormElement = fixture.nativeElement.querySelector('form');
+    expect(form.getAttribute('method')).toBe('post');
+    expect(form.getAttribute('action')).toBe('/api/sessions/logout');
+    expect(form.querySelector('button')?.textContent).toContain('Sign out');
+    expect(fixture.nativeElement.querySelector('a[href="/api/sessions/logout"]')).toBeNull();
+  });
 });
