@@ -1,6 +1,7 @@
 import { JsonPipe, NgIf, NgSwitch, NgSwitchCase, NgSwitchDefault } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 
+import { AbbaResultComponent } from './abba-result.component';
 import { ClusterPackComponent } from './cluster-pack.component';
 import { CombineTableComponent } from './combine-table.component';
 import { DendrogramComponent } from './dendrogram.component';
@@ -68,6 +69,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
     NgSwitchCase,
     NgSwitchDefault,
     JsonPipe,
+    AbbaResultComponent,
     ClusterPackComponent,
     CombineTableComponent,
     DendrogramComponent,
@@ -150,6 +152,9 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
       </ng-container>
       <ng-container *ngSwitchCase="'combine'">
         <app-combine-table [result]="$any(result)"></app-combine-table>
+      </ng-container>
+      <ng-container *ngSwitchCase="'abba'">
+        <app-abba-result [result]="$any(result)"></app-abba-result>
       </ng-container>
       <p *ngSwitchDefault class="text-sm text-color-secondary">
         This tool has no visualisation yet; its result is below.

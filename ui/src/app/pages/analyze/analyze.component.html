@@ -1,8 +1,9 @@
 <div class="p-4">
   <h2 class="mt-0">Analyze gene sets</h2>
   <p class="text-color-secondary mt-0">
-    Run a GeneWeaver v3 analysis tool over two or more gene sets. Signed-out runs can use
-    publicly readable gene sets only.
+    Run a GeneWeaver v3 analysis tool over two or more gene sets, or search for the genes most
+    associated with your own (ABBA gene search). Signed-out runs can use publicly readable gene
+    sets only.
   </p>
 
   <p-card>
@@ -19,9 +20,12 @@
           styleClass="w-full"
           ariaLabel="Gene set IDs to analyze"
         ></p-chips>
-        <small class="block mt-2 text-color-secondary">
+        <small *ngIf="!isAbba" class="block mt-2 text-color-secondary">
           Type an ID and press enter. At least two, at most twenty -- or ten with empty
           combinations included.
+        </small>
+        <small *ngIf="isAbba" class="block mt-2 text-color-secondary">
+          Optional for ABBA: up to twenty gene sets, whose genes join the seed genes.
         </small>
       </div>
 
@@ -38,6 +42,111 @@
         ></p-dropdown>
       </div>
     </div>
+
+    <!-- ABBA: seeded with genes, and with options that are sets rather than single values
+         (abba-options.ts mirrors legacy's ABBA_options.html). -->
+    <section *ngIf="isAbba && !selectedToolReason" class="abba-options mb-3" aria-labelledby="abbaHeading">
+      <h3 id="abbaHeading" class="text-base mt-0 mb-2">ABBA gene search</h3>
+      <div class="field">
+        <label for="abbaGenes" class="block mb-2">Seed genes</label>
+        <textarea
+          id="abbaGenes"
+          rows="4"
+          class="p-inputtext w-full"
+          [(ngModel)]="abbaGenesText"
+          placeholder="e.g. Drd2, Drd1"
+          aria-describedby="abbaGenes-help"
+        ></textarea>
+        <small id="abbaGenes-help" class="block mt-1 text-color-secondary">
+          Gene symbols, one per line or separated by commas or spaces.
+          {{ abbaGenes.length }} gene{{ abbaGenes.length === 1 ? '' : 's' }} entered. ABBA finds the
+          gene sets holding them, then the other genes those gene sets share.
+        </small>
+      </div>
+
+      <div class="formgrid grid">
+        <div class="field col-12 md:col-4 flex align-items-center">
+          <input id="abbaHomology" type="checkbox" [(ngModel)]="abbaOptions.includeHomology" aria-describedby="abbaHomology-help" />
+          <label for="abbaHomology" class="ml-2">Include homology</label>
+          <small id="abbaHomology-help" class="block ml-2 text-color-secondary">
+            Also search the seed genes' homologs in other species.
+          </small>
+        </div>
+        <div class="field col-12 md:col-4">
+          <label for="abbaMinGenes" class="block mb-2">Minimum genes</label>
+          <!-- Bound to input, not ngModel: see the options block below. -->
+          <select
+            id="abbaMinGenes"
+            class="p-inputtext w-full"
+            aria-describedby="abbaMinGenes-help"
+            (input)="chooseThreshold('minGenes', minGenesChoices, $any($event.target).selectedIndex)"
+          >
+            <option *ngFor="let choice of minGenesChoices" [selected]="choice === abbaOptions.minGenes">
+              {{ choice ?? 'Auto' }}
+            </option>
+          </select>
+          <small id="abbaMinGenes-help" class="block mt-1 text-color-secondary">
+            The fewest seed genes a gene set must hold to count.
+          </small>
+        </div>
+        <div class="field col-12 md:col-4">
+          <label for="abbaMinGenesets" class="block mb-2">Minimum gene sets</label>
+          <select
+            id="abbaMinGenesets"
+            class="p-inputtext w-full"
+            aria-describedby="abbaMinGenesets-help"
+            (input)="chooseThreshold('minGenesets', minGenesetsChoices, $any($event.target).selectedIndex)"
+          >
+            <option *ngFor="let choice of minGenesetsChoices" [selected]="choice === abbaOptions.minGenesets">
+              {{ choice ?? 'Auto' }}
+            </option>
+          </select>
+          <small id="abbaMinGenesets-help" class="block mt-1 text-color-secondary">
+            The fewest of those gene sets a gene must occur in to be reported.
+          </small>
+        </div>
+      </div>
+
+      <fieldset class="border-none p-0 mx-0 mb-3">
+        <legend class="mb-2">Curation tiers</legend>
+        <div class="flex flex-wrap gap-3">
+          <div *ngFor="let tier of abbaTiers" class="flex align-items-center">
+            <input
+              type="checkbox"
+              [id]="'abbaTier' + tier.id"
+              [checked]="abbaOptions.tiers.includes(tier.id)"
+              (change)="toggleTier(tier.id)"
+            />
+            <label [for]="'abbaTier' + tier.id" class="ml-2">{{ tier.label }}</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="border-none p-0 m-0">
+        <legend class="mb-2">Species</legend>
+        <div class="flex flex-wrap gap-3 mb-2">
+          <div class="flex align-items-center">
+            <input id="abbaAllSpecies" type="radio" name="abbaRestrict" [value]="false" [(ngModel)]="abbaOptions.restrictSpecies" />
+            <label for="abbaAllSpecies" class="ml-2">All species</label>
+          </div>
+          <div class="flex align-items-center">
+            <input id="abbaRestrict" type="radio" name="abbaRestrict" [value]="true" [(ngModel)]="abbaOptions.restrictSpecies" />
+            <label for="abbaRestrict" class="ml-2">Restrict to</label>
+          </div>
+        </div>
+        <div *ngIf="abbaOptions.restrictSpecies" class="flex flex-wrap gap-3" role="group" aria-label="Species to search">
+          <div *ngFor="let species of abbaSpecies" class="flex align-items-center">
+            <input
+              type="checkbox"
+              [id]="'abbaSpecies' + species.id"
+              [checked]="abbaOptions.speciesIds.includes(species.id)"
+              (change)="toggleSpecies(species.id)"
+            />
+            <label [for]="'abbaSpecies' + species.id" class="ml-2"><em>{{ species.label }}</em></label>
+          </div>
+        </div>
+      </fieldset>
+    </section>
 
     <!-- The selected tool's options, with legacy's labels, choices and defaults
          (tool-options.ts mirrors odestatic.tool_param). One block for every tool. -->
@@ -177,6 +286,13 @@
       styleClass="w-full mb-3"
     ></p-message>
 
+    <p-message
+      *ngIf="abbaProblem && !selectedToolReason"
+      severity="warn"
+      [text]="abbaProblem"
+      styleClass="w-full mb-3"
+    ></p-message>
+
     <div class="flex gap-2">
       <p-button
         label="Run"
@@ -189,7 +305,7 @@
         icon="pi pi-times"
         severity="secondary"
         [outlined]="true"
-        [disabled]="(running && pendingRunId === undefined) || (!result && !errorMessage && pendingRunId === undefined)"
+        [disabled]="(running && pendingRunId === undefined) || (!hasOutput && pendingRunId === undefined)"
         (onClick)="clear()"
       ></p-button>
     </div>
@@ -206,6 +322,9 @@
       styleClass="mt-3"
       [style]="{ height: '6px' }"
     ></p-progressBar>
+    <small *ngIf="running && isAbba" class="block mt-2 text-color-secondary">
+      ABBA searches every gene set and can take up to a minute.
+    </small>
     <!-- A run that outlasted the API's wait; Clear stops watching it (the run continues). -->
     <small *ngIf="pendingRunId !== undefined" class="block mt-2 text-color-secondary">
       Still running on AsyncTask (run {{ pendingRunId }}); checking every few seconds.
@@ -299,4 +418,13 @@
     [result]="genericResult.result"
     [geneCounts]="genericResult.gene_counts"
   ></app-tool-result>
+</p-card>
+
+<!-- ABBA answers a gene search, not a gene-set analysis, so it has its own card. -->
+<p-card *ngIf="abbaResult" class="block mt-3" header="ABBA gene-centred search results">
+  <app-abba-result
+    [result]="abbaResult"
+    [ranAt]="abbaRanAt"
+    (useGenesets)="useGenesets($event)"
+  ></app-abba-result>
 </p-card>

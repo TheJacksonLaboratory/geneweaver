@@ -549,7 +549,7 @@ describe('ToolResultComponent', () => {
   });
 
   it('an unknown tool shows its raw result', () => {
-    const host = render(ToolResultComponent, { tool: 'abba', result: { x: 1 } });
+    const host = render(ToolResultComponent, { tool: 'not_a_tool', result: { x: 1 } });
     expect(host.textContent).toContain('no visualisation yet');
     expect(host.querySelector('pre')?.textContent).toContain('"x": 1');
   });

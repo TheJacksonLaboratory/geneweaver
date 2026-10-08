@@ -4,6 +4,8 @@ import { Observable, of, throwError } from 'rxjs';
 
 import { AnalyzeComponent, RUN_POLL_INTERVAL_MS } from './analyze.component';
 import { SessionService } from '../../services/session.service';
+import { provideRouter } from '@angular/router';
+import { ABBA_FIXTURE } from './visualizations/abba-fixture';
 
 /** A signed-in session; analyses require one. Tests of the signed-out page set it to false. */
 const sessionStub = {
@@ -708,5 +710,186 @@ describe('AnalyzeComponent signed out', () => {
     expect(notice.querySelector('a')?.getAttribute('href')).toBe(
       '/api/sessions/login?next=%2Fnext%2Fanalyze',
     );
+  });
+});
+
+describe('AnalyzeComponent ABBA gene search', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+  let posted: { path: string; body: unknown }[];
+  let answer: () => Observable<unknown>;
+
+  const apiStub = {
+    get: () =>
+      of({ object: { tools: { ...TOOL_LIST, abba: { available: true, reason: null, caveat: null } } } }),
+    post: (path: string, body: unknown) => {
+      posted.push({ path, body });
+      return answer();
+    },
+  };
+
+  beforeEach(async () => {
+    posted = [];
+    answer = () => of({ object: ABBA_FIXTURE });
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+        sessionProvider,
+        provideRouter([]),
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    // Let the tool picker settle on its default before choosing ABBA, or its pending model
+    // write lands afterwards and selects UpSet again.
+    await fixture.whenStable();
+    component.selectedTool = 'abba';
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
+
+  const host = () => fixture.nativeElement as HTMLElement;
+
+  it('is in the tool picker, by its legacy name', () => {
+    expect(component.toolOptions.find((tool) => tool.value === 'abba')?.label).toBe('ABBA gene search');
+  });
+
+  it('cannot run with neither seed genes nor gene sets', () => {
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toBeUndefined(); // Not an error: nothing entered yet.
+  });
+
+  it('runs with seed genes alone -- no gene sets needed', () => {
+    component.abbaGenesText = 'Drd2, Drd1';
+    expect(component.canRun).toBe(true);
+  });
+
+  it('runs with a single gene set alone', () => {
+    component.genesetIdInput = ['167180'];
+    expect(component.canRun).toBe(true);
+  });
+
+  it("posts legacy's defaults: homology, Auto thresholds, tiers 1-3, every species", () => {
+    component.abbaGenesText = 'Drd2\nDrd1\ndrd2';
+    component.run();
+    expect(posted).toEqual([
+      {
+        path: '/tools/abba',
+        body: {
+          genes: ['Drd2', 'Drd1'],
+          geneset_ids: [],
+          include_homology: true,
+          min_genes: null,
+          min_genesets: null,
+          tiers: [1, 2, 3],
+          species_ids: null,
+        },
+      },
+    ]);
+  });
+
+  it('posts the options as changed in the form', () => {
+    component.abbaGenesText = 'Drd2 Drd1 Th';
+    component.genesetIdInput = ['167180'];
+    fixture.detectChanges();
+    const el = host();
+    el.querySelector<HTMLInputElement>('#abbaHomology')!.click();
+    const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
+    // Auto, then 1-3: one per seed gene typed, as legacy offered.
+    expect(minGenes.options).toHaveLength(4);
+    minGenes.selectedIndex = 2;
+    minGenes.dispatchEvent(new Event('input'));
+    const minGenesets = el.querySelector<HTMLSelectElement>('#abbaMinGenesets')!;
+    expect(minGenesets.options).toHaveLength(51);
+    minGenesets.selectedIndex = 5;
+    minGenesets.dispatchEvent(new Event('input'));
+    el.querySelector<HTMLInputElement>('#abbaTier1')!.click();
+    el.querySelector<HTMLInputElement>('#abbaTier4')!.click();
+    el.querySelector<HTMLInputElement>('#abbaRestrict')!.click();
+    fixture.detectChanges();
+    el.querySelector<HTMLInputElement>('#abbaSpecies2')!.click();
+    el.querySelector<HTMLInputElement>('#abbaSpecies1')!.click();
+    component.run();
+    expect(posted[0].body).toEqual({
+      genes: ['Drd2', 'Drd1', 'Th'],
+      geneset_ids: [167180],
+      include_homology: false,
+      min_genes: 2,
+      min_genesets: 5,
+      tiers: [2, 3, 4],
+      species_ids: [1, 2],
+    });
+  });
+
+  it('needs at least one curation tier', () => {
+    component.abbaGenesText = 'Drd2';
+    component.abbaOptions.tiers = [];
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toBe('Choose at least one curation tier.');
+  });
+
+  it('needs a species when restricting to species, and shows the list only then', () => {
+    component.abbaGenesText = 'Drd2';
+    fixture.detectChanges();
+    expect(host().querySelector('#abbaSpecies1')).toBeNull();
+    component.abbaOptions.restrictSpecies = true;
+    fixture.detectChanges();
+    expect(host().querySelector('#abbaSpecies1')).not.toBeNull();
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toContain('at least one species');
+  });
+
+  it('allows one gene set, and refuses more than twenty', () => {
+    component.genesetIdInput = Array.from({ length: 21 }, (_, i) => String(i + 1));
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toContain('at most 20');
+    expect(component.limitViolation).toBeUndefined();
+  });
+
+  it('says a search can take a while, then shows the result', () => {
+    component.abbaGenesText = 'Drd2';
+    let finish!: (value: unknown) => void;
+    answer = () => new Observable((subscriber) => {
+      finish = (value) => {
+        subscriber.next(value);
+        subscriber.complete();
+      };
+    });
+    component.run();
+    fixture.detectChanges();
+    expect(host().textContent).toContain('can take up to a minute');
+    finish({ object: ABBA_FIXTURE });
+    fixture.detectChanges();
+    expect(component.abbaResult).toBe(ABBA_FIXTURE);
+    expect(component.abbaRanAt).toBeInstanceOf(Date);
+    expect(host().querySelector('app-abba-result')).not.toBeNull();
+    expect(host().textContent).toContain('Highly connected gene sets');
+  });
+
+  it('explains a busy server', () => {
+    component.abbaGenesText = 'Drd2';
+    answer = () => throwError(() => ({ status: 503, error: {} }));
+    component.run();
+    expect(component.errorMessage).toBe('The server is busy with other searches. Try again in a minute.');
+    expect(component.running).toBe(false);
+  });
+
+  it('hands gene sets picked in the result back to the form, for another tool', () => {
+    component.useGenesets([282317, 259156]);
+    expect(component.genesetIdInput).toEqual(['282317', '259156']);
+    expect(component.selectedTool).toBe('upset');
+  });
+
+  it('resets its options on returning to it from another tool', () => {
+    component.abbaOptions.tiers = [5];
+    component.selectedTool = 'upset';
+    component.selectedTool = 'abba';
+    expect(component.abbaOptions.tiers).toEqual([1, 2, 3]);
   });
 });
