@@ -481,25 +481,25 @@ def test_refusals_happen_before_a_connection_is_leased(app, client, path, expect
 
 def test_abba_endpoint_is_not_taken_for_a_tool_name(client) -> None:
     """`/tools/abba` must reach its own route, not `/tools/{tool}`'s unknown-tool 404."""
-    from geneweaver.api.schemas.tools import ABBAResult
-
-    shaped = ABBAResult(
-        parameters={},
-        available_genes=1,
-        available_genesets=1,
-        input_species=["Mus musculus"],
-        seed_genes=[],
-        genesets=[],
-        genes=[],
-        max_occurrences=0,
-        species={1: "Mus musculus"},
-        tiers={1: "Tier I"},
-    )
-    with patch("geneweaver.api.services.abba.search", return_value=shaped) as search:
+    ran = {"tool": "abba", "executed_by": "in_process", "run_id": None, "result": {}}
+    with patch("geneweaver.api.services.abba.run_abba", return_value=ran) as run:
         response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
     assert response.status_code == 200
     assert response.json()["object"]["tool"] == "abba"
-    assert search.call_args.args[1].genes == ["Drd2"]
+    assert run.call_args.args[1].genes == ["Drd2"]
+
+
+def test_abba_endpoint_reports_a_long_search_as_202(client) -> None:
+    """A search past the API's wait is answered with its run id, as every tool's is."""
+    from geneweaver.api.services import tools as tool_service
+
+    pending = tool_service.ToolRunPending(
+        {"tool": "abba", "geneset_ids": [], "gene_counts": {}, "caveat": None}, 11, "running"
+    )
+    with patch("geneweaver.api.services.abba.run_abba", side_effect=pending):
+        response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
+    assert response.status_code == 202
+    assert response.json()["object"]["run_id"] == 11
 
 
 def test_abba_endpoint_needs_a_seed(client) -> None:

@@ -1,57 +1,151 @@
-"""ABBA, legacy's gene-centred search, run against the database.
+"""ABBA, legacy's gene-centred search, run on AsyncTask like every other tool.
 
-ABBA is not one of the `geneweaver.tools` analyses: it is a SQL pipeline over the whole
-gene-set corpus (`geneweaver.db.abba`), so there is nothing to ship to AsyncTask without
-also shipping the database. It runs here, on a pooled connection, for as long as the
-search takes -- 20 to 60 seconds on dev, as legacy's Celery task did. Three things keep
-that from hurting other requests:
+ABBA is a SQL pipeline over the whole gene-set corpus (`geneweaver.tools.abba.search`), not
+a computation over input the API hands it. Where AsyncTask is configured it still goes there,
+as the signed-in user, through the same `GeneWeaverToolWorkflow`: the tool worker searches
+the database from inside the activity, so the run shows in Temporal and is polled by run id
+like the others. The API's part is what needs the caller:
 
-- at most `ABBA_MAX_CONCURRENT` searches run at once per process; the next is refused
-  with `ABBABusy` (503) instead of queueing on the pool;
-- each query is bounded by `ABBA_STATEMENT_TIMEOUT_SECONDS`, set for the search's own
-  transaction only;
-- the pipeline's temp tables drop when that transaction ends, so the connection goes back
-  to the pool clean.
+- the gate on seed gene sets, which are then expanded to their genes here, so the worker is
+  never asked to read a gene set on anyone's behalf;
+- the caller's identity, signed (`geneweaver.tools.abba.identity`), so the worker searches
+  their private gene sets and a run submitted to AsyncTask directly cannot claim someone
+  else's.
+
+Where AsyncTask is not configured, the same search runs here on a pooled connection, for as
+long as it takes -- 20 to 60 seconds on dev. At most `ABBA_MAX_CONCURRENT` run at once per
+process, so they cannot take the pool from every other request; the next is refused with
+`ABBABusy` (503) rather than queued.
 """
 
 import threading
 from collections.abc import Callable
 from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from typing import Any
 
-from geneweaver.db.abba import ABBAResult as PipelineResult
-from geneweaver.db.abba import abba
+from geneweaver.db.query import abba as abba_queries
+from geneweaver.tools.abba import TOOL_NAME, ABBAInput
+from geneweaver.tools.abba.identity import sign
+from geneweaver.tools.abba.search import search
 from psycopg import Cursor
 from psycopg.rows import tuple_row
+from pydantic import ValidationError
 
 from geneweaver.api.core.config import settings
 from geneweaver.api.schemas.auth import User
-from geneweaver.api.schemas.tools import ABBARequest, ABBAResult
+from geneweaver.api.schemas.tools import ABBARequest
+from geneweaver.api.services.asynctask import AsyncTaskClient
 from geneweaver.api.services.geneset import determine_user_id
-from geneweaver.api.services.tools import _gate_geneset_access, _require_user
-
-#: Legacy's ABBA result page lists the top 50 gene sets and genes.
-RESULT_LIMIT = 50
+from geneweaver.api.services.tools import (
+    ToolRequestError,
+    _check_size,
+    _gate_geneset_access,
+    _require_user,
+    _run_on_asynctask,
+    asynctask_client_for,
+)
 
 _running = threading.BoundedSemaphore(settings.ABBA_MAX_CONCURRENT)
 
 
 class ABBABusy(Exception):
-    """Too many searches are running in this process; the caller should retry (503)."""
+    """Too many in-process searches are running; the caller should retry (503)."""
+
+
+@dataclass
+class PreparedABBA:
+    """A search with the caller's database reads done: gate, seed expansion, identity."""
+
+    shaped: dict[str, Any]
+    tool_input: ABBAInput
+    user_id: int
+    asynctask: AsyncTaskClient | None
+
+
+def seed_genes(cursor: Cursor, request: ABBARequest) -> list[str]:
+    """The typed seed genes, then the genes of the seed gene sets, without repeats.
+
+    The gene sets must already have been gated. Read on a tuple-row cursor because the
+    query is the pipeline's own, which reads by position.
+    """
+    genes = list(request.genes)
+    if request.geneset_ids:
+        with cursor.connection.cursor(row_factory=tuple_row) as rows:
+            rows.execute(*abba_queries.ref_ids_for_genesets(request.geneset_ids))
+            genes.extend(str(row[0]) for row in rows.fetchall())
+    return genes
+
+
+def prepare_abba(cursor: Cursor, request: ABBARequest, user: User | None) -> PreparedABBA:
+    """Gate the seed gene sets and build the search's input.
+
+    :raises SignInRequired: If the caller is anonymous.
+    :raises UnauthorizedException: If a seed gene set is not readable by the caller.
+    :raises ToolRequestError: If the input is refused, e.g. too large to submit.
+    """
+    _require_user(user)
+    _gate_geneset_access(cursor, user, request.geneset_ids)
+    try:
+        tool_input = ABBAInput(
+            genes=seed_genes(cursor, request),
+            **request.model_dump(exclude={"genes", "geneset_ids"}),
+        )
+    except ValidationError as error:
+        raise ToolRequestError(f"Invalid input for abba: {error}") from error
+    return PreparedABBA(
+        shaped={
+            "tool": TOOL_NAME,
+            "geneset_ids": request.geneset_ids,
+            # ABBA's seed is genes, not gene sets compared, so there are no per-set counts.
+            "gene_counts": {},
+            "caveat": None,
+        },
+        tool_input=tool_input,
+        user_id=determine_user_id(user),
+        asynctask=asynctask_client_for(user),
+    )
+
+
+def envelope_for(prepared: PreparedABBA) -> dict[str, Any]:
+    """The AsyncTask request: the input, and beside it who the search is for, signed."""
+    return {
+        "tool": TOOL_NAME,
+        "input": prepared.tool_input.model_dump(mode="json"),
+        "identity": sign(prepared.user_id, settings.DB_PASSWORD),
+    }
 
 
 def run_abba(
     open_cursor: Callable[[], AbstractContextManager[Cursor]],
     request: ABBARequest,
     user: User | None,
-) -> ABBAResult:
-    """Gate, run and shape one ABBA search.
+) -> dict[str, Any]:
+    """Gate, run and return one ABBA search, in the shape every tool run returns.
 
+    :return: ``{tool, geneset_ids, gene_counts, caveat, executed_by, run_id, result}``.
     :raises SignInRequired: If the caller is anonymous.
-    :raises ABBABusy: If `ABBA_MAX_CONCURRENT` searches are already running.
     :raises UnauthorizedException: If a seed gene set is not readable by the caller.
+    :raises ToolRequestError: If the input is refused.
+    :raises ToolRunPending: If the AsyncTask run outlasts the wait; poll it by run id.
+    :raises ToolRunFailed: If the AsyncTask run fails.
+    :raises ABBABusy: If, in-process, `ABBA_MAX_CONCURRENT` searches are already running.
     """
-    # Before the semaphore and the cursor: an anonymous request is refused for free.
+    # Before the cursor: an anonymous request is refused without leasing a connection.
     _require_user(user)
+    if asynctask_client_for(user) is not None:
+        # The connection goes back to the pool before the wait on AsyncTask.
+        with open_cursor() as cursor:
+            prepared = prepare_abba(cursor, request, user)
+        envelope = envelope_for(prepared)
+        _check_size(envelope)
+        label = f"{TOOL_NAME}: " + ", ".join(prepared.tool_input.genes[:5])
+        return {
+            **prepared.shaped,
+            "executed_by": "asynctask",
+            **_run_on_asynctask(prepared.asynctask, envelope, prepared.shaped, label=label),
+        }
+
     if not _running.acquire(blocking=False):
         raise ABBABusy(
             f"{settings.ABBA_MAX_CONCURRENT} ABBA searches are already running; "
@@ -59,116 +153,18 @@ def run_abba(
         )
     try:
         with open_cursor() as cursor:
-            _gate_geneset_access(cursor, user, request.geneset_ids)
-            return search(cursor, request, determine_user_id(user))
+            prepared = prepare_abba(cursor, request, user)
+            output = search(
+                cursor.connection,
+                prepared.tool_input,
+                prepared.user_id,
+                statement_timeout_seconds=settings.ABBA_STATEMENT_TIMEOUT_SECONDS,
+            )
     finally:
         _running.release()
-
-
-def search(cursor: Cursor, request: ABBARequest, user_id: int) -> ABBAResult:
-    """Run the pipeline in its own transaction and shape the result.
-
-    The transaction scopes both the statement timeout (`set_config(..., true)` is
-    `SET LOCAL`) and the pipeline's `ON COMMIT DROP` temp tables. The pipeline reads rows by
-    position, so it gets a tuple-row cursor on the same connection: the pool's are
-    dict-row.
-    """
-    connection = cursor.connection
-    with connection.transaction(), connection.cursor(row_factory=tuple_row) as rows:
-        rows.execute(
-            "SELECT set_config('statement_timeout', %s, true)",
-            (f"{settings.ABBA_STATEMENT_TIMEOUT_SECONDS}s",),
-        )
-        species = _names(rows, "SELECT sp_id, sp_name FROM odestatic.species ORDER BY sp_id")
-        tiers = _names(rows, "SELECT cur_id, cur_name FROM odestatic.curation_levels")
-        attributions = _names(rows, "SELECT at_id, at_abbrev FROM odestatic.attribution")
-        found = abba(
-            rows,
-            request.genes,
-            geneset_ids=request.geneset_ids,
-            # Unrestricted means every species, as legacy's form did.
-            species_ids=request.species_ids or list(species),
-            tiers=request.tiers,
-            user_id=user_id,
-            include_homology=request.include_homology,
-            min_genes=request.min_genes,
-            # Legacy's "Auto" is no floor.
-            min_genesets=request.min_genesets or 0,
-            result_limit=RESULT_LIMIT,
-        )
-    return shape(found, request, species, tiers, attributions)
-
-
-def _names(cursor: Cursor, query: str) -> dict[int, str]:
-    cursor.execute(query)
-    return dict(cursor.fetchall())
-
-
-def shape(
-    found: PipelineResult,
-    request: ABBARequest,
-    species: dict[int, str],
-    tiers: dict[int, str],
-    attributions: dict[int, str | None],
-) -> ABBAResult:
-    """Name the pipeline's positional rows; the UI renders from these fields."""
-    species_ids = {name: key for key, name in species.items()}
-    return ABBAResult(
-        parameters=request.model_dump(exclude={"genes", "geneset_ids"}),
-        available_genes=found.available_genes,
-        available_genesets=found.available_genesets,
-        input_species=sorted(name for (name,) in found.input_species),
-        seed_genes=[
-            {
-                "ode_gene_id": gene_id,
-                "symbol": symbol,
-                "species_id": species_ids.get(species_name),
-                "species": species_name,
-            }
-            for gene_id, symbol, species_name in found.genes_of_interest
-        ],
-        genesets=[
-            {
-                "gs_id": gs_id,
-                "name": name,
-                "abbreviation": abbreviation,
-                "description": description,
-                "matches": matches,
-                "tier": tier,
-                "species_id": species_id,
-                # Attribution 1 is the placeholder "none" (abbreviation NULL).
-                "attribution": attributions.get(attribution) if attribution else None,
-                "gene_count": gene_count,
-            }
-            for (
-                gs_id,
-                name,
-                matches,
-                tier,
-                species_id,
-                attribution,
-                abbreviation,
-                description,
-                gene_count,
-            ) in found.geneset_results
-        ],
-        genes=[
-            {
-                "ode_gene_id": gene_id,
-                # The row's own ref id is whichever identifier the join met first (an
-                # Ensembl or HGNC id as often as a symbol); the preferred symbol is the name.
-                "symbol": found.preferred_mapping.get(gene_id)
-                or next(iter(found.ode_mapping.get(gene_id, [])), ref_id),
-                "symbols": found.ode_mapping.get(gene_id, []),
-                "species_id": species_id,
-                "species": species_name,
-                "occurrences": occurrences,
-                "tier_counts": found.tier_counts.get(gene_id, {}),
-                "species_counts": found.species_counts.get(gene_id, {}),
-            }
-            for gene_id, ref_id, species_name, species_id, occurrences in found.gene_results
-        ],
-        max_occurrences=found.max_occurrences[0][0] if found.max_occurrences else 0,
-        species={key: name for key, name in species.items() if name},
-        tiers=tiers,
-    )
+    return {
+        **prepared.shaped,
+        "executed_by": "in_process",
+        "run_id": None,
+        "result": output.model_dump(mode="json"),
+    }

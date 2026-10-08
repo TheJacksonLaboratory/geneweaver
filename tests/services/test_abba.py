@@ -1,163 +1,198 @@
-"""Tests for the ABBA search service."""
+"""Tests for the ABBA search service: AsyncTask where configured, in-process otherwise."""
 
 import threading
-from contextlib import nullcontext
+from contextlib import contextmanager
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from geneweaver.db.abba import ABBAResult as PipelineResult
+from geneweaver.tools.abba.identity import verified_user_id
 from psycopg.rows import tuple_row
 from pydantic import ValidationError
 
 from geneweaver.api.schemas.tools import ABBARequest
 from geneweaver.api.services import abba as service
-from geneweaver.api.services.tools import SignInRequired
+from geneweaver.api.services import tools as tool_service
+from geneweaver.api.services.asynctask import RunState
 
-SPECIES = {0: "", 1: "Mus musculus", 2: "Homo sapiens"}
-TIERS = {1: "Tier I - Public Resource", 2: "Tier II - Pro-curated"}
-ATTRIBUTIONS = {1: None, 8: "GO", 11: "MESH"}
-
-
-def _pipeline_result() -> PipelineResult:
-    """Rows in the positional shapes `geneweaver.db.abba` returns them."""
-    return PipelineResult(
-        available_genes=520904,
-        available_genesets=222413,
-        genes_of_interest=[(10, "Drd2", "Mus musculus"), (20, "DRD2", "Homo sapiens")],
-        input_species=[("Mus musculus",), ("Homo sapiens",)],
-        geneset_results=[
-            (282317, "KEGG Neuroactive", 4, 1, 1, 12, "Neuroactive", "desc", 358),
-            (5, "No source", 2, 2, 2, 1, None, None, 20),
-        ],
-        gene_results=[
-            # The row's own ref id is an arbitrary identifier, not a symbol.
-            (95197, "ENSG00000232810", "Homo sapiens", 2, 1453),
-            (73850, "ANON2", "Homo sapiens", 2, 1385),
-        ],
-        max_occurrences=[(1453,)],
-        ode_mapping={95197: ["TNF", "TNFA"], 73850: ["Anon2"]},
-        preferred_mapping={95197: "TNF"},
-        tier_counts={95197: {1: 2461, 2: 4501}},
-        species_counts={95197: {1: 2857, 2: 7564}},
-    )
+SECRET = "db-password"
 
 
-def _shape(request: ABBARequest | None = None):
-    request = request or ABBARequest(genes=["Drd2"])
-    return service.shape(_pipeline_result(), request, SPECIES, TIERS, {**ATTRIBUTIONS, 12: "KEGG"})
+class _FakeAsyncTask:
+    """Records the submission and replays a scripted outcome."""
+
+    def __init__(self, final_status: str = "completed", result: dict | None = None) -> None:
+        self.final = RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status=final_status)
+        self.final.result = result
+        self.envelope = None
+        self.name = None
+
+    def submit(self, envelope, name):
+        self.envelope, self.name = envelope, name
+        return RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status="running")
+
+    def wait(self, state, timeout, poll_interval):
+        return self.final
 
 
-def test_shape_names_each_gene_by_its_preferred_symbol() -> None:
-    """Not the row's ref id, which is whichever identifier the join met first."""
-    genes = _shape().genes
-    assert genes[0].symbol == "TNF"
-    assert genes[0].symbols == ["TNF", "TNFA"]
-    assert genes[0].tier_counts == {1: 2461, 2: 4501}
-    assert genes[0].species_counts == {1: 2857, 2: 7564}
-    # No preferred symbol recorded: the first gene symbol, still not the raw ref id.
-    assert genes[1].symbol == "Anon2"
+class _Cursors:
+    """An `open_cursor` that records whether a cursor is open, and the seed-gene query."""
+
+    def __init__(self, seed_rows: list | None = None) -> None:
+        self.open = False
+        self.cursor = MagicMock()
+        rows = self.cursor.connection.cursor.return_value.__enter__.return_value
+        rows.fetchall.return_value = seed_rows or []
+        self.rows = rows
+
+    @contextmanager
+    def __call__(self):
+        self.open = True
+        try:
+            yield self.cursor
+        finally:
+            self.open = False
 
 
-def test_shape_names_gene_set_columns_and_attribution() -> None:
-    """Positional gene set rows become named fields, with the source's short name."""
-    first, second = _shape().genesets
-    assert (first.gs_id, first.matches, first.tier, first.gene_count) == (282317, 4, 1, 358)
-    assert first.attribution == "KEGG"
-    # Attribution 1 is the "none" placeholder, so no badge.
-    assert second.attribution is None
+@pytest.fixture(autouse=True)
+def _readable_and_keyed(monkeypatch):
+    """Every gene set readable; the API's database password is the signing secret."""
+    monkeypatch.setattr(service.settings, "DB_PASSWORD", SECRET)
+    with patch.object(tool_service.db_geneset, "is_readable", return_value=True):
+        yield
 
 
-def test_shape_seed_species_ids_and_totals() -> None:
-    """Seed genes carry species ids, for colouring by species."""
-    result = _shape()
-    assert [(g.symbol, g.species_id) for g in result.seed_genes] == [
-        ("Drd2", 1),
-        ("DRD2", 2),
-    ]
-    assert result.input_species == ["Homo sapiens", "Mus musculus"]
-    assert result.max_occurrences == 1453
-    # Species 0 has no name and is not a real species.
-    assert result.species == {1: "Mus musculus", 2: "Homo sapiens"}
+def _on_asynctask(fake):
+    return patch.object(service, "asynctask_client_for", return_value=fake)
 
 
-def test_shape_echoes_options_not_the_seed() -> None:
-    """The run's options are echoed for the Run Information panel."""
-    parameters = _shape(ABBARequest(genes=["Drd2"], min_genes=3)).parameters
-    assert parameters == {
-        "include_homology": True,
-        "min_genes": 3,
-        "min_genesets": None,
-        "tiers": [1, 2, 3],
-        "species_ids": None,
-    }
+def test_a_search_is_submitted_to_asynctask_as_the_tool_workflow() -> None:
+    """ABBA goes through AsyncTask like every tool, so the run is visible in Temporal."""
+    fake = _FakeAsyncTask(result={"tool": "abba", "genes": []})
+    with _on_asynctask(fake):
+        result = service.run_abba(_Cursors(), ABBARequest(genes=["Drd2", "Drd1"]), Mock(id=7))
+
+    assert fake.envelope["tool"] == "abba"
+    assert fake.envelope["input"]["genes"] == ["Drd2", "Drd1"]
+    assert fake.name == "abba: Drd2, Drd1"
+    assert result["executed_by"] == "asynctask"
+    assert result["run_id"] == 11
+    assert result["result"] == {"tool": "abba", "genes": []}
 
 
-def test_shape_with_no_results() -> None:
-    """A search that matches nothing still shapes."""
-    assert (
-        service.shape(PipelineResult(), ABBARequest(genes=["x"]), {}, {}, {}).max_occurrences == 0
-    )
+def test_the_caller_is_sent_signed_not_in_the_input() -> None:
+    """The worker trusts only a signed identity, so a forged user id cannot be submitted."""
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
+
+    assert "user_id" not in fake.envelope["input"]
+    assert verified_user_id(fake.envelope["identity"], SECRET) == 7
+    forged = {**fake.envelope["identity"], "user_id": 8}
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(forged, SECRET)
 
 
-def _connection():
-    """A dict-row cursor whose connection hands out a tuple-row cursor for the pipeline."""
-    rows = MagicMock()
-    rows.fetchall.side_effect = [
-        list(SPECIES.items()),
-        list(TIERS.items()),
-        list(ATTRIBUTIONS.items()),
-    ]
-    cursor = MagicMock()
-    cursor.connection.cursor.return_value.__enter__.return_value = rows
-    return cursor, rows
+def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
+    """The worker gets genes, never a gene set id to read on the caller's behalf."""
+    cursors = _Cursors(seed_rows=[("Th",), ("Drd2",)])
+    fake = _FakeAsyncTask(result={})
+    with (
+        _on_asynctask(fake),
+        patch.object(service, "_gate_geneset_access") as gate,
+    ):
+        service.run_abba(cursors, ABBARequest(genes=["drd2"], geneset_ids=[5]), Mock(id=7))
+
+    assert gate.call_args.args[2] == [5]
+    cursors.cursor.connection.cursor.assert_called_with(row_factory=tuple_row)
+    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5]}
+    # Repeats are dropped case-insensitively, the typed gene first.
+    assert fake.envelope["input"]["genes"] == ["drd2", "Th"]
+    assert "geneset_ids" not in fake.envelope["input"]
 
 
-def test_search_runs_on_a_tuple_cursor_in_its_own_transaction() -> None:
-    """The pipeline reads rows by position and needs its temp tables scoped."""
-    cursor, rows = _connection()
-    with patch.object(service, "abba", return_value=PipelineResult()) as pipeline:
-        service.search(cursor, ABBARequest(genes=["Drd2"]), user_id=7)
-
-    cursor.connection.cursor.assert_called_once_with(row_factory=tuple_row)
-    cursor.connection.transaction.assert_called_once()
-    # The timeout is the first statement, so it bounds every pipeline query.
-    first_sql, first_params = rows.execute.call_args_list[0].args
-    assert "statement_timeout" in first_sql and first_params == ("240s",)
-    assert pipeline.call_args.args[0] is rows
+def test_an_unreadable_seed_gene_set_is_refused_before_submission() -> None:
+    """The gate runs before anything reaches AsyncTask."""
+    fake = _FakeAsyncTask()
+    with (
+        _on_asynctask(fake),
+        patch.object(tool_service.db_geneset, "is_readable", return_value=False),
+        pytest.raises(tool_service.UnauthorizedException),
+    ):
+        service.run_abba(_Cursors(), ABBARequest(geneset_ids=[5]), Mock(id=7))
+    assert fake.envelope is None
 
 
-def test_search_maps_legacy_auto_and_unrestricted_species() -> None:
-    """Auto and 'not restricted' become what the pipeline expects."""
-    cursor, _ = _connection()
-    with patch.object(service, "abba", return_value=PipelineResult()) as pipeline:
-        service.search(cursor, ABBARequest(genes=["Drd2"]), user_id=7)
+def test_the_connection_is_returned_before_waiting_on_asynctask() -> None:
+    """A search waits up to 30 s; holding a pooled connection through that starves the pool."""
+    cursors = _Cursors()
+    seen = []
 
-    kwargs = pipeline.call_args.kwargs
-    assert kwargs["species_ids"] == [0, 1, 2]  # unrestricted: every species
-    assert kwargs["min_genes"] is None  # Auto
-    assert kwargs["min_genesets"] == 0  # Auto: no floor
-    assert kwargs["user_id"] == 7
-    assert kwargs["tiers"] == [1, 2, 3]
-    assert kwargs["include_homology"] is True
+    class Recording(_FakeAsyncTask):
+        def submit(self, envelope, name):
+            seen.append(cursors.open)
+            return super().submit(envelope, name)
+
+    with _on_asynctask(Recording(result={})):
+        service.run_abba(cursors, ABBARequest(genes=["Drd2"]), Mock(id=7))
+    assert seen == [False]
 
 
-def test_search_passes_a_species_restriction_through() -> None:
-    """A restriction and a gene-set floor reach the pipeline as given."""
-    cursor, _ = _connection()
-    with patch.object(service, "abba", return_value=PipelineResult()) as pipeline:
-        service.search(
-            cursor, ABBARequest(genes=["Drd2"], species_ids=[2], min_genesets=4), user_id=7
-        )
-    assert pipeline.call_args.kwargs["species_ids"] == [2]
-    assert pipeline.call_args.kwargs["min_genesets"] == 4
+def test_a_long_search_is_handed_back_by_run_id() -> None:
+    """Searches take 20-60 s, past the API's wait, so the client polls like any tool."""
+    with (
+        _on_asynctask(_FakeAsyncTask(final_status="running")),
+        pytest.raises(tool_service.ToolRunPending) as pending,
+    ):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
+    assert pending.value.body["tool"] == "abba"
+    assert pending.value.body["run_id"] == 11
+
+
+def test_a_failed_search_names_its_workflow() -> None:
+    """AsyncTask records no cause, so the workflow id is how to find one."""
+    with (
+        _on_asynctask(_FakeAsyncTask(final_status="failed")),
+        pytest.raises(tool_service.ToolRunFailed, match="ats:GeneWeaverTools:x"),
+    ):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
 
 
 def test_anonymous_is_refused_before_a_connection_is_leased() -> None:
     """Running a search requires signing in, checked before the pool is touched."""
     open_cursor = Mock()
-    with pytest.raises(SignInRequired):
+    with pytest.raises(tool_service.SignInRequired):
         service.run_abba(open_cursor, ABBARequest(genes=["Drd2"]), user=None)
     open_cursor.assert_not_called()
+
+
+# --- In-process, where AsyncTask is not configured -------------------------------------
+
+
+def _in_process():
+    return patch.object(service, "asynctask_client_for", return_value=None)
+
+
+def test_without_asynctask_the_search_runs_here_on_the_pooled_connection() -> None:
+    """Same search function as the worker's, on the request's connection."""
+    cursors = _Cursors()
+    output = Mock(model_dump=Mock(return_value={"tool": "abba"}))
+    with _in_process(), patch.object(service, "search", return_value=output) as search:
+        result = service.run_abba(cursors, ABBARequest(genes=["Drd2"]), Mock(id=7))
+
+    connection, tool_input, user_id = search.call_args.args
+    assert connection is cursors.cursor.connection
+    assert tool_input.genes == ["Drd2"]
+    assert user_id == 7
+    assert search.call_args.kwargs["statement_timeout_seconds"] == 240
+    assert result == {
+        "tool": "abba",
+        "geneset_ids": [],
+        "gene_counts": {},
+        "caveat": None,
+        "executed_by": "in_process",
+        "run_id": None,
+        "result": {"tool": "abba"},
+    }
 
 
 def test_a_search_over_the_limit_is_refused_not_queued() -> None:
@@ -165,8 +200,12 @@ def test_a_search_over_the_limit_is_refused_not_queued() -> None:
     open_cursor = Mock()
     full = threading.BoundedSemaphore(1)
     full.acquire()
-    with patch.object(service, "_running", full), pytest.raises(service.ABBABusy):
-        service.run_abba(open_cursor, ABBARequest(genes=["Drd2"]), user=Mock())
+    with (
+        _in_process(),
+        patch.object(service, "_running", full),
+        pytest.raises(service.ABBABusy),
+    ):
+        service.run_abba(open_cursor, ABBARequest(genes=["Drd2"]), user=Mock(id=7))
     open_cursor.assert_not_called()
 
 
@@ -174,26 +213,16 @@ def test_the_slot_is_released_when_a_search_fails() -> None:
     """A failed search must not leak its slot."""
     slot = threading.BoundedSemaphore(1)
     with (
+        _in_process(),
         patch.object(service, "_running", slot),
-        patch.object(service, "_gate_geneset_access"),
         patch.object(service, "search", side_effect=RuntimeError("query failed")),
         pytest.raises(RuntimeError),
     ):
-        service.run_abba(lambda: nullcontext(Mock()), ABBARequest(genes=["Drd2"]), Mock())
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
     assert slot.acquire(blocking=False)
 
 
-def test_seed_gene_sets_are_access_gated() -> None:
-    """Seed gene sets must be readable by the caller."""
-    with (
-        patch.object(service, "_gate_geneset_access") as gate,
-        patch.object(service, "search", return_value="result"),
-    ):
-        service.run_abba(
-            lambda: nullcontext("cursor"), ABBARequest(geneset_ids=[5, 6]), user=Mock()
-        )
-    assert gate.call_args.args[0] == "cursor"
-    assert gate.call_args.args[2] == [5, 6]
+# --- The request ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -206,6 +235,7 @@ def test_seed_gene_sets_are_access_gated() -> None:
         {"genes": ["Drd2"], "min_genes": 0},
         {"genes": ["Drd2"], "min_genesets": 0},
         {"genes": ["Drd2"], "species_ids": []},
+        {"genes": ["x"] * 1001},
     ],
 )
 def test_request_rejects(body) -> None:

@@ -1,6 +1,7 @@
 /**
- * Shapes ABBA's result (`POST /tools/abba`) for legacy's four result sections: run
- * information, seed genes, the top gene sets and the top genes.
+ * Shapes ABBA's result -- the `result` of `POST /tools/abba`, or of its run once polled --
+ * for legacy's four result sections: run information, seed genes, the top gene sets and the
+ * top genes.
  *
  * Kept apart from `models.ts`: ABBA is a gene-centred search, not a gene-set analysis, so it
  * shares none of the other tools' shapes. Colours follow legacy's `ABBA_result.html` and

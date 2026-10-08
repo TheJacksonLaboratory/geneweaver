@@ -615,15 +615,16 @@ def _check_size(envelope: dict) -> None:
 
 
 def _run_on_asynctask(
-    client: AsyncTaskClient, envelope: dict, shaped: dict[str, Any]
+    client: AsyncTaskClient, envelope: dict, shaped: dict[str, Any], label: str | None = None
 ) -> dict[str, Any]:
     """Submit, wait a bounded time, and return the output or raise.
 
+    :param label: The run's name in AsyncTask; by default the tool and its gene sets.
     :raises ToolRunPending: If the run is still going at the deadline.
     :raises ToolRunFailed: If it finished without completing.
     """
     tool_name = shaped["tool"]
-    label = f"{tool_name}: " + ", ".join(map(str, shaped["geneset_ids"]))
+    label = label or f"{tool_name}: " + ", ".join(map(str, shaped["geneset_ids"]))
     state = client.submit(envelope, name=label)
     state = client.wait(
         state,

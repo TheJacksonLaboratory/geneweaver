@@ -564,6 +564,24 @@ describe('AnalyzeComponent pending runs', () => {
     jest.useRealTimers();
   });
 
+  it('polls a pending ABBA search to its result page', () => {
+    postBody = { tool: 'abba', geneset_ids: [], gene_counts: {}, caveat: null, run_id: 43, status: 'running' };
+    pollResponses = [{ run_id: 43, status: 'completed', result: ABBA_FIXTURE }];
+    component.selectedTool = 'abba';
+    component.abbaGenesText = 'Drd2';
+
+    component.run();
+    expect(component.pendingRunId).toBe(43);
+    expect(component.abbaResult).toBeUndefined();
+
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+    expect(polled).toEqual(['/tools/runs/43']);
+    expect(component.running).toBe(false);
+    expect(component.abbaResult).toBe(ABBA_FIXTURE);
+    expect(component.abbaRanAt).toBeInstanceOf(Date);
+    expect(component.genericResult).toBeUndefined();
+  });
+
   it('polls a pending run through a running poll to its result', () => {
     postBody = PENDING;
     pollResponses = [
@@ -713,6 +731,19 @@ describe('AnalyzeComponent signed out', () => {
   });
 });
 
+/** `POST /tools/abba` once the search has finished: every tool run's envelope. */
+function completed(result: unknown) {
+  return {
+    tool: 'abba',
+    geneset_ids: [],
+    gene_counts: {},
+    caveat: null,
+    executed_by: 'asynctask',
+    run_id: 11,
+    result,
+  };
+}
+
 describe('AnalyzeComponent ABBA gene search', () => {
   let component: AnalyzeComponent;
   let fixture: ComponentFixture<AnalyzeComponent>;
@@ -730,7 +761,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
 
   beforeEach(async () => {
     posted = [];
-    answer = () => of({ object: ABBA_FIXTURE });
+    answer = () => of({ object: completed(ABBA_FIXTURE) });
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [AnalyzeComponent],
@@ -864,7 +895,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
     component.run();
     fixture.detectChanges();
     expect(host().textContent).toContain('can take up to a minute');
-    finish({ object: ABBA_FIXTURE });
+    finish({ object: completed(ABBA_FIXTURE) });
     fixture.detectChanges();
     expect(component.abbaResult).toBe(ABBA_FIXTURE);
     expect(component.abbaRanAt).toBeInstanceOf(Date);

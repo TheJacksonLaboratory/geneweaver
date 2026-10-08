@@ -1,7 +1,7 @@
 import { AbbaResult } from './abba-models';
 
 /**
- * A real `POST /tools/abba` response from dev (2026-10-08): seed genes Drd2 and Drd1, every
+ * A real ABBA result from dev (2026-10-08), the `result` of `POST /tools/abba`: seed genes Drd2 and Drd1, every
  * species, tiers 1-3, homology included. Trimmed to 7 of the 50 gene sets (chosen to cover
  * each tier, species and attribution present) and the top 6 of the 50 genes; long
  * descriptions are shortened. Every value kept is as the API returned it.

@@ -539,14 +539,22 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** ABBA runs in the API, against the database, and answers in one response. */
+  /**
+   * ABBA runs on AsyncTask like every tool, so it answers the same way: the result if the
+   * search finishes within the API's wait, otherwise a run id to poll. Searches take 20-60
+   * seconds, so polling is the usual case.
+   */
   private runAbba(): void {
     this.gwApi
-      .post<AbbaResult>('/tools/abba', abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions))
+      .post<AnyToolResult>('/tools/abba', abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions))
       .subscribe({
         next: (response) => {
-          this.abbaResult = response.object as AbbaResult;
-          this.abbaRanAt = new Date();
+          const body = response.object as AnyToolResult | undefined;
+          if (isPendingRun(body)) {
+            this.pollUntilFinished(body);
+            return;
+          }
+          this.showAbba((body as ToolRunResult | undefined)?.result);
           this.running = false;
         },
         error: (error: HttpFailure) => {
@@ -554,6 +562,11 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
           this.running = false;
         },
       });
+  }
+
+  private showAbba(result: Record<string, unknown> | undefined): void {
+    this.abbaResult = result as AbbaResult | undefined;
+    this.abbaRanAt = new Date();
   }
 
   /**
@@ -599,7 +612,9 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
               (run.workflow_id ? ` (workflow ${run.workflow_id}).` : '.');
             return;
           }
-          if (upset) {
+          if (pending.tool === 'abba') {
+            this.showAbba(run.result);
+          } else if (upset) {
             const raw = run.result['intersections'] as { genesets: string[]; size: number }[];
             this.result = {
               tool: 'UpSet',
