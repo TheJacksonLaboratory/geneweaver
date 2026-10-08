@@ -161,3 +161,132 @@ class ToolRunResult(BaseModel):
         default=None, description="Qualifies how to read this result, if anything does."
     )
     result: dict = Field(..., description="The tool's own output.")
+
+
+#: Curation tiers (`odestatic.curation_levels.cur_id`), Tier I through Tier V.
+ABBA_TIERS = (1, 2, 3, 4, 5)
+
+
+class ABBARequest(BaseModel):
+    """Parameters for an ABBA gene-centred search (legacy `ABBA_options.html`).
+
+    Unlike the other tools, ABBA starts from genes: the seed is the genes given here plus
+    the in-threshold genes of any gene sets named. It then finds the gene sets containing
+    those genes and the other genes that recur across them.
+    """
+
+    genes: list[str] = Field(
+        default_factory=list,
+        max_length=1000,
+        description="Seed gene symbols, matched case-insensitively.",
+    )
+    geneset_ids: list[int] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Gene sets whose in-threshold genes join the seed.",
+    )
+    include_homology: bool = Field(
+        default=True,
+        description="Expand the seed to its homologs in the searched species (legacy default).",
+    )
+    min_genes: int | None = Field(
+        default=None,
+        ge=1,
+        description="Seed genes a gene set must contain to count; null is legacy's Auto.",
+    )
+    min_genesets: int | None = Field(
+        default=None,
+        ge=1,
+        description="Matching gene sets a result gene must occur in; null is legacy's Auto.",
+    )
+    tiers: list[int] = Field(
+        default_factory=lambda: [1, 2, 3],
+        min_length=1,
+        description="Curation tiers to search, 1 (Tier I) to 5 (Tier V).",
+    )
+    species_ids: list[int] | None = Field(
+        default=None,
+        min_length=1,
+        description="Species to restrict the search to; null searches every species.",
+    )
+
+    @field_validator("genes")
+    @classmethod
+    def _clean_genes(cls, value: list[str]) -> list[str]:
+        """Drop blanks and repeats, keeping the caller's order."""
+        genes, seen = [], set()
+        for gene in (item.strip() for item in value):
+            if gene and gene.lower() not in seen:
+                seen.add(gene.lower())
+                genes.append(gene)
+        return genes
+
+    @field_validator("tiers")
+    @classmethod
+    def _known_tiers(cls, value: list[int]) -> list[int]:
+        """Refuse a tier that does not exist rather than silently matching nothing."""
+        unknown = sorted(set(value) - set(ABBA_TIERS))
+        if unknown:
+            raise ValueError(f"Unknown curation tier(s) {unknown}; tiers are 1 to 5.")
+        return sorted(set(value))
+
+    @model_validator(mode="after")
+    def _needs_a_seed(self) -> "ABBARequest":
+        """There is nothing to search from without at least one gene or gene set."""
+        if not self.genes and not self.geneset_ids:
+            raise ValueError("Give at least one seed gene or one gene set.")
+        return self
+
+
+class ABBASeedGene(BaseModel):
+    """A gene the search started from, after homology expansion."""
+
+    ode_gene_id: int
+    symbol: str
+    species_id: int | None
+    species: str
+
+
+class ABBAGeneset(BaseModel):
+    """A gene set containing seed genes."""
+
+    gs_id: int
+    name: str
+    abbreviation: str | None
+    description: str | None
+    matches: int = Field(..., description="Seed genes this gene set contains.")
+    tier: int | None
+    species_id: int | None
+    attribution: str | None = Field(..., description="Source, e.g. GO or MESH, if any.")
+    gene_count: int | None
+
+
+class ABBAGene(BaseModel):
+    """A gene recurring across the matching gene sets."""
+
+    ode_gene_id: int
+    symbol: str = Field(..., description="The preferred gene symbol.")
+    symbols: list[str] = Field(..., description="Every gene symbol recorded for the gene.")
+    species_id: int
+    species: str
+    occurrences: int = Field(..., description="Matching gene sets the gene occurs in.")
+    tier_counts: dict[int, int] = Field(..., description="All its gene sets, per tier.")
+    species_counts: dict[int, int] = Field(
+        ..., description="Gene sets of its homology group, per species."
+    )
+
+
+class ABBAResult(BaseModel):
+    """The result of an ABBA search: legacy's four result panels, as data."""
+
+    tool: str = "abba"
+    parameters: dict = Field(..., description="The options the search ran with.")
+    available_genes: int
+    available_genesets: int
+    input_species: list[str]
+    seed_genes: list[ABBASeedGene]
+    genesets: list[ABBAGeneset] = Field(..., description="Top gene sets by matches.")
+    genes: list[ABBAGene] = Field(..., description="Top genes by occurrences.")
+    max_occurrences: int
+    species: dict[int, str] = Field(..., description="Species names by id.")
+    tiers: dict[int, str] = Field(..., description="Curation tier names by id.")

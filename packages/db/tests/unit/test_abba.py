@@ -45,7 +45,7 @@ def test_genes_of_interest_no_homology_creates_table() -> None:
     """The no-homology branch creates the interest table (legacy bug fixed)."""
     sql, params = q.create_genes_of_interest_table("i", "in", [1], include_homology=False)
     rendered = _sql((sql, params))
-    assert rendered.startswith('CREATE TEMP TABLE "i" AS SELECT * FROM "in"')
+    assert rendered.startswith('CREATE TEMP TABLE "i" ON COMMIT DROP AS SELECT * FROM "in"')
     assert params == {}
 
 
@@ -131,6 +131,9 @@ def test_abba_creates_unique_temp_tables() -> None:
         if "CREATE TEMP TABLE" in _render(c.args[0])
     ]
     assert len(creates) == 4
+    # Dropped when the caller's transaction ends, so a pooled connection does not carry
+    # them into its next request.
+    assert all("ON COMMIT DROP" in s for s in creates)
     # names are suffixed for concurrency safety
     assert any("abba_input_genes_" in s for s in creates)
     assert any("abba_result_genes_" in s for s in creates)

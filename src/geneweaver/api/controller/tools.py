@@ -1,7 +1,8 @@
 """Endpoints for running the ported analysis tools.
 
 `GET /tools` lists every registered tool and whether it can run here; `POST /tools/{tool}`
-runs one. Seven of the nine run in-process today. MSET and PhenomeMap do not -- they shell
+runs one. `POST /tools/abba` runs ABBA, the gene-centred search, which is a database query
+rather than a registered tool (see `services/abba.py`). Seven of the nine run in-process today. MSET and PhenomeMap do not -- they shell
 out to compiled TOOLBOX binaries that the API image deliberately does not carry, and reach
 them instead through the native worker on AsyncTask. Asking for one returns that
 explanation rather than a missing-binary stack trace.
@@ -39,7 +40,8 @@ from jax.apiutils import Response
 
 from geneweaver.api import dependencies as deps
 from geneweaver.api.schemas.auth import UserInternal
-from geneweaver.api.schemas.tools import ToolRunRequest, UpSetRequest
+from geneweaver.api.schemas.tools import ABBARequest, ToolRunRequest, UpSetRequest
+from geneweaver.api.services import abba as abba_service
 from geneweaver.api.services import tools as tool_service
 from geneweaver.api.services.asynctask import AsyncTaskError
 
@@ -75,6 +77,37 @@ def run_upset(
     return _run_and_map(http_response, run)
 
 
+@router.post("/abba")
+def run_abba(
+    request: Annotated[ABBARequest, Body(description="Seed genes and search options.")],
+    user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
+) -> Response:
+    """Run ABBA, legacy's gene-centred search.
+
+    From seed genes (and the genes of any gene sets named), finds the gene sets that contain
+    them and the other genes that recur across those gene sets: the top 50 of each, with
+    each gene's gene-set counts per curation tier and per species.
+
+    Runs here, against the database, and takes up to a minute -- it is not a
+    `geneweaver.tools` analysis and does not go to AsyncTask. Responds 401 if the caller is
+    not signed in, 403 if a seed gene set is not readable, 422 for an invalid request, and
+    503 if too many searches are already running.
+
+    Declared before `POST /tools/{tool}`, which would otherwise take "abba" as a tool name.
+    """
+    try:
+        return Response(object=abba_service.run_abba(open_cursor, request, user))
+    except tool_service.SignInRequired as error:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
+    except abba_service.ABBABusy as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(error),
+            headers={"Retry-After": "60"},
+        ) from error
+
+
 @router.get("")
 def list_tools() -> Response:
     """List every registered tool and whether it can be run through this API.
@@ -83,7 +116,11 @@ def list_tools() -> Response:
     drift from what is actually installed -- the Analyze page previously offered five of
     the nine tools, which understated the port.
     """
-    return Response(object={"tools": tool_service.tool_availability()})
+    tools = tool_service.tool_availability()
+    # ABBA is a database search with its own endpoint (`POST /tools/abba`), not a registered
+    # tool, so the registry does not list it; it is added here so the page offers it.
+    tools["abba"] = {"available": True, "reason": None, "caveat": None}
+    return Response(object={"tools": tools})
 
 
 def _asynctask_http_error(error: AsyncTaskError) -> HTTPException:

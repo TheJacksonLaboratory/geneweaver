@@ -89,6 +89,12 @@ class GeneweaverAPIConfig(BaseSettings):
     # Per HTTP call to AsyncTask, not per run.
     ASYNCTASK_REQUEST_TIMEOUT_SECONDS: float = 10.0
 
+    # ABBA runs in this process, on a pooled connection, for 20-60 s on dev. Cap how many
+    # run at once so they cannot take the pool (DB_POOL_MAX_SIZE) from every other request,
+    # and bound each one's queries; the ingress read timeout must exceed the latter.
+    ABBA_MAX_CONCURRENT: int = 2
+    ABBA_STATEMENT_TIMEOUT_SECONDS: int = 240
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=False,
