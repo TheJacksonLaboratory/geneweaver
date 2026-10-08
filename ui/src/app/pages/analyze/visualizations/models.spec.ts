@@ -6,6 +6,7 @@ import {
   dbscanModel,
   dendrogramModel,
   distanceForOverlap,
+  formatEmpiricalP,
   formatP,
   hypergeometricMatrix,
   jaccardMatrix,
@@ -26,6 +27,14 @@ describe('formatP', () => {
   });
 });
 
+describe('formatEmpiricalP', () => {
+  it('bounds a sampled p of 0 by the sample count, never "< 1e-300"', () => {
+    expect(formatEmpiricalP(0, 1000)).toBe('< 0.001 (no sample as extreme)');
+    expect(formatEmpiricalP(0)).toBe('≈ 0 (no sampled pair as similar)');
+    expect(formatEmpiricalP(0.002)).toBe('0.002');
+  });
+});
+
 describe('upsetModel', () => {
   const { geneset_ids, gene_counts, intersections } = FIXTURES.upset;
 
@@ -37,6 +46,19 @@ describe('upsetModel', () => {
     expect(model.sets.map((set) => set.size)).toEqual(
       geneset_ids.map((id: number) => gene_counts[String(id) as keyof typeof gene_counts]),
     );
+  });
+
+  it('knows every set\'s unique genes and the total, for the tooltips', () => {
+    const model = upsetModel(geneset_ids, gene_counts, intersections);
+    expect(model.total).toBe(
+      intersections.reduce((sum: number, i: { size: number }) => sum + i.size, 0),
+    );
+    for (const set of model.sets) {
+      const only = intersections.find(
+        (i: { geneset_ids: string[] }) => i.geneset_ids.length === 1 && i.geneset_ids[0] === set.id,
+      );
+      expect(set.unique).toBe(only?.size ?? 0);
+    }
   });
 
   it('caps the bars and says how many it left out', () => {
@@ -54,8 +76,16 @@ describe('pairwise matrices', () => {
     const mirror = model.cells.find((c) => c.row === '14923' && c.col === '400405');
     expect(cell?.value).toBeCloseTo(0.1837, 3);
     expect(mirror?.value).toBe(cell?.value);
-    expect(cell?.detail).toContain('p 0.002');
-    expect(cell?.detail).toContain('9 shared');
+    const rows = Object.fromEntries((cell?.tooltip.rows ?? []).map((r) => [r.label, r.value]));
+    expect(cell?.tooltip.title).toBe('GS400405 vs GS14923');
+    expect(rows['p-value']).toBe('0.002');
+    expect(rows['Significant at p ≤ 0.05']).toBe('yes');
+    expect(rows['Shared genes']).toBe('9');
+    // Oriented to the cell: the mirrored cell swaps "only in" counts with the labels.
+    const mirrorRows = Object.fromEntries((mirror?.tooltip.rows ?? []).map((r) => [r.label, r.value]));
+    expect(rows['Only in GS400405']).toBe(mirrorRows['Only in GS400405']);
+    expect(rows['Only in GS400405']).toBe('22');
+    expect(rows['Only in GS14923']).toBe('18');
     expect(model.cells.filter((c) => c.row === c.col).every((c) => c.value === null)).toBe(true);
   });
 
@@ -72,6 +102,13 @@ describe('pairwise matrices', () => {
     // The strongest pair in this data is ~1e-25.
     expect(model.domain[1]).toBeGreaterThan(20);
     expect(hypergeometricMatrix({ geneset_ids: ['a', 'b'], results: [{ i: 0, j: 1, upper_tail: 0, odds_ratio: null }] }).domain[1]).toBe(300);
+    const cell = model.cells.find((c) => c.row !== c.col)!;
+    expect(cell.tooltip.rows?.map((r) => r.label)).toEqual([
+      'Upper-tail p (more shared than chance)',
+      'Lower-tail p (fewer shared)',
+      'Two-tailed p',
+      'Odds ratio',
+    ]);
   });
 });
 
@@ -186,7 +223,8 @@ describe('msetModel', () => {
       { overlap: 2, share: 0.005 },
     ]);
     expect(model.observed).toBe(45);
-    expect(model.pValue).toBe('0.000000');
+    // 0 of 1000 trials bounds p by 1/1000; it is not an exact 0.
+    expect(model.pValue).toBe('< 0.001 (no sample as extreme)');
     expect(model.trials).toBe('1000');
   });
 });

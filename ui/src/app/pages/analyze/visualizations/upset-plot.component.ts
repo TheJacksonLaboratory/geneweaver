@@ -9,13 +9,25 @@ import {
 import { NgIf } from '@angular/common';
 import { axisLeft, max, scaleBand, scaleLinear, select } from 'd3';
 
-import { ACCENT, MUTED, downloadSvg, freshSvg } from './chart-utils';
+import {
+  ACCENT,
+  ChartTooltip,
+  DIMMED,
+  downloadSvg,
+  freshSvg,
+  interactive,
+  MUTED,
+  percent,
+} from './chart-utils';
 import { genesetLabel, UpSetModel } from './models';
 
 /**
  * UpSet plot: one column per exclusive combination of gene sets, its size as a bar above
  * and its members as filled dots below; each gene set's size as a bar on the left.
  * Readable where a Venn diagram is not -- any number of sets.
+ *
+ * Hovering (or focusing) a column highlights its bar, its member sets and their rows;
+ * hovering a gene set highlights every combination that includes it.
  */
 @Component({
   selector: 'app-upset-plot',
@@ -46,14 +58,16 @@ export class UpsetPlotComponent implements OnChanges {
   }
 
   private draw(): void {
-    const { sets, bars } = this.model;
+    const { sets, bars, total } = this.model;
+    const host = this.chart.nativeElement;
     const left = 170;
     const top = 170;
     const row = 22;
     const col = Math.max(16, Math.min(28, 640 / Math.max(1, bars.length)));
     const width = left + col * bars.length + 20;
     const height = top + row * sets.length + 10;
-    const svg = freshSvg(this.chart.nativeElement, width, height, 'UpSet plot of gene set intersections');
+    const svg = freshSvg(host, width, height, 'UpSet plot of gene set intersections');
+    const tooltip = new ChartTooltip(host);
 
     const x = scaleBand<number>()
       .domain(bars.map((_, i) => i))
@@ -72,20 +86,33 @@ export class UpsetPlotComponent implements OnChanges {
 
     svg.append('g').attr('transform', `translate(${left},0)`).call(axisLeft(yBar).ticks(4));
 
+    // Row stripes behind the dots, so a hovered gene set reads across the whole matrix.
+    const stripes = svg
+      .append('g')
+      .selectAll('rect')
+      .data(sets)
+      .join('rect')
+      .attr('x', 0)
+      .attr('y', (s) => yRow(s.id) ?? 0)
+      .attr('width', width)
+      .attr('height', yRow.bandwidth())
+      .attr('fill', '#F1F5F9')
+      .attr('opacity', 0);
+
     const columns = svg
       .append('g')
       .selectAll('g')
       .data(bars)
       .join('g')
+      .attr('class', 'column')
       .attr('transform', (_, i) => `translate(${x(i)},0)`);
     columns
       .append('rect')
+      .attr('class', 'bar')
       .attr('y', (b) => yBar(b.size))
       .attr('width', x.bandwidth())
       .attr('height', (b) => yBar(0) - yBar(b.size))
-      .attr('fill', ACCENT)
-      .append('title')
-      .text((b) => `${b.sets.map(genesetLabel).join(' ∩ ')} only: ${b.size} genes`);
+      .attr('fill', ACCENT);
     columns
       .append('text')
       .attr('x', x.bandwidth() / 2)
@@ -117,6 +144,15 @@ export class UpsetPlotComponent implements OnChanges {
         .attr('r', r)
         .attr('fill', (s) => (bar.sets.includes(s.id) ? '#334155' : '#E2E8F0'));
     });
+    // A transparent hit area over each whole column: easier to hover than a thin bar.
+    const hits = columns
+      .append('rect')
+      .attr('class', 'hit')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', x.bandwidth())
+      .attr('height', height)
+      .attr('fill', 'transparent');
 
     // Gene set labels and their sizes.
     const labels = svg
@@ -124,6 +160,7 @@ export class UpsetPlotComponent implements OnChanges {
       .selectAll('g')
       .data(sets)
       .join('g')
+      .attr('class', 'set')
       .attr('transform', (s) => `translate(0,${yRow(s.id)})`);
     labels
       .append('rect')
@@ -131,13 +168,62 @@ export class UpsetPlotComponent implements OnChanges {
       .attr('y', 4)
       .attr('width', (s) => setWidth(s.size))
       .attr('height', yRow.bandwidth() - 8)
-      .attr('fill', MUTED)
-      .append('title')
-      .text((s) => `${genesetLabel(s.id)}: ${s.size} genes`);
+      .attr('fill', MUTED);
     labels
       .append('text')
       .attr('x', 4)
       .attr('y', yRow.bandwidth() / 2 + 4)
       .text((s) => genesetLabel(s.id));
+    const setHits = labels
+      .append('rect')
+      .attr('width', left - 4)
+      .attr('height', yRow.bandwidth())
+      .attr('fill', 'transparent');
+
+    const clear = () => {
+      columns.attr('opacity', 1);
+      labels.attr('opacity', 1);
+      stripes.attr('opacity', 0);
+    };
+    interactive(
+      hits,
+      tooltip,
+      (bar) => ({
+        title: bar.sets.map(genesetLabel).join(' ∩ '),
+        rows: [
+          { label: 'Genes in exactly these sets', value: String(bar.size) },
+          { label: 'Share of all genes', value: percent(bar.size, total) },
+        ],
+        note:
+          bar.sets.length === 1
+            ? `Genes found only in ${genesetLabel(bar.sets[0])}.`
+            : `In all ${bar.sets.length} of these sets, and in none of the others.`,
+      }),
+      (bar) => {
+        columns.attr('opacity', (b) => (b === bar ? 1 : DIMMED));
+        labels.attr('opacity', (s) => (bar.sets.includes(s.id) ? 1 : DIMMED));
+        stripes.attr('opacity', (s) => (bar.sets.includes(s.id) ? 1 : 0));
+      },
+      clear,
+    );
+    interactive(
+      setHits,
+      tooltip,
+      (set) => ({
+        title: genesetLabel(set.id),
+        rows: [
+          { label: 'Genes', value: String(set.size) },
+          { label: 'Only in this set', value: `${set.unique} (${percent(set.unique, set.size)})` },
+          { label: 'Shared with another set', value: String(Math.max(0, set.size - set.unique)) },
+        ],
+        note: 'Highlighting every combination that includes this set.',
+      }),
+      (set) => {
+        columns.attr('opacity', (b) => (b.sets.includes(set.id) ? 1 : DIMMED));
+        labels.attr('opacity', (s) => (s === set ? 1 : DIMMED));
+        stripes.attr('opacity', (s) => (s === set ? 1 : 0));
+      },
+      clear,
+    );
   }
 }

@@ -9,6 +9,19 @@
 
 // --- shared --------------------------------------------------------------------------
 
+/** One line of a tooltip: a label and its value. */
+export interface TooltipRow {
+  label: string;
+  value: string;
+}
+
+/** What a tooltip shows: a heading, label/value rows, and an optional closing note. */
+export interface TooltipContent {
+  title: string;
+  rows?: TooltipRow[];
+  note?: string;
+}
+
 /** How gene sets are labelled across every chart. */
 export function genesetLabel(id: string | number): string {
   return `GS${id}`;
@@ -25,6 +38,22 @@ export function formatP(p: number | null | undefined): string {
   return p < 0.001 ? p.toExponential(1) : p.toFixed(3);
 }
 
+/**
+ * An empirical p-value (from a sampled null distribution) for display.
+ *
+ * Unlike an exact p, a 0 here only means no sample was as extreme: it is bounded by the
+ * number of samples, so it must not be shown as "< 1e-300". With `samples` known it is
+ * shown as "< 1/samples"; without it, as below the distribution's resolution.
+ */
+export function formatEmpiricalP(p: number | null | undefined, samples?: number): string {
+  if (p === 0) {
+    return samples && samples > 0
+      ? `< ${formatP(1 / samples)} (no sample as extreme)`
+      : '≈ 0 (no sampled pair as similar)';
+  }
+  return formatP(p);
+}
+
 // --- UpSet -----------------------------------------------------------------------------
 
 export interface UpSetBar {
@@ -34,8 +63,10 @@ export interface UpSetBar {
 }
 
 export interface UpSetModel {
-  sets: { id: string; size: number }[];
+  sets: { id: string; size: number; unique: number }[];
   bars: UpSetBar[];
+  /** Genes in any of the sets: the sum of every exclusive combination. */
+  total: number;
   /** Combinations left out to keep the plot readable. */
   hidden: number;
 }
@@ -51,9 +82,16 @@ export function upsetModel(
     .filter((item) => item.size > 0)
     .map((item) => ({ sets: [...item.geneset_ids], size: item.size }))
     .sort((a, b) => b.size - a.size || a.sets.length - b.sets.length);
+  const uniqueTo = (id: string) =>
+    nonEmpty.find((bar) => bar.sets.length === 1 && bar.sets[0] === id)?.size ?? 0;
   return {
-    sets: genesetIds.map((id) => ({ id: String(id), size: geneCounts[String(id)] ?? 0 })),
+    sets: genesetIds.map((id) => ({
+      id: String(id),
+      size: geneCounts[String(id)] ?? 0,
+      unique: uniqueTo(String(id)),
+    })),
     bars: nonEmpty.slice(0, maxBars),
+    total: nonEmpty.reduce((sum, bar) => sum + bar.size, 0),
     hidden: Math.max(0, nonEmpty.length - maxBars),
   };
 }
@@ -67,8 +105,7 @@ export interface MatrixCell {
   value: number | null;
   /** Text inside the cell. */
   label: string;
-  /** Full description for the tooltip. */
-  detail: string;
+  tooltip: TooltipContent;
 }
 
 export interface MatrixModel {
@@ -102,6 +139,14 @@ function mirrored<T extends PairResult>(
   return cells;
 }
 
+const sameSet = (id: string): MatrixCell => ({
+  row: id,
+  col: id,
+  value: null,
+  label: '',
+  tooltip: { title: genesetLabel(id), note: 'The same gene set.' },
+});
+
 export interface JaccardSimilarityOutput {
   geneset_ids: string[];
   p_value_threshold: number;
@@ -119,26 +164,53 @@ export interface JaccardSimilarityOutput {
 /** Jaccard index per pair, coloured 0..1; the p-value goes in the tooltip. */
 export function jaccardMatrix(output: JaccardSimilarityOutput): MatrixModel {
   const ids = output.geneset_ids.map(String);
+  const threshold = output.p_value_threshold;
   const cells = mirrored(
     ids,
     output.results,
-    (r, row, col) => ({
-      row,
-      col,
-      value: r.jaccard,
-      label: r.jaccard.toFixed(2),
-      detail:
-        `${genesetLabel(row)} vs ${genesetLabel(col)}: Jaccard ${r.jaccard.toFixed(3)}, ` +
-        `p ${formatP(r.p_value)}, ${r.intersection} shared`,
-    }),
-    (id) => ({ row: id, col: id, value: null, label: '', detail: genesetLabel(id) }),
+    (r, row, col) => {
+      // The pair's counts are oriented i -> j; a mirrored cell swaps them back.
+      const [onlyRow, onlyCol] = row === ids[r.i] ? [r.only_i, r.only_j] : [r.only_j, r.only_i];
+      const significant = r.p_value !== null && r.p_value <= threshold;
+      return {
+        row,
+        col,
+        value: r.jaccard,
+        label: r.jaccard.toFixed(2),
+        tooltip: {
+          title: `${genesetLabel(row)} vs ${genesetLabel(col)}`,
+          rows: [
+            { label: 'Jaccard index', value: r.jaccard.toFixed(3) },
+            { label: 'p-value', value: r.p_value === null ? 'none' : formatEmpiricalP(r.p_value) },
+            ...(r.p_value === null
+              ? []
+              : [{ label: `Significant at p ≤ ${threshold}`, value: significant ? 'yes' : 'no' }]),
+            { label: 'Shared genes', value: String(r.intersection) },
+            { label: `Only in ${genesetLabel(row)}`, value: String(onlyRow) },
+            { label: `Only in ${genesetLabel(col)}`, value: String(onlyCol) },
+          ],
+          note:
+            r.p_value === null
+              ? 'No null distribution covers these two set sizes, so there is no p-value.'
+              : undefined,
+        },
+      };
+    },
+    sameSet,
   );
   return { ids, cells, domain: [0, 1], legend: 'Jaccard index' };
 }
 
 export interface HyperGeometricOutput {
   geneset_ids: string[];
-  results: { i: number; j: number; upper_tail: number; odds_ratio: number | null }[];
+  results: {
+    i: number;
+    j: number;
+    upper_tail: number;
+    lower_tail?: number;
+    two_tailed?: number;
+    odds_ratio: number | null;
+  }[];
 }
 
 /** Smallest representable p, so -log10 stays finite for an exact 0. */
@@ -152,17 +224,28 @@ export function hypergeometricMatrix(output: HyperGeometricOutput): MatrixModel 
     output.results,
     (r, row, col) => {
       const score = -Math.log10(Math.max(r.upper_tail, P_FLOOR));
+      const rows: TooltipRow[] = [
+        { label: 'Upper-tail p (more shared than chance)', value: formatP(r.upper_tail) },
+      ];
+      if (r.lower_tail !== undefined) {
+        rows.push({ label: 'Lower-tail p (fewer shared)', value: formatP(r.lower_tail) });
+      }
+      if (r.two_tailed !== undefined) {
+        rows.push({ label: 'Two-tailed p', value: formatP(r.two_tailed) });
+      }
+      rows.push({
+        label: 'Odds ratio',
+        value: r.odds_ratio === null ? 'undefined' : r.odds_ratio.toFixed(2),
+      });
       return {
         row,
         col,
         value: score,
         label: formatP(r.upper_tail),
-        detail:
-          `${genesetLabel(row)} vs ${genesetLabel(col)}: upper-tail p ${formatP(r.upper_tail)}` +
-          (r.odds_ratio === null ? '' : `, odds ratio ${r.odds_ratio.toFixed(2)}`),
+        tooltip: { title: `${genesetLabel(row)} vs ${genesetLabel(col)}`, rows },
       };
     },
-    (id) => ({ row: id, col: id, value: null, label: '', detail: genesetLabel(id) }),
+    sameSet,
   );
   const max = Math.max(1, ...cells.map((c) => c.value ?? 0));
   return { ids, cells, domain: [0, max], legend: '−log10 upper-tail p' };
@@ -429,13 +512,19 @@ export function msetModel(output: {
   mset_hist: Record<string, string>;
 }): MsetModel {
   const observed = Number.parseInt(output.mset_data['List 1/2 Intersect'] ?? '', 10);
+  const rawP = output.mset_data['P-Value'];
+  const trials = Number.parseInt(output.mset_data['Num Trials'] ?? '', 10);
+  const pValue =
+    rawP === undefined
+      ? 'unknown'
+      : formatEmpiricalP(Number(rawP), Number.isFinite(trials) ? trials : undefined);
   return {
     bins: Object.entries(output.mset_hist)
       .map(([overlap, share]) => ({ overlap: Number(overlap), share: Number(share) }))
       .filter((bin) => Number.isFinite(bin.overlap) && Number.isFinite(bin.share))
       .sort((a, b) => a.overlap - b.overlap),
     observed: Number.isFinite(observed) ? observed : output.intersect_genes.length,
-    pValue: output.mset_data['P-Value'] ?? 'unknown',
+    pValue,
     trials: output.mset_data['Num Trials'] ?? 'unknown',
     summary: Object.entries(output.mset_data).map(([label, value]) => ({ label, value })),
   };

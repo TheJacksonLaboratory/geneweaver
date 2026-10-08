@@ -10,7 +10,7 @@ import {
 import { schemeTableau10 } from 'd3';
 import { TableModule } from 'primeng/table';
 
-import { downloadSvg, freshSvg } from './chart-utils';
+import { ChartTooltip, downloadSvg, freshSvg, interactive } from './chart-utils';
 import { BooleanModel, genesetLabel, vennLayout } from './models';
 
 /**
@@ -112,25 +112,55 @@ export class VennComponent implements OnChanges {
       return { dx: dx / length, dy: dy / length };
     };
 
-    const svg = freshSvg(this.chart.nativeElement, size, size, 'Venn diagram of the gene sets');
+    const host = this.chart.nativeElement;
+    const svg = freshSvg(host, size, size, 'Venn diagram of the gene sets');
+    const tooltip = new ChartTooltip(host);
     const g = svg.append('g').selectAll('g').data(circles).join('g');
-    g.append('circle')
+    const discs = g
+      .append('circle')
       .attr('cx', (c) => px(c.x))
       .attr('cy', (c) => py(c.y))
       .attr('r', (c) => c.r * scale)
       .attr('fill', (_, i) => schemeTableau10[i])
       .attr('fill-opacity', 0.25)
       .attr('stroke', (_, i) => schemeTableau10[i])
-      .attr('stroke-width', 2)
-      .append('title')
-      .text((c) => `${genesetLabel(c.id)}: ${c.size} genes`);
+      .attr('stroke-width', 2);
     g.append('text')
       .attr('x', (c) => px(c.x) + outward(c).dx * (c.r * scale + 8))
       .attr('y', (c) => py(c.y) + outward(c).dy * (c.r * scale + 8) + 4)
       .attr('text-anchor', (c) => (outward(c).dx > 0.3 ? 'start' : outward(c).dx < -0.3 ? 'end' : 'middle'))
       .attr('fill', (_, i) => schemeTableau10[i])
+      .attr('pointer-events', 'none')
       .style('font-weight', '600')
       .text((c) => `${genesetLabel(c.id)} (${c.size})`);
+
+    const unique = (id: number) =>
+      this.model.combinations.find((c) => c.sets.length === 1 && c.sets[0] === id)?.size ?? 0;
+    const inAll = this.model.combinations.find((c) => c.sets.length === circles.length)?.size ?? 0;
+    interactive(
+      discs,
+      tooltip,
+      (circle) => ({
+        title: genesetLabel(circle.id),
+        rows: [
+          { label: 'Genes', value: String(circle.size) },
+          { label: 'Only in this set', value: String(unique(circle.id)) },
+          ...circles
+            .filter((other) => other.id !== circle.id)
+            .map((other) => ({
+              label: `Shared with ${genesetLabel(other.id)}`,
+              value: String(this.shared(circle.id, other.id)),
+            })),
+          ...(circles.length === 3 ? [{ label: 'In all three', value: String(inAll) }] : []),
+        ],
+        note: 'Circle areas are proportional to set sizes, and overlaps to shared genes.',
+      }),
+      (circle) =>
+        discs
+          .attr('fill-opacity', (c) => (c === circle ? 0.55 : 0.12))
+          .attr('stroke-width', (c) => (c === circle ? 3 : 1)),
+      () => discs.attr('fill-opacity', 0.25).attr('stroke-width', 2),
+    );
     return true;
   }
 }
