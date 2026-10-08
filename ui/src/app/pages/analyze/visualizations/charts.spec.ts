@@ -44,6 +44,17 @@ function leave(host: HTMLElement, mark: Element): void {
   expect((host.querySelector('.chart-tooltip') as HTMLElement).style.display).toBe('none');
 }
 
+describe('chart accessibility', () => {
+  it('is a labelled group, not an image, so its focusable marks stay exposed', () => {
+    const host = render(HeatmapComponent, { model: jaccardMatrix(FIXTURES.jaccard_similarity_pair) });
+    const svg = host.querySelector('svg')!;
+    expect(svg.getAttribute('role')).toBe('group');
+    expect(svg.getAttribute('aria-roledescription')).toBe('chart');
+    const cells = Array.from(host.querySelectorAll('svg g > g > rect'));
+    expect(cells.every((c) => c.getAttribute('tabindex') === '0' && c.getAttribute('aria-label'))).toBe(true);
+  });
+});
+
 describe('HeatmapComponent', () => {
   it('a cell per ordered pair; hovering one gives the pair\'s statistics', () => {
     const model = jaccardMatrix(FIXTURES.jaccard_similarity_pair);
@@ -134,6 +145,35 @@ describe('ClusterPackComponent', () => {
     expect(view.getAttribute('data-focus')).toBeNull();
   });
 
+  it('zooms from the keyboard: Enter on a cluster, Escape or the button to come back', () => {
+    const model = dbscanModel({ ran: true, clusters: [['A', 'B'], ['C', 'D', 'E']] })!;
+    const fixture = TestBed.createComponent(ClusterPackComponent);
+    fixture.componentInstance.model = model;
+    fixture.componentInstance.ngOnChanges();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    const view = host.querySelector('svg > g') as SVGGElement;
+    const outline = host.querySelector('svg > g > g > circle') as SVGCircleElement;
+    expect(outline.getAttribute('role')).toBe('button');
+
+    outline.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    fixture.detectChanges();
+    expect(view.getAttribute('data-focus')).not.toBeNull();
+    const reset = Array.from(host.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Show all clusters'),
+    )!;
+    expect(reset).toBeDefined();
+
+    reset.click();
+    fixture.detectChanges();
+    expect(view.getAttribute('data-focus')).toBeNull();
+
+    outline.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    expect(view.getAttribute('data-focus')).not.toBeNull();
+    outline.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(view.getAttribute('data-focus')).toBeNull();
+  });
+
   it('zooms without animating when the user prefers reduced motion', () => {
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({ matches: query.includes('reduce') })) as typeof window.matchMedia;
@@ -165,6 +205,38 @@ describe('VennComponent', () => {
     expect(text).toContain(`Shared with GS${model.sets[1].id}`);
   });
 
+  it('keeps the labels of identical sets apart', () => {
+    // Two identical sets: both circles sit on the centroid, so "away from the group" has no
+    // direction; the labels must still not land on the same point.
+    const model = booleanModel({
+      relation: 'Union',
+      at_least: 2,
+      geneset_ids: [1, 2],
+      bool_results: { a: [[1, 'A', 1, 1], [1, 'A', 1, 2]], b: [[2, 'B', 1, 1], [2, 'B', 1, 2]] },
+      circle_groups: { a: [1, 2], b: [1, 2] },
+    });
+    const host = render(VennComponent, { model });
+    const labels = Array.from(host.querySelectorAll('svg g > g > text'));
+    expect(labels).toHaveLength(2);
+    expect(labels[0].getAttribute('x')).not.toBe(labels[1].getAttribute('x'));
+  });
+
+  it('warns when Except leaves out genes that are in only one set', () => {
+    const model = booleanModel({
+      relation: 'Except',
+      at_least: 2,
+      geneset_ids: [1, 2],
+      bool_results: {
+        dup: [[10, 'Ppp1ccb', 1, 1], [10, 'Mm.334198', 1, 1]],
+        solo: [[11, 'Kit', 1, 2]],
+      },
+      circle_groups: { dup: [1, 1], solo: [2] },
+      bool_except: { '1': { solo: [[11, 'Kit', 1, 2]] } },
+    });
+    const host = render(VennComponent, { model });
+    expect(host.textContent).toContain('1 genes that are in only one gene set are missing');
+  });
+
   it('falls back to the combination table for more than three gene sets', () => {
     const model = booleanModel(output);
     expect(model.sets.length).toBeGreaterThan(3);
@@ -191,6 +263,20 @@ describe('MsetHistogramComponent', () => {
     expect(host.querySelector('svg line')).not.toBeNull();
     expect(host.textContent).toContain('observed 45 · p < 0.001');
     expect(host.textContent).toContain('Universe Size');
+  });
+
+  it('never labels a negative overlap on a small axis', () => {
+    // The domain starts at -1 to keep the 0 bar off the axis; -1 must not be a tick label.
+    const model = msetModel({
+      intersect_genes: ['A'],
+      mset_data: { 'List 1/2 Intersect': '3', 'P-Value': '0.2', 'Num Trials': '10' },
+      mset_hist: { '0': '0.5', '1': '0.3', '2': '0.2' },
+    });
+    const host = render(MsetHistogramComponent, { model });
+    const ticks = Array.from(host.querySelectorAll('svg .tick text')).map((t) => t.textContent ?? '');
+    expect(ticks.length).toBeGreaterThan(0);
+    expect(ticks.some((t) => /^[-−]/.test(t))).toBe(false);
+    expect(ticks.every((t) => /^\d+$/.test(t.replace('%', '')))).toBe(true);
   });
 
   it('hovering a bar gives its share of trials; the marker gives the p-value', () => {

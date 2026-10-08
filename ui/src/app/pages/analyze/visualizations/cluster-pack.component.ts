@@ -1,4 +1,6 @@
+import { NgIf } from '@angular/common';
 import {
+  ChangeDetectorRef,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
@@ -29,14 +31,34 @@ import { PackNode } from './models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
-      Download SVG
-    </button>
+    <div class="flex gap-2">
+      <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+        Download SVG
+      </button>
+      <button
+        *ngIf="zoomed"
+        type="button"
+        class="p-button p-button-sm p-button-text"
+        (click)="zoomOut()"
+      >
+        Show all clusters
+      </button>
+    </div>
   `,
+  imports: [NgIf],
 })
 export class ClusterPackComponent implements OnChanges {
   @Input({ required: true }) model!: PackNode;
   @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  /** Whether a cluster is zoomed into; shows the keyboard-reachable way back out. */
+  zoomed = false;
+  private zoom: (target: HierarchyCircularNode<PackNode> | null) => void = () => undefined;
+
+  constructor(private changes: ChangeDetectorRef) {}
+
+  zoomOut(): void {
+    this.zoom(null);
+  }
 
   ngOnChanges(): void {
     this.draw();
@@ -130,11 +152,27 @@ export class ClusterPackComponent implements OnChanges {
         view.transition().duration(500).attr('transform', transform);
       }
     };
-    outlines.on('click', (event: MouseEvent, c) => {
-      event.stopPropagation();
-      zoomTo(focused === c ? null : c);
-    });
-    background.on('click', () => zoomTo(null));
+    this.zoom = (target) => {
+      zoomTo(target);
+      this.zoomed = target !== null;
+      this.changes.markForCheck();
+    };
+    // Clusters behave as buttons: click, or Enter / Space when focused, toggles the zoom.
+    outlines
+      .attr('role', 'button')
+      .on('click', (event: MouseEvent, c) => {
+        event.stopPropagation();
+        this.zoom(focused === c ? null : c);
+      })
+      .on('keydown', (event: KeyboardEvent, c) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          this.zoom(focused === c ? null : c);
+        } else if (event.key === 'Escape') {
+          this.zoom(null);
+        }
+      });
+    background.on('click', () => this.zoom(null));
 
     interactive(
       outlines,
@@ -147,7 +185,7 @@ export class ClusterPackComponent implements OnChanges {
             { label: 'Genes', value: String(members.length) },
             { label: 'Share of clustered genes', value: percent(members.length, totalGenes) },
           ],
-          note: 'Click to zoom in; click the background to zoom out.',
+          note: 'Click, or press Enter, to zoom in; Escape or the background to zoom out.',
         };
       },
       (c) => groups.attr('opacity', (o) => (o === c ? 1 : DIMMED)),

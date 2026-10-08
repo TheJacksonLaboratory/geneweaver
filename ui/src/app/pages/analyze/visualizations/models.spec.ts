@@ -30,7 +30,7 @@ describe('formatP', () => {
 describe('formatEmpiricalP', () => {
   it('bounds a sampled p of 0 by the sample count, never "< 1e-300"', () => {
     expect(formatEmpiricalP(0, 1000)).toBe('< 0.001 (no sample as extreme)');
-    expect(formatEmpiricalP(0)).toBe('≈ 0 (no sampled pair as similar)');
+    expect(formatEmpiricalP(0)).toBe('≈ 0 (no sample as extreme)');
     expect(formatEmpiricalP(0.002)).toBe('0.002');
   });
 });
@@ -87,6 +87,21 @@ describe('pairwise matrices', () => {
     expect(rows['Only in GS400405']).toBe('22');
     expect(rows['Only in GS14923']).toBe('18');
     expect(model.cells.filter((c) => c.row === c.col).every((c) => c.value === null)).toBe(true);
+  });
+
+  it('JaccardSimilarity: a p of 0 means no null distribution, never "significant"', () => {
+    // The tool returns 0.0 only when no distribution covers the pair; a computed p counts
+    // the observation itself, so it is never 0. 9 of these 10 dev pairs are uncovered.
+    const model = jaccardMatrix(FIXTURES.jaccard_similarity);
+    const zero = FIXTURES.jaccard_similarity.results.find((r) => r.p_value === 0)!;
+    const cell = model.cells.find(
+      (c) => c.row === model.ids[zero.i] && c.col === model.ids[zero.j],
+    )!;
+    const rows = Object.fromEntries((cell.tooltip.rows ?? []).map((r) => [r.label, r.value]));
+    expect(rows['p-value']).toBe('none');
+    expect(Object.keys(rows).some((label) => label.startsWith('Significant'))).toBe(false);
+    expect(cell.tooltip.note).toContain('no p-value');
+    expect(FIXTURES.jaccard_similarity.results.filter((r) => r.p_value === 0)).toHaveLength(9);
   });
 
   it('JaccardSimilarity: every pair of five gene sets is drawn, both ways', () => {
@@ -176,6 +191,26 @@ describe('booleanModel', () => {
     expect(model.belowThreshold).toBe(model.result.filter((g) => g.sets.length < 2).length);
     expect(model.belowThreshold).toBeGreaterThan(0);
     expect(FIXTURES.boolean_algebra_full_counts).toEqual({ genes: 448, in_two_or_more: 95, intersect_keys: 447 });
+  });
+
+  it('Except: counts single-set genes the tool dropped, which it would otherwise hide', () => {
+    // Gene "dup" is only in set 1, but has two identifier rows there; the tool's
+    // row-counting `bool_except` drops it (G3-830). "solo" has one row and is kept.
+    const model = booleanModel({
+      relation: 'Except',
+      at_least: 2,
+      geneset_ids: [1, 2],
+      bool_results: {
+        dup: [[10, 'Ppp1ccb', 1, 1], [10, 'Mm.334198', 1, 1]],
+        solo: [[11, 'Kit', 1, 2]],
+        both: [[12, 'Drd2', 1, 1], [12, 'Drd2', 1, 2]],
+      },
+      circle_groups: { dup: [1, 1], solo: [2], both: [1, 2] },
+      bool_except: { '1': { solo: [[11, 'Kit', 1, 2]] } },
+    });
+    expect(model.result.map((g) => g.key)).toEqual(['solo']);
+    expect(model.missingFromExcept).toBe(1);
+    expect(model.belowThreshold).toBe(0);
   });
 
   it('union answers every gene; combinations count exact membership', () => {

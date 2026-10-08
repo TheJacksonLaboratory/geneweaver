@@ -31,7 +31,10 @@ export function freshSvg(
     .append('svg')
     .attr('viewBox', `0 0 ${width} ${height}`)
     .attr('width', '100%')
-    .attr('role', 'img')
+    // A labelled group, not role="img": an image role makes every descendant presentational,
+    // which would hide the focusable, labelled marks from assistive technology.
+    .attr('role', 'group')
+    .attr('aria-roledescription', 'chart')
     .attr('aria-label', label)
     .style('max-width', `${width}px`)
     .style('font', '11px sans-serif');

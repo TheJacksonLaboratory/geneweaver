@@ -34,6 +34,7 @@ interface SelectedBiclique {
   standalone: true,
   imports: [NgIf, NgFor],
   template: `
+    <!-- The canvas is a picture for sighted users; the list below is the accessible way in. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label"></div>
     <div class="flex gap-2 mt-2">
       <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
@@ -42,9 +43,20 @@ interface SelectedBiclique {
       </button>
     </div>
     <p class="text-sm text-color-secondary mt-1">
-      Click a node to list its gene sets and genes. Drag to pan, scroll to zoom.
+      Click a node, or choose a biclique below, to list its gene sets and genes. Drag to pan,
+      scroll to zoom.
     </p>
-    <div *ngIf="selected" class="p-3 surface-100 border-round text-sm">
+    <label class="block text-sm mb-1" for="biclique-picker">Biclique</label>
+    <select
+      id="biclique-picker"
+      class="p-inputtext p-inputtext-sm mb-2 w-full"
+      [value]="selectedId ?? ''"
+      (change)="select($any($event.target).value)"
+    >
+      <option value="">Choose a biclique…</option>
+      <option *ngFor="let option of options" [value]="option.id">{{ option.label }}</option>
+    </select>
+    <div *ngIf="selected" class="p-3 surface-100 border-round text-sm" aria-live="polite">
       <div><strong>Gene sets ({{ selected.genesets.length }}):</strong>
         {{ setLabels(selected.genesets) }}</div>
       <div class="mt-1"><strong>Genes ({{ selected.genes.length }}):</strong>
@@ -58,17 +70,54 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
 
   selected?: SelectedBiclique;
+  selectedId?: string;
+  /** Every displayed biclique, top level first, for the keyboard-operable picker. */
+  options: { id: string; label: string }[] = [];
   label = 'PhenomeMap biclique graph';
   private cy?: Core;
+  private details = new Map<string, SelectedBiclique>();
+  private destroyed = false;
+  /** Bumped per change, so a slow import for an older result does not draw over a newer one. */
+  private generation = 0;
 
   constructor(private changes: ChangeDetectorRef) {}
 
   async ngOnChanges(): Promise<void> {
+    const generation = ++this.generation;
     const elements = phenomeMapElements(this.result) as ElementDefinition[];
     const nodes = elements.filter((e) => e.group === 'nodes');
     this.label = `PhenomeMap graph of ${nodes.length} bicliques`;
     this.selected = undefined;
+    this.selectedId = undefined;
+    this.details = new Map(
+      nodes.map((node) => [
+        String(node.data.id),
+        {
+          genesets: node.data['genesets'] as string[],
+          genes: node.data['genes'] as string[],
+          depth: node.data['depth'] as number,
+        },
+      ]),
+    );
+    this.options = nodes
+      .map((node) => {
+        const genesets = node.data['genesets'] as string[];
+        return {
+          id: String(node.data.id),
+          depth: node.data['depth'] as number,
+          label: `Level ${node.data['depth']}: ${node.data['label']} (${this.setLabels(genesets)})`,
+        };
+      })
+      .sort((a, b) => a.depth - b.depth)
+      .map(({ id, label }) => ({ id, label }));
+
     const cytoscape = (await import('cytoscape')).default;
+    // The import is async: the component may have been destroyed, or handed a newer result,
+    // while it loaded. Creating an instance then would leak it (nothing would destroy it) or
+    // draw a stale graph.
+    if (this.destroyed || generation !== this.generation) {
+      return;
+    }
     this.cy?.destroy();
     this.cy = cytoscape({
       container: this.graph.nativeElement,
@@ -103,11 +152,20 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
       // Positions come from the tool's own levels (`phenomeMapPositions`), not inferred.
       layout: { name: 'preset', fit: true, padding: 20 },
     });
-    this.cy.on('tap', 'node', (event) => {
-      const data = event.target.data();
-      this.selected = { genesets: data.genesets, genes: data.genes, depth: data.depth };
-      this.changes.markForCheck();
-    });
+    this.cy.on('tap', 'node', (event) => this.select(String(event.target.id())));
+  }
+
+  /** One selection path for both a click on the graph and the picker. */
+  select(id: string): void {
+    this.selectedId = id || undefined;
+    this.selected = id ? this.details.get(id) : undefined;
+    if (this.cy) {
+      this.cy.$(':selected').unselect();
+      if (id) {
+        this.cy.getElementById(id).select();
+      }
+    }
+    this.changes.markForCheck();
   }
 
   setLabels(ids: string[]): string {
@@ -127,6 +185,7 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.cy?.destroy();
   }
 }

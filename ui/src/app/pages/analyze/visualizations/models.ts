@@ -49,7 +49,7 @@ export function formatEmpiricalP(p: number | null | undefined, samples?: number)
   if (p === 0) {
     return samples && samples > 0
       ? `< ${formatP(1 / samples)} (no sample as extreme)`
-      : '≈ 0 (no sampled pair as similar)';
+      : '≈ 0 (no sample as extreme)';
   }
   return formatP(p);
 }
@@ -171,7 +171,11 @@ export function jaccardMatrix(output: JaccardSimilarityOutput): MatrixModel {
     (r, row, col) => {
       // The pair's counts are oriented i -> j; a mirrored cell swaps them back.
       const [onlyRow, onlyCol] = row === ids[r.i] ? [r.only_i, r.only_j] : [r.only_j, r.only_i];
-      const significant = r.p_value !== null && r.p_value <= threshold;
+      // 0 is not a tiny p: the tool returns 0.0 exactly when no null distribution covers the
+      // pair (`empirical_p_value`), and a computed p is never 0 because it counts the
+      // observation itself. So 0 means "no p-value", and must never read as significant.
+      const hasP = r.p_value !== null && r.p_value > 0;
+      const significant = hasP && (r.p_value as number) <= threshold;
       return {
         row,
         col,
@@ -181,18 +185,17 @@ export function jaccardMatrix(output: JaccardSimilarityOutput): MatrixModel {
           title: `${genesetLabel(row)} vs ${genesetLabel(col)}`,
           rows: [
             { label: 'Jaccard index', value: r.jaccard.toFixed(3) },
-            { label: 'p-value', value: r.p_value === null ? 'none' : formatEmpiricalP(r.p_value) },
-            ...(r.p_value === null
-              ? []
-              : [{ label: `Significant at p ≤ ${threshold}`, value: significant ? 'yes' : 'no' }]),
+            { label: 'p-value', value: hasP ? formatP(r.p_value) : 'none' },
+            ...(hasP
+              ? [{ label: `Significant at p ≤ ${threshold}`, value: significant ? 'yes' : 'no' }]
+              : []),
             { label: 'Shared genes', value: String(r.intersection) },
             { label: `Only in ${genesetLabel(row)}`, value: String(onlyRow) },
             { label: `Only in ${genesetLabel(col)}`, value: String(onlyCol) },
           ],
-          note:
-            r.p_value === null
-              ? 'No null distribution covers these two set sizes, so there is no p-value.'
-              : undefined,
+          note: hasP
+            ? undefined
+            : 'No null distribution covers these two set sizes, so there is no p-value.',
         },
       };
     },
@@ -337,6 +340,11 @@ export interface BooleanModel {
    * by symbol and by UniGene id in one set passes "in at least 2"); shown, not hidden.
    */
   belowThreshold: number;
+  /**
+   * For Except, genes in exactly one distinct gene set that the tool left out. The same
+   * row counting drops them: two identifier rows in one set look like two sets (G3-830).
+   */
+  missingFromExcept: number;
   /** Exact membership combinations across every gene, largest first. */
   combinations: { sets: number[]; size: number }[];
 }
@@ -400,6 +408,11 @@ export function booleanModel(output: BooleanAlgebraOutput): BooleanModel {
     belowThreshold:
       relation === 'intersection'
         ? result.filter((gene) => gene.sets.length < output.at_least).length
+        : 0,
+    missingFromExcept:
+      relation === 'except'
+        ? [...genes.values()].filter((gene) => gene.sets.length === 1 && !resultKeys.has(gene.key))
+            .length
         : 0,
     combinations: [...combos.entries()]
       .map(([signature, size]) => ({

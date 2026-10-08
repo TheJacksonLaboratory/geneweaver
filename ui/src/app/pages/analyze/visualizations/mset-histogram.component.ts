@@ -7,7 +7,7 @@ import {
   OnChanges,
   ViewChild,
 } from '@angular/core';
-import { axisBottom, axisLeft, max, scaleLinear } from 'd3';
+import { axisBottom, axisLeft, format, max, scaleLinear } from 'd3';
 
 import { ACCENT, ChartTooltip, downloadSvg, freshSvg, HIGHLIGHT, interactive } from './chart-utils';
 import { MsetModel } from './models';
@@ -87,7 +87,13 @@ export class MsetHistogramComponent implements OnChanges {
     svg
       .append('g')
       .attr('transform', `translate(0,${height - m.bottom})`)
-      .call(axisBottom(x).ticks(Math.min(10, xMax)));
+      // The domain starts at -1 only to keep the 0 bar off the y axis; an overlap count is a
+      // non-negative integer, so only those are labelled.
+      .call(
+        axisBottom(x)
+          .tickValues(x.ticks(Math.min(10, xMax)).filter((t) => t >= 0 && Number.isInteger(t)))
+          .tickFormat(format('d')),
+      );
     svg
       .append('g')
       .attr('transform', `translate(${m.left},0)`)

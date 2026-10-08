@@ -24,6 +24,11 @@ import { BooleanModel, genesetLabel, vennLayout } from './models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIf, NgFor, TableModule],
   template: `
+    <div *ngIf="model.missingFromExcept" class="p-3 mb-3 border-round surface-100 text-sm warn">
+      {{ model.missingFromExcept }} genes that are in only one gene set are missing from this
+      result. The tool counts a gene once per identifier (symbol and UniGene id, say), so a gene
+      listed twice in one set looks like it is in two, and is left out (G3-830).
+    </div>
     <div *ngIf="model.belowThreshold" class="p-3 mb-3 border-round surface-100 text-sm warn">
       {{ model.belowThreshold }} of the {{ model.result.length }} genes in this
       {{ model.relation.toLowerCase() }} are in fewer than {{ model.atLeast }} distinct gene sets.
@@ -108,7 +113,13 @@ export class VennComponent implements OnChanges {
     const outward = (c: (typeof circles)[number]) => {
       const dx = c.x - cx;
       const dy = c.y - cy;
-      const length = Math.hypot(dx, dy) || 1;
+      const length = Math.hypot(dx, dy);
+      if (length < 1e-9) {
+        // At the centroid (identical sets drawn on top of each other): no direction points
+        // away, so spread the labels evenly around the circle by index, starting left.
+        const angle = Math.PI + (2 * Math.PI * circles.indexOf(c)) / circles.length;
+        return { dx: Math.cos(angle), dy: Math.sin(angle) };
+      }
       return { dx: dx / length, dy: dy / length };
     };
 
