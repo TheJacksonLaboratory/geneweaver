@@ -401,6 +401,11 @@ def homolog_annotations(
     formatted into the string -- legacy interpolated them, which is the pattern `CLAUDE.md`
     forbids.
 
+    Its filter is legacy's, ``gdb_id = 7`` included: one row per gene, its preferred symbol.
+    ``ode_pref`` alone is not one per gene -- on dev a gene can have a preferred UniGene id
+    as well (``Ppp1ccb`` and ``Mm.334198``) -- and BooleanAlgebra counts rows, so a gene in
+    one set with two identifiers passed "in at least 2 sets" (G3-830).
+
     :param cursor: The database cursor.
     :param geneset_ids: The gene sets whose members to return.
     :param species_ids: Species to look for homologs in.
@@ -426,6 +431,7 @@ def homolog_annotations(
         ) hom ON g.ode_gene_id = hom.ode_gene_id
         WHERE gv.gs_id = ANY(%(geneset_ids)s)
           AND gv.gsv_in_threshold
+          AND g.gdb_id = 7
           AND g.ode_pref = TRUE
         ORDER BY hom.hom_source_id, gv.gs_id;
         """,

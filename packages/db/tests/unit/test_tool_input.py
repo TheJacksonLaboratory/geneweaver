@@ -100,6 +100,23 @@ class TestHomologousGeneSymbols:
         cursor.execute.assert_not_called()
 
 
+class TestHomologAnnotations:
+    """BooleanAlgebra's input: one row per gene in each set, as legacy's query gave."""
+
+    def test_one_row_per_gene_by_its_preferred_symbol(self) -> None:
+        """``ode_pref`` alone admits a gene's preferred UniGene id too (G3-830).
+
+        BooleanAlgebra counts rows, so two identifiers for one gene in one set counted as
+        two sets; legacy's ``gdb_id = 7`` is what keeps it to one.
+        """
+        cursor = _cursor([])
+        tool_input.homolog_annotations(cursor, [1, 2], [1])
+        sql, params = cursor.execute.call_args.args
+        assert "g.gdb_id = 7" in sql
+        assert "g.ode_pref = TRUE" in sql
+        assert params == {"geneset_ids": [1, 2], "species_ids": [1]}
+
+
 class TestPlatformQueries:
     """What pairwise deletion reads: each set's platform, and a platform's genes."""
 
