@@ -257,11 +257,251 @@ describe('AnalyzeComponent tool list', () => {
     component.selectedTool = 'dbscan';
     component.run();
     expect(posted.at(-1)?.path).toBe('/tools/dbscan');
-    expect(posted.at(-1)?.body).toMatchObject({ parameters: { epsilon: 1, min_points: 2 } });
+  });
+});
 
-    component.selectedTool = 'boolean_algebra';
+/**
+ * Each tool's options, with legacy's defaults from `odestatic.tool_param`, and the exact
+ * body each sends. Defaults are sent explicitly because legacy's are not always the API's.
+ */
+describe('AnalyzeComponent tool options', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+  let posted: { path: string; body: unknown }[];
+
+  const apiStub = {
+    get: (path: string) =>
+      path === '/tools'
+        ? of({
+            object: {
+              // Every tool runnable here: the options are under test, not availability.
+              tools: Object.fromEntries(
+                Object.keys(TOOL_LIST).map((key) => [key, { available: true }]),
+              ),
+            },
+          })
+        : of({ object: {} }),
+    post: (path: string, body: unknown) => {
+      posted.push({ path, body });
+      return of({ object: { tool: 'stub', geneset_ids: [], gene_counts: {}, result: {} } });
+    },
+  };
+
+  beforeEach(async () => {
+    posted = [];
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+        sessionProvider,
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.genesetIdInput = ['1', '2'];
+  });
+
+  /** Select a tool, render, and return the page. */
+  const choose = async (tool: string): Promise<HTMLElement> => {
+    component.selectedTool = tool;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+
+  const runAndRead = () => {
     component.run();
-    expect(posted.at(-1)?.body).toMatchObject({ parameters: { relation: 'intersection' } });
+    return posted.at(-1)!;
+  };
+
+  it.each([
+    ['upset', '/tools/upset', { geneset_ids: [1, 2], include_homology: true, include_zeros: false }],
+    [
+      'jaccard_similarity',
+      '/tools/jaccard_similarity',
+      {
+        geneset_ids: [1, 2],
+        parameters: { include_homology: true, pairwise_deletion: false, p_value_threshold: 1.0 },
+      },
+    ],
+    [
+      'jaccard_clustering',
+      '/tools/jaccard_clustering',
+      { geneset_ids: [1, 2], parameters: { include_homology: true, method: 'ward' } },
+    ],
+    [
+      'hypergeometric',
+      '/tools/hypergeometric',
+      { geneset_ids: [1, 2], parameters: { include_homology: true, pairwise_deletion: false } },
+    ],
+    ['combine', '/tools/combine', { geneset_ids: [1, 2], parameters: { include_homology: true } }],
+    [
+      'boolean_algebra',
+      '/tools/boolean_algebra',
+      { geneset_ids: [1, 2], parameters: { relation: 'union' } },
+    ],
+    [
+      'dbscan',
+      '/tools/dbscan',
+      { geneset_ids: [1, 2], parameters: { include_homology: true, epsilon: 1, min_points: 1 } },
+    ],
+    ['mset', '/tools/mset', { geneset_ids: [1, 2], parameters: { number_of_samples: 5000 } }],
+    [
+      'phenome_map',
+      '/tools/phenome_map',
+      {
+        geneset_ids: [1, 2],
+        parameters: {
+          include_homology: true,
+          disable_bootstrap: false,
+          use_fdr: false,
+          p_value_threshold: 1.0,
+          min_genes: 1,
+          max_level: 40,
+        },
+      },
+    ],
+  ])('%s sends legacy\'s defaults', async (tool, path, body) => {
+    await choose(tool);
+    const sent = runAndRead();
+    expect(sent.path).toBe(path);
+    expect(sent.body).toEqual(body);
+  });
+
+  it('JaccardSimilarity sends a changed pairwise deletion and p-value from the form', async () => {
+    const page = await choose('jaccard_similarity');
+    const pairwise = page.querySelector<HTMLInputElement>('#option-pairwise_deletion')!;
+    pairwise.click();
+    const threshold = page.querySelector<HTMLSelectElement>('#option-p_value_threshold')!;
+    // The choices are legacy's, labels as written.
+    expect(Array.from(threshold.options).map((option) => option.textContent?.trim())).toEqual([
+      '1.0',
+      '0.5',
+      '0.10',
+      '0.05',
+      '0.01',
+    ]);
+    threshold.selectedIndex = 3;
+    threshold.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { include_homology: true, pairwise_deletion: true, p_value_threshold: 0.05 },
+    });
+  });
+
+  it('Homology can be excluded, and the radio group is labelled', async () => {
+    const page = await choose('combine');
+    const legend = page.querySelector('fieldset legend');
+    expect(legend?.textContent).toContain('Homology');
+    const excluded = page.querySelector<HTMLInputElement>('#option-include_homology-1')!;
+    expect(page.querySelector(`label[for="${excluded.id}"]`)?.textContent).toBe('Excluded');
+    excluded.click();
+    fixture.detectChanges();
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { include_homology: false },
+    });
+  });
+
+  it('JaccardClustering sends the method in lower case', async () => {
+    const page = await choose('jaccard_clustering');
+    const method = page.querySelector<HTMLSelectElement>('#option-method')!;
+    expect(Array.from(method.options).map((option) => option.textContent?.trim())).toEqual([
+      'Ward',
+      'Single',
+      'Centroid',
+      'McQuitty',
+      'Average',
+      'Complete',
+    ]);
+    method.selectedIndex = 4;
+    method.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(runAndRead().body).toMatchObject({ parameters: { method: 'average' } });
+  });
+
+  it('BooleanAlgebra shows "at least N" only for an intersection, and sends it then', async () => {
+    let page = await choose('boolean_algebra');
+    expect(page.querySelector('#option-at_least')).toBeNull();
+
+    page.querySelector<HTMLInputElement>('#option-relation-1')!.click(); // Intersection
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    page = fixture.nativeElement;
+    const atLeast = page.querySelector<HTMLInputElement>('#option-at_least');
+    expect(atLeast).not.toBeNull();
+    expect(atLeast!.getAttribute('aria-describedby')).toBe('option-at_least-help');
+
+    component.optionValues['at_least'] = 3;
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { relation: 'intersection', at_least: 3 },
+    });
+  });
+
+  it('labels the symmetric difference as legacy does, sending "except"', async () => {
+    const page = await choose('boolean_algebra');
+    const except = page.querySelector<HTMLInputElement>('#option-relation-2')!;
+    expect(page.querySelector(`label[for="${except.id}"]`)?.textContent).toBe(
+      'Symmetric difference',
+    );
+    except.click();
+    fixture.detectChanges();
+    expect(runAndRead().body).toMatchObject({ parameters: { relation: 'except' } });
+  });
+
+  it('MSET sends the chosen number of trials', async () => {
+    const page = await choose('mset');
+    const trials = page.querySelector<HTMLSelectElement>('#option-number_of_samples')!;
+    trials.selectedIndex = 1;
+    trials.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { number_of_samples: 10000 },
+    });
+  });
+
+  it('does not offer PhenomeMap options the v3 tool cannot honour', async () => {
+    const page = await choose('phenome_map');
+    const text = page.textContent ?? '';
+    expect(text).not.toContain('Permutation');
+    expect(text).not.toContain('Max in node');
+    // A default that is not the first choice is the one shown selected.
+    const maxLevel = page.querySelector<HTMLSelectElement>('#option-max_level')!;
+    expect(maxLevel.options[maxLevel.selectedIndex].textContent?.trim()).toBe('40');
+  });
+
+  it('resets the options to their defaults when the tool changes', async () => {
+    await choose('dbscan');
+    component.optionValues['epsilon'] = 4;
+    component.optionValues['include_homology'] = false;
+    await choose('combine');
+    await choose('dbscan');
+    expect(component.optionValues).toEqual({ include_homology: true, epsilon: 1, min_points: 1 });
+  });
+
+  it('cannot run with a blank or zero DBSCAN option, and says why', async () => {
+    await choose('dbscan');
+    component.optionValues['epsilon'] = 0;
+    fixture.detectChanges();
+    expect(component.canRun).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Epsilon must be a whole number of at least 1');
+
+    component.optionValues['epsilon'] = null as unknown as number; // a cleared number input
+    expect(component.canRun).toBe(false);
+
+    component.optionValues['epsilon'] = 2;
+    expect(component.canRun).toBe(true);
   });
 });
 

@@ -7,7 +7,6 @@ import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 /* PrimeNG Imports */
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { CheckboxModule } from 'primeng/checkbox';
 import { ChipsModule } from 'primeng/chips';
 import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
@@ -21,6 +20,13 @@ import { SessionService } from '../../services/session.service';
 import { ToolResultComponent } from './visualizations/tool-result.component';
 import { UpsetPlotComponent } from './visualizations/upset-plot.component';
 import { upsetModel, UpSetModel } from './visualizations/models';
+import {
+  defaultOptionValues,
+  optionProblem,
+  OptionValues,
+  ToolOptionDefinition,
+  visibleOptions,
+} from './tool-options';
 
 interface UpSetIntersection {
   geneset_ids: string[];
@@ -152,7 +158,6 @@ const TOOL_LABELS: Record<string, string> = {
     FormsModule,
     ButtonModule,
     CardModule,
-    CheckboxModule,
     ChipsModule,
     DropdownModule,
     InputTextModule,
@@ -169,8 +174,31 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
 
   /** Gene set ids as typed by the user; validated before the call. */
   genesetIdInput: string[] = [];
-  includeZeros = false;
-  selectedTool = 'upset';
+
+  private tool = 'upset';
+  /** The selected tool's option values, keyed by API parameter name. */
+  optionValues: OptionValues = defaultOptionValues('upset');
+
+  get selectedTool(): string {
+    return this.tool;
+  }
+
+  /** Changing tool resets its options to legacy's defaults; options are per tool. */
+  set selectedTool(value: string) {
+    if (value !== this.tool) {
+      this.tool = value;
+      this.optionValues = defaultOptionValues(value);
+    }
+  }
+
+  /** UpSet's zero-size intersections, which also lower the gene set limit. */
+  get includeZeros(): boolean {
+    return this.optionValues['include_zeros'] === true;
+  }
+
+  set includeZeros(value: boolean) {
+    this.optionValues['include_zeros'] = value;
+  }
 
   /**
    * Loaded from `GET /tools` rather than hardcoded.
@@ -206,13 +234,6 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   /** Set while a run accepted by AsyncTask is being polled to completion. */
   pendingRunId?: number;
   private poll?: Subscription;
-
-  /** DBSCAN parameters; its schema requires both. Defaults match the smallest case the
-   * validation harness exercises. */
-  epsilon = 1;
-  minPoints = 2;
-  /** BooleanAlgebra's operation. */
-  relation: 'union' | 'intersection' | 'except' = 'intersection';
 
   constructor(
     private apiBaseServiceFactory: ApiBaseServiceFactory,
@@ -285,6 +306,32 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     return this.tools.find((tool) => tool.value === this.selectedTool)?.disabledReason;
   }
 
+  /** The selected tool's options, less any its other choices hide. */
+  get visibleOptions(): ToolOptionDefinition[] {
+    return visibleOptions(this.selectedTool, this.optionValues);
+  }
+
+  /** Why the options as entered cannot be sent, e.g. a blank or zero epsilon. */
+  get optionProblem(): string | undefined {
+    return optionProblem(this.selectedTool, this.optionValues);
+  }
+
+  /** The HTML id of an option's control; its help text is `<id>-help`. */
+  optionId(option: ToolOptionDefinition): string {
+    return `option-${option.key}`;
+  }
+
+  /** A select's choice, by index, so a choice keeps its type (5000, not "5000"). */
+  choose(option: ToolOptionDefinition, index: number): void {
+    if (option.kind === 'select' && option.choices[index]) {
+      this.optionValues[option.key] = option.choices[index].value;
+    }
+  }
+
+  trackOption(_index: number, option: ToolOptionDefinition): string {
+    return option.key;
+  }
+
   /** Gene set ids that parsed as positive integers. */
   get genesetIds(): number[] {
     return this.genesetIdInput
@@ -338,7 +385,8 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
       !this.selectedToolReason &&
       this.invalidEntries.length === 0 &&
       this.genesetIds.length >= MIN_GENESETS &&
-      !this.limitViolation
+      !this.limitViolation &&
+      !this.optionProblem
     );
   }
 
@@ -368,10 +416,11 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     // every chart is net-new front-end work).
     // Both branches take the same type parameter so the two observables unify -- a
     // union of differently-typed observables has no callable `subscribe`.
+    // UpSet's endpoint takes its options at the top level of the body.
     const request$ = this.isUpSet
       ? this.gwApi.post<AnyToolResult>('/tools/upset', {
           geneset_ids: this.genesetIds,
-          include_zeros: this.includeZeros,
+          ...this.toolParameters(),
         })
       : this.gwApi.post<AnyToolResult>(`/tools/${this.selectedTool}`, {
           geneset_ids: this.genesetIds,
@@ -402,22 +451,19 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Options for the selected tool.
+   * Options for the selected tool: every option shown, always sent explicitly.
    *
-   * Only the few that have no workable default are sent. DBSCAN's epsilon/min_points are
-   * required by its schema, and BooleanAlgebra needs a relation; the rest of the tools
-   * default sensibly server-side. When runs move to AsyncTask these come from
-   * `odestatic.tool_param` and the form is generated rather than written (roadmap A5).
+   * Sent even at their defaults, because legacy's defaults (in `tool-options.ts`) are not
+   * always the API's -- Homology is Included in legacy, for one. Hidden options are not
+   * sent: BooleanAlgebra's "at least N" means nothing outside an intersection.
+   *
+   * The definitions mirror `odestatic.tool_param` by hand. Generating the form from that
+   * table instead is roadmap A5; until then, a change there must be copied here.
    */
   private toolParameters(): Record<string, unknown> {
-    switch (this.selectedTool) {
-      case 'dbscan':
-        return { epsilon: this.epsilon, min_points: this.minPoints };
-      case 'boolean_algebra':
-        return { relation: this.relation };
-      default:
-        return {};
-    }
+    return Object.fromEntries(
+      this.visibleOptions.map((option) => [option.key, this.optionValues[option.key]]),
+    );
   }
 
   /**

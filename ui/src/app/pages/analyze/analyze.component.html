@@ -37,18 +37,95 @@
           styleClass="w-full"
         ></p-dropdown>
       </div>
-
-      <div class="field col-12 md:col-2 flex align-items-end" *ngIf="isUpSet">
-        <div class="field-checkbox mb-0">
-          <p-checkbox
-            inputId="includeZeros"
-            [(ngModel)]="includeZeros"
-            [binary]="true"
-          ></p-checkbox>
-          <label for="includeZeros" class="ml-2">Include empty combinations</label>
-        </div>
-      </div>
     </div>
+
+    <!-- The selected tool's options, with legacy's labels, choices and defaults
+         (tool-options.ts mirrors odestatic.tool_param). One block for every tool. -->
+    <section
+      *ngIf="visibleOptions.length && !selectedToolReason"
+      class="tool-options mb-3"
+      aria-labelledby="toolOptionsHeading"
+    >
+      <h3 id="toolOptionsHeading" class="text-base mt-0 mb-2">Options</h3>
+      <div class="formgrid grid">
+        <ng-container *ngFor="let option of visibleOptions; trackBy: trackOption">
+          <div class="field col-12 md:col-4" [ngSwitch]="option.kind">
+            <!-- Radio groups: a fieldset, so the group's label is read with each choice. -->
+            <fieldset
+              *ngSwitchCase="'radio'"
+              class="border-none p-0 m-0"
+              [attr.aria-describedby]="option.help ? optionId(option) + '-help' : null"
+            >
+              <legend class="block mb-2">{{ option.label }}</legend>
+              <div class="flex flex-wrap gap-3">
+                <div *ngFor="let choice of $any(option).choices; let i = index" class="flex align-items-center">
+                  <input
+                    type="radio"
+                    [id]="optionId(option) + '-' + i"
+                    [name]="optionId(option)"
+                    [value]="choice.value"
+                    [(ngModel)]="optionValues[option.key]"
+                  />
+                  <label [for]="optionId(option) + '-' + i" class="ml-2">{{ choice.label }}</label>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Bound to `input`, not ngModel's `change`: the test DOM fires a spurious
+                 `change` as each option is inserted, which reset the value. Browsers fire
+                 `input` for every user choice, keyboard included. -->
+            <ng-container *ngSwitchCase="'select'">
+              <label [for]="optionId(option)" class="block mb-2">{{ option.label }}</label>
+              <select
+                [id]="optionId(option)"
+                class="p-inputtext w-full"
+                (input)="choose(option, $any($event.target).selectedIndex)"
+                [attr.aria-describedby]="option.help ? optionId(option) + '-help' : null"
+              >
+                <option
+                  *ngFor="let choice of $any(option).choices"
+                  [selected]="choice.value === optionValues[option.key]"
+                >
+                  {{ choice.label }}
+                </option>
+              </select>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'number'">
+              <label [for]="optionId(option)" class="block mb-2">{{ option.label }}</label>
+              <input
+                [id]="optionId(option)"
+                type="number"
+                step="1"
+                [min]="$any(option).min"
+                pInputText
+                class="w-full"
+                [(ngModel)]="optionValues[option.key]"
+                [attr.aria-describedby]="option.help ? optionId(option) + '-help' : null"
+              />
+            </ng-container>
+
+            <div *ngSwitchCase="'checkbox'" class="flex align-items-center">
+              <input
+                type="checkbox"
+                [id]="optionId(option)"
+                [(ngModel)]="optionValues[option.key]"
+                [attr.aria-describedby]="option.help ? optionId(option) + '-help' : null"
+              />
+              <label [for]="optionId(option)" class="ml-2">{{ option.label }}</label>
+            </div>
+
+            <small
+              *ngIf="option.help"
+              [id]="optionId(option) + '-help'"
+              class="block mt-2 text-color-secondary"
+            >
+              {{ option.help }}
+            </small>
+          </div>
+        </ng-container>
+      </div>
+    </section>
 
     <p-message
       *ngIf="toolsLoading"
@@ -79,51 +156,12 @@
       styleClass="w-full mb-3"
     ></p-message>
 
-    <!-- The two tools whose schemas have no usable default. Everything else is
-         server-defaulted; when runs move to AsyncTask this form is generated from
-         odestatic.tool_param rather than written out. -->
-    <div class="formgrid grid" *ngIf="selectedTool === 'dbscan' && !selectedToolReason">
-      <div class="field col-6 md:col-3">
-        <label for="epsilon" class="block mb-2">Epsilon</label>
-        <input
-          id="epsilon"
-          type="number"
-          min="1"
-          pInputText
-          class="w-full"
-          [(ngModel)]="epsilon"
-        />
-      </div>
-      <div class="field col-6 md:col-3">
-        <label for="minPoints" class="block mb-2">Minimum points</label>
-        <input
-          id="minPoints"
-          type="number"
-          min="1"
-          pInputText
-          class="w-full"
-          [(ngModel)]="minPoints"
-        />
-      </div>
-    </div>
-
-    <div class="formgrid grid" *ngIf="selectedTool === 'boolean_algebra' && !selectedToolReason">
-      <div class="field col-12 md:col-4">
-        <label for="relation" class="block mb-2">Relation</label>
-        <p-dropdown
-          inputId="relation"
-          [options]="[
-            { label: 'Intersection', value: 'intersection' },
-            { label: 'Union', value: 'union' },
-            { label: 'Except', value: 'except' }
-          ]"
-          [(ngModel)]="relation"
-          optionLabel="label"
-          optionValue="value"
-          styleClass="w-full"
-        ></p-dropdown>
-      </div>
-    </div>
+    <p-message
+      *ngIf="optionProblem && !selectedToolReason"
+      severity="warn"
+      [text]="optionProblem"
+      styleClass="w-full mb-3"
+    ></p-message>
 
     <p-message
       *ngIf="invalidEntries.length"
