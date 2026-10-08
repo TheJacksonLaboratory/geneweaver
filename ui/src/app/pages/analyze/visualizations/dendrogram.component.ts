@@ -59,7 +59,9 @@ export class DendrogramComponent implements OnChanges {
 
     // `cluster` spaces the leaves evenly; x is then replaced by the merge distance.
     const layout = cluster<DendrogramNode>().size([height - 50, 1])(root);
-    const maxHeight = Math.max(this.model.height, 1e-9);
+    // The highest merge anywhere, not the root's: centroid linkage can invert, merging a
+    // child above its parent, which a root-only domain would draw outside the plot.
+    const maxHeight = Math.max(...root.descendants().map((node) => node.data.height), 1e-9);
     const x = scaleLinear()
       .domain([maxHeight, 0])
       .range([left, width - right]);

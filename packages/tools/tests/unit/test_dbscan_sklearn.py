@@ -79,10 +79,10 @@ def test_labels_to_clusters_drops_noise() -> None:
     assert len(clusters) == 2
 
 
-def test_run_reports_each_clustered_genes_genesets() -> None:
+def test_run_reports_every_genes_genesets() -> None:
     """The co-membership behind the clusters, for drawing legacy's gene network.
 
-    Only clustered genes: noise ("lone") is not part of any cluster's network.
+    Noise ("lone") is included: legacy drew noise genes, grey.
     """
     out = DBSCAN().run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=3))
     assert out.gene_genesets == {
@@ -92,4 +92,5 @@ def test_run_reports_each_clustered_genes_genesets() -> None:
         "x": ["GS2"],
         "y": ["GS2"],
         "z": ["GS2"],
+        "lone": ["GS3"],
     }

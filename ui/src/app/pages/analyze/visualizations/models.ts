@@ -558,7 +558,14 @@ export function dbscanNetwork(
   const bySet = new Map<string, string[]>();
   for (const gene of genes) {
     for (const set of memberships[gene] ?? []) {
-      bySet.set(String(set), [...(bySet.get(String(set)) ?? []), gene]);
+      // Appended in place: copying the list per member is quadratic in a set's size, and
+      // runs before the edge budget can refuse the network.
+      const members = bySet.get(String(set));
+      if (members) {
+        members.push(gene);
+      } else {
+        bySet.set(String(set), [gene]);
+      }
     }
   }
   const edges = new Map<string, { source: string; target: string; genesets: string[] }>();

@@ -825,6 +825,37 @@ describe('AnalyzeComponent ABBA gene search', () => {
     ]);
   });
 
+  it('drops a minimum the seed genes no longer offer, rather than sending it hidden', () => {
+    component.abbaGenesText = 'Drd2 Drd1 Th';
+    fixture.detectChanges();
+    const el = host();
+    const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
+    minGenes.selectedIndex = 3;
+    minGenes.dispatchEvent(new Event('input'));
+    expect(component.abbaOptions.minGenes).toBe(3);
+
+    const genes = el.querySelector<HTMLTextAreaElement>('#abbaGenes')!;
+    genes.value = 'Drd2 Drd1';
+    genes.dispatchEvent(new Event('input'));
+    // 2 is still offered, so the choice of 3 is not; the select shows Auto, and so does the request.
+    expect(component.abbaOptions.minGenes).toBeNull();
+    component.run();
+    expect((posted[0].body as { min_genes: unknown }).min_genes).toBeNull();
+  });
+
+  it('keeps a minimum the seed genes still offer', () => {
+    component.abbaGenesText = 'Drd2 Drd1 Th';
+    fixture.detectChanges();
+    const el = host();
+    const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
+    minGenes.selectedIndex = 2;
+    minGenes.dispatchEvent(new Event('input'));
+    const genes = el.querySelector<HTMLTextAreaElement>('#abbaGenes')!;
+    genes.value = 'Drd2 Drd1';
+    genes.dispatchEvent(new Event('input'));
+    expect(component.abbaOptions.minGenes).toBe(2);
+  });
+
   it('posts the options as changed in the form', () => {
     component.abbaGenesText = 'Drd2 Drd1 Th';
     component.genesetIdInput = ['167180'];

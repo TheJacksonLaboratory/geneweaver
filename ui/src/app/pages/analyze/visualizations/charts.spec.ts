@@ -59,6 +59,15 @@ describe('chart accessibility', () => {
     const cells = Array.from(host.querySelectorAll('svg g > g > rect'));
     expect(cells.every((c) => c.getAttribute('tabindex') === '0' && c.getAttribute('aria-label'))).toBe(true);
   });
+
+  it('leaves focusable marks a visible keyboard focus ring', () => {
+    // `.chart-mark:focus-visible` in styles.scss draws it; an inline `outline: none` would
+    // override that and hide focus on charts with no highlight of their own.
+    const host = render(HeatmapComponent, { model: jaccardMatrix(FIXTURES.jaccard_similarity_pair) });
+    const cells = Array.from(host.querySelectorAll<SVGElement>('svg g > g > rect'));
+    expect(cells.length).toBeGreaterThan(0);
+    expect(cells.every((c) => c.classList.contains('chart-mark') && !c.style.outline)).toBe(true);
+  });
 });
 
 describe('HeatmapComponent', () => {
@@ -110,6 +119,31 @@ describe('DendrogramComponent', () => {
       FIXTURES.jaccard_clustering.geneset_ids.length - 1,
     );
     expect(host.querySelector('svg')?.getAttribute('aria-label')).toContain('average linkage');
+  });
+
+  it('keeps a centroid inversion inside the plot', () => {
+    // Centroid linkage can merge a child above its parent: here 0.75 under a 0.721 root.
+    const model = {
+      name: 'root',
+      height: 0.721,
+      children: [
+        {
+          name: 'inner',
+          height: 0.75,
+          children: [
+            { name: 'GS1', height: 0 },
+            { name: 'GS2', height: 0 },
+          ],
+        },
+        { name: 'GS3', height: 0 },
+      ],
+    };
+    const host = render(DendrogramComponent, { model, method: 'centroid' });
+    const xs = Array.from(host.querySelectorAll('svg circle')).map((c) => Number(c.getAttribute('cx')));
+    expect(xs).toHaveLength(2);
+    // The plot runs from x = 20 (the highest merge) to 530 (distance 0).
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(20);
+    expect(Math.max(...xs)).toBeLessThanOrEqual(530);
   });
 
   it('hovering a merge names the gene sets it joins and highlights its subtree', () => {

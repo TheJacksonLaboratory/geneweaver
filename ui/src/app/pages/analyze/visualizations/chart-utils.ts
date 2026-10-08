@@ -175,8 +175,8 @@ export function interactive<E extends BaseType, D, P extends BaseType>(
     .attr('tabindex', 0)
     .attr('focusable', 'true')
     .attr('aria-label', (datum) => tooltipText(content(datum)))
+    .classed('chart-mark', true)
     .style('cursor', 'pointer')
-    .style('outline', 'none')
     .on('mouseenter', (event, datum) => {
       tooltip.show(content(datum), event as MouseEvent);
       highlight?.(datum);

@@ -237,6 +237,16 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     return this.isAbba ? abbaProblem(this.abbaGenes, this.genesetIds, this.abbaOptions) : undefined;
   }
 
+  /**
+   * Fewer seed genes can take away the chosen minimum: the select then shows Auto, so the
+   * request must send Auto too, not a hidden threshold the list no longer offers.
+   */
+  seedGenesChanged(): void {
+    if (!this.minGenesChoices.includes(this.abbaOptions.minGenes)) {
+      this.abbaOptions.minGenes = null;
+    }
+  }
+
   /** A choice from an Auto-or-number select, by index; index 0 is Auto. */
   chooseThreshold(key: 'minGenes' | 'minGenesets', choices: (number | null)[], index: number): void {
     if (index >= 0 && index < choices.length) {

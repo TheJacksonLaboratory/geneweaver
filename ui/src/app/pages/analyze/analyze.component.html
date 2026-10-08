@@ -54,6 +54,7 @@
           rows="4"
           class="p-inputtext w-full"
           [(ngModel)]="abbaGenesText"
+          (ngModelChange)="seedGenesChanged()"
           placeholder="e.g. Drd2, Drd1"
           aria-describedby="abbaGenes-help"
         ></textarea>

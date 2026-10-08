@@ -33,7 +33,7 @@ from collections.abc import Callable
 from geneweaver.tools.framework.abstract import AbstractTool
 from geneweaver.tools.framework.binary import run_binary
 
-from .schema import DBSCANInput, DBSCANOutput, clustered_gene_genesets
+from .schema import DBSCANInput, DBSCANOutput, gene_genesets
 
 # A runner takes (encoded_data, epsilon, min_points) and returns the binary's raw stdout.
 BinaryRunner = Callable[[str, int, int], str]
@@ -152,5 +152,5 @@ class BinaryDBSCAN(AbstractTool):
             clusters=clusters,
             num_genes=num_genes,
             num_genesets=len(genesets),
-            gene_genesets=clustered_gene_genesets(clusters, tool_input.gene_symbols),
+            gene_genesets=gene_genesets(tool_input.gene_symbols),
         )
