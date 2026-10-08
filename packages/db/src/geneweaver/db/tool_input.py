@@ -73,6 +73,155 @@ def gene_symbols_by_geneset(cursor: Cursor, geneset_ids: list[int]) -> dict[str,
     return memberships
 
 
+def _fields(row: Any, *names: str) -> tuple:
+    """Read named columns from a row under either row factory, in the order named."""
+    if isinstance(row, dict):
+        return tuple(row[name] for name in names)
+    return tuple(row)
+
+
+def collapse_homologs(
+    member_rows: list[tuple[Any, int, str]],
+    homology_rows: list[tuple[int, int]],
+    geneset_ids: list[int],
+) -> dict[str, list[str]]:
+    """Merge homologous genes into one member each, as legacy ``combine_genesets`` did.
+
+    Legacy's "Homology: Included" treated genes sharing a homology group as the same gene
+    across every gene set in the run, so a mouse and a human set overlap on their
+    orthologs. Groups merge transitively (union-find over ``hom_id``): a gene in two groups
+    joins both. A merged member is labelled with the sorted, distinct preferred symbols of
+    its group that occur in this run, joined by ``/`` (``"DRD2/Drd2"``); a gene with no
+    homolog in the run keeps its own symbol, so a same-species run changes only where
+    homologous genes (paralogs in one group) occur together.
+
+    :param member_rows: ``(gs_id, ode_gene_id, symbol)`` per in-threshold member.
+    :param homology_rows: ``(ode_gene_id, hom_id)`` for those genes.
+    :param geneset_ids: The gene sets, in the caller's order.
+    :return: ``{geneset_id_as_str: [label, ...]}``, de-duplicated, preserving order.
+    """
+    parent: dict[tuple, tuple] = {}
+
+    def find(node: tuple) -> tuple:
+        parent.setdefault(node, node)
+        while parent[node] != node:
+            parent[node] = parent[parent[node]]
+            node = parent[node]
+        return node
+
+    present = {gene_id for _, gene_id, symbol in member_rows if symbol is not None}
+    for gene_id, hom_id in homology_rows:
+        if gene_id in present:
+            parent[find(("gene", gene_id))] = find(("hom", hom_id))
+
+    symbols_by_root: dict[tuple, set[str]] = {}
+    for _, gene_id, symbol in member_rows:
+        if symbol is not None:
+            symbols_by_root.setdefault(find(("gene", gene_id)), set()).add(symbol)
+    labels = {root: "/".join(sorted(symbols)) for root, symbols in symbols_by_root.items()}
+
+    memberships: dict[str, list[str]] = {str(geneset_id): [] for geneset_id in geneset_ids}
+    seen: dict[str, set[str]] = {key: set() for key in memberships}
+    for geneset_id, gene_id, symbol in member_rows:
+        key = str(geneset_id)
+        if symbol is None or key not in memberships:
+            continue
+        label = labels[find(("gene", gene_id))]
+        if label not in seen[key]:
+            seen[key].add(label)
+            memberships[key].append(label)
+    return memberships
+
+
+def homologous_gene_symbols_by_geneset(
+    cursor: Cursor, geneset_ids: list[int]
+) -> dict[str, list[str]]:
+    """:func:`gene_symbols_by_geneset` with homologous genes merged across the run.
+
+    The membership-based tools' "Homology: Included" option (legacy's default). Members are
+    filtered exactly as in :func:`gene_symbols_by_geneset`; homology groups come from
+    ``extsrc.homology`` by ``hom_id``, any source, as legacy ``TOOLSET_SQL[1]`` read them.
+    See :func:`collapse_homologs` for how groups become members.
+
+    :param cursor: The database cursor.
+    :param geneset_ids: The gene sets to resolve, in the caller's order.
+    :return: ``{geneset_id_as_str: [label, ...]}``, preserving input order.
+    """
+    if not geneset_ids:
+        return {}
+    cursor.execute(
+        """
+        SELECT gv.gs_id, g.ode_gene_id, g.ode_ref_id
+        FROM extsrc.geneset_value gv
+        JOIN extsrc.gene g ON g.ode_gene_id = gv.ode_gene_id
+        WHERE gv.gs_id = ANY(%(geneset_ids)s)
+          AND gv.gsv_in_threshold
+          AND g.gdb_id = 7
+          AND g.ode_pref = 't';
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    member_rows = [_fields(row, "gs_id", "ode_gene_id", "ode_ref_id") for row in cursor.fetchall()]
+    gene_ids = sorted({gene_id for _, gene_id, _ in member_rows})
+    homology_rows: list[tuple] = []
+    if gene_ids:
+        cursor.execute(
+            """
+            SELECT ode_gene_id, hom_id
+            FROM extsrc.homology
+            WHERE ode_gene_id = ANY(%(gene_ids)s);
+            """,
+            {"gene_ids": gene_ids},
+        )
+        homology_rows = [_fields(row, "ode_gene_id", "hom_id") for row in cursor.fetchall()]
+    return collapse_homologs(member_rows, homology_rows, geneset_ids)
+
+
+def geneset_platforms(cursor: Cursor, geneset_ids: list[int]) -> dict[int, tuple[int, int]]:
+    """``{gs_id: (sp_id, gs_gene_id_type)}`` -- what pairwise deletion decides on.
+
+    A positive ``gs_gene_id_type`` is the microarray platform (``odestatic.platform.pf_id``)
+    the set was measured on; a negative one is a gene identifier type. Promoted from legacy
+    ``TOOLSET_SQL[3]``, for every gene set at once rather than one query per pair.
+    """
+    if not geneset_ids:
+        return {}
+    cursor.execute(
+        """
+        SELECT gs_id, sp_id, gs_gene_id_type
+        FROM production.geneset
+        WHERE gs_id = ANY(%(geneset_ids)s);
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    rows = (_fields(row, "gs_id", "sp_id", "gs_gene_id_type") for row in cursor.fetchall())
+    return {gs_id: (sp_id, gene_id_type) for gs_id, sp_id, gene_id_type in rows}
+
+
+def platform_gene_symbols(cursor: Cursor, platform_id: int) -> set[str]:
+    """Preferred gene symbols a microarray platform (or platform set) can measure.
+
+    Legacy ``TOOLSET_SQL[5]``/``[6]`` in gene symbols rather than ``ode_gene_id``: the
+    membership-based tools compare symbols, so the platform's gene space has to be in the
+    same space. A platform id matches the platform itself or any platform in that set
+    (``pf_set``), as legacy's ``m.pf_id = %s OR m.pf_set = %s`` did.
+    """
+    cursor.execute(
+        """
+        SELECT DISTINCT g.ode_ref_id
+        FROM extsrc.probe2gene p2g
+        JOIN odestatic.probe p ON p.prb_id = p2g.prb_id
+        JOIN odestatic.platform m ON m.pf_id = p.pf_id
+        JOIN extsrc.gene g ON g.ode_gene_id = p2g.ode_gene_id
+        WHERE (m.pf_id = %(platform_id)s OR m.pf_set = %(platform_id)s)
+          AND g.gdb_id = 7
+          AND g.ode_pref = 't';
+        """,
+        {"platform_id": platform_id},
+    )
+    return {symbol for symbol in map(_symbol, cursor.fetchall()) if symbol is not None}
+
+
 def membership_rows(cursor: Cursor, geneset_ids: list[int]) -> list[list]:
     """``(gs_id, ode_gene_id, ode_ref_id)`` for in-threshold members -- Combine's matrix.
 

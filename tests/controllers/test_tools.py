@@ -85,6 +85,24 @@ def test_upset_endpoint_allows_include_zeros_within_the_cap(client) -> None:
     assert len(response.json()["object"]["intersections"]) == 3
 
 
+def test_upset_endpoint_merges_homologs_when_asked(client) -> None:
+    """A mouse and a human set intersect on their orthologs with homology included."""
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.homologous_gene_symbols_by_geneset",
+            return_value={"1": ["DRD2/Drd2"], "2": ["DRD2/Drd2"]},
+        ) as merged,
+    ):
+        response = client.post(
+            "/api/tools/upset",
+            json={"geneset_ids": [1, 2], "include_homology": True},
+        )
+    assert response.status_code == 200
+    merged.assert_called_once()
+    assert response.json()["object"]["intersections"] == [{"geneset_ids": ["1", "2"], "size": 1}]
+
+
 def test_in_process_runner_runs_the_real_tool() -> None:
     """The default runner executes the actual ported tool, not a stub."""
     output = InProcessToolRunner().run(

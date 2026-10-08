@@ -32,3 +32,19 @@ class DBSCANOutput(ToolOutput):
     clusters: list[list[str]] = Field(default_factory=list)
     num_genes: int
     num_genesets: int
+    # Gene -> the input gene sets containing it, for every clustered gene: the co-membership
+    # the clusters were built from, which legacy's "Wires" view drew as a gene network.
+    gene_genesets: dict[str, list[str]] = Field(default_factory=dict)
+
+
+def clustered_gene_genesets(
+    clusters: list[list[str]], gene_symbols: dict[str, list[str]]
+) -> dict[str, list[str]]:
+    """Map each clustered gene to the gene sets (in input order) that contain it."""
+    clustered = {gene for cluster in clusters for gene in cluster}
+    memberships: dict[str, list[str]] = {gene: [] for gene in clustered}
+    for geneset_id, members in gene_symbols.items():
+        for gene in dict.fromkeys(members):
+            if gene in memberships:
+                memberships[gene].append(geneset_id)
+    return memberships

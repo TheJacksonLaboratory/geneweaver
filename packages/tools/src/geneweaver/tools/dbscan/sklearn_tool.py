@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from geneweaver.tools.framework.abstract import AbstractTool
 
-from .schema import DBSCANInput, DBSCANOutput
+from .schema import DBSCANInput, DBSCANOutput, clustered_gene_genesets
 
 try:
     import numpy as np
@@ -139,11 +139,13 @@ class DBSCAN(AbstractTool):
             )
 
         labels = cluster_labels(adjacency, tool_input.epsilon, int(tool_input.min_points))
+        clusters = labels_to_clusters(labels, genes)
         return DBSCANOutput(
             ran=True,
-            clusters=labels_to_clusters(labels, genes),
+            clusters=clusters,
             num_genes=num_genes,
             num_genesets=num_genesets,
+            gene_genesets=clustered_gene_genesets(clusters, tool_input.gene_symbols),
         )
 
 

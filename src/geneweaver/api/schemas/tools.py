@@ -32,6 +32,13 @@ class UpSetRequest(BaseModel):
             f"2^n - 1, so this is capped at {MAX_GENESETS_WITH_ZEROS} gene sets."
         ),
     )
+    include_homology: bool = Field(
+        default=False,
+        description=(
+            "Merge homologous genes across the gene sets, so sets from different species "
+            'intersect on their orthologs (legacy\'s "Homology: Included").'
+        ),
+    )
 
     @field_validator("geneset_ids")
     @classmethod
@@ -102,7 +109,16 @@ class ToolRunRequest(BaseModel):
     )
     parameters: dict = Field(
         default_factory=dict,
-        description="Tool-specific options. Unknown keys are ignored by the tool.",
+        description=(
+            "Tool-specific options; unknown keys are ignored. `include_homology` "
+            "(upset, dbscan, hypergeometric, jaccard_clustering, jaccard_similarity, "
+            "phenome_map, combine); `pairwise_deletion` (jaccard_similarity, "
+            "hypergeometric); `p_value_threshold` (jaccard_similarity, phenome_map); "
+            "`method` (jaccard_clustering: ward, single, centroid, mcquitty, average, "
+            "complete); `relation` and `at_least` (boolean_algebra); `epsilon` and "
+            "`min_points` (dbscan); `number_of_samples` (mset); `min_genes`, "
+            "`max_level`, `use_fdr`, `disable_bootstrap` (phenome_map)."
+        ),
     )
 
     @field_validator("geneset_ids")

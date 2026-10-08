@@ -68,6 +68,7 @@ def run_upset(
                 geneset_ids=request.geneset_ids,
                 user=user,
                 include_zeros=request.include_zeros,
+                include_homology=request.include_homology,
             )
         return tool_service.execute_upset(prepared)
 

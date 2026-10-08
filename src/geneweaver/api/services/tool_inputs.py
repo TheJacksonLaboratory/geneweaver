@@ -18,6 +18,7 @@ part of the contract with the caller, not an implementation detail.
 """
 
 import itertools
+from dataclasses import dataclass
 
 
 def _pairs(count: int) -> list[tuple[int, int]]:
@@ -37,8 +38,91 @@ def ordered_memberships(
     return [set(memberships.get(str(geneset_id), [])) for geneset_id in geneset_ids]
 
 
+@dataclass(frozen=True)
+class PairScope:
+    """What one gene-set pair is counted over under pairwise deletion.
+
+    ``genes`` restricts the count to genes both platforms can measure (None: every gene,
+    which is the same-platform case); ``population`` is legacy's ``ref_count``, the
+    HyperGeometric universe for the pair.
+    """
+
+    genes: frozenset[str] | None
+    population: int
+
+
+def deletion_platforms(geneset_ids: list[int], platforms: dict[int, tuple[int, int]]) -> set[int]:
+    """The platforms pairwise deletion needs the gene space of, for this run.
+
+    Only pairs of two platform-based gene sets (``gs_gene_id_type > 0``) of the same
+    species are affected, so a run of gene-identifier sets queries nothing.
+    """
+    needed: set[int] = set()
+    for i, j in _pairs(len(geneset_ids)):
+        a, b = platforms.get(geneset_ids[i]), platforms.get(geneset_ids[j])
+        if a and b and a[1] > 0 and b[1] > 0 and a[0] == b[0]:
+            needed.update((a[1], b[1]))
+    return needed
+
+
+def pairwise_deletion_scopes(
+    geneset_ids: list[int],
+    platforms: dict[int, tuple[int, int]],
+    platform_genes: dict[int, set[str]],
+) -> dict[tuple[int, int], PairScope]:
+    """Per-pair counting scopes, ported from legacy ``pairwise_deletion_counting``.
+
+    For two gene sets measured on microarray platforms of the same species, a gene the
+    other platform could not have measured says nothing about overlap, so legacy left it
+    out of the pair's counts:
+
+    * **different platforms** -- count only genes on both (``TOOLSET_SQL[6]``), over a
+      population of that many genes;
+    * **same platform** -- count every gene, over a population of the platform's genes
+      (``TOOLSET_SQL[5]``).
+
+    Any other pair -- a gene-identifier set, or two species -- is counted normally and has
+    no entry here.
+
+    :param geneset_ids: The gene sets, in the caller's order.
+    :param platforms: ``{gs_id: (sp_id, gs_gene_id_type)}``.
+    :param platform_genes: Each needed platform's gene symbols (:func:`deletion_platforms`).
+    :return: ``{(i, j): PairScope}`` by index into ``geneset_ids``, ``i < j``.
+    """
+    scopes: dict[tuple[int, int], PairScope] = {}
+    for i, j in _pairs(len(geneset_ids)):
+        a, b = platforms.get(geneset_ids[i]), platforms.get(geneset_ids[j])
+        if not (a and b and a[1] > 0 and b[1] > 0 and a[0] == b[0]):
+            continue
+        if a[1] == b[1]:
+            scopes[(i, j)] = PairScope(None, len(platform_genes.get(a[1], ())))
+        else:
+            shared = frozenset(platform_genes.get(a[1], set()) & platform_genes.get(b[1], set()))
+            scopes[(i, j)] = PairScope(shared, len(shared))
+    return scopes
+
+
+def _in_scope(member: str, genes: frozenset[str]) -> bool:
+    """Whether a member is measurable, including a homology-merged ``"A/B"`` member."""
+    return member in genes or ("/" in member and any(part in genes for part in member.split("/")))
+
+
+def _scoped(
+    sets: list[set[str]], i: int, j: int, scope: PairScope | None
+) -> tuple[set[str], set[str]]:
+    """The pair's two sets, restricted to the genes its scope counts."""
+    if scope is None or scope.genes is None:
+        return sets[i], sets[j]
+    return (
+        {member for member in sets[i] if _in_scope(member, scope.genes)},
+        {member for member in sets[j] if _in_scope(member, scope.genes)},
+    )
+
+
 def contingency_pairs(
-    memberships: dict[str, list[str]], geneset_ids: list[int]
+    memberships: dict[str, list[str]],
+    geneset_ids: list[int],
+    scopes: dict[tuple[int, int], PairScope] | None = None,
 ) -> list[dict[str, int]]:
     """2x2 contingency tables per gene-set pair, for HyperGeometric.
 
@@ -49,37 +133,59 @@ def contingency_pairs(
 
     ``f11`` is the overlap, ``f10``/``f01`` the exclusive parts, ``f00`` everything in the
     universe that is in neither set.
+
+    With pairwise deletion (``scopes``), a scoped pair counts only its measurable genes and
+    its universe is the platform population instead, as legacy's ``ref_count`` was. Never
+    negative: a member whose symbol is missing from the platform's mapping would otherwise
+    push it below zero.
     """
     sets = ordered_memberships(memberships, geneset_ids)
     universe = set().union(*sets) if sets else set()
-    return [
-        {
-            "i": i,
-            "j": j,
-            "f11": len(sets[i] & sets[j]),
-            "f10": len(sets[i] - sets[j]),
-            "f01": len(sets[j] - sets[i]),
-            "f00": len(universe) - len(sets[i] | sets[j]),
-        }
-        for i, j in _pairs(len(sets))
-    ]
+    scopes = scopes or {}
+    tables = []
+    for i, j in _pairs(len(sets)):
+        scope = scopes.get((i, j))
+        left, right = _scoped(sets, i, j, scope)
+        population = scope.population if scope else len(universe)
+        tables.append(
+            {
+                "i": i,
+                "j": j,
+                "f11": len(left & right),
+                "f10": len(left - right),
+                "f01": len(right - left),
+                "f00": max(0, population - len(left | right)),
+            }
+        )
+    return tables
 
 
 def jaccard_pair_counts(
-    memberships: dict[str, list[str]], geneset_ids: list[int]
+    memberships: dict[str, list[str]],
+    geneset_ids: list[int],
+    scopes: dict[tuple[int, int], PairScope] | None = None,
 ) -> list[dict[str, int]]:
-    """Per-pair overlap counts, for JaccardSimilarity."""
+    """Per-pair overlap counts, for JaccardSimilarity.
+
+    With pairwise deletion (``scopes``), a pair on two different platforms counts only the
+    genes both can measure; a same-platform pair is unchanged, since its population (which
+    Jaccard does not use) is all that deletion alters there.
+    """
     sets = ordered_memberships(memberships, geneset_ids)
-    return [
-        {
-            "i": i,
-            "j": j,
-            "only_i": len(sets[i] - sets[j]),
-            "only_j": len(sets[j] - sets[i]),
-            "intersection": len(sets[i] & sets[j]),
-        }
-        for i, j in _pairs(len(sets))
-    ]
+    scopes = scopes or {}
+    counts = []
+    for i, j in _pairs(len(sets)):
+        left, right = _scoped(sets, i, j, scopes.get((i, j)))
+        counts.append(
+            {
+                "i": i,
+                "j": j,
+                "only_i": len(left - right),
+                "only_j": len(right - left),
+                "intersection": len(left & right),
+            }
+        )
+    return counts
 
 
 def similarity_matrix(
