@@ -7,7 +7,6 @@ import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 /* PrimeNG Imports */
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { CheckboxModule } from 'primeng/checkbox';
 import { ChipsModule } from 'primeng/chips';
 import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
@@ -18,6 +17,30 @@ import { TableModule } from 'primeng/table';
 /* Local Imports */
 import { environment } from '../../../environments/environment';
 import { SessionService } from '../../services/session.service';
+import { AbbaResult, parseGeneList } from './visualizations/abba-models';
+import { AbbaResultComponent } from './visualizations/abba-result.component';
+import { ToolResultComponent } from './visualizations/tool-result.component';
+import { UpsetPlotComponent } from './visualizations/upset-plot.component';
+import { upsetModel, UpSetModel } from './visualizations/models';
+import {
+  defaultOptionValues,
+  optionProblem,
+  OptionValues,
+  ToolOptionDefinition,
+  visibleOptions,
+} from './tool-options';
+import {
+  ABBA_SPECIES,
+  ABBA_TIERS,
+  abbaCanRun,
+  AbbaOptions,
+  abbaProblem,
+  abbaRequestBody,
+  defaultAbbaOptions,
+  MIN_GENESETS_CHOICES,
+  minGenesChoices,
+  toggled,
+} from './abba-options';
 
 interface UpSetIntersection {
   geneset_ids: string[];
@@ -126,6 +149,7 @@ const TOOL_LABELS: Record<string, string> = {
   combine: 'Combine',
   jaccard_clustering: 'JaccardClustering',
   jaccard_similarity: 'JaccardSimilarity',
+  abba: 'ABBA gene search',
 };
 
 /**
@@ -149,13 +173,15 @@ const TOOL_LABELS: Record<string, string> = {
     FormsModule,
     ButtonModule,
     CardModule,
-    CheckboxModule,
     ChipsModule,
     DropdownModule,
     InputTextModule,
     MessageModule,
     ProgressBarModule,
     TableModule,
+    AbbaResultComponent,
+    ToolResultComponent,
+    UpsetPlotComponent,
   ],
   templateUrl: './analyze.component.html',
 })
@@ -164,8 +190,95 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
 
   /** Gene set ids as typed by the user; validated before the call. */
   genesetIdInput: string[] = [];
-  includeZeros = false;
-  selectedTool = 'upset';
+
+  private tool = 'upset';
+  /** The selected tool's option values, keyed by API parameter name. */
+  optionValues: OptionValues = defaultOptionValues('upset');
+
+  get selectedTool(): string {
+    return this.tool;
+  }
+
+  /** Changing tool resets its options to legacy's defaults; options are per tool. */
+  set selectedTool(value: string) {
+    if (value !== this.tool) {
+      this.tool = value;
+      this.optionValues = defaultOptionValues(value);
+      this.abbaOptions = defaultAbbaOptions();
+    }
+  }
+
+  // --- ABBA: a gene-centred search, seeded with genes and optionally gene sets ---------
+
+  readonly abbaTiers = ABBA_TIERS;
+  readonly abbaSpecies = ABBA_SPECIES;
+  readonly minGenesetsChoices = MIN_GENESETS_CHOICES;
+  /** The seed genes as typed; parsed by `abbaGenes`. */
+  abbaGenesText = '';
+  abbaOptions: AbbaOptions = defaultAbbaOptions();
+  abbaResult?: AbbaResult;
+  /** When the ABBA result arrived: legacy's "Date" in the run information. */
+  abbaRanAt?: Date;
+
+  get isAbba(): boolean {
+    return this.selectedTool === 'abba';
+  }
+
+  get abbaGenes(): string[] {
+    return parseGeneList(this.abbaGenesText);
+  }
+
+  get minGenesChoices(): (number | null)[] {
+    return minGenesChoices(this.abbaGenes.length);
+  }
+
+  /** Why the ABBA search as entered cannot be sent. */
+  get abbaProblem(): string | undefined {
+    return this.isAbba ? abbaProblem(this.abbaGenes, this.genesetIds, this.abbaOptions) : undefined;
+  }
+
+  /**
+   * Fewer seed genes can take away the chosen minimum: the select then shows Auto, so the
+   * request must send Auto too, not a hidden threshold the list no longer offers.
+   */
+  seedGenesChanged(): void {
+    if (!this.minGenesChoices.includes(this.abbaOptions.minGenes)) {
+      this.abbaOptions.minGenes = null;
+    }
+  }
+
+  /** A choice from an Auto-or-number select, by index; index 0 is Auto. */
+  chooseThreshold(key: 'minGenes' | 'minGenesets', choices: (number | null)[], index: number): void {
+    if (index >= 0 && index < choices.length) {
+      this.abbaOptions[key] = choices[index];
+    }
+  }
+
+  toggleTier(id: number): void {
+    this.abbaOptions.tiers = toggled(this.abbaOptions.tiers, id);
+  }
+
+  toggleSpecies(id: number): void {
+    this.abbaOptions.speciesIds = toggled(this.abbaOptions.speciesIds, id);
+  }
+
+  /** Gene sets picked in an ABBA result, handed back to the form for another tool. */
+  useGenesets(ids: number[]): void {
+    this.genesetIdInput = ids.map(String);
+    const upset = this.tools.find((tool) => tool.value === 'upset' && !tool.disabledReason);
+    if (upset) {
+      this.selectedTool = upset.value;
+    }
+  }
+
+  /** UpSet's zero-size intersections, which also lower the gene set limit. */
+  get includeZeros(): boolean {
+    return this.optionValues['include_zeros'] === true;
+  }
+
+  set includeZeros(value: boolean) {
+    this.optionValues['include_zeros'] = value;
+  }
 
   /**
    * Loaded from `GET /tools` rather than hardcoded.
@@ -180,19 +293,27 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   toolsError?: string;
 
   running = false;
-  result?: UpSetResult;
+  /** The plot's model, rebuilt only when the result changes, so it is not redrawn on
+   * every change-detection pass. */
+  upsetPlot?: UpSetModel;
+  private upsetResult?: UpSetResult;
+
+  get result(): UpSetResult | undefined {
+    return this.upsetResult;
+  }
+
+  set result(value: UpSetResult | undefined) {
+    this.upsetResult = value;
+    // Tolerant of a short response: a missing field must not leave the page stuck running.
+    this.upsetPlot = value
+      ? upsetModel(value.geneset_ids ?? [], value.gene_counts ?? {}, value.intersections ?? [])
+      : undefined;
+  }
   genericResult?: ToolRunResult;
   errorMessage?: string;
   /** Set while a run accepted by AsyncTask is being polled to completion. */
   pendingRunId?: number;
   private poll?: Subscription;
-
-  /** DBSCAN parameters; its schema requires both. Defaults match the smallest case the
-   * validation harness exercises. */
-  epsilon = 1;
-  minPoints = 2;
-  /** BooleanAlgebra's operation. */
-  relation: 'union' | 'intersection' | 'except' = 'intersection';
 
   constructor(
     private apiBaseServiceFactory: ApiBaseServiceFactory,
@@ -265,6 +386,32 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     return this.tools.find((tool) => tool.value === this.selectedTool)?.disabledReason;
   }
 
+  /** The selected tool's options, less any its other choices hide. */
+  get visibleOptions(): ToolOptionDefinition[] {
+    return visibleOptions(this.selectedTool, this.optionValues);
+  }
+
+  /** Why the options as entered cannot be sent, e.g. a blank or zero epsilon. */
+  get optionProblem(): string | undefined {
+    return optionProblem(this.selectedTool, this.optionValues);
+  }
+
+  /** The HTML id of an option's control; its help text is `<id>-help`. */
+  optionId(option: ToolOptionDefinition): string {
+    return `option-${option.key}`;
+  }
+
+  /** A select's choice, by index, so a choice keeps its type (5000, not "5000"). */
+  choose(option: ToolOptionDefinition, index: number): void {
+    if (option.kind === 'select' && option.choices[index]) {
+      this.optionValues[option.key] = option.choices[index].value;
+    }
+  }
+
+  trackOption(_index: number, option: ToolOptionDefinition): string {
+    return option.key;
+  }
+
   /** Gene set ids that parsed as positive integers. */
   get genesetIds(): number[] {
     return this.genesetIdInput
@@ -287,6 +434,9 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
    * fail.
    */
   get limitViolation(): string | undefined {
+    if (this.isAbba) {
+      return undefined; // ABBA's own bounds are in `abbaProblem`.
+    }
     const count = this.genesetIds.length;
     if (count < MIN_GENESETS) {
       return undefined; // Not an error yet -- the user is still typing.
@@ -310,6 +460,16 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   }
 
   get canRun(): boolean {
+    if (this.isAbba) {
+      return (
+        this.signedIn &&
+        !this.running &&
+        !this.toolsLoading &&
+        !this.selectedToolReason &&
+        this.invalidEntries.length === 0 &&
+        abbaCanRun(this.abbaGenes, this.genesetIds, this.abbaOptions)
+      );
+    }
     return (
       this.signedIn &&
       !this.running &&
@@ -318,7 +478,8 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
       !this.selectedToolReason &&
       this.invalidEntries.length === 0 &&
       this.genesetIds.length >= MIN_GENESETS &&
-      !this.limitViolation
+      !this.limitViolation &&
+      !this.optionProblem
     );
   }
 
@@ -340,7 +501,13 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     this.running = true;
     this.result = undefined;
     this.genericResult = undefined;
+    this.abbaResult = undefined;
     this.errorMessage = undefined;
+
+    if (this.isAbba) {
+      this.runAbba();
+      return;
+    }
 
     // UpSet keeps its own endpoint because the plot reads a typed, reshaped response.
     // Every other tool returns its own output verbatim, which this page renders as JSON
@@ -348,10 +515,11 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     // every chart is net-new front-end work).
     // Both branches take the same type parameter so the two observables unify -- a
     // union of differently-typed observables has no callable `subscribe`.
+    // UpSet's endpoint takes its options at the top level of the body.
     const request$ = this.isUpSet
       ? this.gwApi.post<AnyToolResult>('/tools/upset', {
           geneset_ids: this.genesetIds,
-          include_zeros: this.includeZeros,
+          ...this.toolParameters(),
         })
       : this.gwApi.post<AnyToolResult>(`/tools/${this.selectedTool}`, {
           geneset_ids: this.genesetIds,
@@ -382,22 +550,49 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Options for the selected tool.
+   * ABBA runs on AsyncTask like every tool, so it answers the same way: the result if the
+   * search finishes within the API's wait, otherwise a run id to poll. Searches take 20-60
+   * seconds, so polling is the usual case.
+   */
+  private runAbba(): void {
+    this.gwApi
+      .post<AnyToolResult>('/tools/abba', abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions))
+      .subscribe({
+        next: (response) => {
+          const body = response.object as AnyToolResult | undefined;
+          if (isPendingRun(body)) {
+            this.pollUntilFinished(body);
+            return;
+          }
+          this.showAbba((body as ToolRunResult | undefined)?.result);
+          this.running = false;
+        },
+        error: (error: HttpFailure) => {
+          this.errorMessage = this.describeError(error);
+          this.running = false;
+        },
+      });
+  }
+
+  private showAbba(result: Record<string, unknown> | undefined): void {
+    this.abbaResult = result as AbbaResult | undefined;
+    this.abbaRanAt = new Date();
+  }
+
+  /**
+   * Options for the selected tool: every option shown, always sent explicitly.
    *
-   * Only the few that have no workable default are sent. DBSCAN's epsilon/min_points are
-   * required by its schema, and BooleanAlgebra needs a relation; the rest of the tools
-   * default sensibly server-side. When runs move to AsyncTask these come from
-   * `odestatic.tool_param` and the form is generated rather than written (roadmap A5).
+   * Sent even at their defaults, because legacy's defaults (in `tool-options.ts`) are not
+   * always the API's -- Homology is Included in legacy, for one. Hidden options are not
+   * sent: BooleanAlgebra's "at least N" means nothing outside an intersection.
+   *
+   * The definitions mirror `odestatic.tool_param` by hand. Generating the form from that
+   * table instead is roadmap A5; until then, a change there must be copied here.
    */
   private toolParameters(): Record<string, unknown> {
-    switch (this.selectedTool) {
-      case 'dbscan':
-        return { epsilon: this.epsilon, min_points: this.minPoints };
-      case 'boolean_algebra':
-        return { relation: this.relation };
-      default:
-        return {};
-    }
+    return Object.fromEntries(
+      this.visibleOptions.map((option) => [option.key, this.optionValues[option.key]]),
+    );
   }
 
   /**
@@ -427,7 +622,9 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
               (run.workflow_id ? ` (workflow ${run.workflow_id}).` : '.');
             return;
           }
-          if (upset) {
+          if (pending.tool === 'abba') {
+            this.showAbba(run.result);
+          } else if (upset) {
             const raw = run.result['intersections'] as { genesets: string[]; size: number }[];
             this.result = {
               tool: 'UpSet',
@@ -464,7 +661,13 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     this.running = false;
     this.result = undefined;
     this.genericResult = undefined;
+    this.abbaResult = undefined;
     this.errorMessage = undefined;
+  }
+
+  /** Whether there is anything for Clear to clear. */
+  get hasOutput(): boolean {
+    return !!(this.result || this.genericResult || this.abbaResult || this.errorMessage);
   }
 
   /** Turn an HTTP failure into something a user can act on. */
@@ -484,6 +687,9 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     }
     if (error?.status === 422) {
       return detail ?? 'Those parameters were rejected. Check the gene set ids.';
+    }
+    if (error?.status === 503) {
+      return detail ?? 'The server is busy with other searches. Try again in a minute.';
     }
     if (error?.status === 0) {
       return `Could not reach the API at ${environment.urls.geneWeaverApi}. Is it running?`;

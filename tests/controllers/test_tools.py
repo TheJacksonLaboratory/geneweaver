@@ -85,6 +85,24 @@ def test_upset_endpoint_allows_include_zeros_within_the_cap(client) -> None:
     assert len(response.json()["object"]["intersections"]) == 3
 
 
+def test_upset_endpoint_merges_homologs_when_asked(client) -> None:
+    """A mouse and a human set intersect on their orthologs with homology included."""
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.homologous_gene_symbols_by_geneset",
+            return_value={"1": ["DRD2/Drd2"], "2": ["DRD2/Drd2"]},
+        ) as merged,
+    ):
+        response = client.post(
+            "/api/tools/upset",
+            json={"geneset_ids": [1, 2], "include_homology": True},
+        )
+    assert response.status_code == 200
+    merged.assert_called_once()
+    assert response.json()["object"]["intersections"] == [{"geneset_ids": ["1", "2"], "size": 1}]
+
+
 def test_in_process_runner_runs_the_real_tool() -> None:
     """The default runner executes the actual ported tool, not a stub."""
     output = InProcessToolRunner().run(
@@ -104,7 +122,8 @@ def test_list_tools_reports_every_registered_tool(client) -> None:
 
     assert response.status_code == 200
     tools = response.json()["object"]["tools"]
-    assert len(tools) == 9
+    # The nine registered tools, plus ABBA's search.
+    assert len(tools) == 10
     for missing_before in (
         "boolean_algebra",
         "combine",
@@ -455,3 +474,68 @@ def test_refusals_happen_before_a_connection_is_leased(app, client, path, expect
         app.dependency_overrides.update(previous)
 
     assert response.status_code == expected
+
+
+# --- ABBA ----------------------------------------------------------------------------
+
+
+def test_abba_endpoint_is_not_taken_for_a_tool_name(client) -> None:
+    """`/tools/abba` must reach its own route, not `/tools/{tool}`'s unknown-tool 404."""
+    ran = {"tool": "abba", "executed_by": "in_process", "run_id": None, "result": {}}
+    with patch("geneweaver.api.services.abba.run_abba", return_value=ran) as run:
+        response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
+    assert response.status_code == 200
+    assert response.json()["object"]["tool"] == "abba"
+    assert run.call_args.args[1].genes == ["Drd2"]
+
+
+def test_abba_endpoint_reports_a_long_search_as_202(client) -> None:
+    """A search past the API's wait is answered with its run id, as every tool's is."""
+    from geneweaver.api.services import tools as tool_service
+
+    pending = tool_service.ToolRunPending(
+        {"tool": "abba", "geneset_ids": [], "gene_counts": {}, "caveat": None}, 11, "running"
+    )
+    with patch("geneweaver.api.services.abba.run_abba", side_effect=pending):
+        response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
+    assert response.status_code == 202
+    assert response.json()["object"]["run_id"] == 11
+
+
+def test_abba_endpoint_needs_a_seed(client) -> None:
+    """No genes and no gene sets is a 422."""
+    response = client.post("/api/tools/abba", json={"tiers": [1]})
+    assert response.status_code == 422
+    assert "at least one seed gene" in response.text
+
+
+def test_abba_endpoint_requires_sign_in(app, client) -> None:
+    """An anonymous search is refused with 401."""
+    from geneweaver.api.dependencies import optional_full_user_released
+
+    app.dependency_overrides[optional_full_user_released] = lambda: None
+    response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
+    assert response.status_code == 401
+
+
+def test_abba_endpoint_refuses_an_unreadable_seed_geneset(client) -> None:
+    """An unreadable seed gene set is refused with 403."""
+    with patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=False):
+        response = client.post("/api/tools/abba", json={"geneset_ids": [5]})
+    assert response.status_code == 403
+
+
+def test_abba_endpoint_answers_busy_with_retry_after(client) -> None:
+    """Too many searches is a 503 the client can retry."""
+    from geneweaver.api.services import abba as abba_service
+
+    with patch.object(abba_service, "run_abba", side_effect=abba_service.ABBABusy("busy")):
+        response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "60"
+
+
+def test_tool_list_offers_abba(client) -> None:
+    """The page builds its picker from GET /tools, so ABBA must be listed."""
+    tools = client.get("/api/tools").json()["object"]["tools"]
+    assert tools["abba"]["available"] is True

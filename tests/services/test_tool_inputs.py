@@ -5,6 +5,8 @@ arithmetic is checkable by hand -- which matters, because a wrong contingency ta
 similarity matrix produces a plausible-looking but incorrect statistic rather than an error.
 """
 
+from typing import ClassVar
+
 import pytest
 
 from geneweaver.api.services import tool_inputs
@@ -92,3 +94,50 @@ class TestSimilarityMatrix:
         """An empty gene set must cluster as dissimilar rather than divide by zero."""
         matrix = tool_inputs.similarity_matrix({"1": [], "2": []}, [1, 2])
         assert matrix[0][1] == 0.0
+
+
+class TestPairwiseDeletion:
+    """Legacy pairwise deletion: count only what both platforms could have measured."""
+
+    # 10 and 11 are mouse platforms; 20 is a human one; -7 is a gene-symbol set.
+    PLATFORMS: ClassVar = {1: (1, 10), 2: (1, 11), 3: (1, 10), 4: (2, 20), 5: (1, -7)}
+    GENES: ClassVar = {10: {"x", "y", "z", "w", "v"}, 11: {"y", "z", "q"}, 20: {"x"}}
+
+    def test_only_same_species_platform_pairs_need_platform_genes(self) -> None:
+        """A run of gene-identifier sets, or of two species, queries no platform."""
+        assert tool_inputs.deletion_platforms([1, 2, 4, 5], self.PLATFORMS) == {10, 11}
+        assert tool_inputs.deletion_platforms([1, 4, 5], self.PLATFORMS) == set()
+
+    def test_scopes_follow_legacy_rules(self) -> None:
+        """Different platforms: their shared genes. Same platform: no restriction."""
+        scopes = tool_inputs.pairwise_deletion_scopes([1, 2, 3, 4, 5], self.PLATFORMS, self.GENES)
+        assert scopes[(0, 1)] == tool_inputs.PairScope(frozenset({"y", "z"}), 2)
+        assert scopes[(0, 2)] == tool_inputs.PairScope(None, 5)
+        # Other species, or a gene-symbol set: counted normally, so no entry.
+        assert (0, 3) not in scopes
+        assert (0, 4) not in scopes
+
+    def test_jaccard_counts_only_genes_both_platforms_measure(self) -> None:
+        """'x' is on platform 10 only, so it cannot count against set 2."""
+        memberships = {"1": ["x", "y", "z"], "2": ["y", "z", "w"]}
+        scopes = {(0, 1): tool_inputs.PairScope(frozenset({"y", "z"}), 2)}
+        plain = tool_inputs.jaccard_pair_counts(memberships, [1, 2])[0]
+        deleted = tool_inputs.jaccard_pair_counts(memberships, [1, 2], scopes)[0]
+        assert (plain["only_i"], plain["only_j"], plain["intersection"]) == (1, 1, 2)
+        assert (deleted["only_i"], deleted["only_j"], deleted["intersection"]) == (0, 0, 2)
+
+    def test_hypergeometric_population_is_the_platforms(self) -> None:
+        """Same platform: every gene counts, but f00 is the platform's other genes."""
+        memberships = {"1": ["x", "y"], "2": ["y", "z"]}
+        scopes = {(0, 1): tool_inputs.PairScope(None, 100)}
+        table = tool_inputs.contingency_pairs(memberships, [1, 2], scopes)[0]
+        assert (table["f11"], table["f10"], table["f01"], table["f00"]) == (1, 1, 1, 97)
+
+    def test_homology_merged_members_count_if_any_symbol_is_measurable(self) -> None:
+        """A merged "A/B" member is on the platform when either symbol is."""
+        memberships = {"1": ["DRD2/Drd2", "x"], "2": ["DRD2/Drd2"]}
+        scopes = {(0, 1): tool_inputs.PairScope(frozenset({"Drd2"}), 1)}
+        counts = tool_inputs.jaccard_pair_counts(memberships, [1, 2], scopes)[0]
+        assert (counts["only_i"], counts["only_j"], counts["intersection"]) == (0, 0, 1)
+        table = tool_inputs.contingency_pairs(memberships, [1, 2], scopes)[0]
+        assert table["f00"] == 0

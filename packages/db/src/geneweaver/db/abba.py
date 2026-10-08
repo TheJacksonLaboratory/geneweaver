@@ -68,7 +68,10 @@ def abba(
 ) -> ABBAResult:
     """Run the ABBA association pipeline and return the structured results.
 
-    :param cursor: a database cursor; the caller owns the transaction/commit.
+    :param cursor: a **tuple-row** database cursor (rows are read by position), inside a
+        transaction the caller owns. The four temp tables are ``ON COMMIT DROP``, so they
+        last until that transaction ends: on an autocommit connection, open one with
+        ``connection.transaction()`` first, or each table vanishes as it is created.
     :param input_genes: text-supplied gene reference ids (symbols); case-insensitive.
     :param geneset_ids: gene sets whose member genes are added to the input genes.
     :param species_ids: species to restrict genes/gene sets to.

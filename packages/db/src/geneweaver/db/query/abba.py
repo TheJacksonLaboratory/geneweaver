@@ -58,7 +58,7 @@ def create_input_genes_table(
     """
     query = SQL(
         """
-        CREATE TEMP TABLE {table} AS
+        CREATE TEMP TABLE {table} ON COMMIT DROP AS
         SELECT * FROM extsrc.gene
          WHERE lower(ode_ref_id) = ANY(%(genes)s)
            AND sp_id = ANY(%(species)s)
@@ -83,13 +83,13 @@ def create_genes_of_interest_table(
     if not include_homology:
         # Legacy bug fixed: copy the input genes into the interest table (the legacy
         # path ran a bare SELECT and never created this table).
-        query = SQL("CREATE TEMP TABLE {interest} AS SELECT * FROM {input}").format(
+        query = SQL("CREATE TEMP TABLE {interest} ON COMMIT DROP AS SELECT * FROM {input}").format(
             interest=_table(interest_table), input=_table(input_table)
         )
         return query, {}
     query = SQL(
         """
-        CREATE TEMP TABLE {interest} AS
+        CREATE TEMP TABLE {interest} ON COMMIT DROP AS
         (SELECT * FROM extsrc.gene
           WHERE ode_gene_id IN
             (SELECT ode_gene_id FROM extsrc.homology WHERE hom_id IN
@@ -114,7 +114,7 @@ def create_matching_genesets_table(
     """
     query = SQL(
         """
-        CREATE TEMP TABLE {matching} AS
+        CREATE TEMP TABLE {matching} ON COMMIT DROP AS
         SELECT count(ode_gene_id) AS genematchcount, gs.*
           FROM extsrc.geneset_value gv
           JOIN production.geneset gs ON gv.gs_id = gs.gs_id
@@ -153,7 +153,7 @@ def create_result_genes_table(
         params = {"min_genes": min_genes}
     query = SQL(
         """
-        CREATE TEMP TABLE {result} AS
+        CREATE TEMP TABLE {result} ON COMMIT DROP AS
         SELECT gi.*, count(gv.ode_gene_id) AS occurrences
           FROM extsrc.geneset_value gv
           JOIN extsrc.gene_info gi ON gv.ode_gene_id = gi.ode_gene_id

@@ -4,6 +4,9 @@
 # BooleanAlgebra, JaccardSimilarity, JaccardClustering and DBSCAN (whose in-process
 # implementation is the default; the binary is only the legacy-parity fallback).
 #
+# It also serves ABBA, the gene-centred search, which is a database query rather than a
+# registered tool (geneweaver.tools.abba) -- hence the `db` extra below.
+#
 # MSET and PhenomeMap are *not* served here -- they shell out to TOOLBOX binaries and are
 # served by Dockerfile.tools-native-worker. The split is by dependency profile rather than
 # per tool, because seven of the nine have identical requirements; see
@@ -33,8 +36,10 @@ COPY packages ./packages
 
 # Only the tools package and the extras it needs. `src/` (geneweaver-api) is deliberately
 # absent: this image serves tool runs, not HTTP, and leaving the web stack out drops ~149
-# packages along with their attack surface.
-RUN uv sync --frozen --no-dev --package geneweaver-tools --extra sklearn --extra temporal
+# packages along with their attack surface. `db` is for ABBA, which searches the database
+# from the activity.
+RUN uv sync --frozen --no-dev --package geneweaver-tools \
+      --extra sklearn --extra temporal --extra db
 
 # Fail the build here rather than at run time. A worker whose entry points did not register
 # starts cleanly, consumes its queue and fails every task -- the failure mode this package's
@@ -54,6 +59,12 @@ RUN python -c "\
 from geneweaver.tools.jaccard_clustering import JaccardClustering; \
 from geneweaver.tools.dbscan import DBSCAN; \
 print('sklearn-backed tools import cleanly')"
+
+# And that ABBA's search can import the database layer, which only the `db` extra brings.
+RUN python -c "\
+from geneweaver.tools.abba.search import search; \
+from geneweaver.db.abba import abba; \
+print('abba imports cleanly')"
 
 USER nobody
 

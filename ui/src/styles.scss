@@ -20,3 +20,15 @@ a:hover {
   color: steelblue;
   text-decoration: underline;
 }
+/*
+ * Keyboard focus on chart marks (`interactive()` in analyze/visualizations/chart-utils.ts).
+ * Global because D3 draws the marks outside Angular's style encapsulation. Shown only for
+ * keyboard focus, so a click does not leave a ring on a bar or a cell.
+ */
+.chart-mark:focus {
+  outline: none;
+}
+.chart-mark:focus-visible {
+  outline: 2px solid #0090D9;
+  outline-offset: 1px;
+}

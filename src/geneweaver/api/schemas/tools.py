@@ -1,5 +1,6 @@
 """Request and response schemas for running analysis tools."""
 
+from geneweaver.tools.abba import ABBAInput
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 #: With `include_zeros` the tool emits every combination of the requested gene sets --
@@ -30,6 +31,13 @@ class UpSetRequest(BaseModel):
         description=(
             "Include combinations with no genes. The number of combinations is "
             f"2^n - 1, so this is capped at {MAX_GENESETS_WITH_ZEROS} gene sets."
+        ),
+    )
+    include_homology: bool = Field(
+        default=False,
+        description=(
+            "Merge homologous genes across the gene sets, so sets from different species "
+            'intersect on their orthologs (legacy\'s "Homology: Included").'
         ),
     )
 
@@ -102,7 +110,16 @@ class ToolRunRequest(BaseModel):
     )
     parameters: dict = Field(
         default_factory=dict,
-        description="Tool-specific options. Unknown keys are ignored by the tool.",
+        description=(
+            "Tool-specific options; unknown keys are ignored. `include_homology` "
+            "(upset, dbscan, hypergeometric, jaccard_clustering, jaccard_similarity, "
+            "phenome_map, combine); `pairwise_deletion` (jaccard_similarity, "
+            "hypergeometric); `p_value_threshold` (jaccard_similarity, phenome_map); "
+            "`method` (jaccard_clustering: ward, single, centroid, mcquitty, average, "
+            "complete); `relation` and `at_least` (boolean_algebra); `epsilon` and "
+            "`min_points` (dbscan); `number_of_samples` (mset); `min_genes`, "
+            "`max_level`, `use_fdr`, `disable_bootstrap` (phenome_map)."
+        ),
     )
 
     @field_validator("geneset_ids")
@@ -145,3 +162,32 @@ class ToolRunResult(BaseModel):
         default=None, description="Qualifies how to read this result, if anything does."
     )
     result: dict = Field(..., description="The tool's own output.")
+
+
+class ABBARequest(ABBAInput):
+    """Parameters for an ABBA gene-centred search (legacy `ABBA_options.html`).
+
+    Unlike the other tools, ABBA starts from genes: the seed is the genes given here plus
+    the in-threshold genes of any gene sets named. It then finds the gene sets containing
+    those genes and the other genes that recur across them. The options and their checks are
+    the tool's own (`geneweaver.tools.abba.ABBAInput`); this adds the seed gene sets, which
+    the API gates and expands before the search sees them.
+    """
+
+    genes: list[str] = Field(
+        default_factory=list,
+        max_length=1000,
+        description="Seed gene symbols, matched case-insensitively.",
+    )
+    geneset_ids: list[int] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Gene sets whose in-threshold genes join the seed.",
+    )
+
+    @model_validator(mode="after")
+    def _needs_a_seed(self) -> "ABBARequest":
+        """There is nothing to search from without at least one gene or gene set."""
+        if not self.genes and not self.geneset_ids:
+            raise ValueError("Give at least one seed gene or one gene set.")
+        return self
