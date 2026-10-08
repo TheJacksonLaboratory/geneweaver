@@ -9,11 +9,39 @@ import { PhenomeMapGraphComponent } from './phenome-map-graph.component';
  * Cytoscape's drawing.
  */
 const created: { options: Record<string, any>; handlers: Record<string, (e: unknown) => void> }[] = [];
+/** A stand-in element that records its classes, for the search highlight. */
+function element(id: string, source?: string, target?: string) {
+  const classes = new Set<string>();
+  return {
+    classes,
+    id: () => id,
+    source: () => ({ id: () => source }),
+    target: () => ({ id: () => target }),
+    addClass: (name: string) => classes.add(name),
+    removeClass: (names: string) => names.split(' ').forEach((name) => classes.delete(name)),
+  };
+}
+
 jest.mock('cytoscape', () => ({
   __esModule: true,
-  default: (options: Record<string, unknown>) => {
+  default: (options: Record<string, any>) => {
+    const elements = (options['elements'] as { group: string; data: Record<string, string> }[]).map(
+      (e) => ({ group: e.group, el: element(e.data['id'], e.data['source'], e.data['target']) }),
+    );
+    const collection = (group?: string) => {
+      const items = elements.filter((e) => !group || e.group === group).map((e) => e.el);
+      return {
+        forEach: (fn: (el: (typeof items)[number]) => void) => items.forEach(fn),
+        removeClass: (names: string) => items.forEach((el) => el.removeClass(names)),
+      };
+    };
     const instance = {
       options,
+      classesOf: (id: string) => elements.find((e) => e.el.id() === id)?.el.classes,
+      batch: (fn: () => void) => fn(),
+      elements: () => collection(),
+      nodes: () => collection('nodes'),
+      edges: () => collection('edges'),
       handlers: {} as Record<string, (e: unknown) => void>,
       on(event: string, _selector: string, handler: (e: unknown) => void) {
         this.handlers[event] = handler;
@@ -98,6 +126,38 @@ describe('PhenomeMapGraphComponent', () => {
     created[0].handlers['tap']({ target: { id: () => `n${node.id}` } });
     fixture.detectChanges();
     expect(fixture.componentInstance.selectedId).toBe(`n${node.id}`);
+  });
+
+  it('shows legacy\'s stats for the run', async () => {
+    const fixture = await build();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Bicliques shown:');
+    expect(text).toContain('448');
+  });
+
+  it('highlights the bicliques holding a searched gene, and fades the rest', async () => {
+    const fixture = await build();
+    const nodes = FIXTURES.phenome_map.nodes;
+    // A gene some bicliques lack: the top biclique's genes are in every one of them.
+    const gene = nodes.flatMap((n) => n.genes).find((g) => nodes.some((n) => !n.genes.includes(g)))!;
+    const top = nodes.find((n) => n.genes.includes(gene))!;
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('#phenome-map-search');
+    input.value = gene.toLowerCase();
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const cy = created[0] as any;
+    const holding = nodes.filter((n) => n.genes.includes(gene));
+    expect(fixture.nativeElement.textContent).toContain(`${holding.length} of 26 bicliques contain a match`);
+    expect(cy.classesOf(`n${top.id}`).has('matched')).toBe(true);
+    const other = nodes.find((n) => !n.genes.includes(gene) && n.displayed !== false)!;
+    expect(cy.classesOf(`n${other.id}`).has('dimmed')).toBe(true);
+
+    // Clearing the search clears the highlight.
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(cy.classesOf(`n${other.id}`).size).toBe(0);
   });
 
   it('creates nothing if destroyed while Cytoscape is still loading', async () => {

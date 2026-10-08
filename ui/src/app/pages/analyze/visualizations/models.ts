@@ -204,6 +204,173 @@ export function jaccardMatrix(output: JaccardSimilarityOutput): MatrixModel {
   return { ids, cells, domain: [0, 1], legend: 'Jaccard index' };
 }
 
+// --- JaccardSimilarity: the grid of pairwise Venn diagrams ------------------------------
+
+export interface VennGridCircle {
+  /** Centre and radius in a unit cell: (0, 0) top left, (1, 1) bottom right. */
+  cx: number;
+  cy: number;
+  r: number;
+  /** Which gene set it stands for: the cell's row set or its column set. */
+  role: 'row' | 'col' | 'same';
+}
+
+export interface VennGridCell {
+  row: string;
+  col: string;
+  diagonal: boolean;
+  rowSize: number;
+  colSize: number;
+  shared: number;
+  onlyRow: number;
+  onlyCol: number;
+  jaccard: number;
+  /** The pair's p-value, or null when there is none (see `jaccardMatrix`). */
+  p: number | null;
+  circles: VennGridCircle[];
+  /** The text legacy printed in each cell: counts, J, p. */
+  lines: string[];
+  tooltip: TooltipContent;
+}
+
+export interface VennGridModel {
+  ids: string[];
+  sizes: Record<string, number>;
+  cells: VennGridCell[];
+  /** The threshold the run was made with, which the grid starts from. */
+  threshold: number;
+}
+
+/** p-value thresholds offered on the grid; legacy's list for JaccardSimilarity. */
+export const P_THRESHOLDS = [1.0, 0.5, 0.1, 0.05, 0.01];
+
+/**
+ * Two circles in a unit cell, areas proportional to the set sizes and the lens to the shared
+ * genes, scaled per cell to fill it -- as legacy did, so a cell compares its own two sets,
+ * not sizes across cells.
+ */
+function pairCircles(rowSize: number, colSize: number, shared: number): VennGridCircle[] {
+  const r1 = Math.sqrt(Math.max(rowSize, 0) / Math.PI);
+  const r2 = Math.sqrt(Math.max(colSize, 0) / Math.PI);
+  if (r1 === 0 && r2 === 0) {
+    return [];
+  }
+  const d = distanceForOverlap(r1, r2, shared);
+  const left = Math.min(-r1, d - r2);
+  const right = Math.max(r1, d + r2);
+  const scale = 0.84 / Math.max(right - left, 2 * Math.max(r1, r2));
+  const shift = 0.5 - ((left + right) / 2) * scale;
+  return [
+    { cx: shift, cy: 0.5, r: r1 * scale, role: 'row' as const },
+    { cx: shift + d * scale, cy: 0.5, r: r2 * scale, role: 'col' as const },
+  ].filter((circle) => circle.r > 0);
+}
+
+/**
+ * Legacy JaccardSimilarity's main view: an N x N grid with a two-set Venn diagram per pair.
+ * Row i is gene set i, column j gene set j; the diagonal is each set against itself.
+ *
+ * Set sizes are not in the output directly; each comes from any pair it is in (shared +
+ * only-in-it), which every pair agrees on.
+ */
+export function jaccardVennGrid(output: JaccardSimilarityOutput): VennGridModel {
+  const ids = output.geneset_ids.map(String);
+  const sizes: Record<string, number> = Object.fromEntries(ids.map((id) => [id, 0]));
+  for (const r of output.results) {
+    const a = ids[r.i];
+    const b = ids[r.j];
+    if (a !== undefined) sizes[a] = r.intersection + r.only_i;
+    if (b !== undefined) sizes[b] = r.intersection + r.only_j;
+  }
+  const byPair = new Map<string, JaccardSimilarityOutput['results'][number]>();
+  for (const r of output.results) {
+    byPair.set(`${r.i},${r.j}`, r);
+    byPair.set(`${r.j},${r.i}`, r);
+  }
+  const cells: VennGridCell[] = [];
+  ids.forEach((row, i) => {
+    ids.forEach((col, j) => {
+      if (i === j) {
+        const size = sizes[row];
+        cells.push({
+          row,
+          col,
+          diagonal: true,
+          rowSize: size,
+          colSize: size,
+          shared: size,
+          onlyRow: 0,
+          onlyCol: 0,
+          jaccard: 1,
+          p: null,
+          circles: size > 0 ? [{ cx: 0.5, cy: 0.5, r: 0.38, role: 'same' }] : [],
+          lines: [`(${size})`],
+          tooltip: {
+            title: genesetLabel(row),
+            rows: [{ label: 'Genes', value: String(size) }],
+            note: 'The same gene set on both axes.',
+          },
+        });
+        return;
+      }
+      const r = byPair.get(`${i},${j}`);
+      if (!r) {
+        return;
+      }
+      // Counts are oriented i -> j in the output; a cell below the diagonal swaps them.
+      const [onlyRow, onlyCol] = r.i === i ? [r.only_i, r.only_j] : [r.only_j, r.only_i];
+      // As in `jaccardMatrix`: 0 means no null distribution covered the pair, not a tiny p.
+      const p = r.p_value !== null && r.p_value > 0 ? r.p_value : null;
+      const pText = p === null ? 'none' : formatP(p);
+      const lines =
+        r.intersection === 0
+          ? [`(${onlyRow})  (${onlyCol})`]
+          : [`(${onlyRow} ${r.intersection} ${onlyCol})`, `J = ${r.jaccard.toFixed(3)}`, `p = ${pText}`];
+      cells.push({
+        row,
+        col,
+        diagonal: false,
+        rowSize: sizes[row],
+        colSize: sizes[col],
+        shared: r.intersection,
+        onlyRow,
+        onlyCol,
+        jaccard: r.jaccard,
+        p,
+        circles: pairCircles(sizes[row], sizes[col], r.intersection),
+        lines,
+        tooltip: {
+          title: `${genesetLabel(row)} (row) vs ${genesetLabel(col)} (column)`,
+          rows: [
+            { label: 'Shared genes', value: String(r.intersection) },
+            { label: `Only in ${genesetLabel(row)}`, value: String(onlyRow) },
+            { label: `Only in ${genesetLabel(col)}`, value: String(onlyCol) },
+            { label: 'Jaccard index', value: r.jaccard.toFixed(3) },
+            { label: 'p-value', value: pText },
+          ],
+          note:
+            p === null
+              ? 'No null distribution covers these two set sizes, so there is no p-value.'
+              : undefined,
+        },
+      });
+    });
+  });
+  return { ids, sizes, cells, threshold: output.p_value_threshold ?? 1 };
+}
+
+/**
+ * Whether a cell is greyed at a threshold: legacy greyed pairs whose p is above it. A pair
+ * with no p-value cannot pass a test, so it is greyed too -- except at 1.0, which keeps
+ * everything (it is legacy's "no filter" and its default). The diagonal is never greyed.
+ */
+export function vennCellGreyed(cell: VennGridCell, threshold: number): boolean {
+  if (cell.diagonal || threshold >= 1) {
+    return false;
+  }
+  return cell.p === null || cell.p > threshold;
+}
+
 export interface HyperGeometricOutput {
   geneset_ids: string[];
   results: {
@@ -284,6 +451,59 @@ export function dendrogramModel(tree: ClusterNode | null | undefined): Dendrogra
   return walk(tree);
 }
 
+export interface SunburstArc {
+  /** Gene set label for a leaf; empty for a cluster. */
+  name: string;
+  /** Ring: 1 is the innermost drawn ring (the root itself is not drawn). */
+  depth: number;
+  /** Angles in radians. */
+  start: number;
+  end: number;
+  leaf: boolean;
+  /** For a cluster, 1 - its merge distance. */
+  similarity: number | null;
+  /** Gene sets under this arc. */
+  members: string[];
+}
+
+/**
+ * Legacy's "partitioned sunburst" of the clustering tree: each gene set an outer arc, each
+ * cluster an inner arc spanning its members. Every gene set gets an equal angle: legacy
+ * sized them by gene count, which the clustering output does not carry.
+ */
+export function sunburstArcs(tree: DendrogramNode | null | undefined): SunburstArc[] {
+  if (!tree) {
+    return [];
+  }
+  const leavesOf = (node: DendrogramNode): string[] =>
+    node.children?.length ? node.children.flatMap(leavesOf) : [node.name];
+  const total = leavesOf(tree).length;
+  const arcs: SunburstArc[] = [];
+  const walk = (node: DendrogramNode, depth: number, start: number) => {
+    const members = leavesOf(node);
+    const end = start + (2 * Math.PI * members.length) / total;
+    const leaf = !node.children?.length;
+    if (depth > 0) {
+      arcs.push({
+        name: leaf ? node.name : '',
+        depth,
+        start,
+        end,
+        leaf,
+        similarity: leaf ? null : 1 - node.height,
+        members,
+      });
+    }
+    let at = start;
+    for (const child of node.children ?? []) {
+      walk(child, depth + 1, at);
+      at += (2 * Math.PI * leavesOf(child).length) / total;
+    }
+  };
+  walk(tree, 0, 0);
+  return arcs;
+}
+
 // --- DBSCAN ----------------------------------------------------------------------------
 
 export interface PackNode {
@@ -303,6 +523,72 @@ export function dbscanModel(output: { ran: boolean; clusters: string[][] }): Pac
       name: `Cluster ${index + 1} (${genes.length} genes)`,
       children: genes.map((gene) => ({ name: gene, value: 1 })),
     })),
+  };
+}
+
+export interface GeneNetwork {
+  /** False when the result has no gene -> gene set map (a worker older than the field). */
+  available: boolean;
+  nodes: { id: string; cluster: number | null; genesets: string[] }[];
+  edges: { source: string; target: string; genesets: string[] }[];
+  /** Over the budget: too many links to draw legibly, so none are returned. */
+  tooLarge: boolean;
+  budget: number;
+  clusters: number;
+}
+
+/**
+ * Legacy DBSCAN's "wires" view: genes linked when they share an input gene set, coloured by
+ * cluster, genes in no cluster as noise. A gene set of n genes links n(n-1)/2 pairs, so the
+ * links grow fast; past `budget` the network is refused rather than drawn as a hairball, as
+ * legacy refused (it drew nothing once one gene set passed 150 pairs).
+ */
+export function dbscanNetwork(
+  output: { ran: boolean; clusters: string[][]; gene_genesets?: Record<string, string[]> | null },
+  budget = 3000,
+): GeneNetwork {
+  const memberships = output.gene_genesets;
+  const empty = { nodes: [], edges: [], tooLarge: false, budget, clusters: output.clusters.length };
+  if (!memberships) {
+    return { available: false, ...empty };
+  }
+  const clusterOf = new Map<string, number>();
+  output.clusters.forEach((genes, index) => genes.forEach((gene) => clusterOf.set(gene, index)));
+  const genes = [...new Set([...Object.keys(memberships), ...clusterOf.keys()])].sort();
+  const bySet = new Map<string, string[]>();
+  for (const gene of genes) {
+    for (const set of memberships[gene] ?? []) {
+      bySet.set(String(set), [...(bySet.get(String(set)) ?? []), gene]);
+    }
+  }
+  const edges = new Map<string, { source: string; target: string; genesets: string[] }>();
+  for (const [set, members] of bySet) {
+    for (let a = 0; a < members.length; a++) {
+      for (let b = a + 1; b < members.length; b++) {
+        const key = `${members[a]}\u0000${members[b]}`;
+        const edge = edges.get(key);
+        if (edge) {
+          edge.genesets.push(set);
+        } else {
+          if (edges.size >= budget) {
+            return { available: true, ...empty, tooLarge: true };
+          }
+          edges.set(key, { source: members[a], target: members[b], genesets: [set] });
+        }
+      }
+    }
+  }
+  return {
+    available: true,
+    nodes: genes.map((gene) => ({
+      id: gene,
+      cluster: clusterOf.get(gene) ?? null,
+      genesets: (memberships[gene] ?? []).map(String),
+    })),
+    edges: [...edges.values()],
+    tooLarge: false,
+    budget,
+    clusters: output.clusters.length,
   };
 }
 
@@ -421,6 +707,58 @@ export function booleanModel(output: BooleanAlgebraOutput): BooleanModel {
       }))
       .sort((a, b) => b.size - a.size),
   };
+}
+
+/** Species by GeneWeaver species id; the same list as the species tag component. */
+export const SPECIES_NAMES: Record<number, string> = {
+  1: 'Mouse',
+  2: 'Human',
+  3: 'Rat',
+  4: 'Zebrafish',
+  5: 'Fruit fly',
+  6: 'Macaque',
+  7: 'Nematode',
+  8: 'Yeast',
+  9: 'Chicken',
+  10: 'Western clawed frog',
+  11: 'African clawed frog',
+};
+
+export interface SpeciesSummaryRow {
+  species: number;
+  name: string;
+  /** Genes found only in this species' gene sets. */
+  specific: number;
+  /** Genes matched by homology to a gene in at least one other species. */
+  shared: number;
+  total: number;
+}
+
+/**
+ * Legacy BooleanAlgebra's species table, for a request spanning species. Across species the
+ * tool keys each gene by its homology group, so a key whose rows carry two species is a
+ * gene matched across them. Counted over every input gene, as legacy's table was, not just
+ * the relation's answer. Null for a single species: the table would say nothing.
+ */
+export function speciesSummary(output: BooleanAlgebraOutput): SpeciesSummaryRow[] | null {
+  const speciesOfKey = Object.values(output.bool_results).map(
+    (rows) => new Set(rows.map((row) => Number(row[2]))),
+  );
+  const all = [...new Set(speciesOfKey.flatMap((set) => [...set]))].sort((a, b) => a - b);
+  if (all.length < 2) {
+    return null;
+  }
+  return all.map((species) => {
+    const keys = speciesOfKey.filter((set) => set.has(species));
+    const shared = keys.filter((set) => set.size > 1).length;
+    return {
+      species,
+      name: SPECIES_NAMES[species] ?? `Species ${species}`,
+      specific: keys.length - shared,
+      shared,
+      total: keys.length,
+    };
+  });
 }
 
 // --- Venn geometry (area-proportional, 2 or 3 circles) ---------------------------------
@@ -543,6 +881,49 @@ export function msetModel(output: {
   };
 }
 
+export interface MsetEuler {
+  universe: number;
+  list1: number;
+  list2: number;
+  shared: number;
+  /** Radii with the universe's as 1, and the two lists' centres on its horizontal axis. */
+  r1: number;
+  r2: number;
+  /** Centre distance between the two lists, same units. */
+  distance: number;
+}
+
+/**
+ * Legacy MSET's "size comparison": the universe as a circle holding both lists, every area
+ * proportional to its gene count and the lists' lens to the genes they share. Uses the
+ * lists' sizes *in the universe* (what the test samples from). Legacy rescaled the
+ * intersection by `min(list sizes) / 100` before solving the lens, which drew the wrong
+ * overlap; this uses the shared count itself. Null when the summary lacks the counts.
+ */
+export function msetEuler(output: { mset_data: Record<string, string> }): MsetEuler | null {
+  const read = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = Number.parseInt(output.mset_data[key] ?? '', 10);
+      if (Number.isFinite(value)) {
+        return value;
+      }
+    }
+    return NaN;
+  };
+  const universe = read('Universe Size');
+  const list1 = read('List 1 / Universe', 'List 1 Size');
+  const list2 = read('List 2 / Universe', 'List 2 Size');
+  const shared = read('List 1/2 Intersect');
+  if (![universe, list1, list2, shared].every(Number.isFinite) || universe <= 0) {
+    return null;
+  }
+  // Area pi * r^2 per circle against the universe's pi * 1^2.
+  const r1 = Math.sqrt(list1 / universe);
+  const r2 = Math.sqrt(list2 / universe);
+  const distance = distanceForOverlap(r1, r2, (Math.PI * shared) / universe);
+  return { universe, list1, list2, shared, r1, r2, distance };
+}
+
 // --- PhenomeMap ------------------------------------------------------------------------
 
 export interface PhenomeMapNode {
@@ -642,6 +1023,67 @@ export function phenomeMapElements(output: { nodes: PhenomeMapNode[] }): GraphEl
       })),
   );
   return [...nodes, ...edges];
+}
+
+/**
+ * Legacy's "highlight genes or gene sets": the displayed bicliques holding a match for the
+ * query. A gene matches by symbol, ignoring case; a gene set by id, with or without "GS".
+ * Several terms can be given, separated by commas or spaces; a biclique matches any of them.
+ */
+export function phenomeMapMatches(nodes: PhenomeMapNode[], query: string): Set<number> {
+  const terms = query
+    .split(/[\s,]+/)
+    .map((term) => term.trim().toLowerCase())
+    .filter(Boolean);
+  const matched = new Set<number>();
+  if (!terms.length) {
+    return matched;
+  }
+  for (const node of nodes) {
+    if (node.displayed === false) {
+      continue;
+    }
+    const genes = new Set(node.genes.map((gene) => gene.toLowerCase()));
+    const sets = new Set(node.genesets.map((id) => String(id).toLowerCase()));
+    const hit = terms.some(
+      (term) => genes.has(term) || sets.has(term.replace(/^gs/, '')),
+    );
+    if (hit) {
+      matched.add(node.id);
+    }
+  }
+  return matched;
+}
+
+/** Legacy's stats panel, from what the result carries. */
+export function phenomeMapStats(output: {
+  nodes: PhenomeMapNode[];
+  num_genes?: number;
+  num_genesets?: number;
+}): TooltipRow[] {
+  const shown = output.nodes.filter((node) => node.displayed !== false);
+  const rows: TooltipRow[] = [];
+  if (output.num_genesets !== undefined) {
+    rows.push({ label: 'Gene sets', value: String(output.num_genesets) });
+  }
+  if (output.num_genes !== undefined) {
+    rows.push({ label: 'Genes', value: String(output.num_genes) });
+  }
+  rows.push({ label: 'Bicliques shown', value: String(shown.length) });
+  if (shown.length !== output.nodes.length) {
+    rows.push({ label: 'Bicliques hidden', value: String(output.nodes.length - shown.length) });
+  }
+  const ids = new Set(shown.map((node) => node.id));
+  const links = shown.reduce(
+    (sum, node) => sum + (node.children ?? []).filter((link) => ids.has(link.target)).length,
+    0,
+  );
+  rows.push({ label: 'Links', value: String(links) });
+  if (shown.length) {
+    rows.push({ label: 'Levels', value: String(Math.max(...shown.map((node) => node.depth)) + 1) });
+    rows.push({ label: 'Largest biclique', value: `${Math.max(...shown.map((n) => n.genes.length))} genes` });
+  }
+  return rows;
 }
 
 // --- Combine ---------------------------------------------------------------------------

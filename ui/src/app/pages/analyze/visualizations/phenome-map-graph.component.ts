@@ -11,7 +11,13 @@ import {
 import type { Core, ElementDefinition } from 'cytoscape';
 
 import { ACCENT, HIGHLIGHT, saveBlob } from './chart-utils';
-import { genesetLabel, phenomeMapElements } from './models';
+import {
+  genesetLabel,
+  phenomeMapElements,
+  phenomeMapMatches,
+  phenomeMapStats,
+  TooltipRow,
+} from './models';
 
 interface SelectedBiclique {
   genesets: string[];
@@ -34,6 +40,20 @@ interface SelectedBiclique {
   standalone: true,
   imports: [NgIf, NgFor],
   template: `
+    <dl class="stats flex flex-wrap gap-3 text-sm m-0 mb-2">
+      <div *ngFor="let stat of stats"><dt class="inline font-semibold">{{ stat.label }}:</dt>
+        <dd class="inline m-0 ml-1">{{ stat.value }}</dd></div>
+    </dl>
+    <label class="block text-sm mb-1" for="phenome-map-search">Highlight genes or gene sets</label>
+    <input
+      id="phenome-map-search"
+      class="p-inputtext p-inputtext-sm mb-1 w-full"
+      type="search"
+      placeholder="e.g. Drd2, GS164706"
+      [value]="query"
+      (input)="highlight($any($event.target).value)"
+    />
+    <p class="text-sm text-color-secondary mt-0 mb-2" aria-live="polite">{{ matchNote }}</p>
     <!-- The canvas is a picture for sighted users; the list below is the accessible way in. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label"></div>
     <div class="flex gap-2 mt-2">
@@ -74,6 +94,10 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   /** Every displayed biclique, top level first, for the keyboard-operable picker. */
   options: { id: string; label: string }[] = [];
   label = 'PhenomeMap biclique graph';
+  stats: TooltipRow[] = [];
+  query = '';
+  matchNote = '';
+  private matches = new Set<string>();
   private cy?: Core;
   private details = new Map<string, SelectedBiclique>();
   private destroyed = false;
@@ -87,8 +111,12 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
     const elements = phenomeMapElements(this.result) as ElementDefinition[];
     const nodes = elements.filter((e) => e.group === 'nodes');
     this.label = `PhenomeMap graph of ${nodes.length} bicliques`;
+    this.stats = phenomeMapStats(this.result);
     this.selected = undefined;
     this.selectedId = undefined;
+    this.query = '';
+    this.matchNote = '';
+    this.matches.clear();
     this.details = new Map(
       nodes.map((node) => [
         String(node.data.id),
@@ -138,6 +166,8 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
         },
         { selector: 'node[?emphasize]', style: { 'border-width': 3, 'border-color': HIGHLIGHT } },
         { selector: 'node:selected', style: { 'background-color': '#1E3A8A' } },
+        { selector: 'node.matched', style: { 'border-width': 4, 'border-color': '#F59E0B' } },
+        { selector: '.dimmed', style: { opacity: 0.15 } },
         {
           selector: 'edge',
           style: {
@@ -153,6 +183,43 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
       layout: { name: 'preset', fit: true, padding: 20 },
     });
     this.cy.on('tap', 'node', (event) => this.select(String(event.target.id())));
+    this.applyHighlight();
+  }
+
+  /** Legacy's search box: mark the bicliques holding a match, fade the rest. */
+  highlight(query: string): void {
+    this.query = query;
+    const ids = phenomeMapMatches(this.result.nodes, query);
+    this.matches = new Set([...ids].map((id) => `n${id}`));
+    const shown = this.options.length;
+    this.matchNote = query.trim()
+      ? `${ids.size} of ${shown} bicliques contain a match.`
+      : '';
+    this.applyHighlight();
+    this.changes.markForCheck();
+  }
+
+  private applyHighlight(): void {
+    const cy = this.cy;
+    if (!cy) {
+      return;
+    }
+    const active = this.query.trim() !== '';
+    cy.batch(() => {
+      cy.elements().removeClass('dimmed matched');
+      if (!active) {
+        return;
+      }
+      cy.nodes().forEach((node) => {
+        node.addClass(this.matches.has(node.id()) ? 'matched' : 'dimmed');
+      });
+      // A link stays lit only between two matches: the paths legacy highlighted.
+      cy.edges().forEach((edge) => {
+        if (!(this.matches.has(edge.source().id()) && this.matches.has(edge.target().id()))) {
+          edge.addClass('dimmed');
+        }
+      });
+    });
   }
 
   /** One selection path for both a click on the graph and the picker. */

@@ -5,6 +5,7 @@ import { ClusterPackComponent } from './cluster-pack.component';
 import { CombineTableComponent } from './combine-table.component';
 import { DendrogramComponent } from './dendrogram.component';
 import { FIXTURES } from './fixtures';
+import { GeneNetworkComponent } from './gene-network.component';
 import { HeatmapComponent } from './heatmap.component';
 import {
   booleanModel,
@@ -13,10 +14,15 @@ import {
   dendrogramModel,
   hypergeometricMatrix,
   jaccardMatrix,
+  jaccardVennGrid,
+  msetEuler,
   msetModel,
 } from './models';
+import { MsetEulerComponent } from './mset-euler.component';
 import { MsetHistogramComponent } from './mset-histogram.component';
+import { SunburstComponent } from './sunburst.component';
 import { ToolResultComponent } from './tool-result.component';
+import { VennGridComponent } from './venn-grid.component';
 import { VennComponent } from './venn.component';
 
 /** Create a chart component, give it inputs, and draw. */
@@ -237,6 +243,19 @@ describe('VennComponent', () => {
     expect(host.textContent).toContain('1 genes that are in only one gene set are missing');
   });
 
+  it('across species, tabulates genes per species', () => {
+    const host = render(VennComponent, {
+      model: booleanModel(output),
+      species: [
+        { species: 1, name: 'Mouse', specific: 5, shared: 30, total: 35 },
+        { species: 2, name: 'Human', specific: 7, shared: 30, total: 37 },
+      ],
+    });
+    expect(host.textContent).toContain('Genes by species');
+    expect(host.textContent).toContain('Matched in another species');
+    expect(host.textContent).toContain('Human');
+  });
+
   it('falls back to the combination table for more than three gene sets', () => {
     const model = booleanModel(output);
     expect(model.sets.length).toBeGreaterThan(3);
@@ -294,6 +313,149 @@ describe('MsetHistogramComponent', () => {
   });
 });
 
+describe('VennGridComponent', () => {
+  function grid(output = FIXTURES.jaccard_similarity) {
+    const fixture = TestBed.createComponent(VennGridComponent);
+    fixture.componentInstance.model = jaccardVennGrid(output);
+    fixture.componentInstance.ngOnChanges();
+    fixture.detectChanges();
+    return { fixture, host: fixture.nativeElement as HTMLElement };
+  }
+
+  it('a Venn cell per pair of gene sets, two circles off the diagonal, one on it', () => {
+    const { host } = grid();
+    const n = FIXTURES.jaccard_similarity.geneset_ids.length;
+    const cells = host.querySelectorAll('svg g.cell');
+    expect(cells).toHaveLength(n * n);
+    expect(cells[0].querySelectorAll('circle')).toHaveLength(1);
+    expect(cells[1].querySelectorAll('circle')).toHaveLength(2);
+    expect(host.textContent).toContain('Row gene set');
+    expect(host.textContent).toContain('Column gene set');
+  });
+
+  it('hovering a cell gives the pair\'s numbers and highlights its row and column', () => {
+    const { host } = grid(FIXTURES.jaccard_similarity_pair);
+    const cells = Array.from(host.querySelectorAll('svg g.cell'));
+    const text = hover(host, cells[1].querySelector('rect'));
+    expect(text).toContain('GS400405 (row) vs GS14923 (column)');
+    expect(text).toContain('Shared genes: 9');
+    expect(text).toContain('Jaccard index: 0.184');
+    expect(text).toContain('p-value: 0.002');
+  });
+
+  it('dims the cells outside the hovered row and column', () => {
+    const { host } = grid();
+    const cells = Array.from(host.querySelectorAll('svg g.cell'));
+    hover(host, cells[1].querySelector('rect'));
+    // Cell (row 2, column 3) shares neither the row (0) nor the column (1).
+    expect(cells[2 * 5 + 3].getAttribute('opacity')).toBe('0.35');
+    expect(cells[0 * 5 + 4].getAttribute('opacity')).toBe('1');
+  });
+
+  it('greys pairs that fail the threshold, and changing it re-shades them', () => {
+    const { fixture, host } = grid();
+    const select = host.querySelector('#venn-grid-threshold') as HTMLSelectElement;
+    expect(select.value).toBe('0.05');
+    // 9 of the 10 main-group pairs have no p-value: greyed below 1.0, both mirror cells.
+    const greyed = () => host.querySelectorAll('svg g.cell[data-greyed]').length;
+    const expected = jaccardVennGrid(FIXTURES.jaccard_similarity).cells.filter(
+      (c) => !c.diagonal && (c.p === null || c.p > 0.05),
+    ).length;
+    expect(greyed()).toBe(expected);
+    expect(host.textContent).toContain(`${expected / 2} of 10 pairs greyed`);
+
+    select.value = '1';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(greyed()).toBe(0);
+    expect(host.textContent).toContain('All pairs shown.');
+  });
+
+  it('says why a greyed cell is greyed', () => {
+    const { host } = grid();
+    const model = jaccardVennGrid(FIXTURES.jaccard_similarity);
+    const index = model.cells.findIndex((c) => !c.diagonal && c.p === null);
+    const text = hover(host, host.querySelectorAll('svg g.cell')[index].querySelector('rect'));
+    expect(text).toContain('greyed: no p-value');
+    expect(text).toContain('p-value: none');
+  });
+});
+
+describe('SunburstComponent', () => {
+  it('an arc per gene set and cluster; hovering a cluster puts its similarity in the centre', () => {
+    const model = dendrogramModel(FIXTURES.jaccard_clustering.tree)!;
+    const host = render(SunburstComponent, { model, method: 'average' });
+    const paths = Array.from(host.querySelectorAll('svg path'));
+    const n = FIXTURES.jaccard_clustering.geneset_ids.length;
+    // n gene sets and n - 2 clusters drawn (the root is the centre, not a ring).
+    expect(paths).toHaveLength(n + n - 2);
+    expect(host.textContent).toContain('All join at similarity');
+
+    const cluster = paths.find((p) => p.getAttribute('aria-label')?.startsWith('Cluster of 2'))!;
+    const text = hover(host, cluster);
+    expect(text).toContain('Jaccard similarity');
+    expect(host.textContent).toContain('Jaccard similarity');
+    expect(paths.filter((p) => p.getAttribute('opacity') === '0.2').length).toBe(n - 2 + (n - 2) - 1);
+  });
+});
+
+describe('MsetEulerComponent', () => {
+  it('the universe, both lists to scale and magnified, with sizes in the legend', () => {
+    const host = render(MsetEulerComponent, {
+      model: msetEuler(FIXTURES.mset)!,
+      genes: FIXTURES.mset.intersect_genes,
+    });
+    expect(host.textContent).toContain('Universe: 66,866 genes');
+    expect(host.textContent).toContain('List 1: 74 genes');
+    expect(host.textContent).toContain('Shared: 45 genes');
+    const lists = Array.from(host.querySelectorAll('svg circle[aria-label^="List 1"]'));
+    expect(lists).toHaveLength(2);
+    const text = hover(host, lists[1]);
+    expect(text).toContain('Shared with the other list: 45');
+  });
+
+  it('lists the shared genes, filterable', () => {
+    const fixture = TestBed.createComponent(MsetEulerComponent);
+    Object.assign(fixture.componentInstance, {
+      model: msetEuler(FIXTURES.mset)!,
+      genes: ['Cnr1', 'Cd81', 'Plat'],
+    });
+    fixture.componentInstance.ngOnChanges();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelectorAll('ul.genes li')).toHaveLength(3);
+    const input = host.querySelector('#mset-gene-filter') as HTMLInputElement;
+    input.value = 'cd';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(Array.from(host.querySelectorAll('ul.genes li')).map((li) => li.textContent)).toEqual(['Cd81']);
+    expect(host.textContent).toContain('1 of 3 genes');
+  });
+});
+
+describe('GeneNetworkComponent fallbacks', () => {
+  it('explains that an older result has no memberships to draw a network from', async () => {
+    const fixture = TestBed.createComponent(GeneNetworkComponent);
+    fixture.componentInstance.result = { ran: true, clusters: [['A', 'B']] };
+    await fixture.componentInstance.ngOnChanges();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('needs each gene\'s gene sets');
+  });
+
+  it('refuses a network past its link budget, and says why', async () => {
+    const genes = Array.from({ length: 90 }, (_, i) => `G${i}`);
+    const fixture = TestBed.createComponent(GeneNetworkComponent);
+    fixture.componentInstance.result = {
+      ran: true,
+      clusters: [genes],
+      gene_genesets: Object.fromEntries(genes.map((g) => [g, ['1']])),
+    };
+    await fixture.componentInstance.ngOnChanges();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Too many links to draw');
+  });
+});
+
 describe('CombineTableComponent', () => {
   it('a row per gene and a column per gene set', () => {
     const host = render(CombineTableComponent, { result: FIXTURES.combine });
@@ -309,11 +471,12 @@ describe('CombineTableComponent', () => {
 describe('ToolResultComponent', () => {
   const cases: [string, Record<string, unknown>, string][] = [
     ['hypergeometric', FIXTURES.hypergeometric, 'app-heatmap'],
-    ['jaccard_similarity', FIXTURES.jaccard_similarity, 'app-heatmap'],
+    ['jaccard_similarity', FIXTURES.jaccard_similarity, 'app-venn-grid'],
     ['jaccard_clustering', FIXTURES.jaccard_clustering, 'app-dendrogram'],
     ['dbscan', FIXTURES.dbscan, 'app-cluster-pack'],
     ['boolean_algebra', FIXTURES.boolean_algebra, 'app-venn'],
     ['mset', FIXTURES.mset, 'app-mset-histogram'],
+    ['mset', FIXTURES.mset, 'app-mset-euler'],
     ['combine', FIXTURES.combine, 'app-combine-table'],
   ];
 
@@ -321,6 +484,46 @@ describe('ToolResultComponent', () => {
     const host = render(ToolResultComponent, { tool, result });
     expect(host.querySelector(selector)).not.toBeNull();
     expect(host.querySelector('details summary')?.textContent).toContain('Raw result');
+  });
+
+  /** Render the tool's result, then press the view button with this text. */
+  function switchTo(tool: string, result: Record<string, unknown>, view: string) {
+    const fixture = TestBed.createComponent(ToolResultComponent);
+    Object.assign(fixture.componentInstance, { tool, result });
+    fixture.componentInstance.ngOnChanges();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    const button = Array.from(host.querySelectorAll('app-view-switch button')).find(
+      (b) => b.textContent?.trim() === view,
+    ) as HTMLButtonElement;
+    expect(button).toBeDefined();
+    button.click();
+    fixture.detectChanges();
+    return { host, button };
+  }
+
+  it('JaccardSimilarity: Venn grid first, the similarity matrix a button away', () => {
+    const { host, button } = switchTo('jaccard_similarity', FIXTURES.jaccard_similarity, 'Similarity matrix');
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('app-heatmap')).not.toBeNull();
+    expect(host.querySelector('app-venn-grid')).toBeNull();
+  });
+
+  it('JaccardClustering: dendrogram first, then the sunburst', () => {
+    const { host } = switchTo('jaccard_clustering', FIXTURES.jaccard_clustering, 'Sunburst');
+    expect(host.querySelector('app-sunburst svg')).not.toBeNull();
+    expect(host.querySelector('app-dendrogram')).toBeNull();
+  });
+
+  it('DBSCAN: circles first, then the gene network', () => {
+    const { host } = switchTo('dbscan', { ...FIXTURES.dbscan, gene_genesets: undefined }, 'Network');
+    expect(host.querySelector('app-gene-network')).not.toBeNull();
+    expect(host.querySelector('app-cluster-pack')).toBeNull();
+  });
+
+  it('tools with one view show no switch', () => {
+    const host = render(ToolResultComponent, { tool: 'hypergeometric', result: FIXTURES.hypergeometric });
+    expect(host.querySelector('app-view-switch')).toBeNull();
   });
 
   it('upset, through the generic endpoint, maps its intersections for the plot', () => {

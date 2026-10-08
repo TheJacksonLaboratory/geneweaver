@@ -4,6 +4,8 @@
  * Gene sets: 167180, 378899, 164706, 379321, 233535 (public mouse; behaviour, GPCR,
  * neurotransmitter receptor, cAMP signalling); 400405 + 14923 for a JaccardSimilarity pair
  * with a p-value; MSET over 164706 + 167180. Shapes are exactly what the API returns.
+ * DBSCAN's `gene_genesets` (added to the tool's output after these runs) holds the real
+ * dev memberships of the 12 clustered genes kept here, from `gene_symbols_by_geneset`.
  */
 /* eslint-disable */
 export const FIXTURES = {
@@ -503,6 +505,7 @@ export const FIXTURES = {
         "Ppp1r1b"
       ]
     ],
+    "gene_genesets": {"Gnaz": ["167180", "164706"], "Slc6a4": ["167180"], "Cnr1": ["167180", "378899", "164706"], "Rgs4": ["167180", "164706"], "Kcnk2": ["167180"], "Hltf": ["167180"], "Slc6a2": ["167180", "164706"], "Hipk2": ["167180", "164706"], "Tamalin": ["167180", "164706"], "Taok2": ["167180", "164706"], "Serpina6": ["167180", "164706"], "Ppp1r1b": ["167180", "164706", "233535"]},
     "num_genes": 448,
     "num_genesets": 5
   },

@@ -4,17 +4,25 @@ import {
   BooleanAlgebraOutput,
   combineModel,
   dbscanModel,
+  dbscanNetwork,
   dendrogramModel,
   distanceForOverlap,
   formatEmpiricalP,
   formatP,
   hypergeometricMatrix,
   jaccardMatrix,
+  jaccardVennGrid,
   lensArea,
+  msetEuler,
   msetModel,
   phenomeMapElements,
+  phenomeMapMatches,
   phenomeMapPositions,
+  phenomeMapStats,
+  speciesSummary,
+  sunburstArcs,
   upsetModel,
+  vennCellGreyed,
   vennLayout,
 } from './models';
 
@@ -338,5 +346,208 @@ describe('combineModel', () => {
     const counts = model.rows.map((r) => r.count);
     expect(counts).toEqual([...counts].sort((a, b) => b - a));
     expect(model.rows.every((r) => r.count >= 1)).toBe(true);
+  });
+});
+
+describe('jaccardVennGrid', () => {
+  const grid = jaccardVennGrid(FIXTURES.jaccard_similarity);
+  const n = FIXTURES.jaccard_similarity.geneset_ids.length;
+
+  it('a cell per ordered pair and one per diagonal, rows and columns in run order', () => {
+    expect(grid.cells).toHaveLength(n * n);
+    expect(grid.cells.filter((c) => c.diagonal)).toHaveLength(n);
+    expect(grid.ids).toEqual(FIXTURES.jaccard_similarity.geneset_ids);
+  });
+
+  it('derives each set size from its pairs, agreeing across them', () => {
+    for (const r of FIXTURES.jaccard_similarity.results) {
+      const [a, b] = [grid.ids[r.i], grid.ids[r.j]];
+      expect(grid.sizes[a]).toBe(r.intersection + r.only_i);
+      expect(grid.sizes[b]).toBe(r.intersection + r.only_j);
+    }
+  });
+
+  it('orients counts by cell: below the diagonal the row set is the pair\'s second set', () => {
+    const r = FIXTURES.jaccard_similarity.results[0];
+    const above = grid.cells.find((c) => c.row === grid.ids[r.i] && c.col === grid.ids[r.j])!;
+    const below = grid.cells.find((c) => c.row === grid.ids[r.j] && c.col === grid.ids[r.i])!;
+    expect([above.onlyRow, above.onlyCol]).toEqual([r.only_i, r.only_j]);
+    expect([below.onlyRow, below.onlyCol]).toEqual([r.only_j, r.only_i]);
+    expect(above.lines[0]).toBe(`(${r.only_i} ${r.intersection} ${r.only_j})`);
+    expect(above.lines[1]).toBe(`J = ${r.jaccard.toFixed(3)}`);
+  });
+
+  it('circles: areas in proportion to the sizes, lens to the shared genes, inside the cell', () => {
+    const pair = jaccardVennGrid(FIXTURES.jaccard_similarity_pair);
+    const cell = pair.cells.find((c) => !c.diagonal)!;
+    const [a, b] = cell.circles;
+    expect((a.r / b.r) ** 2).toBeCloseTo(cell.rowSize / cell.colSize, 6);
+    const scale = a.r / Math.sqrt(cell.rowSize / Math.PI);
+    const lens = lensArea(a.r, b.r, b.cx - a.cx) / scale ** 2;
+    expect(lens).toBeCloseTo(cell.shared, 3);
+    for (const c of cell.circles) {
+      expect(c.cx - c.r).toBeGreaterThanOrEqual(0);
+      expect(c.cx + c.r).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('a pair with no p-value reads "none"; one with a p-value shows it', () => {
+    const none = grid.cells.find((c) => !c.diagonal && c.p === null)!;
+    expect(none.lines[2]).toBe('p = none');
+    const pair = jaccardVennGrid(FIXTURES.jaccard_similarity_pair).cells.find((c) => !c.diagonal)!;
+    expect(pair.lines[2]).toBe('p = 0.002');
+  });
+
+  it('greys pairs above the threshold or without a p-value, but nothing at 1.0', () => {
+    const cell = jaccardVennGrid(FIXTURES.jaccard_similarity_pair).cells.find((c) => !c.diagonal)!;
+    expect(vennCellGreyed(cell, 0.05)).toBe(false);
+    expect(vennCellGreyed(cell, 0.001)).toBe(true);
+    const none = grid.cells.find((c) => !c.diagonal && c.p === null)!;
+    expect(vennCellGreyed(none, 0.5)).toBe(true);
+    expect(vennCellGreyed(none, 1)).toBe(false);
+    expect(grid.cells.filter((c) => c.diagonal).some((c) => vennCellGreyed(c, 0.01))).toBe(false);
+  });
+
+  it('starts from the threshold the run used', () => {
+    expect(grid.threshold).toBe(FIXTURES.jaccard_similarity.p_value_threshold);
+  });
+});
+
+describe('sunburstArcs', () => {
+  const tree = dendrogramModel(FIXTURES.jaccard_clustering.tree);
+  const arcs = sunburstArcs(tree);
+  const leaves = arcs.filter((a) => a.leaf);
+
+  it('an arc per gene set, together covering the full circle once', () => {
+    expect(leaves.map((a) => a.name).sort()).toEqual(
+      FIXTURES.jaccard_clustering.geneset_ids.map((id) => `GS${id}`).sort(),
+    );
+    const span = leaves.reduce((sum, a) => sum + (a.end - a.start), 0);
+    expect(span).toBeCloseTo(2 * Math.PI, 9);
+  });
+
+  it('each cluster spans exactly its gene sets, with its similarity', () => {
+    for (const cluster of arcs.filter((a) => !a.leaf)) {
+      const inside = leaves.filter((a) => a.start >= cluster.start - 1e-9 && a.end <= cluster.end + 1e-9);
+      expect(inside.map((a) => a.name).sort()).toEqual([...cluster.members].sort());
+      expect(cluster.similarity).toBeGreaterThanOrEqual(0);
+      expect(cluster.similarity).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('nothing for no tree', () => {
+    expect(sunburstArcs(null)).toEqual([]);
+  });
+});
+
+describe('dbscanNetwork', () => {
+  it('links genes sharing a gene set, coloured by cluster, from the real memberships', () => {
+    const network = dbscanNetwork(FIXTURES.dbscan);
+    expect(network.available).toBe(true);
+    expect(network.nodes).toHaveLength(12);
+    expect(network.nodes.every((n) => n.cluster === 0)).toBe(true);
+    // Cnr1 is in 167180, 378899 and 164706; Gnaz in 167180 and 164706: two shared sets.
+    const edge = network.edges.find(
+      (e) => [e.source, e.target].sort().join() === ['Cnr1', 'Gnaz'].join(),
+    )!;
+    expect(edge.genesets.sort()).toEqual(['164706', '167180']);
+    // All 12 are in 167180, so every pair is linked once.
+    expect(network.edges).toHaveLength((12 * 11) / 2);
+  });
+
+  it('genes in no cluster are noise', () => {
+    const network = dbscanNetwork({
+      ran: true,
+      clusters: [['A', 'B']],
+      gene_genesets: { A: ['1'], B: ['1'], C: ['2'] },
+    });
+    expect(network.nodes.find((n) => n.id === 'C')?.cluster).toBeNull();
+    expect(network.edges).toEqual([{ source: 'A', target: 'B', genesets: ['1'] }]);
+  });
+
+  it('refuses past the edge budget instead of drawing a hairball', () => {
+    const genes = Array.from({ length: 30 }, (_, i) => `G${i}`);
+    const network = dbscanNetwork(
+      { ran: true, clusters: [genes], gene_genesets: Object.fromEntries(genes.map((g) => [g, ['1']])) },
+      100,
+    );
+    expect(network.tooLarge).toBe(true);
+    expect(network.edges).toEqual([]);
+  });
+
+  it('says so when the result has no memberships (an older worker)', () => {
+    const network = dbscanNetwork({ ran: true, clusters: [['A']] });
+    expect(network.available).toBe(false);
+  });
+});
+
+describe('msetEuler', () => {
+  it('areas proportional to gene counts, the lens to the shared genes', () => {
+    const euler = msetEuler(FIXTURES.mset)!;
+    expect(euler).toMatchObject({ universe: 66866, list1: 74, list2: 84, shared: 45 });
+    expect(Math.PI * euler.r1 ** 2).toBeCloseTo((Math.PI * 74) / 66866, 12);
+    expect(lensArea(euler.r1, euler.r2, euler.distance)).toBeCloseTo((Math.PI * 45) / 66866, 9);
+  });
+
+  it('null when the summary lacks the counts', () => {
+    expect(msetEuler({ mset_data: { 'P-Value': '0.1' } })).toBeNull();
+  });
+});
+
+describe('speciesSummary', () => {
+  it('per species: genes only there, genes matched in another, and the total', () => {
+    const rows = speciesSummary({
+      relation: 'Union',
+      at_least: 2,
+      geneset_ids: [10, 20],
+      // Keyed by homology group across species; a negative key is a gene with no homolog.
+      bool_results: {
+        '7': [[1, 'Drd2', 1, 10], [2, 'DRD2', 2, 20]],
+        '8': [[3, 'Kit', 1, 10]],
+        '-4': [[4, 'XYZ', 2, 20]],
+        '9': [[5, 'Tyr', 1, 10], [6, 'TYR', 2, 20]],
+      },
+    })!;
+    expect(rows).toEqual([
+      { species: 1, name: 'Mouse', specific: 1, shared: 2, total: 3 },
+      { species: 2, name: 'Human', specific: 1, shared: 2, total: 3 },
+    ]);
+  });
+
+  it('null for a single species, where the table would say nothing', () => {
+    expect(speciesSummary(FIXTURES.boolean_algebra as unknown as BooleanAlgebraOutput)).toBeNull();
+  });
+});
+
+describe('phenomeMapMatches and phenomeMapStats', () => {
+  const nodes = FIXTURES.phenome_map.nodes;
+
+  it('finds the bicliques holding a gene, ignoring case, or a gene set, with or without GS', () => {
+    const top = nodes.find((n) => n.depth === 0)!;
+    const gene = top.genes[0];
+    const byGene = phenomeMapMatches(nodes, gene.toUpperCase());
+    expect(byGene.has(top.id)).toBe(true);
+    expect([...byGene].every((id) => nodes.find((n) => n.id === id)!.genes.includes(gene))).toBe(true);
+
+    const set = top.genesets[0];
+    expect(phenomeMapMatches(nodes, `GS${set}`)).toEqual(phenomeMapMatches(nodes, set));
+    expect(phenomeMapMatches(nodes, 'NoSuchGene').size).toBe(0);
+    expect(phenomeMapMatches(nodes, '  ').size).toBe(0);
+  });
+
+  it('matches any of several terms', () => {
+    const [a, b] = [nodes[0].genes[0], nodes[nodes.length - 1].genes[0]];
+    const both = phenomeMapMatches(nodes, `${a}, ${b}`);
+    for (const id of [...phenomeMapMatches(nodes, a), ...phenomeMapMatches(nodes, b)]) {
+      expect(both.has(id)).toBe(true);
+    }
+  });
+
+  it('the stats legacy showed, from the result', () => {
+    const stats = Object.fromEntries(phenomeMapStats(FIXTURES.phenome_map).map((r) => [r.label, r.value]));
+    expect(stats['Gene sets']).toBe('5');
+    expect(stats['Genes']).toBe('448');
+    expect(stats['Bicliques shown']).toBe('26');
+    expect(stats['Levels']).toBe('5');
   });
 });

@@ -11,12 +11,13 @@ import { schemeTableau10 } from 'd3';
 import { TableModule } from 'primeng/table';
 
 import { ChartTooltip, downloadSvg, freshSvg, interactive } from './chart-utils';
-import { BooleanModel, genesetLabel, vennLayout } from './models';
+import { BooleanModel, genesetLabel, SpeciesSummaryRow, vennLayout } from './models';
 
 /**
  * BooleanAlgebra: an area-proportional Venn diagram for two or three gene sets (more
  * cannot be drawn faithfully with circles), the exact membership combinations as a table
- * for any number, and the relation's answer as a gene list.
+ * for any number, the relation's answer as a gene list, and -- across species -- legacy's
+ * table of genes per species.
  */
 @Component({
   selector: 'app-venn',
@@ -35,6 +36,21 @@ import { BooleanModel, genesetLabel, vennLayout } from './models';
       The tool counts a gene once per identifier (symbol and UniGene id, say), so a gene listed
       twice in one set passes. Read the gene sets column, not the count.
     </div>
+
+    <ng-container *ngIf="species">
+      <h4 class="mt-0">Genes by species</h4>
+      <p class="text-sm text-color-secondary mt-0">
+        Genes are matched across species by homology. Counted over every input gene.
+      </p>
+      <p-table [value]="species" styleClass="p-datatable-sm mb-3">
+        <ng-template pTemplate="header">
+          <tr><th>Species</th><th>Only in this species</th><th>Matched in another species</th><th>Total</th></tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr><td>{{ row.name }}</td><td>{{ row.specific }}</td><td>{{ row.shared }}</td><td>{{ row.total }}</td></tr>
+        </ng-template>
+      </p-table>
+    </ng-container>
 
     <div #chart [hidden]="!drawn"></div>
     <p *ngIf="!drawn" class="text-sm text-color-secondary">
@@ -68,6 +84,8 @@ import { BooleanModel, genesetLabel, vennLayout } from './models';
 })
 export class VennComponent implements OnChanges {
   @Input({ required: true }) model!: BooleanModel;
+  /** Per-species counts, for a request spanning species; null hides the table. */
+  @Input() species: SpeciesSummaryRow[] | null = null;
   @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
   drawn = false;
 

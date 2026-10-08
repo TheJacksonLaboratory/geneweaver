@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/c
 import { ClusterPackComponent } from './cluster-pack.component';
 import { CombineTableComponent } from './combine-table.component';
 import { DendrogramComponent } from './dendrogram.component';
+import { GeneNetworkComponent } from './gene-network.component';
 import { HeatmapComponent } from './heatmap.component';
 import {
   booleanModel,
@@ -14,17 +15,43 @@ import {
   DendrogramNode,
   hypergeometricMatrix,
   jaccardMatrix,
+  jaccardVennGrid,
   MatrixModel,
+  msetEuler,
+  MsetEuler,
   msetModel,
   MsetModel,
   PackNode,
+  speciesSummary,
+  SpeciesSummaryRow,
   upsetModel,
   UpSetModel,
+  VennGridModel,
 } from './models';
+import { MsetEulerComponent } from './mset-euler.component';
 import { MsetHistogramComponent } from './mset-histogram.component';
 import { PhenomeMapGraphComponent } from './phenome-map-graph.component';
+import { SunburstComponent } from './sunburst.component';
 import { UpsetPlotComponent } from './upset-plot.component';
+import { VennGridComponent } from './venn-grid.component';
 import { VennComponent } from './venn.component';
+import { ViewSwitchComponent } from './view-switch.component';
+
+/** The views each tool offers, first the default; legacy's set for each tool. */
+const VIEWS: Record<string, { id: string; label: string }[]> = {
+  jaccard_similarity: [
+    { id: 'venn', label: 'Venn grid' },
+    { id: 'matrix', label: 'Similarity matrix' },
+  ],
+  jaccard_clustering: [
+    { id: 'dendrogram', label: 'Dendrogram' },
+    { id: 'sunburst', label: 'Sunburst' },
+  ],
+  dbscan: [
+    { id: 'circles', label: 'Circles' },
+    { id: 'network', label: 'Network' },
+  ],
+};
 
 /**
  * Chooses and feeds the chart for one tool's result. The raw output stays available
@@ -44,13 +71,24 @@ import { VennComponent } from './venn.component';
     ClusterPackComponent,
     CombineTableComponent,
     DendrogramComponent,
+    GeneNetworkComponent,
     HeatmapComponent,
+    MsetEulerComponent,
     MsetHistogramComponent,
     PhenomeMapGraphComponent,
+    SunburstComponent,
     UpsetPlotComponent,
     VennComponent,
+    VennGridComponent,
+    ViewSwitchComponent,
   ],
   template: `
+    <app-view-switch
+      *ngIf="views.length"
+      [options]="views"
+      [(value)]="view"
+      label="Result view"
+    ></app-view-switch>
     <ng-container [ngSwitch]="tool">
       <ng-container *ngSwitchCase="'upset'">
         <app-upset-plot *ngIf="upset" [model]="upset"></app-upset-plot>
@@ -62,16 +100,31 @@ import { VennComponent } from './venn.component';
         <app-heatmap *ngIf="matrix" [model]="matrix" filename="hypergeometric.svg"></app-heatmap>
       </ng-container>
       <ng-container *ngSwitchCase="'jaccard_similarity'">
-        <p class="text-sm text-color-secondary mt-0">
-          Jaccard index (shared genes ÷ all genes) for each pair; p-values in the tooltips.
-        </p>
-        <app-heatmap *ngIf="matrix" [model]="matrix" filename="jaccard-similarity.svg"></app-heatmap>
+        <ng-container *ngIf="view === 'venn'; else similarityMatrix">
+          <p class="text-sm text-color-secondary mt-0">
+            A Venn diagram per pair: row gene set against column gene set, with the Jaccard index
+            (shared genes ÷ all genes) and p-value.
+          </p>
+          <app-venn-grid *ngIf="vennGrid" [model]="vennGrid"></app-venn-grid>
+        </ng-container>
+        <ng-template #similarityMatrix>
+          <p class="text-sm text-color-secondary mt-0">
+            Jaccard index (shared genes ÷ all genes) for each pair; p-values in the tooltips.
+          </p>
+          <app-heatmap *ngIf="matrix" [model]="matrix" filename="jaccard-similarity.svg"></app-heatmap>
+        </ng-template>
       </ng-container>
       <ng-container *ngSwitchCase="'jaccard_clustering'">
-        <app-dendrogram *ngIf="tree; else empty" [model]="tree" [method]="result['method']"></app-dendrogram>
+        <ng-container *ngIf="tree; else empty">
+          <app-dendrogram *ngIf="view === 'dendrogram'" [model]="tree" [method]="result['method']"></app-dendrogram>
+          <app-sunburst *ngIf="view === 'sunburst'" [model]="tree" [method]="result['method']"></app-sunburst>
+        </ng-container>
       </ng-container>
       <ng-container *ngSwitchCase="'dbscan'">
-        <app-cluster-pack *ngIf="pack; else noClusters" [model]="pack"></app-cluster-pack>
+        <ng-container *ngIf="pack; else noClusters">
+          <app-cluster-pack *ngIf="view === 'circles'" [model]="pack"></app-cluster-pack>
+          <app-gene-network *ngIf="view === 'network'" [result]="$any(result)"></app-gene-network>
+        </ng-container>
         <ng-template #noClusters>
           <p>
             DBSCAN did not cluster these genes{{ result['ran'] === false ? ': the parameters are too
@@ -80,9 +133,16 @@ import { VennComponent } from './venn.component';
         </ng-template>
       </ng-container>
       <ng-container *ngSwitchCase="'boolean_algebra'">
-        <app-venn *ngIf="boolean" [model]="boolean"></app-venn>
+        <app-venn *ngIf="boolean" [model]="boolean" [species]="species"></app-venn>
       </ng-container>
       <ng-container *ngSwitchCase="'mset'">
+        <h4 class="mt-0">Size comparison</h4>
+        <app-mset-euler
+          *ngIf="euler"
+          [model]="euler"
+          [genes]="result['intersect_genes'] ?? []"
+        ></app-mset-euler>
+        <h4>Random overlaps</h4>
         <app-mset-histogram *ngIf="mset" [model]="mset"></app-mset-histogram>
       </ng-container>
       <ng-container *ngSwitchCase="'phenome_map'">
@@ -111,13 +171,20 @@ export class ToolResultComponent implements OnChanges {
 
   upset?: UpSetModel;
   matrix?: MatrixModel;
+  vennGrid?: VennGridModel;
   tree?: DendrogramNode | null;
   pack?: PackNode | null;
   boolean?: BooleanModel;
+  species: SpeciesSummaryRow[] | null = null;
   mset?: MsetModel;
+  euler?: MsetEuler | null;
+  views: { id: string; label: string }[] = [];
+  view = '';
 
   ngOnChanges(): void {
     const r = this.result;
+    this.views = VIEWS[this.tool] ?? [];
+    this.view = this.views[0]?.id ?? '';
     this.upset = this.tool === 'upset'
       ? upsetModel(
           r['geneset_ids'] ?? [],
@@ -134,10 +201,17 @@ export class ToolResultComponent implements OnChanges {
         : this.tool === 'jaccard_similarity'
           ? jaccardMatrix(r as Parameters<typeof jaccardMatrix>[0])
           : undefined;
+    this.vennGrid =
+      this.tool === 'jaccard_similarity'
+        ? jaccardVennGrid(r as Parameters<typeof jaccardVennGrid>[0])
+        : undefined;
     this.tree = this.tool === 'jaccard_clustering' ? dendrogramModel(r['tree']) : undefined;
     this.pack = this.tool === 'dbscan' ? dbscanModel(r as Parameters<typeof dbscanModel>[0]) : undefined;
     this.boolean =
       this.tool === 'boolean_algebra' ? booleanModel(r as BooleanAlgebraOutput) : undefined;
+    this.species =
+      this.tool === 'boolean_algebra' ? speciesSummary(r as BooleanAlgebraOutput) : null;
     this.mset = this.tool === 'mset' ? msetModel(r as Parameters<typeof msetModel>[0]) : undefined;
+    this.euler = this.tool === 'mset' ? msetEuler(r as Parameters<typeof msetEuler>[0]) : undefined;
   }
 }
