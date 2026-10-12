@@ -34,10 +34,17 @@ So MSET now sends a universe reference instead, and its payload is a few kilobyt
 import json
 from typing import Any
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 
-class ToolRequest(TypedDict):
+class _RequiredToolRequest(TypedDict):
+    """The keys every request has; see `ToolRequest`."""
+
+    tool: str
+    input: dict[str, Any]
+
+
+class ToolRequest(_RequiredToolRequest, total=False):
     """The request AsyncTask passes to the workflow, as its schema sees it.
 
     A ``TypedDict`` and not plain ``dict``, because AsyncTask parses every submission's
@@ -53,16 +60,18 @@ class ToolRequest(TypedDict):
     here, so a key added later reaches the worker instead of being dropped by AsyncTask's
     parsing. ``typing_extensions``, not ``typing``: pydantic reads a ``TypedDict``'s
     config only from that one before Python 3.12, and AsyncTask runs 3.11.
+
+    Optional keys come from ``total=False`` on this subclass, not ``NotRequired``: on
+    Python 3.10, Temporal's converter receives ``NotRequired[...]`` as the key's type hint,
+    cannot convert to it, and fails to decode the workflow argument.
     """
 
     __pydantic_config__ = {"extra": "allow"}  # type: ignore[misc]  # noqa: RUF012
 
-    tool: str
-    input: dict[str, Any]
     #: A gene universe the worker expands (MSET, G3-784).
-    universe: NotRequired[dict[str, Any]]
+    universe: dict[str, Any]
     #: The signed user identity ABBA needs; see `geneweaver.tools.abba.identity`.
-    identity: NotRequired[dict[str, Any]]
+    identity: dict[str, Any]
 
 
 #: Temporal's default `GRPC_MAX_MESSAGE_SIZE`. Payloads above this are refused by the
