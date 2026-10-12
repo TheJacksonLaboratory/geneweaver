@@ -17,6 +17,7 @@ members = [
     "geneweaver-core",
     "geneweaver-db",
     "geneweaver-tools",
+    "geneweaver-tools-plugin",
 ]
 overrides = [{ name = "ruff", specifier = "==0.15.11" }]
 
@@ -1220,6 +1221,7 @@ dependencies = [
     { name = "geneweaver-core" },
     { name = "geneweaver-db" },
     { name = "geneweaver-tools", extra = ["sklearn"] },
+    { name = "geneweaver-tools-plugin" },
     { name = "jax-apiutils" },
     { name = "psycopg-binary" },
     { name = "psycopg-pool" },
@@ -1247,6 +1249,7 @@ requires-dist = [
     { name = "geneweaver-core", editable = "packages/core" },
     { name = "geneweaver-db", editable = "packages/db" },
     { name = "geneweaver-tools", extras = ["sklearn"], editable = "packages/tools" },
+    { name = "geneweaver-tools-plugin", editable = "packages/tools-plugin" },
     { name = "jax-apiutils", specifier = ">=0.2.0a0" },
     { name = "psycopg-binary", specifier = "==3.1.18" },
     { name = "psycopg-pool", specifier = ">=3.1.7" },
@@ -1422,6 +1425,7 @@ sklearn = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 temporal = [
+    { name = "geneweaver-tools-plugin" },
     { name = "temporalio" },
 ]
 
@@ -1434,6 +1438,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "geneweaver-db", marker = "extra == 'db'", editable = "packages/db" },
+    { name = "geneweaver-tools-plugin", marker = "extra == 'temporal'", editable = "packages/tools-plugin" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'db'", specifier = ">=3.1.0" },
     { name = "pydantic", specifier = ">=2.8.0" },
     { name = "scikit-learn", marker = "extra == 'sklearn'", specifier = ">=1.3.0" },
@@ -1447,6 +1452,25 @@ dev = [
     { name = "pytest", specifier = ">=7.1.3" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
 ]
+
+[[package]]
+name = "geneweaver-tools-plugin"
+version = "0.20.0a0"
+source = { editable = "packages/tools-plugin" }
+dependencies = [
+    { name = "temporalio" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "temporalio", specifier = ">=1.9.0" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=7.1.3" }]
 
 [[package]]
 name = "ghp-import"

@@ -280,52 +280,68 @@ AsyncTask discovers plugins with `importlib.metadata` over **three** entry-point
 registers. `create_worker` registers *only* what the latter two return, so a plugin
 present in the general group alone is discoverable but has no workflow to start.
 
-### What this package declares
+### Three parts: AsyncTask depends on a thin plugin, not on the tools
 
-The plugin package owns its whole integration, the way `strain-recommendation` does —
-nothing GeneWeaver-specific lives in AsyncTask. `packages/tools/pyproject.toml` declares:
+Following the ATS integration guidance, AsyncTask installs **only
+`geneweaver-tools-plugin`** (`packages/tools-plugin`), never the tools:
+
+| Part | Package | Contains | Runs in |
+|---|---|---|---|
+| Thin plugin | `geneweaver-tools-plugin` (`geneweaver.tools_plugin`) | the workflow, the queue each tool goes to, the request and size checks. Depends only on `temporalio`; imports no tool. | AsyncTask |
+| Workers | `geneweaver-tools[temporal]` (`geneweaver.tools.temporal`) | the activity that runs a tool, the database look-ups that expand a request, the worker process | the two tool-worker images |
+| Tools library | `geneweaver-tools` | the tools and their own dependencies (scikit-learn, scipy) | the workers, and the API in-process |
+
+The plugin declares:
 
 | Group | Entry |
 |---|---|
-| `jax.ats.plugins` | `GeneWeaverTools` → `geneweaver.tools.temporal.workflows:GeneWeaverToolWorkflow` |
-| `jax.ats.plugins.temporal.workflows` | `geneweaver.tools.temporal:WORKFLOWS` |
-| `jax.ats.plugins.temporal.activities` | `geneweaver.tools.temporal:ACTIVITIES` |
-| `geneweaver.tools` | the nine tools, by name (`upset`, `mset`, …) |
+| `jax.ats.plugins` | `GeneWeaverTools` → `geneweaver.tools_plugin.workflows:GeneWeaverToolWorkflow` |
+| `jax.ats.plugins.temporal.workflows` | `geneweaver.tools_plugin.workflows:WORKFLOWS` |
+
+and deliberately **no** `jax.ats.plugins.temporal.activities` entry: the workflow schedules
+the activity **by name** (`geneweaver_run_tool`) onto GeneWeaver's own queues, so AsyncTask
+never registers or imports the code that runs a tool or reads the database.
+`geneweaver-tools` declares no `jax.ats.plugins*` entries at all; its `geneweaver.tools`
+group registers the nine tools by name (`upset`, `mset`, …) for the activity.
 
 Two deliberate choices:
 
 * **The tools are registered in our own `geneweaver.tools` group, not in
   `jax.ats.plugins`.** AsyncTask passes entries from that group to `start_workflow`,
   which accepts only a Temporal workflow; a bare `AbstractTool` there would be
-  discovered and then fail at run time. AsyncTask is offered the *workflow*; the
-  activity resolves a tool name against our registry. This also sidesteps the
-  duplicate-name error in AsyncTask's loader, since `geneweaver-boolean-algebra` is
-  already installed there.
+  discovered and then fail at run time.
 * **`BinaryDBSCAN` is not registered.** It is the legacy-parity fallback; the in-process
   `DBSCAN` is canonical (see [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1).
 
-### The Temporal bindings
+### The agreement between the plugin and the workers
 
-`geneweaver.tools.temporal` mirrors `strainrecommend.temporal`: `workflows.py` holds one
-generic `@workflow.defn` that delegates immediately to `activities.py`'s single
-`@activity.defn`, and `__init__.py` exports `WORKFLOWS` and `ACTIVITIES`. One pair serves
-every tool, since they share `run(ToolInput) -> ToolOutput` and differ only in input
-schema.
+The two sides are released separately, so what they share lives in one place,
+`geneweaver.tools_plugin.contract`, and the workers import it:
+
+* the two task queues — `geneweaver-tools` (python: the seven wheel-only tools and ABBA)
+  and `geneweaver-tools-native` (MSET and PhenomeMap, which need compiled binaries) — and
+  which tools go to which;
+* the activity name, `geneweaver_run_tool`;
+* the 30-minute run deadline (replacing legacy's 900 s Celery soft limit).
+  `geneweaver.tools.framework.binary` restates it, because the tools library must not
+  depend on the plugin;
+* the request shape, `{"tool": ..., "input": {...}}`, checked by
+  `geneweaver.tools_plugin.payload` — which the API also calls before submitting.
+
+`packages/tools/tests/unit/test_plugin_worker_contract.py` fails if the workers disagree
+with any of these. `packages/tools-plugin/tests/unit/test_clean_import.py`, and the
+publish job's clean install of the plugin wheel, fail if the plugin pulls in the tools,
+scientific libraries or a database driver.
 
 The work is in the activity because tool runs are CPU-bound and some shell out to native
 binaries — neither permissible in deterministic workflow code. Retries are disabled: a
 run is fully determined by its request, so retrying repeats the computation, and failures
-are bad input or a missing binary. The 30-minute ceiling replaces legacy's 900s Celery
-soft limit.
+are bad input or a missing binary.
 
-Requires the **`temporal` extra** (`temporalio`), kept optional so callers that need only
-the compute classes and schemas — the GeneWeaver API — do not pull in a workflow runtime.
-
-`packages/tools/tests/unit/test_asynctask_plugin_contract.py` restates the protocol
-locally and asserts every entry point resolves, is an `AbstractTool`, satisfies the
-protocol, and exposes its `ToolInput`/`ToolOutput`. AsyncTask is privately published, so
-the contract is mirrored rather than imported; the test fails if a tool stops being
-loadable — which would otherwise only surface inside AsyncTask.
+| Change | Release |
+|---|---|
+| A new tool, or a fix inside one | `geneweaver-tools` and the worker images. AsyncTask is untouched. |
+| Routing, the checks or the workflow | `geneweaver-tools-plugin`, then AsyncTask. The workers too if the agreement changed. |
 
 ### What is still required to actually run there
 
@@ -369,14 +385,12 @@ repository:
    PyPI `0.0.5` framework-only release is **archived** (last pushed 2025-01-15) and
    should be disregarded. `[tool.uv.sources]` already pins the name to the workspace
    copy, so nothing in this repository can resolve the archived release.
-2. **Add `geneweaver-tools[sklearn,temporal]` to `asynctask`'s dependencies** — the only
-   change that repository needs. Both extras are required: `temporal` provides the
-   workflow/activity definitions, and `sklearn` because `jaccard_clustering/__init__.py`
-   imports `.tool` eagerly and raises `ImportError` without scipy/scikit-learn. (`dbscan`
-   is safe either way — it lazy-loads the in-process default via PEP 562.)
+2. **Add `geneweaver-tools-plugin` to `asynctask`'s dependencies**, and only that — the
+   tools, scikit-learn and the database driver stay with the workers.
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
    `geneweaver-boolean-algebra 0.3.0a23`, which overlaps
-   `packages/tools/.../boolean_algebra/`. Namespacing avoids a name collision; it does not
-   decide which implementation is authoritative.
+   `packages/tools/.../boolean_algebra/`. The plugin installs into
+   `geneweaver/tools_plugin/`, not the tools' folders, so the two no longer clash on disk;
+   whether to retire the older plugin is a product decision, not a packaging necessity.
 4. **Resolve tool inputs from the database.** Tools take fully-built input and nothing yet
    assembles it — only ABBA has a resolver.

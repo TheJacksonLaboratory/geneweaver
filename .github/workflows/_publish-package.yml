@@ -31,13 +31,20 @@ on:
           package nobody can install.
         required: true
         type: string
+      plugin_package:
+        description: >
+          The AsyncTask plugin, clean-installed on its own: its entry points must load, and
+          it must bring no tools, scientific or database libraries -- AsyncTask installs it.
+        required: false
+        default: ''
+        type: string
       smoke_package:
-        description: 'Which package to load entry points from in the smoke test'
+        description: 'The package the workers install, smoke-tested with `extras`'
         required: false
         default: ''
         type: string
       extras:
-        description: 'Space-separated extras whose imports to smoke-test after build'
+        description: 'Space-separated extras to install with smoke_package'
         required: false
         default: ''
         type: string
@@ -157,8 +164,8 @@ jobs:
             ls dist/${UNDER}-${{ steps.version.outputs.version }}-*.whl >/dev/null 2>&1 \
               || { echo "::error::no wheel for ${PKG} at ${{ steps.version.outputs.version }}"; exit 1; }
           done
-          if [ -n "${{ inputs.smoke_package }}" ]; then
-            UNDER=$(echo "${{ inputs.smoke_package }}" | tr '-' '_')
+          if [ -n "${{ inputs.plugin_package }}" ]; then
+            UNDER=$(echo "${{ inputs.plugin_package }}" | tr '-' '_')
             WHEEL=$(ls dist/${UNDER}-*.whl)
             # Entry points are how AsyncTask discovers the plugin; missing from the wheel
             # metadata, the package installs fine and does nothing.
@@ -173,12 +180,47 @@ jobs:
           PY
           fi
 
-      - name: Smoke-test the built wheels together
+      - name: Clean-install the AsyncTask plugin on its own
+        if: inputs.plugin_package != ''
+        run: |
+          set -euo pipefail
+          # What AsyncTask gets: the plugin wheel alone, resolving workspace packages only
+          # from ./dist. Its workflow entry points must load, it must offer no activity,
+          # and it must not have pulled in the tools or their scientific or database
+          # libraries -- that separation is the reason the plugin exists.
+          UNDER=$(echo "${{ inputs.plugin_package }}" | tr '-' '_')
+          TARGET=$(ls dist/${UNDER}-*.whl)
+          uv venv /tmp/plugin-smoke --python '${{ inputs.smoke_python }}'
+          VIRTUAL_ENV=/tmp/plugin-smoke uv pip install --find-links dist "$TARGET"
+          /tmp/plugin-smoke/bin/python - <<'PY'
+          import importlib.metadata as md
+          for group in ("jax.ats.plugins", "jax.ats.plugins.temporal.workflows"):
+              found = [ep for ep in md.entry_points(group=group) if ep.value.startswith("geneweaver.")]
+              assert found, f"no entry points in {group}"
+              for entry_point in found:
+                  entry_point.load()
+                  print(f"{group}: {entry_point.name} loads")
+          activities = [ep for ep in md.entry_points(group="jax.ats.plugins.temporal.activities")
+                        if ep.value.startswith("geneweaver.")]
+          assert not activities, f"the plugin must not offer AsyncTask an activity: {activities}"
+          forbidden = ["geneweaver-tools", "geneweaver-db", "geneweaver-core", "scikit-learn",
+                       "scipy", "numpy", "psycopg", "psycopg-binary", "pydantic"]
+          present = []
+          for name in forbidden:
+              try:
+                  present.append(f"{name} {md.version(name)}")
+              except md.PackageNotFoundError:
+                  pass
+          assert not present, f"the plugin pulled in {present}"
+          print("installed:", md.version("${{ inputs.plugin_package }}"), "and nothing it should not")
+          PY
+
+      - name: Smoke-test the worker chain together
         if: inputs.smoke_package != ''
         run: |
           set -euo pipefail
-          # Installs the built wheels into a clean environment, resolving *only* from
-          # ./dist for the workspace packages. This is what catches a chain that cannot be
+          # What the worker images get: the tools with their extras, resolving workspace
+          # packages only from ./dist. This is what catches a chain that cannot be
           # installed -- publishing geneweaver-tools without geneweaver-core at a matching
           # version produces a package whose dependency is unsatisfiable anywhere.
           EXTRAS=$(echo "${{ inputs.extras }}" | tr ' ' ',')
@@ -192,15 +234,13 @@ jobs:
           # resolves the workspace project and would ignore VIRTUAL_ENV entirely.
           /tmp/smoke/bin/python - <<'PY'
           import importlib.metadata as md
-          groups = ("jax.ats.plugins", "jax.ats.plugins.temporal.workflows",
-                    "jax.ats.plugins.temporal.activities")
-          for group in groups:
-              found = list(md.entry_points(group=group))
-              assert found, f"no entry points in {group}"
-              for entry_point in found:
-                  entry_point.load()
-                  print(f"{group}: {entry_point.name} loads")
-          print("installed:", md.version("geneweaver-tools"))
+          tools = list(md.entry_points(group="geneweaver.tools"))
+          assert tools, "no geneweaver.tools entry points"
+          for entry_point in tools:
+              entry_point.load()
+          print("tools load:", sorted(ep.name for ep in tools))
+          import geneweaver.tools.temporal.worker  # noqa: F401  the worker's imports resolve
+          print("installed:", md.version("${{ inputs.smoke_package }}"))
           PY
 
       - name: Check publish credentials are configured
@@ -248,10 +288,10 @@ jobs:
             echo "Index: \`${{ inputs.publish_url }}\`"
             echo
             echo "A dev build sorts *below* its base version, so a caret constraint will not"
-            echo "pick it up. To consume this exact build (Poetry):"
+            echo "pick it up. AsyncTask consumes the plugin only; this exact build (Poetry):"
             echo
             echo '```toml'
-            echo 'geneweaver-tools = { version = "${{ steps.version.outputs.version }}", extras = ["sklearn", "temporal"], source = "gcp-dev" }'
+            echo 'geneweaver-tools-plugin = { version = "${{ steps.version.outputs.version }}", source = "gcp-dev" }'
             echo '```'
             echo
             echo "Or track the newest dev build by allowing pre-releases:"

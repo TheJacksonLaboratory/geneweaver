@@ -43,13 +43,14 @@ RUN uv sync --frozen --no-dev --package geneweaver-tools \
 
 # Fail the build here rather than at run time. A worker whose entry points did not register
 # starts cleanly, consumes its queue and fails every task -- the failure mode this package's
-# AsyncTask contract test exists to catch, and it is cheaper to catch in the build.
+# plugin/worker contract test exists to catch, and it is cheaper to catch in the build.
 RUN python -c "\
-from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS; \
+from geneweaver.tools.temporal import ACTIVITIES; \
+from geneweaver.tools_plugin.contract import ACTIVITY_NAME; \
 from geneweaver.tools.temporal.activities import available_tools; \
 from geneweaver.tools.temporal.routing import PYTHON_PROFILE, tools_for_profile; \
 served = tools_for_profile(PYTHON_PROFILE, available_tools()); \
-assert WORKFLOWS and ACTIVITIES, 'temporal entry points did not load'; \
+assert [a.__temporal_activity_definition.name for a in ACTIVITIES] == [ACTIVITY_NAME], 'the activity is not registered under the name the workflow schedules'; \
 assert len(served) == 7, f'expected 7 python-profile tools, got {served}'; \
 print('serves:', ', '.join(served))"
 

@@ -55,12 +55,11 @@ def test_the_default_concurrency_is_conservative() -> None:
     assert 1 <= DEFAULT_MAX_CONCURRENT_ACTIVITIES <= 10
 
 
-def test_the_plugin_declares_the_workflow_and_activity() -> None:
-    """What the plugin exports must be what AsyncTask and our worker expect."""
-    from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS
-    from geneweaver.tools.temporal.activities import ACTIVITY_NAME
+def test_the_worker_registers_the_activity_the_workflow_schedules() -> None:
+    """One activity, under the plugin's name for it."""
+    from geneweaver.tools.temporal import ACTIVITIES
+    from geneweaver.tools_plugin.contract import ACTIVITY_NAME
 
-    assert [w.__name__ for w in WORKFLOWS] == ["GeneWeaverToolWorkflow"]
     assert [a.__temporal_activity_definition.name for a in ACTIVITIES] == [ACTIVITY_NAME]
 
 
@@ -68,8 +67,8 @@ def test_the_worker_serves_activities_only(monkeypatch: pytest.MonkeyPatch) -> N
     """Orchestration belongs to AsyncTask; this process only computes.
 
     `asynctask-mpd-plugin`'s workers register activities alone for the same reason -- the
-    workflow runs where the plugin is installed, and dispatches here by task queue. A
-    worker that also served workflows would blur which side owns orchestration.
+    workflow runs where the plugin is installed (AsyncTask), and dispatches here by task
+    queue. A worker that also served workflows would blur which side owns orchestration.
 
     Asserted from the arguments actually handed to `Worker`, not from the source text: an
     earlier version of this test grepped for "workflows=" and matched the comment

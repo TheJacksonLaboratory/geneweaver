@@ -298,10 +298,10 @@ def test_a_bad_abba_request_fails_the_run_without_retrying(python_worker, envelo
 def test_abba_is_served_by_the_python_profile() -> None:
     """ABBA goes to the python queue.
 
-    The workflow AsyncTask runs routes by the `geneweaver-tools` version AsyncTask pins,
-    which sends any non-native tool there; the native worker must not claim it.
+    The plugin's workflow sends any non-native tool there, so ABBA needed no plugin or
+    AsyncTask release; the native worker must not claim it.
     """
-    from geneweaver.tools.temporal.routing import PYTHON_TASK_QUEUE, task_queue_for
+    from geneweaver.tools_plugin.contract import PYTHON_TASK_QUEUE, task_queue_for
 
     assert task_queue_for("abba") == PYTHON_TASK_QUEUE
 

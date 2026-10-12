@@ -18,6 +18,9 @@ dependencies = [
     "uvicorn[standard]>=0.32.1",
     "geneweaver-db>=0.20.0a0",
     "geneweaver-tools[sklearn]>=0.20.0a0",
+    # The request checks the API runs before submitting to AsyncTask: the same ones the
+    # workflow makes, from `geneweaver.tools_plugin.payload` (standard library only).
+    "geneweaver-tools-plugin>=0.20.0a0",
     "psycopg-pool>=3.1.7",
     "requests>=2.32.3",
     "python-jose[cryptography]>=3.3.0",
@@ -65,6 +68,7 @@ geneweaver-core   = { workspace = true }
 geneweaver-db     = { workspace = true }
 geneweaver-client = { workspace = true }
 geneweaver-tools  = { workspace = true }
+geneweaver-tools-plugin = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]

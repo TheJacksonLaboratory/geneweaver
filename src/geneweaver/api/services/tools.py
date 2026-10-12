@@ -21,10 +21,10 @@ from typing import Any
 
 from geneweaver.db import geneset as db_geneset
 from geneweaver.db import tool_input as db_tool_input
-from geneweaver.tools.framework.payload_size import check_payload_size
 from geneweaver.tools.mset.schema import MSETInput
 from geneweaver.tools.phenome_map.schema import PhenomeMapInput
 from geneweaver.tools.upset import UpSet, UpSetInput
+from geneweaver.tools_plugin.payload import check_payload_size
 from psycopg import Cursor
 from pydantic import ValidationError
 

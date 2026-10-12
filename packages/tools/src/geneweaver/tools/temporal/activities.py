@@ -19,9 +19,10 @@ from typing import Any
 
 from geneweaver.tools.abba import TOOL_NAME as ABBA
 from geneweaver.tools.framework.binary import progress_hook
-from geneweaver.tools.temporal.payload import check_payload_size, check_tool_allowed
 from geneweaver.tools.temporal.resolvers import resolve_input
 from geneweaver.tools.temporal.routing import check_tool_served_here
+from geneweaver.tools_plugin.contract import ACTIVITY_NAME
+from geneweaver.tools_plugin.payload import check_payload_size, check_tool_allowed
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
@@ -128,19 +129,14 @@ def run_abba(input_data: dict) -> dict:
 
 #: Tools that search the database rather than compute over their input, so they are not in
 #: the `geneweaver.tools` registry and have no `AbstractTool` to load. Routed to the python
-#: worker by the workflow's existing rule (they are not native), which needs no change to the
-#: workflow code AsyncTask runs -- that comes from the `geneweaver-tools` version AsyncTask
-#: pins, and so changes only when AsyncTask is released.
+#: worker by the plugin's existing rule (they are not native), so adding one needs no
+#: plugin or AsyncTask release.
 DATABASE_TOOLS: dict[str, Callable[[dict], dict]] = {ABBA: run_abba}
 
 
-#: Activity names share one flat namespace across every installed plugin:
-#: `asynctask.plugins.temporal.discover_activity_plugins()` collects them with no dedup, and
-#: Temporal's `Worker` raises `ValueError("More than one activity named ...")` at startup --
-#: which would take down strain-recommendation and the MPD plugins with us. So the name is
-#: explicit and prefixed, as `asynctask-mpd-plugin` does (`mpd_effects_download_drs_input`),
-#: rather than defaulting to the bare function name `run_tool`.
-ACTIVITY_NAME = "geneweaver_run_tool"
+#: Registered under `ACTIVITY_NAME` from the plugin's contract, the name the workflow
+#: schedules. Explicit and prefixed because activity names share one flat namespace in
+#: Temporal, and `asynctask-mpd-plugin` does the same (`mpd_effects_download_drs_input`).
 
 
 # `no_thread_cancel_exception`: by default Temporal injects `CancelledError` into the

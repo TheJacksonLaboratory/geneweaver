@@ -1,8 +1,12 @@
 """Temporal workflow wrapping a GeneWeaver tool run.
 
-Thin by design: it delegates straight to the activity, which does the work. What lives
-here is policy -- timeouts, retries, cancellation -- where it is visible, rather than
-buried inside a tool.
+Thin by design: it checks the request and delegates to the activity, which does the work on
+GeneWeaver's own workers. What lives here is policy -- routing, timeouts, retries,
+cancellation -- where it is visible, rather than buried inside a tool.
+
+The activity is scheduled **by name** (`contract.ACTIVITY_NAME`), never imported: this
+module runs inside AsyncTask, which must not load the code that runs a tool or reads the
+GeneWeaver database.
 """
 
 from datetime import timedelta
@@ -12,25 +16,17 @@ from temporalio.common import RetryPolicy
 from temporalio.exceptions import ApplicationError
 
 with workflow.unsafe.imports_passed_through():
-    from geneweaver.tools.framework.binary import TOOL_RUN_TIMEOUT_SECONDS
-
-    from .activities import run_tool
+    from .contract import ACTIVITY_NAME, TOOL_RUN_TIMEOUT_SECONDS, task_queue_for
     from .payload import check_payload_size, check_tool_allowed, requested_tool
-    from .routing import task_queue_for
 
-#: Legacy's Celery worker used a 900s soft limit. Tool runs are minutes at worst; a
-#: generous ceiling still beats a run that hangs forever (cf. G3-739, where failed runs
-#: span indefinitely because nothing marked them failed).
-#:
-#: Defined in `framework.binary` so the subprocess bound can be capped against it without
-#: that module importing temporalio; `test_the_activity_deadline_is_the_one_binary_py_caps_against`
-#: pins them together.
+#: See `contract.TOOL_RUN_TIMEOUT_SECONDS`; the workers cap a native binary's run below it.
 TOOL_RUN_TIMEOUT = timedelta(seconds=TOOL_RUN_TIMEOUT_SECONDS)
 
 #: Without this, heartbeating buys nothing: Temporal only delivers cancellation to an
 #: activity that heartbeats, and only treats a missed heartbeat as a failure when a heartbeat
-#: timeout is set. Comfortably above `binary.POLL_INTERVAL_SECONDS`, so an ordinary run is
-#: never declared dead for being briefly busy.
+#: timeout is set. Comfortably above how often the workers heartbeat (every few seconds
+#: around a binary, every 10 s around a database search), so an ordinary run is never
+#: declared dead for being briefly busy.
 TOOL_HEARTBEAT_TIMEOUT = timedelta(seconds=60)
 
 #: How long a task may sit unclaimed before the run fails. Without it, scheduling onto a
@@ -91,7 +87,7 @@ class GeneWeaverToolWorkflow:
         # dispatches its heavy activity with `task_queue="mpd-effects"` rather than running
         # it on AsyncTask's shared worker.
         return await workflow.execute_activity(
-            run_tool,
+            ACTIVITY_NAME,
             input_data,
             task_queue=task_queue_for(tool),
             start_to_close_timeout=TOOL_RUN_TIMEOUT,
@@ -99,3 +95,7 @@ class GeneWeaverToolWorkflow:
             heartbeat_timeout=TOOL_HEARTBEAT_TIMEOUT,
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
+
+
+#: Discovered by AsyncTask through the `jax.ats.plugins.temporal.workflows` entry point.
+WORKFLOWS = [GeneWeaverToolWorkflow]
