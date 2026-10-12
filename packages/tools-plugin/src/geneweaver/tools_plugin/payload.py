@@ -1,7 +1,8 @@
 """The shape and size of a tool request, checked before it crosses into Temporal.
 
-Standard library only, so it is safe in workflow code and the GeneWeaver API can use it
-without loading the Temporal SDK.
+Standard library only (plus ``typing_extensions``, which the Temporal SDK already requires),
+so it is safe in workflow code and the GeneWeaver API can use it without loading the
+Temporal SDK.
 
 A request is ``{"tool": "upset", "input": {...}}``, optionally with a ``"universe"``
 reference that the worker expands (G3-784). The tool's own input schema is checked by the
@@ -32,6 +33,37 @@ So MSET now sends a universe reference instead, and its payload is a few kilobyt
 
 import json
 from typing import Any
+
+from typing_extensions import NotRequired, TypedDict
+
+
+class ToolRequest(TypedDict):
+    """The request AsyncTask passes to the workflow, as its schema sees it.
+
+    A ``TypedDict`` and not plain ``dict``, because AsyncTask parses every submission's
+    ``values`` against the union of all its plugins' input schemas, whichever ``task_type``
+    the submission names. Against bare ``dict``, a plugin model whose fields all have
+    defaults (the strain recommender's ``RecommendationRequest``) won the union: it accepted
+    the mapping, dropped ``tool`` and ``input`` as unknown keys, and the workflow received
+    that model's defaults instead, so every tool run was refused. Pydantic's union prefers
+    the member that matches the most fields, and this one declares ``tool`` and ``input``.
+
+    A ``TypedDict`` is still a ``dict`` at runtime, so the workflow, the size check and
+    Temporal's converter handle it exactly as before. ``extra: allow`` keeps keys not listed
+    here, so a key added later reaches the worker instead of being dropped by AsyncTask's
+    parsing. ``typing_extensions``, not ``typing``: pydantic reads a ``TypedDict``'s
+    config only from that one before Python 3.12, and AsyncTask runs 3.11.
+    """
+
+    __pydantic_config__ = {"extra": "allow"}  # type: ignore[misc]  # noqa: RUF012
+
+    tool: str
+    input: dict[str, Any]
+    #: A gene universe the worker expands (MSET, G3-784).
+    universe: NotRequired[dict[str, Any]]
+    #: The signed user identity ABBA needs; see `geneweaver.tools.abba.identity`.
+    identity: NotRequired[dict[str, Any]]
+
 
 #: Temporal's default `GRPC_MAX_MESSAGE_SIZE`. Payloads above this are refused by the
 #: server.

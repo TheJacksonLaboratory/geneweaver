@@ -1459,6 +1459,7 @@ version = "0.20.0a0"
 source = { editable = "packages/tools-plugin" }
 dependencies = [
     { name = "temporalio" },
+    { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
@@ -1467,7 +1468,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "temporalio", specifier = ">=1.9.0" }]
+requires-dist = [
+    { name = "temporalio", specifier = ">=1.9.0" },
+    { name = "typing-extensions", specifier = ">=4.6" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=7.1.3" }]

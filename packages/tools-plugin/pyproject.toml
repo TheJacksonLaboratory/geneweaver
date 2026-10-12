@@ -16,6 +16,8 @@ authors = [
 # smoke test hold that line.
 dependencies = [
     "temporalio>=1.9.0",
+    # Already required by temporalio; declared because `payload.ToolRequest` imports it.
+    "typing-extensions>=4.6",
 ]
 
 # Only the workflow is offered to AsyncTask. There is deliberately no

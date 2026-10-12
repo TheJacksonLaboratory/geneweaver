@@ -10,9 +10,22 @@ fail with nothing found.
 
 import importlib.metadata
 import inspect
+import typing
+from typing import Any, Union
 
+import pytest
 from geneweaver.tools_plugin import workflows
 from geneweaver.tools_plugin.contract import ACTIVITY_NAME
+from geneweaver.tools_plugin.payload import ToolRequest
+
+#: Requests as the GeneWeaver API submits them, one per envelope shape it uses.
+REQUESTS = [
+    {"tool": "upset", "input": {}},
+    {"tool": "mset", "input": {"group_1": ["Drd1"]}, "universe": {"geneset_ids": [1, 2]}},
+    {"tool": "abba", "input": {"genes": ["Drd2"]}, "identity": {"user_id": 7, "sig": "x"}},
+    # A key this package does not declare yet must still reach the worker.
+    {"tool": "upset", "input": {}, "added_later": True},
+]
 
 
 def _ours(group: str) -> dict[str, str]:
@@ -61,6 +74,52 @@ def test_the_run_signature_satisfies_asynctask_schema_validation() -> None:
     assert "input_data" in signature.parameters
     assert signature.parameters["input_data"].annotation is not inspect.Parameter.empty
     assert signature.return_annotation is not inspect.Parameter.empty
+
+
+def test_the_input_schema_declares_the_request_fields() -> None:
+    """Bare `dict` lost AsyncTask's input union to another plugin; see `ToolRequest`."""
+    hints = typing.get_type_hints(workflows.GeneWeaverToolWorkflow.run)
+    assert hints["input_data"] is ToolRequest
+    assert {"tool", "input"} <= ToolRequest.__required_keys__
+
+
+@pytest.mark.parametrize("request_values", REQUESTS)
+def test_asynctask_parses_a_request_as_ours(request_values: dict) -> None:
+    """Reproduce AsyncTask's `InputSubmission.values` union and parse a GeneWeaver request.
+
+    AsyncTask builds ``Union[*every plugin's input schema, Json]`` and parses ``values``
+    against it regardless of ``task_type``, then passes the result to `start_workflow`.
+    The decoy stands in for the strain recommender's ``RecommendationRequest``: every field
+    defaulted, ahead of ours in the union, as it is in AsyncTask. Against bare ``dict`` it
+    won, and the workflow received ``{"strains": ["*"], ...}`` instead of the request.
+    """
+    pydantic = pytest.importorskip("pydantic")
+
+    class Decoy(pydantic.BaseModel):
+        access_token: str | None = None
+        geneset_ids: list[int] | None = None
+        strains: list[str] = ["*"]  # noqa: RUF012
+
+    class InputSubmission(pydantic.BaseModel):
+        task_type: str
+        values: Union[Decoy, ToolRequest, pydantic.Json]  # noqa: UP007
+
+    submission = InputSubmission(task_type="GeneWeaverTools", values=request_values)
+    assert submission.values == request_values
+    # Stored by AsyncTask through `model_dump`, and re-parsed from storage for a rerun.
+    stored = submission.model_dump()["values"]
+    assert stored == request_values
+    assert InputSubmission(task_type="GeneWeaverTools", values=stored).values == request_values
+
+
+@pytest.mark.parametrize("request_values", REQUESTS)
+def test_temporal_delivers_the_request_unchanged(request_values: dict[str, Any]) -> None:
+    """The workflow argument, decoded against the `ToolRequest` hint, keeps every key."""
+    from temporalio.converter import DataConverter
+
+    converter = DataConverter.default.payload_converter
+    (decoded,) = converter.from_payloads(converter.to_payloads([request_values]), [ToolRequest])
+    assert decoded == request_values
 
 
 def test_the_workflow_schedules_the_activity_by_name() -> None:

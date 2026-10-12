@@ -17,7 +17,7 @@ from temporalio.exceptions import ApplicationError
 
 with workflow.unsafe.imports_passed_through():
     from .contract import ACTIVITY_NAME, TOOL_RUN_TIMEOUT_SECONDS, task_queue_for
-    from .payload import check_payload_size, check_tool_allowed, requested_tool
+    from .payload import ToolRequest, check_payload_size, check_tool_allowed, requested_tool
 
 #: See `contract.TOOL_RUN_TIMEOUT_SECONDS`; the workers cap a native binary's run below it.
 TOOL_RUN_TIMEOUT = timedelta(seconds=TOOL_RUN_TIMEOUT_SECONDS)
@@ -41,7 +41,7 @@ class GeneWeaverToolWorkflow:
     """Run a single GeneWeaver analysis tool."""
 
     @workflow.run
-    async def run(self, input_data: dict) -> dict:
+    async def run(self, input_data: ToolRequest) -> dict:
         """Execute the requested tool and return its output.
 
         The parameter **must** be named ``input_data``. AsyncTask's plugin facade does
@@ -54,8 +54,10 @@ class GeneWeaverToolWorkflow:
         Annotations on the parameter and the return are required for the same reason:
         `validate_schemas` rejects `inspect.Parameter.empty` for either.
 
-        `dict` rather than a pydantic model: AsyncTask installs its own data converter,
-        so a plain mapping is the payload shape that needs no assumptions about it. The
+        `ToolRequest`, a ``TypedDict``, is also AsyncTask's input schema for this plugin.
+        Plain ``dict`` lost to another plugin's model in AsyncTask's input union, which
+        emptied every request; see `ToolRequest`. It is a mapping at runtime rather than a
+        pydantic model, so it makes no assumptions about AsyncTask's data converter. The
         activity validates against the tool's own input schema, which is where the real
         contract lives.
 
