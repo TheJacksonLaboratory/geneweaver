@@ -103,6 +103,25 @@ def test_upset_endpoint_merges_homologs_when_asked(client) -> None:
     assert response.json()["object"]["intersections"] == [{"geneset_ids": ["1", "2"], "size": 1}]
 
 
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [({}, True), ({"use_threshold": True}, True), ({"use_threshold": False}, False)],
+)
+def test_upset_endpoint_takes_and_reports_the_threshold_option(client, body, expected) -> None:
+    """On unless turned off; the response says which genes were counted."""
+    with (
+        patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+        patch(
+            "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+            return_value={"1": ["A"], "2": ["A"]},
+        ) as resolve,
+    ):
+        response = client.post("/api/tools/upset", json={"geneset_ids": [1, 2], **body})
+    assert response.status_code == 200
+    assert resolve.call_args.args[2] is expected
+    assert response.json()["object"]["use_threshold"] is expected
+
+
 def test_in_process_runner_runs_the_real_tool() -> None:
     """The default runner executes the actual ported tool, not a stub."""
     output = InProcessToolRunner().run(

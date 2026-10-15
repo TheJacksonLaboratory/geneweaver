@@ -93,6 +93,7 @@ def test_shape_echoes_options_not_the_seed() -> None:
         "min_genesets": None,
         "tiers": [1, 2, 3],
         "species_ids": None,
+        "use_threshold": True,
     }
 
 

@@ -60,6 +60,7 @@ def search(
             # Legacy's "Auto" is no floor.
             min_genesets=request.min_genesets or 0,
             result_limit=RESULT_LIMIT,
+            use_threshold=request.use_threshold,
         )
     return shape(found, request, species, tiers, attributions)
 

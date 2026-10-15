@@ -43,12 +43,12 @@ class ABBAResult:
 
 
 def _resolve_input_genes(
-    cursor: Cursor, input_genes: list[str], geneset_ids: list[int]
+    cursor: Cursor, input_genes: list[str], geneset_ids: list[int], use_threshold: bool
 ) -> list[str]:
     """Merge the text-supplied input genes with the genes drawn from the input gene sets."""
     genes = {g.lower() for g in input_genes}
     if geneset_ids:
-        cursor.execute(*q.ref_ids_for_genesets(geneset_ids))
+        cursor.execute(*q.ref_ids_for_genesets(geneset_ids, use_threshold))
         genes.update(str(row[0]).lower() for row in cursor.fetchall())
     return sorted(genes)
 
@@ -65,6 +65,7 @@ def abba(
     min_genes: int | None = None,
     min_genesets: int = 0,
     result_limit: int = 50,
+    use_threshold: bool = True,
 ) -> ABBAResult:
     """Run the ABBA association pipeline and return the structured results.
 
@@ -81,9 +82,11 @@ def abba(
     :param min_genes: minimum ``geneMatchCount`` for a gene set (``None`` = auto).
     :param min_genesets: minimum occurrences for a result gene.
     :param result_limit: row cap for the matching-gene-set and result-gene lists.
+    :param use_threshold: count a gene set's in-threshold genes only (legacy); ``False``
+        counts every gene it holds, in every step that reads membership.
     """
     geneset_ids = geneset_ids or []
-    resolved_genes = _resolve_input_genes(cursor, input_genes, geneset_ids)
+    resolved_genes = _resolve_input_genes(cursor, input_genes, geneset_ids, use_threshold)
 
     # Unique per-call temp-table names so concurrent ABBA runs don't collide.
     suffix = uuid4().hex[:12]
@@ -101,10 +104,18 @@ def abba(
             interest_table, input_table, species_ids, include_homology=include_homology
         )
     )
-    cursor.execute(*q.create_matching_genesets_table(matching_table, interest_table, user_id))
+    cursor.execute(
+        *q.create_matching_genesets_table(matching_table, interest_table, user_id, use_threshold)
+    )
     cursor.execute(
         *q.create_result_genes_table(
-            result_table, matching_table, interest_table, tiers, species_ids, min_genes
+            result_table,
+            matching_table,
+            interest_table,
+            tiers,
+            species_ids,
+            min_genes,
+            use_threshold,
         )
     )
 
@@ -141,9 +152,9 @@ def abba(
         if pref:
             result.preferred_mapping[ode_gene_id] = pref[0]
 
-        cursor.execute(*q.count_genesets_by_tier(ode_gene_id))
+        cursor.execute(*q.count_genesets_by_tier(ode_gene_id, use_threshold))
         result.tier_counts[ode_gene_id] = {cur_id: count for count, cur_id in cursor.fetchall()}
-        cursor.execute(*q.count_genesets_by_species(ode_gene_id))
+        cursor.execute(*q.count_genesets_by_species(ode_gene_id, use_threshold))
         result.species_counts[ode_gene_id] = {sp_id: count for count, sp_id in cursor.fetchall()}
 
     return result

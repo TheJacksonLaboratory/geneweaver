@@ -67,12 +67,15 @@ def seed_genes(cursor: Cursor, request: ABBARequest) -> list[str]:
     """The typed seed genes, then the genes of the seed gene sets, without repeats.
 
     The gene sets must already have been gated. Read on a tuple-row cursor because the
-    query is the pipeline's own, which reads by position.
+    query is the pipeline's own, which reads by position. A seed gene set contributes its
+    in-threshold genes, or all of them with ``use_threshold`` off, as the search counts.
     """
     genes = list(request.genes)
     if request.geneset_ids:
         with cursor.connection.cursor(row_factory=tuple_row) as rows:
-            rows.execute(*abba_queries.ref_ids_for_genesets(request.geneset_ids))
+            rows.execute(
+                *abba_queries.ref_ids_for_genesets(request.geneset_ids, request.use_threshold)
+            )
             genes.extend(str(row[0]) for row in rows.fetchall())
     return genes
 
@@ -100,6 +103,7 @@ def prepare_abba(cursor: Cursor, request: ABBARequest, user: User | None) -> Pre
             # ABBA's seed is genes, not gene sets compared, so there are no per-set counts.
             "gene_counts": {},
             "caveat": None,
+            "use_threshold": tool_input.use_threshold,
         },
         tool_input=tool_input,
         user_id=determine_user_id(user),

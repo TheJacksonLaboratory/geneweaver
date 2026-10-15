@@ -73,6 +73,7 @@ def run_upset(
                 user=user,
                 include_zeros=request.include_zeros,
                 include_homology=request.include_homology,
+                use_threshold=request.use_threshold,
             )
         return tool_service.execute_upset(prepared)
 

@@ -104,10 +104,24 @@ def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
 
     assert gate.call_args.args[2] == [5]
     cursors.cursor.connection.cursor.assert_called_with(row_factory=tuple_row)
-    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5]}
+    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5], "use_threshold": True}
     # Repeats are dropped case-insensitively, the typed gene first.
     assert fake.envelope["input"]["genes"] == ["drd2", "Th"]
     assert "geneset_ids" not in fake.envelope["input"]
+
+
+def test_thresholds_off_seeds_with_every_gene_and_tells_the_worker() -> None:
+    """Off, the seed gene sets give all their genes, and the search counts all genes too."""
+    cursors = _Cursors(seed_rows=[("Th",)])
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake), patch.object(service, "_gate_geneset_access"):
+        result = service.run_abba(
+            cursors, ABBARequest(geneset_ids=[5], use_threshold=False), Mock(id=7)
+        )
+
+    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5], "use_threshold": False}
+    assert fake.envelope["input"]["use_threshold"] is False
+    assert result["use_threshold"] is False
 
 
 def test_an_unreadable_seed_gene_set_is_refused_before_submission() -> None:
@@ -189,6 +203,7 @@ def test_without_asynctask_the_search_runs_here_on_the_pooled_connection() -> No
         "geneset_ids": [],
         "gene_counts": {},
         "caveat": None,
+        "use_threshold": True,
         "executed_by": "in_process",
         "run_id": None,
         "result": {"tool": "abba"},

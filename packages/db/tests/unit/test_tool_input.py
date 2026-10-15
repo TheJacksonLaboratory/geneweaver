@@ -88,7 +88,7 @@ class TestHomologousGeneSymbols:
         (members_sql, members_params), (hom_sql, hom_params) = (
             call.args for call in cursor.execute.call_args_list
         )
-        assert members_params == {"geneset_ids": [1]}
+        assert members_params == {"geneset_ids": [1], "use_threshold": True}
         assert "ANY(%(geneset_ids)s)" in members_sql
         assert hom_params == {"gene_ids": [10]}
         assert "extsrc.homology" in hom_sql
@@ -114,7 +114,41 @@ class TestHomologAnnotations:
         sql, params = cursor.execute.call_args.args
         assert "g.gdb_id = 7" in sql
         assert "g.ode_pref = TRUE" in sql
-        assert params == {"geneset_ids": [1, 2], "species_ids": [1]}
+        assert params == {"geneset_ids": [1, 2], "species_ids": [1], "use_threshold": True}
+
+
+class TestThresholdOption:
+    """Every membership query takes ``use_threshold``, bound, never formatted in."""
+
+    FILTER = "gsv_in_threshold OR NOT %(use_threshold)s"
+
+    @pytest.mark.parametrize("use_threshold", [True, False])
+    @pytest.mark.parametrize(
+        ("call", "results"),
+        [
+            (lambda c, t: tool_input.gene_symbols_by_geneset(c, [1], t), [[]]),
+            (lambda c, t: tool_input.homologous_gene_symbols_by_geneset(c, [1], t), [[], []]),
+            (lambda c, t: tool_input.membership_rows(c, [1], t), [[]]),
+            (lambda c, t: tool_input.homology_pairs(c, [1], t), [[]]),
+            (lambda c, t: tool_input.homolog_annotations(c, [1], [1], t), [[]]),
+        ],
+        ids=["symbols", "homologous", "membership_rows", "homology_pairs", "annotations"],
+    )
+    def test_the_flag_binds_and_every_membership_filter_honours_it(
+        self, call, results, use_threshold
+    ) -> None:
+        """No filter is left hardcoded: each ``gsv_in_threshold`` is the bound filter."""
+        cursor = _cursor(*results)
+        call(cursor, use_threshold)
+        sql, params = cursor.execute.call_args_list[0].args
+        assert params["use_threshold"] is use_threshold
+        assert sql.count("gsv_in_threshold") == sql.count(self.FILTER) >= 1
+
+    def test_on_by_default(self) -> None:
+        """Callers that say nothing get curation's rule (GWC-21)."""
+        cursor = _cursor([])
+        tool_input.gene_symbols_by_geneset(cursor, [1])
+        assert cursor.execute.call_args.args[1]["use_threshold"] is True
 
 
 class TestPlatformQueries:

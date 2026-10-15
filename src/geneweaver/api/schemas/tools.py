@@ -40,6 +40,14 @@ class UpSetRequest(BaseModel):
             'intersect on their orthologs (legacy\'s "Homology: Included").'
         ),
     )
+    use_threshold: bool = Field(
+        default=True,
+        description=(
+            "Use only the genes inside each gene set's stored threshold (the default). "
+            "False uses every gene each gene set holds, including those its curator "
+            "thresholded out; binary gene sets are unaffected."
+        ),
+    )
 
     @field_validator("geneset_ids")
     @classmethod
@@ -85,6 +93,9 @@ class UpSetResult(BaseModel):
     gene_counts: dict[str, int] = Field(
         ..., description="Genes resolved per gene set, keyed by gene set id."
     )
+    use_threshold: bool = Field(
+        default=True, description="Whether only in-threshold genes were used."
+    )
     intersections: list[UpSetIntersection] = Field(
         ..., description="Exclusive intersection sizes, largest first."
     )
@@ -111,7 +122,9 @@ class ToolRunRequest(BaseModel):
     parameters: dict = Field(
         default_factory=dict,
         description=(
-            "Tool-specific options; unknown keys are ignored. `include_homology` "
+            "Tool options; unknown keys are ignored. `use_threshold` (every tool, default "
+            "true): false uses every gene in each gene set, not only those inside its "
+            "stored threshold. `include_homology` "
             "(upset, dbscan, hypergeometric, jaccard_clustering, jaccard_similarity, "
             "phenome_map, combine); `pairwise_deletion` (jaccard_similarity, "
             "hypergeometric); `p_value_threshold` (jaccard_similarity, phenome_map); "
@@ -161,6 +174,9 @@ class ToolRunResult(BaseModel):
     caveat: str | None = Field(
         default=None, description="Qualifies how to read this result, if anything does."
     )
+    use_threshold: bool = Field(
+        default=True, description="Whether only in-threshold genes were used."
+    )
     result: dict = Field(..., description="The tool's own output.")
 
 
@@ -168,9 +184,9 @@ class ABBARequest(ABBAInput):
     """Parameters for an ABBA gene-centred search (legacy `ABBA_options.html`).
 
     Unlike the other tools, ABBA starts from genes: the seed is the genes given here plus
-    the in-threshold genes of any gene sets named. It then finds the gene sets containing
-    those genes and the other genes that recur across them. The options and their checks are
-    the tool's own (`geneweaver.tools.abba.ABBAInput`); this adds the seed gene sets, which
+    the in-threshold genes of any gene sets named (all their genes with `use_threshold`
+    off). It then finds the gene sets containing those genes and the other genes that recur
+    across them. The options and their checks are the tool's own (`geneweaver.tools.abba.ABBAInput`); this adds the seed gene sets, which
     the API gates and expands before the search sees them.
     """
 

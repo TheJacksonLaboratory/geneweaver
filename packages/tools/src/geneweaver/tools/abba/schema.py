@@ -49,6 +49,14 @@ class ABBAInput(BaseModel):
         min_length=1,
         description="Species to restrict the search to; null searches every species.",
     )
+    use_threshold: bool = Field(
+        default=True,
+        description=(
+            "Count only the genes inside each gene set's stored threshold (legacy's only "
+            "behaviour). False counts every gene a gene set holds, including those its "
+            "curator thresholded out."
+        ),
+    )
 
     @field_validator("genes")
     @classmethod
