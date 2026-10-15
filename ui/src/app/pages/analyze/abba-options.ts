@@ -103,11 +103,20 @@ export function abbaCanRun(genes: string[], genesetIds: number[], options: AbbaO
   return (genes.length > 0 || genesetIds.length > 0) && !abbaProblem(genes, genesetIds, options);
 }
 
-/** The `POST /tools/abba` body. */
-export function abbaRequestBody(genes: string[], genesetIds: number[], options: AbbaOptions) {
+/**
+ * The `POST /tools/abba` body. `useThreshold` is the page's run-wide choice, not an ABBA
+ * option: it applies to every tool, so it lives beside the gene set ids.
+ */
+export function abbaRequestBody(
+  genes: string[],
+  genesetIds: number[],
+  options: AbbaOptions,
+  useThreshold = true,
+) {
   return {
     genes,
     geneset_ids: genesetIds,
+    use_threshold: useThreshold,
     include_homology: options.includeHomology,
     min_genes: options.minGenes,
     min_genesets: options.minGenesets,

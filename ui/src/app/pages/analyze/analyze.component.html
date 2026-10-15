@@ -43,6 +43,27 @@
       </div>
     </div>
 
+    <!-- Run-wide, not a tool option: every tool's genes come through one resolver, so the
+         choice applies to whichever tool runs and is kept when the tool changes. -->
+    <div *ngIf="!selectedToolReason" class="field flex align-items-start mb-3">
+      <input
+        id="useThreshold"
+        type="checkbox"
+        class="mt-1"
+        [(ngModel)]="useThreshold"
+        aria-describedby="useThreshold-help"
+      />
+      <div class="ml-2">
+        <label for="useThreshold">Use gene set thresholds</label>
+        <small id="useThreshold-help" class="block mt-1 text-color-secondary">
+          Checked, each gene set contributes only the genes inside the threshold its curator
+          set. Cleared, it contributes every gene it holds, which changes the result for gene
+          sets with p-value, q-value, correlation or effect scores. Binary gene sets are the
+          same either way.
+        </small>
+      </div>
+    </div>
+
     <!-- ABBA: seeded with genes, and with options that are sets rather than single values
          (abba-options.ts mirrors legacy's ABBA_options.html). -->
     <section *ngIf="isAbba && !selectedToolReason" class="abba-options mb-3" aria-labelledby="abbaHeading">
@@ -340,6 +361,13 @@
   ></p-message>
 
   <p-card *ngIf="result" class="block mt-3" [header]="result.tool + ' result'">
+    <p-message
+      *ngIf="result.use_threshold === false"
+      severity="info"
+      [text]="thresholdsOffNotice"
+      styleClass="w-full mb-3 thresholds-off"
+    ></p-message>
+
     <h4 class="mt-0">Genes resolved per gene set</h4>
     <div class="flex flex-wrap gap-3 mb-4">
       <span *ngFor="let entry of result.gene_counts | keyvalue">
@@ -408,6 +436,13 @@
   </p>
 
   <p-message
+    *ngIf="genericResult.use_threshold === false"
+    severity="info"
+    [text]="thresholdsOffNotice"
+    styleClass="w-full mb-3 thresholds-off"
+  ></p-message>
+
+  <p-message
     *ngIf="genericResult.caveat"
     severity="warn"
     [text]="genericResult.caveat"
@@ -423,6 +458,12 @@
 
 <!-- ABBA answers a gene search, not a gene-set analysis, so it has its own card. -->
 <p-card *ngIf="abbaResult" class="block mt-3" header="ABBA gene-centred search results">
+  <p-message
+    *ngIf="abbaResult.parameters.use_threshold === false"
+    severity="info"
+    [text]="thresholdsOffNotice"
+    styleClass="w-full mb-3 thresholds-off"
+  ></p-message>
   <app-abba-result
     [result]="abbaResult"
     [ranAt]="abbaRanAt"

@@ -51,6 +51,8 @@ interface UpSetResult {
   tool: string;
   geneset_ids: number[];
   gene_counts: Record<string, number>;
+  /** Whether only in-threshold genes were used; absent means they were. */
+  use_threshold?: boolean;
   intersections: UpSetIntersection[];
 }
 
@@ -81,6 +83,7 @@ interface ToolRunResult {
   geneset_ids: number[];
   gene_counts: Record<string, number>;
   caveat?: string | null;
+  use_threshold?: boolean;
   result: Record<string, unknown>;
 }
 
@@ -93,6 +96,7 @@ interface PendingRun {
   geneset_ids: number[];
   gene_counts: Record<string, number>;
   caveat?: string | null;
+  use_threshold?: boolean;
   run_id: number;
   status: string;
 }
@@ -190,6 +194,14 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
 
   /** Gene set ids as typed by the user; validated before the call. */
   genesetIdInput: string[] = [];
+
+  /**
+   * Whether each gene set contributes only the genes inside its stored threshold (the
+   * default, as curation asked in GWC-21) or every gene it holds. Run-wide rather than a
+   * tool option -- every tool's genes come through the same resolver -- so it is sent with
+   * every tool and kept when the tool changes.
+   */
+  useThreshold = true;
 
   private tool = 'upset';
   /** The selected tool's option values, keyed by API parameter name. */
@@ -516,14 +528,15 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     // Both branches take the same type parameter so the two observables unify -- a
     // union of differently-typed observables has no callable `subscribe`.
     // UpSet's endpoint takes its options at the top level of the body.
+    const parameters = { ...this.toolParameters(), use_threshold: this.useThreshold };
     const request$ = this.isUpSet
       ? this.gwApi.post<AnyToolResult>('/tools/upset', {
           geneset_ids: this.genesetIds,
-          ...this.toolParameters(),
+          ...parameters,
         })
       : this.gwApi.post<AnyToolResult>(`/tools/${this.selectedTool}`, {
           geneset_ids: this.genesetIds,
-          parameters: this.toolParameters(),
+          parameters,
         });
 
     request$.subscribe({
@@ -556,7 +569,10 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
    */
   private runAbba(): void {
     this.gwApi
-      .post<AnyToolResult>('/tools/abba', abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions))
+      .post<AnyToolResult>(
+        '/tools/abba',
+        abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions, this.useThreshold),
+      )
       .subscribe({
         next: (response) => {
           const body = response.object as AnyToolResult | undefined;
@@ -630,6 +646,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
               tool: 'UpSet',
               geneset_ids: pending.geneset_ids,
               gene_counts: pending.gene_counts,
+              use_threshold: pending.use_threshold,
               intersections: raw.map((item) => ({ geneset_ids: item.genesets, size: item.size })),
             };
           } else {
@@ -638,6 +655,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
               geneset_ids: pending.geneset_ids,
               gene_counts: pending.gene_counts,
               caveat: pending.caveat,
+              use_threshold: pending.use_threshold,
               result: run.result,
             };
           }
@@ -696,6 +714,11 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     }
     return detail ?? `The run failed (HTTP ${error?.status ?? 'unknown'}).`;
   }
+
+  /** Said on every result run without thresholds, so it is not read as the curated one. */
+  readonly thresholdsOffNotice =
+    'Gene set thresholds were not applied: every gene in each gene set was used, including ' +
+    'genes outside the threshold its curator set.';
 
   label(intersection: UpSetIntersection): string {
     return intersection.geneset_ids.join(' ∩ ');

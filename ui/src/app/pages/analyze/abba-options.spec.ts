@@ -59,4 +59,10 @@ describe('ABBA options', () => {
     expect(abbaRequestBody(['Drd2'], [], options).species_ids).toBeNull();
     expect(abbaRequestBody(['Drd2'], [], { ...options, restrictSpecies: true, speciesIds: [2, 1] }).species_ids).toEqual([1, 2]);
   });
+
+  it('sends thresholds on unless the page turned them off', () => {
+    const options = defaultAbbaOptions();
+    expect(abbaRequestBody(['Drd2'], [], options).use_threshold).toBe(true);
+    expect(abbaRequestBody(['Drd2'], [5], options, false).use_threshold).toBe(false);
+  });
 });

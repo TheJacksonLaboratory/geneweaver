@@ -66,6 +66,7 @@ describe('ABBA models', () => {
       const rows = Object.fromEntries(abbaRunInfo(ABBA_FIXTURE).map((row) => [row.label, row.value]));
       expect(rows).toEqual({
         'Include homology': 'Yes',
+        'Gene set thresholds': 'Applied',
         'Minimum genes': 'Auto',
         'Minimum gene sets': 'Auto',
         'Curation tiers': 'IN (1,2,3)',
@@ -78,10 +79,18 @@ describe('ABBA models', () => {
     it('names restricted species and set thresholds', () => {
       const result = {
         ...ABBA_FIXTURE,
-        parameters: { include_homology: false, min_genes: 2, min_genesets: 5, tiers: [3, 1], species_ids: [2, 1] },
+        parameters: {
+          include_homology: false,
+          min_genes: 2,
+          min_genesets: 5,
+          tiers: [3, 1],
+          species_ids: [2, 1],
+          use_threshold: false,
+        },
       };
       const rows = Object.fromEntries(abbaRunInfo(result).map((row) => [row.label, row.value]));
       expect(rows['Include homology']).toBe('No');
+      expect(rows['Gene set thresholds']).toBe('Not applied');
       expect(rows['Minimum genes']).toBe('2');
       expect(rows['Minimum gene sets']).toBe('5');
       expect(rows['Curation tiers']).toBe('IN (1,3)');
