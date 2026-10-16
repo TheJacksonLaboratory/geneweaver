@@ -3,7 +3,7 @@ import { HttpParams } from '@angular/common/http';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { Observable, of, Subject, throwError } from 'rxjs';
 
-import { GenesetPickerComponent } from './geneset-picker.component';
+import { GenesetPickerComponent, ROW_HEIGHT_PX, VISIBLE_ROWS } from './geneset-picker.component';
 import { PAGE_SIZE } from './geneset-picker';
 
 /** `count` gene sets from `start`, as `GET /genesets/search` returns them. */
@@ -143,6 +143,12 @@ describe('GenesetPickerComponent', () => {
     picker.ids = ['1', '999'];
     picker.ngOnChanges({ ids: { currentValue: picker.ids } as never });
     expect(picker.selected.map((option) => option.chip)).toEqual(['GS1 · Set 1', 'GS999']);
+  });
+
+  it('sizes the list for at least ten suggestions', () => {
+    expect(VISIBLE_ROWS).toBeGreaterThanOrEqual(10);
+    expect(parseInt(picker.listHeight, 10)).toBeGreaterThanOrEqual(VISIBLE_ROWS * ROW_HEIGHT_PX);
+    expect(picker.rowHeight).toBe(ROW_HEIGHT_PX);
   });
 
   it('renders an autocomplete on the labelled input id', () => {

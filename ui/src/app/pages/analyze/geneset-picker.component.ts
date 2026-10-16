@@ -33,6 +33,18 @@ interface PageResult extends PageRequest {
 const PREFETCH_ROWS = 5;
 
 /**
+ * Every suggestion is one fixed-height row of two lines. The virtual scroller positions rows
+ * by this size, so it must match what is drawn -- the styles below pin it.
+ */
+export const ROW_HEIGHT_PX = 52;
+
+/** Rows the list shows without scrolling. */
+export const VISIBLE_ROWS = 10;
+
+/** The list's own top and bottom padding (PrimeNG's 0.25rem each). */
+const LIST_PADDING_PX = 8;
+
+/**
  * The gene sets to analyse: type to search them, or type and paste ids as before.
  *
  * Searches `GET /genesets/search`, which matches ids (`167180`, `GS167180`) and words from a
@@ -57,6 +69,17 @@ const PREFETCH_ROWS = 5;
       :host ::ng-deep .p-autocomplete-multiple-container {
         width: 100%;
       }
+      /* ROW_HEIGHT_PX: the virtual scroller places rows by it, so no margin may add to it. */
+      :host ::ng-deep .p-autocomplete-panel .p-autocomplete-item {
+        height: 52px;
+        margin: 0;
+        overflow: hidden;
+      }
+      /* The virtual list's content otherwise grows to its longest name, wider than the panel,
+         and long names are clipped at the panel's edge instead of ending in an ellipsis. */
+      :host ::ng-deep .p-autocomplete-panel .p-scroller-content {
+        width: 100%;
+      }
       :host ::ng-deep .p-autocomplete-token-label {
         max-width: 18rem;
         overflow: hidden;
@@ -79,10 +102,10 @@ const PREFETCH_ROWS = 5;
       [delay]="300"
       [minLength]="1"
       [virtualScroll]="true"
-      [virtualScrollItemSize]="52"
+      [virtualScrollItemSize]="rowHeight"
       [lazy]="true"
       (onLazyLoad)="loadMore($event.last)"
-      scrollHeight="320px"
+      [scrollHeight]="listHeight"
       [showEmptyMessage]="true"
       [emptyMessage]="emptyMessage"
       (onKeyUp)="keyUp($event)"
@@ -119,6 +142,10 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   @Input() placeholder = 'Search by name or ID, or type IDs, e.g. 514, 515';
 
   @ViewChild(AutoComplete) private autoComplete?: AutoComplete;
+
+  readonly rowHeight = ROW_HEIGHT_PX;
+  /** Tall enough for ten suggestions; more scroll, and load as they come into view. */
+  readonly listHeight = `${VISIBLE_ROWS * ROW_HEIGHT_PX + LIST_PADDING_PX}px`;
 
   selected: GenesetOption[] = [];
   suggestions: GenesetOption[] = [];
