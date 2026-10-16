@@ -19,6 +19,8 @@ import { SessionService } from '../../services/session.service';
 import { AbbaResult, parseGeneList } from './visualizations/abba-models';
 import { AbbaResultComponent } from './visualizations/abba-result.component';
 import { GenesetPickerComponent } from './geneset-picker.component';
+import { SearchFiltersComponent } from '../../components/searchfilters/search-filters.component';
+import { activeFilterCount, emptyFilters, SearchFilters } from '../../search/search-filters';
 import { ToolResultComponent } from './visualizations/tool-result.component';
 import { UpsetPlotComponent } from './visualizations/upset-plot.component';
 import { upsetModel, UpSetModel } from './visualizations/models';
@@ -184,6 +186,7 @@ const TOOL_LABELS: Record<string, string> = {
     TableModule,
     AbbaResultComponent,
     GenesetPickerComponent,
+    SearchFiltersComponent,
     ToolResultComponent,
     UpsetPlotComponent,
   ],
@@ -202,6 +205,14 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
    * every tool and kept when the tool changes.
    */
   useThreshold = true;
+
+  /** Filters narrowing the gene set suggestions, as on the search page (G3-777, G3-764). */
+  searchFilters: SearchFilters = emptyFilters();
+  showSearchFilters = false;
+
+  get searchFilterCount(): number {
+    return activeFilterCount(this.searchFilters);
+  }
 
   private tool = 'upset';
   /** The selected tool's option values, keyed by API parameter name. */

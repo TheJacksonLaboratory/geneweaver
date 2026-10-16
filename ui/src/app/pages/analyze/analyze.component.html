@@ -10,7 +10,18 @@
     <div class="formgrid grid">
       <div class="field col-12 md:col-6">
         <label for="genesetIds" class="block mb-2">Gene sets</label>
-        <app-geneset-picker inputId="genesetIds" [(ids)]="genesetIdInput"></app-geneset-picker>
+        <app-geneset-picker inputId="genesetIds" [(ids)]="genesetIdInput" [filters]="searchFilters"></app-geneset-picker>
+        <!-- The search page's filters (G3-777, G3-764), narrowing the suggestions. -->
+        <p-button
+          [label]="searchFilterCount ? 'Search filters (' + searchFilterCount + ')' : 'Search filters'"
+          icon="pi pi-filter"
+          [text]="true"
+          size="small"
+          styleClass="mt-1 px-0"
+          [attr.aria-expanded]="showSearchFilters"
+          aria-controls="picker-filters"
+          (onClick)="showSearchFilters = !showSearchFilters"
+        ></p-button>
         <small *ngIf="!isAbba" class="block mt-2 text-color-secondary">
           Search by name, description or ID and pick from the list, or type IDs and press
           Enter. At least two, at most twenty -- or ten with empty combinations included.
@@ -33,6 +44,14 @@
         ></p-dropdown>
       </div>
     </div>
+
+    <app-search-filters
+      *ngIf="showSearchFilters"
+      class="block mb-3"
+      idPrefix="picker-filters"
+      [filters]="searchFilters"
+      (filtersChange)="searchFilters = $event"
+    ></app-search-filters>
 
     <!-- Run-wide, not a tool option: every tool's genes come through one resolver, so the
          choice applies to whichever tool runs and is kept when the tool changes. -->

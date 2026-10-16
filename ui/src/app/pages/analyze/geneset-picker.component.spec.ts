@@ -3,8 +3,10 @@ import { HttpParams } from '@angular/common/http';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { Observable, of, Subject, throwError } from 'rxjs';
 
-import { GenesetPickerComponent, ROW_HEIGHT_PX, VISIBLE_ROWS } from './geneset-picker.component';
-import { PAGE_SIZE } from './geneset-picker';
+import { GenesetPickerComponent } from './geneset-picker.component';
+import { ROW_HEIGHT_PX, VISIBLE_ROWS } from '../../search/suggestion-list';
+import { emptyFilters } from '../../search/search-filters';
+import { PAGE_SIZE } from '../../search/geneset-options';
 
 /** `count` gene sets from `start`, as `GET /genesets/search` returns them. */
 const page = (start: number, count: number) =>
@@ -64,27 +66,27 @@ describe('GenesetPickerComponent', () => {
     expect(requests[0].params.get('search_text')).toBe('dopamine');
     expect(requests[0].params.get('limit')).toBe(String(PAGE_SIZE));
     expect(requests[0].params.get('offset')).toBe('0');
-    expect(picker.suggestions).toHaveLength(PAGE_SIZE);
-    expect(picker.suggestions[0]).toMatchObject({ id: 1, chip: 'GS1 · Set 1' });
-    expect(picker.loading).toBe(false);
+    expect(picker.source.suggestions).toHaveLength(PAGE_SIZE);
+    expect(picker.source.suggestions[0]).toMatchObject({ id: 1, chip: 'GS1 · Set 1' });
+    expect(picker.source.loading).toBe(false);
   });
 
   it('fetches the next page when the list is scrolled near its end, and only then', () => {
     picker.search('dopamine');
-    picker.loadMore(5);
+    picker.source.loadMore(5);
     expect(requests).toHaveLength(1);
 
-    picker.loadMore(PAGE_SIZE - 2);
+    picker.source.loadMore(PAGE_SIZE - 2);
     expect(requests).toHaveLength(2);
     expect(requests[1].params.get('offset')).toBe(String(PAGE_SIZE));
-    expect(picker.suggestions).toHaveLength(PAGE_SIZE * 2);
-    expect(picker.suggestions[PAGE_SIZE].id).toBe(PAGE_SIZE + 1);
+    expect(picker.source.suggestions).toHaveLength(PAGE_SIZE * 2);
+    expect(picker.source.suggestions[PAGE_SIZE].id).toBe(PAGE_SIZE + 1);
   });
 
   it('stops paging after a short page: there is nothing more', () => {
     respond = () => of({ data: page(1, 3) });
     picker.search('rare words');
-    picker.loadMore(2);
+    picker.source.loadMore(2);
     expect(requests).toHaveLength(1);
   });
 
@@ -94,14 +96,14 @@ describe('GenesetPickerComponent', () => {
     picker.search('dop');
     picker.search('dopamine');
     slow.next({ data: page(1, 5) });
-    expect(picker.suggestions.map((option) => option.id)).toEqual([100, 101]);
+    expect(picker.source.suggestions.map((option) => option.id)).toEqual([100, 101]);
   });
 
   it('says the search failed, and still accepts typed ids', () => {
     respond = () => throwError(() => new Error('502'));
     picker.search('dopamine');
-    expect(picker.failed).toBe(true);
-    expect(picker.loading).toBe(false);
+    expect(picker.source.failed).toBe(true);
+    expect(picker.source.loading).toBe(false);
 
     const { input, event } = typed('514', 'Enter');
     picker.keyUp(event);
@@ -111,7 +113,7 @@ describe('GenesetPickerComponent', () => {
 
   it('adds a picked suggestion and emits ids as the page holds them', () => {
     picker.search('dopamine');
-    picker.selectionChanged([picker.suggestions[2]]);
+    picker.selectionChanged([picker.source.suggestions[2]]);
     expect(emitted.at(-1)).toEqual(['3']);
   });
 
@@ -139,10 +141,30 @@ describe('GenesetPickerComponent', () => {
 
   it('shows ids the page sets, keeping labels it has already seen', () => {
     picker.search('dopamine');
-    picker.selectionChanged([picker.suggestions[0]]);
+    picker.selectionChanged([picker.source.suggestions[0]]);
     picker.ids = ['1', '999'];
     picker.ngOnChanges({ ids: { currentValue: picker.ids } as never });
     expect(picker.selected.map((option) => option.chip)).toEqual(['GS1 · Set 1', 'GS999']);
+  });
+
+  it('narrows the suggestions by the filters, and searches again when they change', () => {
+    picker.search('dopamine');
+    expect(requests[0].params.getAll('species')).toBeNull();
+
+    picker.filters = { ...emptyFilters(), species: [1, 2], tiers: [3] };
+    picker.ngOnChanges({ filters: { currentValue: picker.filters } as never });
+    expect(requests).toHaveLength(2);
+    expect(requests[1].params.getAll('species')).toEqual(['Mus Musculus', 'Homo Sapiens']);
+    expect(requests[1].params.getAll('curation_tier')).toEqual(['Tier III']);
+    expect(requests[1].params.get('search_text')).toBe('dopamine');
+  });
+
+  it('does not send filters the API would refuse', () => {
+    picker.search('dopamine');
+    picker.filters = { ...emptyFilters(), pValue: 0.05 }; // a cutoff with no gene
+    picker.ngOnChanges({ filters: { currentValue: picker.filters } as never });
+    expect(requests).toHaveLength(1);
+    expect(picker.source.suggestions).toEqual([]);
   });
 
   it('sizes the list for at least ten suggestions', () => {

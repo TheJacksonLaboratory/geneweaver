@@ -1,6 +1,6 @@
-import { appendPage, parseIds, toOption } from './geneset-picker';
+import { appendPage, parseIds, toOption } from './geneset-options';
 
-describe('gene set picker helpers', () => {
+describe('gene set search options', () => {
   describe('parseIds', () => {
     it.each([
       ['514', [514]],
