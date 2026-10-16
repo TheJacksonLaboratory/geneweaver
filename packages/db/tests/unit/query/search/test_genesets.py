@@ -20,11 +20,11 @@ def _sql(**kwargs) -> tuple[str, dict]:
     return " ".join(_render(query).split()).replace(" , ", ", "), params
 
 
-def test_text_search_is_unsorted_and_joins_the_search_view_as_before() -> None:
-    """Without the new options the query keeps its shape: no ORDER BY, the view joined."""
+def test_an_unsorted_search_is_still_in_id_order_so_pages_do_not_overlap() -> None:
+    """With no sort, the id: unordered pages repeated and skipped gene sets on dev."""
     sql, params = _sql(search_text="dopamine", is_readable_by=0)
     assert "JOIN geneset_search" in sql
-    assert "ORDER BY" not in sql
+    assert sql.endswith("ORDER BY geneset.gs_id + 0 LIMIT 25 OFFSET 0")
     assert params["search"] == "dopamine"
 
 
@@ -35,7 +35,8 @@ def test_sorting_uses_only_listed_columns_then_the_id(key, order) -> None:
     sql, _ = _sql(search_text="x", sort_by=key, sort_order=order)
     expected = _render(search.SORT_COLUMNS[key])
     assert (
-        f"ORDER BY {' '.join(expected.split())} {order.upper()} NULLS LAST, geneset.gs_id" in sql
+        f"ORDER BY {' '.join(expected.split())} {order.upper()} NULLS LAST, geneset.gs_id + 0"
+        in sql
     )
 
 
@@ -82,9 +83,9 @@ def test_a_closed_range_needs_both_ends() -> None:
 def test_only_mode_filters_by_the_cutoffs() -> None:
     """The default keeps only the gene sets where the gene's score passes."""
     sql, _ = _sql(gene="Drd2", p_value=0.01)
-    where = sql.split("WHERE", 1)[1]
+    where, order = sql.split("WHERE", 1)[1].split("ORDER BY")
     assert "gsv.gsv_value <= %(p_value)s" in where
-    assert "ORDER BY" not in sql
+    assert "gsv_value" not in order
 
 
 def test_first_mode_keeps_every_gene_set_holding_it_and_puts_passing_ones_first() -> None:
@@ -95,7 +96,7 @@ def test_first_mode_keeps_every_gene_set_holding_it_and_puts_passing_ones_first(
     assert order.strip().startswith("EXISTS")
     assert "gsv.gsv_value <= %(p_value)s" in order
     assert order.index("DESC") < order.index("lower(geneset.gs_name)")
-    assert order.rstrip().endswith("geneset.gs_id LIMIT 25 OFFSET 0")
+    assert order.rstrip().endswith("geneset.gs_id + 0 LIMIT 25 OFFSET 0")
 
 
 def test_readability_is_the_functions_cases_set_based() -> None:

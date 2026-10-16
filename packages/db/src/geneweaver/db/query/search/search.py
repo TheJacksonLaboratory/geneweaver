@@ -262,9 +262,14 @@ def genesets(
         ordering.append(
             SQL(" ").join([SORT_COLUMNS[sort_by], SORT_ORDERS[sort_order], SQL("NULLS LAST")])
         )
-    if ordering:
-        # The id last, so equal keys keep one order and paging neither repeats nor skips.
-        query += SQL("ORDER BY") + SQL(", ").join([*ordering, SQL("geneset.gs_id")])
+    # Always ordered, the id last: without an ORDER BY, Postgres may return the rows of
+    # successive pages in different orders, so paging repeated some gene sets and skipped
+    # others (on dev, 499 repeats in 2,000 rows of a gene search, 70 of a text search).
+    # "+ 0" keeps the planner from walking the primary key in id order and testing every
+    # gene set until it has a page: fast for common words, but 1.7 s for a rare one or an
+    # id, 7 s cold. Finding the matches first, then sorting them, took 0.02-0.36 s on dev
+    # for every search tried, "gene" (161k matches) included.
+    query += SQL("ORDER BY") + SQL(", ").join([*ordering, SQL("geneset.gs_id + 0")])
 
     query = limit_and_offset(query, limit, offset).join(" ")
 
