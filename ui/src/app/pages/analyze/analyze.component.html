@@ -9,20 +9,11 @@
   <p-card>
     <div class="formgrid grid">
       <div class="field col-12 md:col-6">
-        <label for="genesetIds" class="block mb-2">Gene set IDs</label>
-        <p-chips
-          inputId="genesetIds"
-          [(ngModel)]="genesetIdInput"
-          [allowDuplicate]="false"
-          [addOnBlur]="true"
-          separator=","
-          placeholder="e.g. 514, 515"
-          styleClass="w-full"
-          ariaLabel="Gene set IDs to analyze"
-        ></p-chips>
+        <label for="genesetIds" class="block mb-2">Gene sets</label>
+        <app-geneset-picker inputId="genesetIds" [(ids)]="genesetIdInput"></app-geneset-picker>
         <small *ngIf="!isAbba" class="block mt-2 text-color-secondary">
-          Type an ID and press enter. At least two, at most twenty -- or ten with empty
-          combinations included.
+          Search by name, description or ID and pick from the list, or type IDs and press
+          Enter. At least two, at most twenty -- or ten with empty combinations included.
         </small>
         <small *ngIf="isAbba" class="block mt-2 text-color-secondary">
           Optional for ABBA: up to twenty gene sets, whose genes join the seed genes.

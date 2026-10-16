@@ -7,7 +7,6 @@ import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 /* PrimeNG Imports */
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { ChipsModule } from 'primeng/chips';
 import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -19,6 +18,7 @@ import { environment } from '../../../environments/environment';
 import { SessionService } from '../../services/session.service';
 import { AbbaResult, parseGeneList } from './visualizations/abba-models';
 import { AbbaResultComponent } from './visualizations/abba-result.component';
+import { GenesetPickerComponent } from './geneset-picker.component';
 import { ToolResultComponent } from './visualizations/tool-result.component';
 import { UpsetPlotComponent } from './visualizations/upset-plot.component';
 import { upsetModel, UpSetModel } from './visualizations/models';
@@ -177,13 +177,13 @@ const TOOL_LABELS: Record<string, string> = {
     FormsModule,
     ButtonModule,
     CardModule,
-    ChipsModule,
     DropdownModule,
     InputTextModule,
     MessageModule,
     ProgressBarModule,
     TableModule,
     AbbaResultComponent,
+    GenesetPickerComponent,
     ToolResultComponent,
     UpsetPlotComponent,
   ],
