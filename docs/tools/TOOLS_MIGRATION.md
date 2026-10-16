@@ -9,8 +9,10 @@
 > `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
 > and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
 > changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md). The tools are
-> registered as AsyncTask plugins (see §10).
-> **Last updated:** 2026-09-22
+> registered as AsyncTask plugins (see §10). Which genes a run uses, and the run-wide option
+> to turn gene set thresholds off, are in
+> [TOOL_GENE_SCORE_THRESHOLD.md](TOOL_GENE_SCORE_THRESHOLD.md).
+> **Last updated:** 2026-10-16
 
 ---
 
