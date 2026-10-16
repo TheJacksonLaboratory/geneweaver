@@ -1,4 +1,7 @@
-"""Tests for tool-to-worker routing.
+"""Tests for tool-to-worker routing, from the worker's side.
+
+The queue names and the native list are the plugin's (`geneweaver.tools_plugin.contract`);
+`routing` re-exports them, so these check the worker against the same values.
 
 The split is operational, not cosmetic: routing a native tool to the Python worker fails
 with a missing-binary error that says nothing about queues, and routing to a queue with no
@@ -65,12 +68,6 @@ def test_an_unknown_tool_routes_to_the_python_queue() -> None:
     that needs no image change.
     """
     assert task_queue_for("some_future_tool") == PYTHON_TASK_QUEUE
-
-
-def test_queue_names_are_environment_overridable(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Infrastructure is configuration; the names are resolved once at import."""
-    monkeypatch.setattr(routing, "PYTHON_TASK_QUEUE", "custom-queue")
-    assert routing.task_queue_for("upset") == "custom-queue"
 
 
 def test_a_misrouted_tool_is_refused_with_the_queue_named() -> None:

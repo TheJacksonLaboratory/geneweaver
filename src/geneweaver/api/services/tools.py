@@ -21,10 +21,10 @@ from typing import Any
 
 from geneweaver.db import geneset as db_geneset
 from geneweaver.db import tool_input as db_tool_input
-from geneweaver.tools.framework.payload_size import check_payload_size
 from geneweaver.tools.mset.schema import MSETInput
 from geneweaver.tools.phenome_map.schema import PhenomeMapInput
 from geneweaver.tools.upset import UpSet, UpSetInput
+from geneweaver.tools_plugin.payload import check_payload_size
 from psycopg import Cursor
 from pydantic import ValidationError
 
@@ -113,6 +113,7 @@ class PreparedUpSet:
     gene_counts: dict[str, int]
     tool_input: UpSetInput
     asynctask: AsyncTaskClient | None
+    use_threshold: bool = True
 
 
 def prepare_upset(
@@ -120,6 +121,8 @@ def prepare_upset(
     geneset_ids: list[int],
     user: User | None = None,
     include_zeros: bool = False,
+    include_homology: bool = False,
+    use_threshold: bool = True,
 ) -> PreparedUpSet:
     """Gate and resolve an UpSet run: everything that needs the database.
 
@@ -128,7 +131,7 @@ def prepare_upset(
     """
     _require_user(user)
     _gate_geneset_access(cursor, user, geneset_ids)
-    memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
+    memberships = resolve_memberships(cursor, geneset_ids, include_homology, use_threshold)
     return PreparedUpSet(
         geneset_ids=geneset_ids,
         gene_counts={key: len(genes) for key, genes in memberships.items()},
@@ -136,10 +139,12 @@ def prepare_upset(
             geneset_ids=[str(geneset_id) for geneset_id in geneset_ids],
             gene_memberships=memberships,
             include_zeros=include_zeros,
+            include_homology=include_homology,
         ),
         # The Analyze page's default tool comes through here rather than `run_tool`, so it
         # must route the same way or the most-used run would never reach AsyncTask.
         asynctask=asynctask_client_for(user),
+        use_threshold=use_threshold,
     )
 
 
@@ -161,6 +166,7 @@ def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> 
             "geneset_ids": prepared.geneset_ids,
             "gene_counts": prepared.gene_counts,
             "caveat": None,
+            "use_threshold": prepared.use_threshold,
         }
         ran = _run_on_asynctask(prepared.asynctask, envelope, shaped)
         intersections = [
@@ -170,6 +176,7 @@ def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> 
     return UpSetResult(
         geneset_ids=prepared.geneset_ids,
         gene_counts=prepared.gene_counts,
+        use_threshold=prepared.use_threshold,
         intersections=[
             UpSetIntersection(geneset_ids=genesets, size=size) for genesets, size in intersections
         ],
@@ -182,6 +189,8 @@ def run_upset(
     user: User | None = None,
     include_zeros: bool = False,
     runner: ToolRunner | None = None,
+    include_homology: bool = False,
+    use_threshold: bool = True,
 ) -> UpSetResult:
     """Run UpSet over the given gene sets and return the exclusive intersection sizes.
 
@@ -193,11 +202,21 @@ def run_upset(
     :param user: The requesting user, or None for anonymous.
     :param include_zeros: Emit combinations with no genes.
     :param runner: Execution backend; defaults to running in-process.
+    :param include_homology: Merge homologous genes across the gene sets.
+    :param use_threshold: Count only each gene set's in-threshold genes.
     :return: The intersection sizes, largest first.
     :raises UnauthorizedException: If any gene set is not readable by the caller.
     """
     return execute_upset(
-        prepare_upset(cursor, geneset_ids, user=user, include_zeros=include_zeros), runner
+        prepare_upset(
+            cursor,
+            geneset_ids,
+            user=user,
+            include_zeros=include_zeros,
+            include_homology=include_homology,
+            use_threshold=use_threshold,
+        ),
+        runner,
     )
 
 
@@ -311,6 +330,87 @@ def _as_strings(geneset_ids: list[int]) -> list[str]:
     return [str(geneset_id) for geneset_id in geneset_ids]
 
 
+_TRUE = {"true", "1", "yes", "on", "included", "enabled"}
+_FALSE = {"false", "0", "no", "off", "excluded", "disabled"}
+
+
+def flag(parameters: dict[str, Any], key: str, default: bool) -> bool:
+    """Read a yes/no option strictly.
+
+    Not ``bool(value)``: ``bool("false")`` is True, which would silently run the opposite
+    analysis. Legacy's own spellings (``"Included"``, ``"Enabled"``) are accepted, since
+    that is what its forms and API sent.
+
+    :raises ToolRequestError: For anything that is not recognisably yes or no.
+    """
+    value = parameters.get(key, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str) and value.strip().lower() in _TRUE | _FALSE:
+        return value.strip().lower() in _TRUE
+    raise ToolRequestError(f"{key} must be true or false, not {value!r}.")
+
+
+#: Tools whose memberships merge homologous genes when ``include_homology`` is set --
+#: legacy's per-tool "Homology" option. Combine reads the option itself (it merges by
+#: ortholog pairs into its own matrix); BooleanAlgebra always annotates homology; MSET
+#: compares one species against its own gene space and had no such option.
+HOMOLOGY_TOOLS = frozenset(
+    {
+        "upset",
+        "dbscan",
+        "hypergeometric",
+        "jaccard_clustering",
+        "jaccard_similarity",
+        "phenome_map",
+    }
+)
+
+
+#: The run-wide option that decides which of a gene set's genes take part: only those
+#: inside its stored threshold (the default, and what curation asked for in GWC-21), or
+#: every gene it holds. It applies to every tool, because every tool's genes come through
+#: the resolvers here, so it is read once per run and handed to each of them.
+USE_THRESHOLD = "use_threshold"
+
+
+def uses_threshold(parameters: dict[str, Any]) -> bool:
+    """The run's threshold option, on unless the caller turned it off."""
+    return flag(parameters, USE_THRESHOLD, True)
+
+
+def resolve_memberships(
+    cursor: Cursor,
+    geneset_ids: list[int],
+    include_homology: bool = False,
+    use_threshold: bool = True,
+) -> dict[str, list[str]]:
+    """Each gene set's genes, with homologous genes merged when asked.
+
+    :param use_threshold: Only the genes inside each gene set's stored threshold; ``False``
+        takes every gene it holds.
+    """
+    if include_homology:
+        return db_tool_input.homologous_gene_symbols_by_geneset(cursor, geneset_ids, use_threshold)
+    return db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids, use_threshold)
+
+
+def _deletion_scopes(
+    cursor: Cursor, geneset_ids: list[int], parameters: dict[str, Any]
+) -> dict[tuple[int, int], tool_inputs.PairScope] | None:
+    """Pairwise-deletion scopes when the option is on, querying only platforms in play."""
+    if not flag(parameters, "pairwise_deletion", False):
+        return None
+    platforms = db_tool_input.geneset_platforms(cursor, geneset_ids)
+    needed = tool_inputs.deletion_platforms(geneset_ids, platforms)
+    genes = {
+        platform: db_tool_input.platform_gene_symbols(cursor, platform) for platform in needed
+    }
+    return tool_inputs.pairwise_deletion_scopes(geneset_ids, platforms, genes)
+
+
 # --- per-tool input builders -------------------------------------------------------
 #
 # Each takes the cursor, the requested gene set ids, their already-resolved memberships,
@@ -322,7 +422,8 @@ def _upset_input(cursor, geneset_ids, memberships, parameters) -> dict:
     return {
         "geneset_ids": _as_strings(geneset_ids),
         "gene_memberships": memberships,
-        "include_zeros": bool(parameters.get("include_zeros", False)),
+        "include_zeros": flag(parameters, "include_zeros", False),
+        "include_homology": flag(parameters, "include_homology", False),
     }
 
 
@@ -339,59 +440,80 @@ def _dbscan_input(cursor, geneset_ids, memberships, parameters) -> dict:
 
 
 def _hypergeometric_input(cursor, geneset_ids, memberships, parameters) -> dict:
+    scopes = _deletion_scopes(cursor, geneset_ids, parameters)
     return {
         "geneset_ids": _as_strings(geneset_ids),
-        "pairs": tool_inputs.contingency_pairs(memberships, geneset_ids),
+        "pairs": tool_inputs.contingency_pairs(memberships, geneset_ids, scopes),
     }
 
 
 def _jaccard_clustering_input(cursor, geneset_ids, memberships, parameters) -> dict:
     return {
         "geneset_ids": _as_strings(geneset_ids),
-        "method": parameters.get("method", "average"),
+        # Case-insensitive: legacy's form and API send "Average", "Ward", ...
+        "method": str(parameters.get("method", "average")).lower(),
         "similarity": tool_inputs.similarity_matrix(memberships, geneset_ids),
     }
 
 
 def _jaccard_similarity_input(cursor, geneset_ids, memberships, parameters) -> dict:
+    scopes = _deletion_scopes(cursor, geneset_ids, parameters)
     return {
         "geneset_ids": _as_strings(geneset_ids),
-        "include_homology": bool(parameters.get("include_homology", False)),
+        "include_homology": flag(parameters, "include_homology", False),
         "p_value_threshold": float(parameters.get("p_value_threshold", 0.05)),
-        "pairs": tool_inputs.jaccard_pair_counts(memberships, geneset_ids),
+        "pairs": tool_inputs.jaccard_pair_counts(memberships, geneset_ids, scopes),
         "distributions": db_tool_input.jaccard_distributions(cursor),
     }
 
 
 def _combine_input(cursor, geneset_ids, memberships, parameters) -> dict:
-    include_homology = bool(parameters.get("include_homology", True))
+    include_homology = flag(parameters, "include_homology", True)
+    thresholded = uses_threshold(parameters)
     return {
         "geneset_ids": list(geneset_ids),
         "include_homology": include_homology,
-        "membership_rows": db_tool_input.membership_rows(cursor, geneset_ids),
+        "membership_rows": db_tool_input.membership_rows(cursor, geneset_ids, thresholded),
         # Only fetched when it will be used: the homology join is the expensive query here.
         "homology_pairs": (
-            db_tool_input.homology_pairs(cursor, geneset_ids) if include_homology else []
+            db_tool_input.homology_pairs(cursor, geneset_ids, thresholded)
+            if include_homology
+            else []
         ),
         "label_rows": db_tool_input.geneset_labels(cursor, geneset_ids),
     }
 
 
+#: BooleanAlgebra relations. The tool treats anything but union and except as an
+#: intersection, so an unchecked typo would silently run the wrong operation.
+BOOLEAN_RELATIONS = frozenset({"union", "intersection", "intersect", "except"})
+
+
 def _boolean_algebra_input(cursor, geneset_ids, memberships, parameters) -> dict:
+    relation = str(parameters.get("relation", "union")).lower()
+    if relation not in BOOLEAN_RELATIONS:
+        raise ToolRequestError(
+            f"relation must be one of {sorted(BOOLEAN_RELATIONS)}, not {relation!r}."
+        )
+    at_least = int(parameters.get("at_least", 2))
+    if at_least < 1:
+        raise ToolRequestError(f"at_least must be 1 or more, not {at_least}.")
     species = db_tool_input.species_by_geneset(cursor, geneset_ids)
     # Distinct species, not one per gene set: the tool groups genes by species to decide
     # what can be identified across them, and a repeated species id would double-count.
     species_ids = sorted({species.get(geneset_id, 0) for geneset_id in geneset_ids})
     return {
-        "relation": str(parameters.get("relation", "union")).lower(),
-        "at_least": int(parameters.get("at_least", 2)),
+        "relation": relation,
+        "at_least": at_least,
         "geneset_ids": list(geneset_ids),
         "species_ids": species_ids,
         # `homolog_annotations`, not `homology_pairs`: this tool wants gene membership
         # annotated with Homologene groups (6 columns, NULLs included), which is a
         # different query. Passing the ortholog pairs instead returned no results at all
         # and raised IndexError on a cross-species request.
-        "homolog_data": db_tool_input.homolog_annotations(cursor, geneset_ids, species_ids),
+        "homolog_data": db_tool_input.homolog_annotations(
+            cursor, geneset_ids, species_ids, uses_threshold(parameters)
+        ),
     }
 
 
@@ -474,6 +596,7 @@ def _phenome_map_envelope(cursor, geneset_ids, memberships, parameters) -> dict:
     Without ranks the link score is the gene-count ratio alone, which the tool documents
     as supported; ranked scoring needs a ranking source v3 does not have yet.
     """
+    # pydantic parses the options (strictly for the booleans: "false" is False).
     validated = PhenomeMapInput(
         gene_sets=memberships,
         **{key: parameters[key] for key in PHENOME_MAP_PARAMETERS if key in parameters},
@@ -524,15 +647,16 @@ def _check_size(envelope: dict) -> None:
 
 
 def _run_on_asynctask(
-    client: AsyncTaskClient, envelope: dict, shaped: dict[str, Any]
+    client: AsyncTaskClient, envelope: dict, shaped: dict[str, Any], label: str | None = None
 ) -> dict[str, Any]:
     """Submit, wait a bounded time, and return the output or raise.
 
+    :param label: The run's name in AsyncTask; by default the tool and its gene sets.
     :raises ToolRunPending: If the run is still going at the deadline.
     :raises ToolRunFailed: If it finished without completing.
     """
     tool_name = shaped["tool"]
-    label = f"{tool_name}: " + ", ".join(map(str, shaped["geneset_ids"]))
+    label = label or f"{tool_name}: " + ", ".join(map(str, shaped["geneset_ids"]))
     state = client.submit(envelope, name=label)
     state = client.wait(
         state,
@@ -619,12 +743,17 @@ def prepare_tool_run(
     # would let a caller read gene sets through a tool result.
     _gate_geneset_access(cursor, user, geneset_ids)
 
-    memberships = db_tool_input.gene_symbols_by_geneset(cursor, geneset_ids)
+    include_homology = tool_name in HOMOLOGY_TOOLS and _validated(
+        tool_name, lambda: flag(parameters, "include_homology", False)
+    )
+    thresholded = _validated(tool_name, lambda: uses_threshold(parameters))
+    memberships = resolve_memberships(cursor, geneset_ids, include_homology, thresholded)
     shaped = {
         "tool": tool_name,
         "geneset_ids": geneset_ids,
         "gene_counts": {key: len(genes) for key, genes in memberships.items()},
         "caveat": TOOL_CAVEATS.get(tool_name),
+        "use_threshold": thresholded,
     }
 
     if tool_name in ASYNCTASK_ONLY_BUILDERS:

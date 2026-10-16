@@ -59,7 +59,8 @@ jobs:
     uses: ./.github/workflows/_publish-package.yml
     secrets: inherit
     with:
-      packages: "geneweaver-core geneweaver-db geneweaver-tools"
+      packages: "geneweaver-core geneweaver-db geneweaver-tools-plugin geneweaver-tools"
+      plugin_package: "geneweaver-tools-plugin"
       smoke_package: "geneweaver-tools"
       extras: "sklearn temporal"
       dev_release: ${{ github.event_name == 'workflow_dispatch' && inputs.dev_release || false }}

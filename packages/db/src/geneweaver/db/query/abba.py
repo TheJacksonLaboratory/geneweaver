@@ -28,24 +28,36 @@ from psycopg.sql import SQL, Composed, Identifier
 # Gene-identifier source used throughout ABBA (Gene Symbol), as in the legacy tool.
 GENE_SYMBOL_GDB_ID = 7
 
+# Every step that reads gene-set membership takes ``use_threshold``: on (legacy's only
+# behaviour), a gene set holds just its in-threshold genes; off, every gene it holds. Bound
+# as a parameter, so the filter is the same text either way.
+_IN_THRESHOLD = "({alias}gsv_in_threshold OR NOT %(use_threshold)s)"
+
+
+def _in_threshold(alias: str = "") -> SQL:
+    """The membership filter for a ``geneset_value`` alias (``"gv."``), or none (``""``)."""
+    return SQL(_IN_THRESHOLD.format(alias=alias))
+
 
 def _table(name: str) -> Identifier:
     """Wrap a (caller-generated) temp-table name as a safely-quoted identifier."""
     return Identifier(name)
 
 
-def ref_ids_for_genesets(geneset_ids: list[int]) -> tuple[Composed, dict]:
+def ref_ids_for_genesets(
+    geneset_ids: list[int], use_threshold: bool = True
+) -> tuple[Composed, dict]:
     """Distinct gene reference ids (symbols) for the genes in the given gene sets."""
     query = SQL(
         """
         SELECT DISTINCT ode_ref_id
           FROM extsrc.gene g, extsrc.geneset_value gsv
          WHERE gsv.gs_id = ANY(%(gs_ids)s)
-           AND gsv.gsv_in_threshold
+           AND {in_threshold}
            AND gsv.ode_gene_id = g.ode_gene_id
         """
-    ).format()
-    return query, {"gs_ids": geneset_ids}
+    ).format(in_threshold=_in_threshold("gsv."))
+    return query, {"gs_ids": geneset_ids, "use_threshold": use_threshold}
 
 
 def create_input_genes_table(
@@ -58,7 +70,7 @@ def create_input_genes_table(
     """
     query = SQL(
         """
-        CREATE TEMP TABLE {table} AS
+        CREATE TEMP TABLE {table} ON COMMIT DROP AS
         SELECT * FROM extsrc.gene
          WHERE lower(ode_ref_id) = ANY(%(genes)s)
            AND sp_id = ANY(%(species)s)
@@ -83,13 +95,13 @@ def create_genes_of_interest_table(
     if not include_homology:
         # Legacy bug fixed: copy the input genes into the interest table (the legacy
         # path ran a bare SELECT and never created this table).
-        query = SQL("CREATE TEMP TABLE {interest} AS SELECT * FROM {input}").format(
+        query = SQL("CREATE TEMP TABLE {interest} ON COMMIT DROP AS SELECT * FROM {input}").format(
             interest=_table(interest_table), input=_table(input_table)
         )
         return query, {}
     query = SQL(
         """
-        CREATE TEMP TABLE {interest} AS
+        CREATE TEMP TABLE {interest} ON COMMIT DROP AS
         (SELECT * FROM extsrc.gene
           WHERE ode_gene_id IN
             (SELECT ode_gene_id FROM extsrc.homology WHERE hom_id IN
@@ -105,7 +117,7 @@ def create_genes_of_interest_table(
 
 
 def create_matching_genesets_table(
-    matching_table: str, interest_table: str, user_id: int
+    matching_table: str, interest_table: str, user_id: int, use_threshold: bool = True
 ) -> tuple[Composed, dict]:
     """Create the matching-gene-sets temp table: gene sets containing genes of interest.
 
@@ -114,19 +126,23 @@ def create_matching_genesets_table(
     """
     query = SQL(
         """
-        CREATE TEMP TABLE {matching} AS
+        CREATE TEMP TABLE {matching} ON COMMIT DROP AS
         SELECT count(ode_gene_id) AS genematchcount, gs.*
           FROM extsrc.geneset_value gv
           JOIN production.geneset gs ON gv.gs_id = gs.gs_id
          WHERE ode_gene_id IN (SELECT ode_gene_id FROM {interest})
            AND gs_status = 'normal'
-           AND gv.gsv_in_threshold
+           AND {in_threshold}
            AND (ARRAY(SELECT grp_id FROM production.usr2grp WHERE usr_id = %(user_id)s) || 0
                 @> string_to_array(gs_groups, ',')::int[])
          GROUP BY gs.gs_id
         """
-    ).format(matching=_table(matching_table), interest=_table(interest_table))
-    return query, {"user_id": user_id}
+    ).format(
+        matching=_table(matching_table),
+        interest=_table(interest_table),
+        in_threshold=_in_threshold("gv."),
+    )
+    return query, {"user_id": user_id, "use_threshold": use_threshold}
 
 
 def create_result_genes_table(
@@ -136,6 +152,7 @@ def create_result_genes_table(
     tiers: list[int],
     species_ids: list[int],
     min_genes: int | None,
+    use_threshold: bool = True,
 ) -> tuple[Composed, dict]:
     """Create the result-genes temp table: genes recurring across the matching gene sets.
 
@@ -153,11 +170,11 @@ def create_result_genes_table(
         params = {"min_genes": min_genes}
     query = SQL(
         """
-        CREATE TEMP TABLE {result} AS
+        CREATE TEMP TABLE {result} ON COMMIT DROP AS
         SELECT gi.*, count(gv.ode_gene_id) AS occurrences
           FROM extsrc.geneset_value gv
           JOIN extsrc.gene_info gi ON gv.ode_gene_id = gi.ode_gene_id
-         WHERE gv.gsv_in_threshold
+         WHERE {in_threshold}
            AND gv.gs_id IN
              (SELECT gs_id FROM {matching}
                WHERE genematchcount >= {min_genes}
@@ -172,8 +189,9 @@ def create_result_genes_table(
         matching=_table(matching_table),
         interest=_table(interest_table),
         min_genes=min_genes_expr,
+        in_threshold=_in_threshold("gv."),
     )
-    params.update({"tiers": tiers, "species": species_ids})
+    params.update({"tiers": tiers, "species": species_ids, "use_threshold": use_threshold})
     return query, params
 
 
@@ -295,7 +313,7 @@ def select_preferred_ref_id(ode_gene_id: int) -> tuple[Composed, dict]:
     )
 
 
-def count_genesets_by_tier(ode_gene_id: int) -> tuple[Composed, dict]:
+def count_genesets_by_tier(ode_gene_id: int, use_threshold: bool = True) -> tuple[Composed, dict]:
     """Per-curation-tier gene-set counts for a gene (non-deprecated, in-threshold)."""
     query = SQL(
         """
@@ -304,15 +322,17 @@ def count_genesets_by_tier(ode_gene_id: int) -> tuple[Composed, dict]:
          WHERE gs.gs_id = gsv.gs_id AND gsv.ode_gene_id = %(ode_gene_id)s
            AND gs.cur_id IS NOT NULL
            AND gs.gs_status NOT LIKE %(deprecated)s
-           AND gsv.gsv_in_threshold
+           AND {in_threshold}
          GROUP BY gs.cur_id
          ORDER BY gs.cur_id
         """
-    ).format()
-    return query, {"ode_gene_id": ode_gene_id, "deprecated": "de%"}
+    ).format(in_threshold=_in_threshold("gsv."))
+    return query, {"ode_gene_id": ode_gene_id, "deprecated": "de%", "use_threshold": use_threshold}
 
 
-def count_genesets_by_species(ode_gene_id: int) -> tuple[Composed, dict]:
+def count_genesets_by_species(
+    ode_gene_id: int, use_threshold: bool = True
+) -> tuple[Composed, dict]:
     """Per-species gene-set counts for a gene's homology group (non-deprecated)."""
     query = SQL(
         """
@@ -322,10 +342,10 @@ def count_genesets_by_species(ode_gene_id: int) -> tuple[Composed, dict]:
            AND gsv.ode_gene_id IN
              (SELECT h1.ode_gene_id FROM extsrc.homology h1, extsrc.homology h2
                WHERE h1.hom_id = h2.hom_id AND h2.ode_gene_id = %(ode_gene_id)s)
-           AND gsv.gsv_in_threshold
+           AND {in_threshold}
            AND gs.gs_status NOT LIKE %(deprecated)s
          GROUP BY gs.sp_id
          ORDER BY gs.sp_id
         """
-    ).format()
-    return query, {"ode_gene_id": ode_gene_id, "deprecated": "de%"}
+    ).format(in_threshold=_in_threshold("gsv."))
+    return query, {"ode_gene_id": ode_gene_id, "deprecated": "de%", "use_threshold": use_threshold}

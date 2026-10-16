@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HomeComponent } from './home.component';
-import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
+// The previous search bar, replaced by GenesetSearchComponent (G3-777, G3-764).
+// import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
+import { GenesetSearchComponent } from "../../components/genesetsearch/geneset-search.component";
 import { GeneSetListComponent } from "../../components/genesetlist/genesetlist.component";
 import { GeneSet } from "../../models/gene-set";
 import { By } from '@angular/platform-browser';
@@ -46,7 +48,8 @@ describe('HomeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         HomeComponent,
-        SearchBarComponent,
+        // SearchBarComponent,
+        GenesetSearchComponent,
         GeneSetListComponent,
       ],
       providers: [
@@ -149,9 +152,14 @@ describe('HomeComponent', () => {
   });
 
   describe('Child Component Integration', () => {
-    it('should include SearchBarComponent', () => {
-      const searchBar = fixture.debugElement.query(By.directive(SearchBarComponent));
-      expect(searchBar).toBeTruthy();
+    // it('should include SearchBarComponent', () => {
+    //   const searchBar = fixture.debugElement.query(By.directive(SearchBarComponent));
+    //   expect(searchBar).toBeTruthy();
+    // });
+
+    it('should include the autocomplete GenesetSearchComponent', () => {
+      const searchField = fixture.debugElement.query(By.directive(GenesetSearchComponent));
+      expect(searchField).toBeTruthy();
     });
 
     it('should include GeneSetListComponent when results exist', () => {

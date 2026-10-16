@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+import pytest
 from geneweaver.db.abba import ABBAResult, abba
 from geneweaver.db.query import abba as q
 from psycopg.sql import Composed, Identifier
@@ -45,7 +46,7 @@ def test_genes_of_interest_no_homology_creates_table() -> None:
     """The no-homology branch creates the interest table (legacy bug fixed)."""
     sql, params = q.create_genes_of_interest_table("i", "in", [1], include_homology=False)
     rendered = _sql((sql, params))
-    assert rendered.startswith('CREATE TEMP TABLE "i" AS SELECT * FROM "in"')
+    assert rendered.startswith('CREATE TEMP TABLE "i" ON COMMIT DROP AS SELECT * FROM "in"')
     assert params == {}
 
 
@@ -76,7 +77,7 @@ def test_count_genesets_by_tier_excludes_deprecated() -> None:
     """Per-tier counts exclude deprecated gene sets via a parameterised pattern."""
     sql, params = q.count_genesets_by_tier(42)
     assert "gs_status NOT LIKE %(deprecated)s" in _sql((sql, params))
-    assert params == {"ode_gene_id": 42, "deprecated": "de%"}
+    assert params == {"ode_gene_id": 42, "deprecated": "de%", "use_threshold": True}
 
 
 # --------------------------------------------------------------------- orchestration
@@ -131,6 +132,9 @@ def test_abba_creates_unique_temp_tables() -> None:
         if "CREATE TEMP TABLE" in _render(c.args[0])
     ]
     assert len(creates) == 4
+    # Dropped when the caller's transaction ends, so a pooled connection does not carry
+    # them into its next request.
+    assert all("ON COMMIT DROP" in s for s in creates)
     # names are suffixed for concurrency safety
     assert any("abba_input_genes_" in s for s in creates)
     assert any("abba_result_genes_" in s for s in creates)
@@ -153,3 +157,41 @@ def test_abba_merges_genes_from_input_genesets() -> None:
         if "abba_input_genes_" in _render(c.args[0]) and "CREATE TEMP TABLE" in _render(c.args[0])
     )
     assert set(create_call.args[1]["genes"]) == {"brca1", "pten", "egfr"}
+
+
+# ------------------------------------------------------------------ threshold option
+
+_MEMBERSHIP_QUERIES = {
+    "seed": lambda t: q.ref_ids_for_genesets([1], t),
+    "matching": lambda t: q.create_matching_genesets_table("m", "i", 0, t),
+    "result": lambda t: q.create_result_genes_table("r", "m", "i", [1], [1], None, t),
+    "tier_counts": lambda t: q.count_genesets_by_tier(42, t),
+    "species_counts": lambda t: q.count_genesets_by_species(42, t),
+}
+
+
+@pytest.mark.parametrize("use_threshold", [True, False])
+@pytest.mark.parametrize("name", sorted(_MEMBERSHIP_QUERIES))
+def test_every_membership_step_binds_the_threshold_option(name, use_threshold) -> None:
+    """Each step that reads gene-set membership filters by the bound option, not a literal."""
+    sql, params = _MEMBERSHIP_QUERIES[name](use_threshold)
+    rendered = _sql((sql, params))
+    assert params["use_threshold"] is use_threshold
+    assert "gsv_in_threshold" in rendered
+    assert rendered.count("gsv_in_threshold") == rendered.count(
+        "gsv_in_threshold OR NOT %(use_threshold)s"
+    )
+
+
+def test_the_pipeline_passes_the_option_to_every_membership_step() -> None:
+    """Off, no step of the search falls back to in-threshold genes."""
+    cursor = _orchestration_cursor()
+    cursor.fetchall.side_effect = [[("Pten",)], *cursor.fetchall.side_effect]
+    abba(cursor, ["Brca1"], geneset_ids=[55], species_ids=[1], tiers=[1], use_threshold=False)
+    bound = [
+        c.args[1]["use_threshold"]
+        for c in cursor.execute.call_args_list
+        if len(c.args) > 1 and "use_threshold" in c.args[1]
+    ]
+    # seed, matching, result, and the tier and species counts for the one result gene
+    assert bound == [False] * 5
