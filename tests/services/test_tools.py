@@ -9,6 +9,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import HTTPException
+from geneweaver.db.query.membership import Thresholds
+from geneweaver.tools.thresholds import ThresholdOptions
 
 from geneweaver.api.schemas.tools import UpSetResult
 from geneweaver.api.services import tools as tool_service
@@ -409,7 +411,7 @@ class TestExecutionRouting:
             "geneset_ids": [1, 2],
             "gene_counts": {"1": 2, "2": 2},
             "caveat": None,
-            "use_threshold": True,
+            "thresholds": {"threshold": "none"},
             "run_id": 11,
             "status": "running",
         }
@@ -839,7 +841,7 @@ class TestOptions:
                 parameters={"include_homology": "Included", "epsilon": 1, "min_points": 1},
                 runner=runner,
             )
-            merged.assert_called_once_with(mock_cursor, [1, 2], True)
+            merged.assert_called_once_with(mock_cursor, [1, 2], Thresholds())
             plain.assert_not_called()
 
     def test_homology_off_uses_plain_memberships(self, mock_cursor, readable_memberships) -> None:
@@ -889,10 +891,8 @@ class TestOptions:
 
     @pytest.mark.parametrize("homology", [False, True])
     @pytest.mark.parametrize("tool", sorted(tool_service.HOMOLOGY_TOOLS - {"phenome_map"}))
-    def test_thresholds_off_reaches_the_membership_query(
-        self, tool, homology, mock_cursor
-    ) -> None:
-        """Off, every gene: the flag reaches whichever resolver the run uses."""
+    def test_custom_cutoffs_reach_the_membership_query(self, tool, homology, mock_cursor) -> None:
+        """The run's choice reaches whichever resolver the run uses, and is echoed."""
         runner = _RecordingRunner(Mock(model_dump=Mock(return_value={})))
         resolver = "homologous_gene_symbols_by_geneset" if homology else "gene_symbols_by_geneset"
         with (
@@ -911,14 +911,25 @@ class TestOptions:
                 tool,
                 [1, 2],
                 user=Mock(token=None),
-                parameters={"include_homology": homology, "use_threshold": "false"},
+                parameters={
+                    "include_homology": homology,
+                    "threshold": "custom",
+                    "p_value": 0.01,
+                    "correlation_low": 0.5,
+                },
                 runner=runner,
             )
-        resolve.assert_called_once_with(mock_cursor, [1, 2], False)
-        assert result["use_threshold"] is False
+        resolve.assert_called_once_with(
+            mock_cursor, [1, 2], Thresholds("custom", p_value=0.01, correlation_low=0.5)
+        )
+        assert result["thresholds"] == {
+            "threshold": "custom",
+            "p_value": 0.01,
+            "correlation_low": 0.5,
+        }
 
-    def test_thresholds_are_on_unless_turned_off(self, mock_cursor) -> None:
-        """No option means curation's rule (GWC-21): in-threshold genes only."""
+    def test_every_gene_unless_a_threshold_is_chosen(self, mock_cursor) -> None:
+        """Curation (2026-10-16): a gene set is not inherently thresholded."""
         runner = _RecordingRunner(Mock(model_dump=Mock(return_value={})))
         with (
             patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
@@ -930,21 +941,44 @@ class TestOptions:
             result = tool_service.run_tool(
                 mock_cursor, "hypergeometric", [1, 2], user=Mock(token=None), runner=runner
             )
-        resolve.assert_called_once_with(mock_cursor, [1, 2], True)
-        assert result["use_threshold"] is True
+        resolve.assert_called_once_with(mock_cursor, [1, 2], Thresholds())
+        assert result["thresholds"] == {"threshold": "none"}
 
-    def test_a_bad_threshold_value_is_refused_before_resolving(
-        self, mock_cursor, readable_memberships
+    def test_the_uploaders_threshold_is_one_choice(self, mock_cursor, readable_memberships):
+        """One click: each gene set's own stored threshold."""
+        result = tool_service.run_tool(
+            mock_cursor,
+            "upset",
+            [1, 2],
+            user=Mock(token=None),
+            parameters={"threshold": "uploader"},
+            runner=_RecordingRunner(Mock(model_dump=Mock(return_value={}))),
+        )
+        assert result["thresholds"] == {"threshold": "uploader"}
+
+    @pytest.mark.parametrize(
+        ("parameters", "message"),
+        [
+            ({"threshold": "sometimes"}, "threshold"),
+            ({"threshold": "uploader", "p_value": 0.05}, "only with threshold 'custom'"),
+            ({"threshold": "custom", "effect_low": 3, "effect_high": 1}, "effect_low"),
+        ],
+    )
+    def test_a_bad_threshold_choice_is_refused_before_resolving(
+        self, parameters, message, mock_cursor
     ) -> None:
-        """Strict, like every flag: "no" is off, "maybe" is a 422, never truthy."""
-        with pytest.raises(tool_service.ToolRequestError, match="use_threshold"):
+        """A 422 naming what is wrong, and no membership query."""
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset"
+            ) as resolve,
+            pytest.raises(tool_service.ToolRequestError, match=message),
+        ):
             tool_service.run_tool(
-                mock_cursor,
-                "upset",
-                [1, 2],
-                user=Mock(token=None),
-                parameters={"use_threshold": "maybe"},
+                mock_cursor, "upset", [1, 2], user=Mock(token=None), parameters=parameters
             )
+        resolve.assert_not_called()
 
     @pytest.mark.parametrize("homology", [False, True])
     def test_combine_reads_members_and_orthologs_under_one_rule(
@@ -964,16 +998,16 @@ class TestOptions:
                 mock_cursor,
                 [1, 2],
                 {},
-                {"include_homology": homology, "use_threshold": False},
+                {"include_homology": homology, "threshold": "uploader"},
             )
-        rows.assert_called_once_with(mock_cursor, [1, 2], False)
+        rows.assert_called_once_with(mock_cursor, [1, 2], Thresholds("uploader"))
         if homology:
-            pairs.assert_called_once_with(mock_cursor, [1, 2], False)
+            pairs.assert_called_once_with(mock_cursor, [1, 2], Thresholds("uploader"))
         else:
             pairs.assert_not_called()
 
-    def test_boolean_algebra_reads_all_genes_when_thresholds_are_off(self, mock_cursor) -> None:
-        """Its homolog-annotated membership is its gene source, so the flag goes there."""
+    def test_boolean_algebra_reads_membership_by_the_choice(self, mock_cursor) -> None:
+        """Its homolog-annotated membership is its gene source, so the choice goes there."""
         with (
             patch(
                 "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
@@ -985,12 +1019,14 @@ class TestOptions:
             ) as annotations,
         ):
             tool_service.INPUT_BUILDERS["boolean_algebra"](
-                mock_cursor, [1, 2], {}, {"use_threshold": False}
+                mock_cursor, [1, 2], {}, {"threshold": "custom", "q_value": 0.05}
             )
-        annotations.assert_called_once_with(mock_cursor, [1, 2], [1], False)
+        annotations.assert_called_once_with(
+            mock_cursor, [1, 2], [1], Thresholds("custom", q_value=0.05)
+        )
 
     def test_upset_endpoint_forwards_thresholds(self, mock_cursor) -> None:
-        """The dedicated UpSet path takes the option and reports it."""
+        """The dedicated UpSet path takes the choice and reports it."""
         runner = _RecordingRunner(_Output([]))
         with (
             patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
@@ -1000,10 +1036,14 @@ class TestOptions:
             ) as resolve,
         ):
             result = tool_service.run_upset(
-                mock_cursor, [1, 2], user=Mock(token=None), use_threshold=False, runner=runner
+                mock_cursor,
+                [1, 2],
+                user=Mock(token=None),
+                thresholds=ThresholdOptions(threshold="custom", p_value=0.05),
+                runner=runner,
             )
-        resolve.assert_called_once_with(mock_cursor, [1, 2], False)
-        assert result.use_threshold is False
+        resolve.assert_called_once_with(mock_cursor, [1, 2], Thresholds("custom", p_value=0.05))
+        assert result.thresholds == {"threshold": "custom", "p_value": 0.05}
 
     @pytest.mark.parametrize("tool", ["jaccard_similarity", "hypergeometric"])
     def test_pairwise_deletion_queries_only_the_platforms_in_play(self, tool, mock_cursor) -> None:

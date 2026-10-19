@@ -4,14 +4,15 @@ Pure pydantic, like every tool's schema: the API validates a request against `AB
 before submitting it, and the worker validates it again before searching.
 """
 
+from geneweaver.tools.thresholds import ThresholdOptions
 from pydantic import BaseModel, Field, field_validator
 
 #: Curation tiers (`odestatic.curation_levels.cur_id`), Tier I through Tier V.
 ABBA_TIERS = (1, 2, 3, 4, 5)
 
 
-class ABBAInput(BaseModel):
-    """What the search runs on: seed genes and legacy's options.
+class ABBAInput(ThresholdOptions):
+    """What the search runs on: seed genes, legacy's options, and the run's thresholds.
 
     The seed is gene symbols only. Gene sets named as seeds are expanded to their genes by
     the API, which has checked the caller may read them; the worker is never handed a gene
@@ -48,14 +49,6 @@ class ABBAInput(BaseModel):
         default=None,
         min_length=1,
         description="Species to restrict the search to; null searches every species.",
-    )
-    use_threshold: bool = Field(
-        default=True,
-        description=(
-            "Count only the genes inside each gene set's stored threshold (legacy's only "
-            "behaviour). False counts every gene a gene set holds, including those its "
-            "curator thresholded out."
-        ),
     )
 
     @field_validator("genes")

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from geneweaver.db.abba import ABBAResult, abba
 from geneweaver.db.query import abba as q
+from geneweaver.db.query.membership import Thresholds
 from psycopg.sql import Composed, Identifier
 
 
@@ -77,7 +78,7 @@ def test_count_genesets_by_tier_excludes_deprecated() -> None:
     """Per-tier counts exclude deprecated gene sets via a parameterised pattern."""
     sql, params = q.count_genesets_by_tier(42)
     assert "gs_status NOT LIKE %(deprecated)s" in _sql((sql, params))
-    assert params == {"ode_gene_id": 42, "deprecated": "de%", "use_threshold": True}
+    assert params == {"ode_gene_id": 42, "deprecated": "de%"}
 
 
 # --------------------------------------------------------------------- orchestration
@@ -159,7 +160,7 @@ def test_abba_merges_genes_from_input_genesets() -> None:
     assert set(create_call.args[1]["genes"]) == {"brca1", "pten", "egfr"}
 
 
-# ------------------------------------------------------------------ threshold option
+# ------------------------------------------------------------------ threshold choice
 
 _MEMBERSHIP_QUERIES = {
     "seed": lambda t: q.ref_ids_for_genesets([1], t),
@@ -170,28 +171,39 @@ _MEMBERSHIP_QUERIES = {
 }
 
 
-@pytest.mark.parametrize("use_threshold", [True, False])
 @pytest.mark.parametrize("name", sorted(_MEMBERSHIP_QUERIES))
-def test_every_membership_step_binds_the_threshold_option(name, use_threshold) -> None:
-    """Each step that reads gene-set membership filters by the bound option, not a literal."""
-    sql, params = _MEMBERSHIP_QUERIES[name](use_threshold)
+def test_every_membership_step_counts_every_gene_by_default(name) -> None:
+    """The stored flag is not the rule any more: no choice, no filter."""
+    rendered = _sql(_MEMBERSHIP_QUERIES[name](Thresholds()))
+    assert "gsv_in_threshold" not in rendered
+
+
+@pytest.mark.parametrize("name", sorted(_MEMBERSHIP_QUERIES))
+def test_every_membership_step_applies_custom_cutoffs(name) -> None:
+    """Each step reads the run's cutoffs, bound, against its own geneset alias."""
+    sql, params = _MEMBERSHIP_QUERIES[name](Thresholds("custom", q_value=0.05))
     rendered = _sql((sql, params))
-    assert params["use_threshold"] is use_threshold
-    assert "gsv_in_threshold" in rendered
-    assert rendered.count("gsv_in_threshold") == rendered.count(
-        "gsv_in_threshold OR NOT %(use_threshold)s"
-    )
+    assert params["t_q_value"] == 0.05
+    assert "gs_threshold_type = 2 THEN" in rendered
+    assert "<= %(t_q_value)s" in rendered
 
 
-def test_the_pipeline_passes_the_option_to_every_membership_step() -> None:
-    """Off, no step of the search falls back to in-threshold genes."""
+def test_the_pipeline_passes_the_choice_to_every_membership_step() -> None:
+    """No step of the search falls back to another rule."""
     cursor = _orchestration_cursor()
     cursor.fetchall.side_effect = [[("Pten",)], *cursor.fetchall.side_effect]
-    abba(cursor, ["Brca1"], geneset_ids=[55], species_ids=[1], tiers=[1], use_threshold=False)
+    abba(
+        cursor,
+        ["Brca1"],
+        geneset_ids=[55],
+        species_ids=[1],
+        tiers=[1],
+        thresholds=Thresholds("custom", p_value=0.001),
+    )
     bound = [
-        c.args[1]["use_threshold"]
+        c.args[1]["t_p_value"]
         for c in cursor.execute.call_args_list
-        if len(c.args) > 1 and "use_threshold" in c.args[1]
+        if len(c.args) > 1 and "t_p_value" in c.args[1]
     ]
     # seed, matching, result, and the tier and species counts for the one result gene
-    assert bound == [False] * 5
+    assert bound == [0.001] * 5

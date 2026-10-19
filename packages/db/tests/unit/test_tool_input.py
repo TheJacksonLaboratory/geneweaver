@@ -1,9 +1,16 @@
 """Unit tests for the tool-input resolvers' homology and pairwise-deletion queries."""
 
+from typing import ClassVar
 from unittest.mock import MagicMock
 
 import pytest
 from geneweaver.db import tool_input
+from geneweaver.db.query.membership import Thresholds
+
+
+def _text(sql) -> str:
+    """A query as text, whether a plain string or composed SQL."""
+    return sql if isinstance(sql, str) else " ".join(sql.as_string(None).split())
 
 
 def _cursor(*results: list) -> MagicMock:
@@ -88,8 +95,8 @@ class TestHomologousGeneSymbols:
         (members_sql, members_params), (hom_sql, hom_params) = (
             call.args for call in cursor.execute.call_args_list
         )
-        assert members_params == {"geneset_ids": [1], "use_threshold": True}
-        assert "ANY(%(geneset_ids)s)" in members_sql
+        assert members_params == {"geneset_ids": [1]}
+        assert "ANY(%(geneset_ids)s)" in _text(members_sql)
         assert hom_params == {"gene_ids": [10]}
         assert "extsrc.homology" in hom_sql
 
@@ -112,43 +119,55 @@ class TestHomologAnnotations:
         cursor = _cursor([])
         tool_input.homolog_annotations(cursor, [1, 2], [1])
         sql, params = cursor.execute.call_args.args
-        assert "g.gdb_id = 7" in sql
-        assert "g.ode_pref = TRUE" in sql
-        assert params == {"geneset_ids": [1, 2], "species_ids": [1], "use_threshold": True}
+        assert "g.gdb_id = 7" in _text(sql)
+        assert "g.ode_pref = TRUE" in _text(sql)
+        assert params == {"geneset_ids": [1, 2], "species_ids": [1]}
 
 
-class TestThresholdOption:
-    """Every membership query takes ``use_threshold``, bound, never formatted in."""
+class TestThresholdChoice:
+    """Every membership query takes the run's threshold choice (curation, 2026-10-16)."""
 
-    FILTER = "gsv_in_threshold OR NOT %(use_threshold)s"
+    RESOLVERS: ClassVar[list] = [
+        (lambda c, t: tool_input.gene_symbols_by_geneset(c, [1], t), [[]]),
+        (lambda c, t: tool_input.homologous_gene_symbols_by_geneset(c, [1], t), [[], []]),
+        (lambda c, t: tool_input.membership_rows(c, [1], t), [[]]),
+        (lambda c, t: tool_input.homology_pairs(c, [1], t), [[]]),
+        (lambda c, t: tool_input.homolog_annotations(c, [1], [1], t), [[]]),
+    ]
+    IDS: ClassVar[list[str]] = [
+        "symbols",
+        "homologous",
+        "membership_rows",
+        "homology_pairs",
+        "annotations",
+    ]
 
-    @pytest.mark.parametrize("use_threshold", [True, False])
-    @pytest.mark.parametrize(
-        ("call", "results"),
-        [
-            (lambda c, t: tool_input.gene_symbols_by_geneset(c, [1], t), [[]]),
-            (lambda c, t: tool_input.homologous_gene_symbols_by_geneset(c, [1], t), [[], []]),
-            (lambda c, t: tool_input.membership_rows(c, [1], t), [[]]),
-            (lambda c, t: tool_input.homology_pairs(c, [1], t), [[]]),
-            (lambda c, t: tool_input.homolog_annotations(c, [1], [1], t), [[]]),
-        ],
-        ids=["symbols", "homologous", "membership_rows", "homology_pairs", "annotations"],
-    )
-    def test_the_flag_binds_and_every_membership_filter_honours_it(
-        self, call, results, use_threshold
-    ) -> None:
-        """No filter is left hardcoded: each ``gsv_in_threshold`` is the bound filter."""
+    @pytest.mark.parametrize(("call", "results"), RESOLVERS, ids=IDS)
+    def test_every_gene_by_default_and_the_stored_flag_never_read(self, call, results) -> None:
+        """A gene set is not inherently thresholded: no choice, every gene."""
         cursor = _cursor(*results)
-        call(cursor, use_threshold)
-        sql, params = cursor.execute.call_args_list[0].args
-        assert params["use_threshold"] is use_threshold
-        assert sql.count("gsv_in_threshold") == sql.count(self.FILTER) >= 1
+        call(cursor, Thresholds())
+        sql = _text(cursor.execute.call_args_list[0].args[0])
+        assert "gsv_in_threshold" not in sql
+        assert "TRUE" in sql
 
-    def test_on_by_default(self) -> None:
-        """Callers that say nothing get curation's rule (GWC-21)."""
+    @pytest.mark.parametrize(("call", "results"), RESOLVERS, ids=IDS)
+    def test_custom_cutoffs_reach_every_membership_filter(self, call, results) -> None:
+        """Each filter in the query is the run's, its cutoffs bound, never formatted in."""
+        cursor = _cursor(*results)
+        call(cursor, Thresholds("custom", p_value=0.01))
+        sql, params = cursor.execute.call_args_list[0].args
+        sql = _text(sql)
+        assert params["t_p_value"] == 0.01
+        assert "0.01" not in sql
+        assert sql.count("<= %(t_p_value)s") == sql.count("production.geneset gs") >= 1
+
+    def test_uploader_reads_the_stored_cutoff(self) -> None:
+        """The one-click choice re-reads the stored cutoff with <=."""
         cursor = _cursor([])
-        tool_input.gene_symbols_by_geneset(cursor, [1])
-        assert cursor.execute.call_args.args[1]["use_threshold"] is True
+        tool_input.gene_symbols_by_geneset(cursor, [1], Thresholds("uploader"))
+        sql = _text(cursor.execute.call_args.args[0])
+        assert "gv.gsv_value <= gs.gs_threshold::numeric" in sql
 
 
 class TestPlatformQueries:

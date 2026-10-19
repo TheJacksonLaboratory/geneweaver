@@ -38,6 +38,7 @@ def search(
     :param user_id: Whose private gene sets may match; 0 for public gene sets only.
     """
     from geneweaver.db.abba import abba
+    from geneweaver.db.query.membership import Thresholds
     from psycopg.rows import tuple_row
 
     with connection.transaction(), connection.cursor(row_factory=tuple_row) as rows:
@@ -60,7 +61,7 @@ def search(
             # Legacy's "Auto" is no floor.
             min_genesets=request.min_genesets or 0,
             result_limit=RESULT_LIMIT,
-            use_threshold=request.use_threshold,
+            thresholds=Thresholds(**request.membership_kwargs()),
         )
     return shape(found, request, species, tiers, attributions)
 

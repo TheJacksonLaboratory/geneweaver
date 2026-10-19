@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from geneweaver.db.query import abba as abba_queries
+from geneweaver.db.query.membership import Thresholds
 from geneweaver.tools.abba import TOOL_NAME, ABBAInput
 from geneweaver.tools.abba.identity import sign
 from geneweaver.tools.abba.search import search
@@ -68,13 +69,15 @@ def seed_genes(cursor: Cursor, request: ABBARequest) -> list[str]:
 
     The gene sets must already have been gated. Read on a tuple-row cursor because the
     query is the pipeline's own, which reads by position. A seed gene set contributes its
-    in-threshold genes, or all of them with ``use_threshold`` off, as the search counts.
+    genes as the run's threshold choice keeps them, as the search itself counts.
     """
     genes = list(request.genes)
     if request.geneset_ids:
         with cursor.connection.cursor(row_factory=tuple_row) as rows:
             rows.execute(
-                *abba_queries.ref_ids_for_genesets(request.geneset_ids, request.use_threshold)
+                *abba_queries.ref_ids_for_genesets(
+                    request.geneset_ids, Thresholds(**request.membership_kwargs())
+                )
             )
             genes.extend(str(row[0]) for row in rows.fetchall())
     return genes
@@ -103,7 +106,7 @@ def prepare_abba(cursor: Cursor, request: ABBARequest, user: User | None) -> Pre
             # ABBA's seed is genes, not gene sets compared, so there are no per-set counts.
             "gene_counts": {},
             "caveat": None,
-            "use_threshold": tool_input.use_threshold,
+            "thresholds": tool_input.threshold_choice(),
         },
         tool_input=tool_input,
         user_id=determine_user_id(user),

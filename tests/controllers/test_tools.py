@@ -105,10 +105,14 @@ def test_upset_endpoint_merges_homologs_when_asked(client) -> None:
 
 @pytest.mark.parametrize(
     ("body", "expected"),
-    [({}, True), ({"use_threshold": True}, True), ({"use_threshold": False}, False)],
+    [
+        ({}, {"threshold": "none"}),
+        ({"threshold": "uploader"}, {"threshold": "uploader"}),
+        ({"threshold": "custom", "p_value": 0.01}, {"threshold": "custom", "p_value": 0.01}),
+    ],
 )
-def test_upset_endpoint_takes_and_reports_the_threshold_option(client, body, expected) -> None:
-    """On unless turned off; the response says which genes were counted."""
+def test_upset_endpoint_takes_and_reports_the_threshold_choice(client, body, expected) -> None:
+    """Every gene unless a threshold is chosen; the response says which genes were counted."""
     with (
         patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
         patch(
@@ -117,9 +121,18 @@ def test_upset_endpoint_takes_and_reports_the_threshold_option(client, body, exp
         ) as resolve,
     ):
         response = client.post("/api/tools/upset", json={"geneset_ids": [1, 2], **body})
-    assert response.status_code == 200
-    assert resolve.call_args.args[2] is expected
-    assert response.json()["object"]["use_threshold"] is expected
+    assert response.status_code == 200, response.text
+    assert resolve.call_args.args[2].mode == expected["threshold"]
+    assert response.json()["object"]["thresholds"] == expected
+
+
+def test_upset_endpoint_refuses_cutoffs_without_custom(client) -> None:
+    """Cutoffs belong to a custom choice; with another, the request is ambiguous."""
+    response = client.post(
+        "/api/tools/upset", json={"geneset_ids": [1, 2], "threshold": "uploader", "p_value": 0.1}
+    )
+    assert response.status_code == 422
+    assert "only with threshold 'custom'" in response.text
 
 
 def test_in_process_runner_runs_the_real_tool() -> None:
