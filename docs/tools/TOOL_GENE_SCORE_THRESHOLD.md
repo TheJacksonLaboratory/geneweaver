@@ -5,10 +5,12 @@
 > Researched: 2026-10-14. Confidence: high on what the code and data do; medium on the
 > recommendation, which is a product decision for curation.
 >
-> **Status (2026-10-16):** the team decided to let a run turn thresholds **off**, as a single
-> run-wide option for every tool. It shipped in PR #39 as `use_threshold`, **on by default**, so
-> runs that do not set it behave as before (see [Implementation](#implementation-pr-39)).
-> Findings 1 and 3 below describe the code as it was before that change.
+> **Decision (curation -- Tessa, Heidi; 2026-10-16):** *"Gene sets won't be inherently
+> thresholded anymore. They can be thresholded for analysis by whoever is running the analysis,
+> but otherwise exist as the full set of genes and scores."* Follow-ups, 2026-10-19: the
+> uploader's threshold is a one-click choice; upload still asks for a threshold, for now; p-
+> and q-value cutoffs are **at most** (`<=`). See [Decision and implementation](#decision-and-implementation-pr-39).
+> Findings 1-3 describe GeneWeaver before that decision.
 
 ## Findings
 
@@ -110,36 +112,52 @@ PMC3285573; PEBBA, https://github.com/csbl-br/pebba
 **Confidence:** medium (well established for ORA in general; not specific to GeneWeaver)
 **Action:** If an override is built, enrichment tools gain the most from it.
 
-## Implementation (PR #39)
+## Decision and implementation (PR #39)
 
-The run-wide option the summary below describes as the right place, not a per-tool one:
+**Rule.** A gene set is its full list of genes and scores. Whoever runs an analysis chooses,
+for that run, which genes take part (`threshold` on every tool request):
 
-- **Option:** `use_threshold`, default `true`. Off, each gene set contributes every gene it
-  holds; on, only its in-threshold genes (GWC-21's rule).
-- **Where it applies:** every resolver that loads a tool's genes:
-  - `gene_symbols_by_geneset` and `homologous_gene_symbols_by_geneset`;
-  - Combine's `membership_rows` and `homology_pairs`;
-  - BooleanAlgebra's `homolog_annotations`;
-  - ABBA's seed, matching gene sets, result genes, and the per-tier and per-species counts.
+| Choice | Genes kept |
+| --- | --- |
+| `none` (default) | Every gene in each gene set |
+| `uploader` | Each gene set's stored cutoff, read with `<=` for p/q and inclusive ranges for correlation/effect. Binary: every gene. Unreadable cutoffs (2 on dev) and legacy types 6-8: the stored flag |
+| `custom` | The run's cutoffs, one per score type: `p_value`, `q_value` (at most), `correlation_low/high`, `effect_low/high` (inside). A score type with no cutoff, binary included, keeps every gene |
 
-  Each filters on `(gsv_in_threshold OR NOT %(use_threshold)s)`, bound as a parameter, and every
-  resolver in one run gets the same value.
-- **API:**
-  - `POST /tools/{tool}` takes `parameters.use_threshold`, parsed strictly like the other flags.
-  - `POST /tools/upset` and `POST /tools/abba` take it at the top level.
-  - Every response reports it, including a pending 202.
-  - ABBA carries it to the worker in `ABBAInput`.
-- **UI:** a "Use gene set thresholds" checkbox on `/next/analyze`, checked by default, shared by
-  every tool. A result run without thresholds says so.
-- **Not done:** the per-score-type values and the "tighten only" rule discussed below. The
-  option is all-or-nothing, and any signed-in user can turn it off.
+**Where.** One SQL filter (`geneweaver.db.query.membership`) is used by every query that loads
+a tool's genes:
+- `tool_input`: the membership and homology resolvers, Combine's matrix and ortholog pairs,
+  and BooleanAlgebra's annotations;
+- ABBA: the seed, matching gene sets, result genes, and the tier and species counts.
 
-Checked against dev's database (public mouse p-value gene sets):
+The cutoffs are bound parameters. Requests are checked by `ThresholdOptions`
+(`geneweaver.tools.thresholds`), and every result echoes the choice as `thresholds`.
 
-| | Thresholds on | Thresholds off |
-| --- | --- | --- |
-| Genes in 821 / 827 / 800 | 34 / 65 / 243 | 163 / 280 / 500 |
-| ABBA seeded from 821 | 36 seed genes | 201 seed genes, different top genes |
+**UI.** On `/next/analyze`, "Gene set thresholds" offers:
+- All genes (the default);
+- Uploader's thresholds;
+- My thresholds, with cutoff fields per score type.
+
+Every result says which genes it counted. Gene search (G3-764) already filters by a gene's
+score with the same `<=` rule.
+
+**Measured on dev.**
+- Public mouse p-value gene sets 821/827/800 hold 163/280/500 genes with every gene,
+  34/65/243 with the uploader's p <= 0.05, and 5/17/83 with a custom p <= 0.01.
+- Binary GS167180 holds 74 genes under every choice.
+- ABBA seeded from 821 has 201 seed genes with every gene, 36 with the uploader's threshold,
+  and 2 with p <= 0.001.
+
+**What changed against the stored flag.** The stored `gsv_in_threshold` was computed with `<`
+for p/q (`production.process_thresholds`). Reading the cutoff with `<=` adds the genes that sit
+exactly on it: **14,431 genes in 590 gene sets** on dev. That is the same population as the P/Q
+boundary question behind migrations 119/120. The stored flags themselves are unchanged, and
+legacy, which still serves prod, keeps using them.
+
+**Not changed yet.**
+- Gene set pages still lead with the in-threshold count.
+- `PUT /genesets/{id}/threshold` still rewrites the stored flags. It also overwrites binary
+  gene sets' flags with `value < threshold`, which marks every gene out of threshold.
+- Search results carry no threshold into an analysis.
 
 ## Summary (as researched, before the decision)
 
@@ -162,13 +180,11 @@ Either way, it needs:
 
 ## Open Questions
 
-- **Should curation sign off on the option?** PR #39 lets any signed-in user turn thresholds
-  off, which reintroduces genes the curator excluded. GWC-21 (Tessa) asked for thresholds on;
-  GWC-49 asks for the same choice in gene search.
-- **Should the option go further?** A cutoff per score type, or tightening only, was not built.
-- **UpSet:** should v3 keep in-threshold counts, which differ from legacy's all-genes counts? This
-  needs curation's sign-off; it fits GWC-21, but it changes published results.
-- **HyperGeometric:** which background is intended? Legacy's per-pair all-genes count and v3's
-  request-wide in-threshold union differ, and the v3 docstring claims parity.
-- **Calculate_jaccard:** the source of the stored procedure behind Find Similar Genesets is not in
-  the repository, so its filter could not be checked directly.
+- **Gene set pages:** lead with the full gene count, and show the uploader's threshold as
+  information?
+- **`PUT /genesets/{id}/threshold`:** keep it as "edit the suggested threshold", fix its
+  binary overwrite, or retire it?
+- **Search to analysis:** should gene sets picked from a filtered search carry its cutoffs
+  into `/next/analyze`?
+- **Legacy cleanup:** the UpSet and HyperGeometric differences in finding 4 matter less now
+  that every gene is the default, but the HyperGeometric docstring still claims parity.
