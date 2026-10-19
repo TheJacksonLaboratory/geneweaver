@@ -54,25 +54,68 @@
     ></app-search-filters>
 
     <!-- Run-wide, not a tool option: every tool's genes come through one resolver, so the
-         choice applies to whichever tool runs and is kept when the tool changes. -->
-    <div *ngIf="!selectedToolReason" class="field flex align-items-start mb-3">
-      <input
-        id="useThreshold"
-        type="checkbox"
-        class="mt-1"
-        [(ngModel)]="useThreshold"
-        aria-describedby="useThreshold-help"
-      />
-      <div class="ml-2">
-        <label for="useThreshold">Use gene set thresholds</label>
-        <small id="useThreshold-help" class="block mt-1 text-color-secondary">
-          Checked, each gene set contributes only the genes inside the threshold its curator
-          set. Cleared, it contributes every gene it holds, which changes the result for gene
-          sets with p-value, q-value, correlation or effect scores. Binary gene sets are the
-          same either way.
-        </small>
+         choice applies to whichever tool runs and is kept when the tool changes. A gene set
+         is not inherently thresholded (curation, 2026-10-16): whoever runs it chooses. -->
+    <fieldset *ngIf="!selectedToolReason" class="border-none p-0 mx-0 mb-3 run-thresholds">
+      <legend class="mb-2">Gene set thresholds</legend>
+      <div class="flex flex-wrap gap-3" role="radiogroup" aria-label="Gene set thresholds">
+        <div *ngFor="let mode of thresholdModes" class="flex align-items-center">
+          <input
+            type="radio"
+            name="runThreshold"
+            [id]="'threshold-' + mode.value"
+            [value]="mode.value"
+            [(ngModel)]="runThresholds.mode"
+            [attr.aria-describedby]="'threshold-' + mode.value + '-help'"
+          />
+          <label [for]="'threshold-' + mode.value" class="ml-2">{{ mode.label }}</label>
+        </div>
       </div>
-    </div>
+      <!-- One help line, the chosen mode's: [hidden] loses to PrimeFlex's display:block. -->
+      <ng-container *ngFor="let mode of thresholdModes">
+        <small *ngIf="mode.value === runThresholds.mode" [id]="'threshold-' + mode.value + '-help'"
+               class="block mt-1 text-color-secondary">
+          {{ mode.help }}
+        </small>
+      </ng-container>
+      <div *ngIf="runThresholds.mode === 'custom'" class="formgrid grid mt-2">
+        <div class="field col-6 md:col-3">
+          <label for="cutoff-p" class="block mb-1 text-sm">p-value at most</label>
+          <p-inputNumber inputId="cutoff-p" [(ngModel)]="runThresholds.pValue" mode="decimal"
+            [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
+            styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+        </div>
+        <div class="field col-6 md:col-3">
+          <label for="cutoff-q" class="block mb-1 text-sm">q-value at most</label>
+          <p-inputNumber inputId="cutoff-q" [(ngModel)]="runThresholds.qValue" mode="decimal"
+            [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
+            styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+        </div>
+        <div class="field col-6 md:col-3">
+          <label for="cutoff-corr-low" class="block mb-1 text-sm">Correlation from / to</label>
+          <div class="flex gap-1">
+            <p-inputNumber inputId="cutoff-corr-low" [(ngModel)]="runThresholds.correlationLow"
+              mode="decimal" [maxFractionDigits]="6" placeholder="from" ariaLabel="Correlation from"
+              styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+            <p-inputNumber inputId="cutoff-corr-high" [(ngModel)]="runThresholds.correlationHigh"
+              mode="decimal" [maxFractionDigits]="6" placeholder="to" ariaLabel="Correlation to"
+              styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+          </div>
+        </div>
+        <div class="field col-6 md:col-3">
+          <label for="cutoff-effect-low" class="block mb-1 text-sm">Effect from / to</label>
+          <div class="flex gap-1">
+            <p-inputNumber inputId="cutoff-effect-low" [(ngModel)]="runThresholds.effectLow"
+              mode="decimal" [maxFractionDigits]="6" placeholder="from" ariaLabel="Effect from"
+              styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+            <p-inputNumber inputId="cutoff-effect-high" [(ngModel)]="runThresholds.effectHigh"
+              mode="decimal" [maxFractionDigits]="6" placeholder="to" ariaLabel="Effect to"
+              styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+          </div>
+        </div>
+      </div>
+      <small *ngIf="thresholdProblem" class="block text-orange-600 threshold-problem">{{ thresholdProblem }}</small>
+    </fieldset>
 
     <!-- ABBA: seeded with genes, and with options that are sets rather than single values
          (abba-options.ts mirrors legacy's ABBA_options.html). -->
@@ -371,12 +414,7 @@
   ></p-message>
 
   <p-card *ngIf="result" class="block mt-3" [header]="result.tool + ' result'">
-    <p-message
-      *ngIf="result.use_threshold === false"
-      severity="info"
-      [text]="thresholdsOffNotice"
-      styleClass="w-full mb-3 thresholds-off"
-    ></p-message>
+    <p class="mt-0 text-sm text-color-secondary thresholds-used">{{ describeThresholds(result.thresholds) }}</p>
 
     <h4 class="mt-0">Genes resolved per gene set</h4>
     <div class="flex flex-wrap gap-3 mb-4">
@@ -445,12 +483,7 @@
     </span>
   </p>
 
-  <p-message
-    *ngIf="genericResult.use_threshold === false"
-    severity="info"
-    [text]="thresholdsOffNotice"
-    styleClass="w-full mb-3 thresholds-off"
-  ></p-message>
+  <p class="mt-0 text-sm text-color-secondary thresholds-used">{{ describeThresholds(genericResult.thresholds) }}</p>
 
   <p-message
     *ngIf="genericResult.caveat"
@@ -468,12 +501,7 @@
 
 <!-- ABBA answers a gene search, not a gene-set analysis, so it has its own card. -->
 <p-card *ngIf="abbaResult" class="block mt-3" header="ABBA gene-centred search results">
-  <p-message
-    *ngIf="abbaResult.parameters.use_threshold === false"
-    severity="info"
-    [text]="thresholdsOffNotice"
-    styleClass="w-full mb-3 thresholds-off"
-  ></p-message>
+  <p class="mt-0 text-sm text-color-secondary thresholds-used">{{ describeThresholds(abbaResult.parameters) }}</p>
   <app-abba-result
     [result]="abbaResult"
     [ranAt]="abbaRanAt"

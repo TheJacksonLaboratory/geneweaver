@@ -5,6 +5,7 @@
  * options (a set of tiers, an optional species restriction, "Auto" thresholds) do not fit
  * that table's one-value-per-option shape.
  */
+import { defaultRunThresholds, RunThresholds, thresholdParams } from './run-thresholds';
 
 /** Request bounds, mirroring `ABBARequest` in `api/schemas/tools.py`. */
 export const ABBA_MAX_GENES = 1000;
@@ -104,19 +105,19 @@ export function abbaCanRun(genes: string[], genesetIds: number[], options: AbbaO
 }
 
 /**
- * The `POST /tools/abba` body. `useThreshold` is the page's run-wide choice, not an ABBA
+ * The `POST /tools/abba` body. `thresholds` is the page's run-wide choice, not an ABBA
  * option: it applies to every tool, so it lives beside the gene set ids.
  */
 export function abbaRequestBody(
   genes: string[],
   genesetIds: number[],
   options: AbbaOptions,
-  useThreshold = true,
+  thresholds: RunThresholds = defaultRunThresholds(),
 ) {
   return {
     genes,
     geneset_ids: genesetIds,
-    use_threshold: useThreshold,
+    ...thresholdParams(thresholds),
     include_homology: options.includeHomology,
     min_genes: options.minGenes,
     min_genesets: options.minGenesets,

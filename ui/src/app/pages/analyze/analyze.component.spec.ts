@@ -324,37 +324,37 @@ describe('AnalyzeComponent tool options', () => {
   };
 
   it.each([
-    ['upset', '/tools/upset', { geneset_ids: [1, 2], include_homology: true, include_zeros: false, use_threshold: true }],
+    ['upset', '/tools/upset', { geneset_ids: [1, 2], include_homology: true, include_zeros: false, threshold: 'none' }],
     [
       'jaccard_similarity',
       '/tools/jaccard_similarity',
       {
         geneset_ids: [1, 2],
-        parameters: { include_homology: true, pairwise_deletion: false, p_value_threshold: 1.0, use_threshold: true },
+        parameters: { include_homology: true, pairwise_deletion: false, p_value_threshold: 1.0, threshold: 'none' },
       },
     ],
     [
       'jaccard_clustering',
       '/tools/jaccard_clustering',
-      { geneset_ids: [1, 2], parameters: { include_homology: true, method: 'ward', use_threshold: true } },
+      { geneset_ids: [1, 2], parameters: { include_homology: true, method: 'ward', threshold: 'none' } },
     ],
     [
       'hypergeometric',
       '/tools/hypergeometric',
-      { geneset_ids: [1, 2], parameters: { include_homology: true, pairwise_deletion: false, use_threshold: true } },
+      { geneset_ids: [1, 2], parameters: { include_homology: true, pairwise_deletion: false, threshold: 'none' } },
     ],
-    ['combine', '/tools/combine', { geneset_ids: [1, 2], parameters: { include_homology: true, use_threshold: true } }],
+    ['combine', '/tools/combine', { geneset_ids: [1, 2], parameters: { include_homology: true, threshold: 'none' } }],
     [
       'boolean_algebra',
       '/tools/boolean_algebra',
-      { geneset_ids: [1, 2], parameters: { relation: 'union', use_threshold: true } },
+      { geneset_ids: [1, 2], parameters: { relation: 'union', threshold: 'none' } },
     ],
     [
       'dbscan',
       '/tools/dbscan',
-      { geneset_ids: [1, 2], parameters: { include_homology: true, epsilon: 1, min_points: 1, use_threshold: true } },
+      { geneset_ids: [1, 2], parameters: { include_homology: true, epsilon: 1, min_points: 1, threshold: 'none' } },
     ],
-    ['mset', '/tools/mset', { geneset_ids: [1, 2], parameters: { number_of_samples: 5000, use_threshold: true } }],
+    ['mset', '/tools/mset', { geneset_ids: [1, 2], parameters: { number_of_samples: 5000, threshold: 'none' } }],
     [
       'phenome_map',
       '/tools/phenome_map',
@@ -367,7 +367,7 @@ describe('AnalyzeComponent tool options', () => {
           p_value_threshold: 1.0,
           min_genes: 1,
           max_level: 40,
-          use_threshold: true,
+          threshold: 'none',
         },
       },
     ],
@@ -397,13 +397,13 @@ describe('AnalyzeComponent tool options', () => {
 
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
-      parameters: { include_homology: true, pairwise_deletion: true, p_value_threshold: 0.05, use_threshold: true },
+      parameters: { include_homology: true, pairwise_deletion: true, p_value_threshold: 0.05, threshold: 'none' },
     });
   });
 
   it('Homology can be excluded, and the radio group is labelled', async () => {
     const page = await choose('combine');
-    const legend = page.querySelector('fieldset legend');
+    const legend = page.querySelector('.tool-options fieldset legend');
     expect(legend?.textContent).toContain('Homology');
     const excluded = page.querySelector<HTMLInputElement>('#option-include_homology-1')!;
     expect(page.querySelector(`label[for="${excluded.id}"]`)?.textContent).toBe('Excluded');
@@ -411,7 +411,7 @@ describe('AnalyzeComponent tool options', () => {
     fixture.detectChanges();
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
-      parameters: { include_homology: false, use_threshold: true },
+      parameters: { include_homology: false, threshold: 'none' },
     });
   });
 
@@ -448,7 +448,7 @@ describe('AnalyzeComponent tool options', () => {
     component.optionValues['at_least'] = 3;
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
-      parameters: { relation: 'intersection', at_least: 3, use_threshold: true },
+      parameters: { relation: 'intersection', at_least: 3, threshold: 'none' },
     });
   });
 
@@ -471,7 +471,7 @@ describe('AnalyzeComponent tool options', () => {
     fixture.detectChanges();
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
-      parameters: { number_of_samples: 10000, use_threshold: true },
+      parameters: { number_of_samples: 10000, threshold: 'none' },
     });
   });
 
@@ -508,26 +508,66 @@ describe('AnalyzeComponent tool options', () => {
     expect(component.canRun).toBe(true);
   });
 
-  it.each(Object.keys(TOOL_LIST))('%s offers gene set thresholds, on, and sends them off when cleared', async (tool) => {
-    const page = await choose(tool);
-    const box = page.querySelector<HTMLInputElement>('#useThreshold')!;
-    expect(box.checked).toBe(true);
-    expect(box.getAttribute('aria-describedby')).toBe('useThreshold-help');
-    expect(page.querySelector('label[for="useThreshold"]')?.textContent).toBe('Use gene set thresholds');
-
-    box.click();
-    fixture.detectChanges();
-    const body = runAndRead().body as { use_threshold?: boolean; parameters?: { use_threshold?: boolean } };
+  /** The threshold part of a request, wherever the tool's endpoint puts its options. */
+  const sentThresholds = (tool: string) => {
+    const body = runAndRead().body as Record<string, unknown> & { parameters?: Record<string, unknown> };
     // UpSet's endpoint takes its options at the top level; the others under `parameters`.
-    expect(tool === 'upset' ? body.use_threshold : body.parameters?.use_threshold).toBe(false);
+    const options = tool === 'upset' ? body : (body.parameters ?? {});
+    return Object.fromEntries(
+      Object.entries(options).filter(([key]) =>
+        ['threshold', 'p_value', 'q_value', 'correlation_low', 'correlation_high', 'effect_low', 'effect_high'].includes(key),
+      ),
+    );
+  };
+
+  it.each(Object.keys(TOOL_LIST))("%s runs on all genes unless a threshold is chosen", async (tool) => {
+    const page = await choose(tool);
+    expect(page.querySelector('.run-thresholds legend')?.textContent).toBe('Gene set thresholds');
+    const all = page.querySelector<HTMLInputElement>('#threshold-none')!;
+    expect(all.checked).toBe(true);
+    expect(page.querySelector('label[for="threshold-none"]')?.textContent).toBe('All genes');
+    expect(sentThresholds(tool)).toEqual({ threshold: 'none' });
+  });
+
+  it.each(Object.keys(TOOL_LIST))("%s takes the uploader's thresholds in one click", async (tool) => {
+    const page = await choose(tool);
+    page.querySelector<HTMLInputElement>('#threshold-uploader')!.click();
+    fixture.detectChanges();
+    expect(sentThresholds(tool)).toEqual({ threshold: 'uploader' });
+  });
+
+  it('takes custom cutoffs, sending only those given, and refuses an empty or inverted choice', async () => {
+    const page = await choose('hypergeometric');
+    page.querySelector<HTMLInputElement>('#threshold-custom')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(page.querySelector('#cutoff-p')).not.toBeNull();
+    expect(component.canRun).toBe(false);
+    expect(page.querySelector('.threshold-problem')?.textContent).toContain('at least one cutoff');
+
+    component.runThresholds.pValue = 0.01;
+    component.runThresholds.correlationLow = 0.9;
+    component.runThresholds.correlationHigh = 0.1;
+    expect(component.canRun).toBe(false);
+    expect(component.thresholdProblem).toContain('correlation');
+
+    component.runThresholds.correlationHigh = 1;
+    expect(component.canRun).toBe(true);
+    expect(sentThresholds('hypergeometric')).toEqual({
+      threshold: 'custom',
+      p_value: 0.01,
+      correlation_low: 0.9,
+      correlation_high: 1,
+    });
   });
 
   it('keeps the threshold choice when the tool changes: it is the run\'s, not the tool\'s', async () => {
     await choose('dbscan');
-    component.useThreshold = false;
+    component.runThresholds = { ...component.runThresholds, mode: 'uploader' };
     await choose('combine');
-    expect(component.useThreshold).toBe(false);
-    expect(runAndRead().body).toMatchObject({ parameters: { use_threshold: false } });
+    expect(component.runThresholds.mode).toBe('uploader');
+    expect(runAndRead().body).toMatchObject({ parameters: { threshold: 'uploader' } });
   });
 });
 
@@ -709,36 +749,33 @@ describe('AnalyzeComponent pending runs', () => {
   });
 
   it('carries the threshold choice of a pending run through to its result', () => {
-    postBody = { ...PENDING, use_threshold: false };
+    postBody = { ...PENDING, thresholds: { threshold: 'custom', p_value: 0.01 } };
     pollResponses = [{ run_id: 42, status: 'completed', result: { clusters: [], ran: true } }];
     component.selectedTool = 'dbscan';
 
     component.run();
     jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
-    expect(component.genericResult?.use_threshold).toBe(false);
+    expect(component.genericResult?.thresholds).toEqual({ threshold: 'custom', p_value: 0.01 });
   });
 
   it.each([
-    [false, true],
-    [true, false],
-    [undefined, false],
-  ])('with use_threshold %s, says thresholds were not applied: %s', (useThreshold, shown) => {
+    [{ threshold: 'none' }, 'all genes in each gene set'],
+    [undefined, 'all genes in each gene set'],
+    [{ threshold: 'uploader' }, "each gene set's uploader threshold"],
+    [{ threshold: 'custom', p_value: 0.01, effect_low: -2 }, 'custom thresholds -- p-value ≤ 0.01; effect at least -2'],
+  ])('every result says which genes it counted: %o', (thresholds, text) => {
     postBody = {
       tool: 'combine',
       geneset_ids: FIXTURES.combine.geneset_ids,
       gene_counts: {},
-      use_threshold: useThreshold,
+      thresholds,
       result: FIXTURES.combine,
     };
     component.selectedTool = 'combine';
 
     component.run();
     fixture.detectChanges();
-    const notice = (fixture.nativeElement as HTMLElement).querySelector('.thresholds-off');
-    expect(!!notice).toBe(shown);
-    if (shown) {
-      expect(notice!.textContent).toContain('Gene set thresholds were not applied');
-    }
+    expect((fixture.nativeElement as HTMLElement).querySelector('.thresholds-used')?.textContent).toContain(text);
   });
 });
 
@@ -877,7 +914,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
           min_genesets: null,
           tiers: [1, 2, 3],
           species_ids: null,
-          use_threshold: true,
+          threshold: 'none',
         },
       },
     ]);
@@ -935,12 +972,12 @@ describe('AnalyzeComponent ABBA gene search', () => {
     fixture.detectChanges();
     el.querySelector<HTMLInputElement>('#abbaSpecies2')!.click();
     el.querySelector<HTMLInputElement>('#abbaSpecies1')!.click();
-    el.querySelector<HTMLInputElement>('#useThreshold')!.click();
+    el.querySelector<HTMLInputElement>('#threshold-uploader')!.click();
     component.run();
     expect(posted[0].body).toEqual({
       genes: ['Drd2', 'Drd1', 'Th'],
       geneset_ids: [167180],
-      use_threshold: false,
+      threshold: 'uploader',
       include_homology: false,
       min_genes: 2,
       min_genesets: 5,

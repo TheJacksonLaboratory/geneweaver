@@ -8,6 +8,7 @@ import {
   minGenesChoices,
   toggled,
 } from './abba-options';
+import { defaultRunThresholds } from './run-thresholds';
 
 describe('ABBA options', () => {
   it("defaults to legacy's: homology, Auto, tiers 1-3, all species", () => {
@@ -60,9 +61,10 @@ describe('ABBA options', () => {
     expect(abbaRequestBody(['Drd2'], [], { ...options, restrictSpecies: true, speciesIds: [2, 1] }).species_ids).toEqual([1, 2]);
   });
 
-  it('sends thresholds on unless the page turned them off', () => {
+  it('sends all genes unless the page chose a threshold', () => {
     const options = defaultAbbaOptions();
-    expect(abbaRequestBody(['Drd2'], [], options).use_threshold).toBe(true);
-    expect(abbaRequestBody(['Drd2'], [5], options, false).use_threshold).toBe(false);
+    expect(abbaRequestBody(['Drd2'], [], options).threshold).toBe('none');
+    const custom = { ...defaultRunThresholds(), mode: 'custom' as const, qValue: 0.05 };
+    expect(abbaRequestBody(['Drd2'], [5], options, custom)).toMatchObject({ threshold: 'custom', q_value: 0.05 });
   });
 });

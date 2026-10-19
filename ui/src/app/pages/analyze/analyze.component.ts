@@ -19,6 +19,16 @@ import { SessionService } from '../../services/session.service';
 import { AbbaResult, parseGeneList } from './visualizations/abba-models';
 import { AbbaResultComponent } from './visualizations/abba-result.component';
 import { GenesetPickerComponent } from './geneset-picker.component';
+import {
+  defaultRunThresholds,
+  describeThresholds,
+  RunThresholds,
+  THRESHOLD_MODES,
+  ThresholdChoice,
+  thresholdParams,
+  thresholdProblem,
+} from './run-thresholds';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { SearchFiltersComponent } from '../../components/searchfilters/search-filters.component';
 import { activeFilterCount, emptyFilters, SearchFilters } from '../../search/search-filters';
 import { ToolResultComponent } from './visualizations/tool-result.component';
@@ -54,7 +64,7 @@ interface UpSetResult {
   geneset_ids: number[];
   gene_counts: Record<string, number>;
   /** Whether only in-threshold genes were used; absent means they were. */
-  use_threshold?: boolean;
+  thresholds?: ThresholdChoice | null;
   intersections: UpSetIntersection[];
 }
 
@@ -85,7 +95,7 @@ interface ToolRunResult {
   geneset_ids: number[];
   gene_counts: Record<string, number>;
   caveat?: string | null;
-  use_threshold?: boolean;
+  thresholds?: ThresholdChoice | null;
   result: Record<string, unknown>;
 }
 
@@ -98,7 +108,7 @@ interface PendingRun {
   geneset_ids: number[];
   gene_counts: Record<string, number>;
   caveat?: string | null;
-  use_threshold?: boolean;
+  thresholds?: ThresholdChoice | null;
   run_id: number;
   status: string;
 }
@@ -186,6 +196,7 @@ const TOOL_LABELS: Record<string, string> = {
     TableModule,
     AbbaResultComponent,
     GenesetPickerComponent,
+    InputNumberModule,
     SearchFiltersComponent,
     ToolResultComponent,
     UpsetPlotComponent,
@@ -199,12 +210,18 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   genesetIdInput: string[] = [];
 
   /**
-   * Whether each gene set contributes only the genes inside its stored threshold (the
-   * default, as curation asked in GWC-21) or every gene it holds. Run-wide rather than a
+   * Which of each gene set's genes take part: every gene (the default), each gene set's
+   * stored threshold, or the run's own cutoffs (`run-thresholds.ts`). Run-wide rather than a
    * tool option -- every tool's genes come through the same resolver -- so it is sent with
    * every tool and kept when the tool changes.
    */
-  useThreshold = true;
+  runThresholds: RunThresholds = defaultRunThresholds();
+  readonly thresholdModes = THRESHOLD_MODES;
+  readonly describeThresholds = describeThresholds;
+
+  get thresholdProblem(): string | undefined {
+    return thresholdProblem(this.runThresholds);
+  }
 
   /** Filters narrowing the gene set suggestions, as on the search page (G3-777, G3-764). */
   searchFilters: SearchFilters = emptyFilters();
@@ -490,6 +507,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
         !this.toolsLoading &&
         !this.selectedToolReason &&
         this.invalidEntries.length === 0 &&
+        !this.thresholdProblem &&
         abbaCanRun(this.abbaGenes, this.genesetIds, this.abbaOptions)
       );
     }
@@ -502,7 +520,8 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
       this.invalidEntries.length === 0 &&
       this.genesetIds.length >= MIN_GENESETS &&
       !this.limitViolation &&
-      !this.optionProblem
+      !this.optionProblem &&
+      !this.thresholdProblem
     );
   }
 
@@ -539,7 +558,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     // Both branches take the same type parameter so the two observables unify -- a
     // union of differently-typed observables has no callable `subscribe`.
     // UpSet's endpoint takes its options at the top level of the body.
-    const parameters = { ...this.toolParameters(), use_threshold: this.useThreshold };
+    const parameters = { ...this.toolParameters(), ...thresholdParams(this.runThresholds) };
     const request$ = this.isUpSet
       ? this.gwApi.post<AnyToolResult>('/tools/upset', {
           geneset_ids: this.genesetIds,
@@ -582,7 +601,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     this.gwApi
       .post<AnyToolResult>(
         '/tools/abba',
-        abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions, this.useThreshold),
+        abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions, this.runThresholds),
       )
       .subscribe({
         next: (response) => {
@@ -657,7 +676,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
               tool: 'UpSet',
               geneset_ids: pending.geneset_ids,
               gene_counts: pending.gene_counts,
-              use_threshold: pending.use_threshold,
+              thresholds: pending.thresholds,
               intersections: raw.map((item) => ({ geneset_ids: item.genesets, size: item.size })),
             };
           } else {
@@ -666,7 +685,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
               geneset_ids: pending.geneset_ids,
               gene_counts: pending.gene_counts,
               caveat: pending.caveat,
-              use_threshold: pending.use_threshold,
+              thresholds: pending.thresholds,
               result: run.result,
             };
           }
@@ -725,11 +744,6 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     }
     return detail ?? `The run failed (HTTP ${error?.status ?? 'unknown'}).`;
   }
-
-  /** Said on every result run without thresholds, so it is not read as the curated one. */
-  readonly thresholdsOffNotice =
-    'Gene set thresholds were not applied: every gene in each gene set was used, including ' +
-    'genes outside the threshold its curator set.';
 
   label(intersection: UpSetIntersection): string {
     return intersection.geneset_ids.join(' ∩ ');

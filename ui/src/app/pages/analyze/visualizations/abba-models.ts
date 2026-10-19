@@ -20,8 +20,14 @@ export interface AbbaParameters {
   tiers: number[];
   /** `null` means every species: not restricted. */
   species_ids: number[] | null;
-  /** Whether only in-threshold genes counted; absent from results that predate the option. */
-  use_threshold?: boolean;
+  /** The run's threshold choice (`run-thresholds.ts`); absent from older results. */
+  threshold?: 'none' | 'uploader' | 'custom';
+  p_value?: number | null;
+  q_value?: number | null;
+  correlation_low?: number | null;
+  correlation_high?: number | null;
+  effect_low?: number | null;
+  effect_high?: number | null;
 }
 
 export interface AbbaSeedGene {
@@ -205,7 +211,10 @@ export function abbaRunInfo(result: AbbaResult, ranAt?: Date): InfoRow[] {
     : 'No';
   const rows: InfoRow[] = [
     { label: 'Include homology', value: p.include_homology ? 'Yes' : 'No' },
-    { label: 'Gene set thresholds', value: p.use_threshold === false ? 'Not applied' : 'Applied' },
+    {
+      label: 'Gene set thresholds',
+      value: { none: 'None (all genes)', uploader: "Uploader's", custom: 'Custom' }[p.threshold ?? 'none'],
+    },
     { label: 'Minimum genes', value: p.min_genes === null ? 'Auto' : String(p.min_genes) },
     { label: 'Minimum gene sets', value: p.min_genesets === null ? 'Auto' : String(p.min_genesets) },
     { label: 'Curation tiers', value: `IN (${[...p.tiers].sort((a, b) => a - b).join(',')})` },

@@ -14,7 +14,7 @@ export const ABBA_FIXTURE: AbbaResult = {
     min_genesets: null,
     tiers: [1, 2, 3],
     species_ids: null,
-    use_threshold: true,
+    threshold: 'none',
   },
   available_genes: 520904,
   available_genesets: 222413,
