@@ -29,6 +29,7 @@ def test_custom_carries_only_the_cutoffs_given() -> None:
         ({"threshold": "custom", "correlation_low": 0.9, "correlation_high": 0.1}, "above"),
         ({"threshold": "custom", "q_value": 2}, "less than or equal to 1"),
         ({"threshold": "sometimes"}, "threshold"),
+        ({"threshold": "custom"}, "needs at least one cutoff"),
     ],
 )
 def test_a_choice_that_cannot_mean_one_thing_is_refused(fields, message) -> None:

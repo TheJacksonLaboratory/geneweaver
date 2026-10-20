@@ -11,7 +11,6 @@ schema, which each tool declares and which is used to validate the request.
 
 import contextvars
 import importlib.metadata
-import os
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -103,14 +102,16 @@ def run_abba(input_data: dict) -> dict:
     :param input_data: ``{"tool": "abba", "input": {...}, "identity": {...}}``; see
         `geneweaver.tools.abba.identity` for why the identity is signed and separate.
     """
-    from geneweaver.tools.abba.identity import verified_user_id
+    from geneweaver.tools.abba.identity import signing_secret, verified_user_id
     from geneweaver.tools.abba.schema import ABBAInput
     from geneweaver.tools.abba.search import search
     from geneweaver.tools.temporal.db import connect
 
     try:
         request = ABBAInput(**(input_data.get("input") or {}))
-        user_id = verified_user_id(input_data.get("identity"), os.environ.get("DB_PASSWORD"))
+        user_id = verified_user_id(
+            input_data.get("identity"), signing_secret(), input_data.get("input")
+        )
     except ValueError as error:  # pydantic's ValidationError is a ValueError
         raise ApplicationError(
             f"abba rejected its input: {error}", type="InvalidToolInput", non_retryable=True

@@ -27,19 +27,31 @@ def search(
     request: ABBAInput,
     user_id: int,
     statement_timeout_seconds: int = DEFAULT_STATEMENT_TIMEOUT_SECONDS,
+    deadline_seconds: float | None = None,
 ) -> ABBAOutput:
-    """Run the pipeline in its own transaction and shape the result.
+    """Run the pipeline in a transaction of its own and shape the result.
 
-    The transaction scopes both the statement timeout (`set_config(..., true)` is
-    `SET LOCAL`) and the pipeline's `ON COMMIT DROP` temp tables, so the connection is left
-    clean. The pipeline reads rows by position, so it runs on a tuple-row cursor whatever
-    the connection's default row factory.
+    The transaction scopes the statement timeout (`set_config(..., true)` is `SET LOCAL`)
+    and the pipeline's `ON COMMIT DROP` temp tables. On a connection with no transaction open
+    (the worker's) that leaves it clean when this returns. On one already in a transaction
+    (the API's pooled cursor, which `prepare_abba` used first) it is a savepoint instead, and
+    both last until the caller's transaction ends -- harmless, as the caller closes it next.
+    The pipeline reads rows by position, so it runs on a tuple-row cursor whatever the
+    connection's default row factory.
 
     :param user_id: Whose private gene sets may match; 0 for public gene sets only.
+    :param deadline_seconds: A budget for the whole search, every statement together; each
+        statement's timeout shrinks to what is left of it. None: each statement alone is
+        bounded, by ``statement_timeout_seconds``.
+    :raises ABBADeadlineExceeded: If the search would run past ``deadline_seconds``.
     """
+    import time
+
     from geneweaver.db.abba import abba
     from geneweaver.db.query.membership import Thresholds
     from psycopg.rows import tuple_row
+
+    deadline = None if deadline_seconds is None else time.monotonic() + deadline_seconds
 
     with connection.transaction(), connection.cursor(row_factory=tuple_row) as rows:
         rows.execute(
@@ -62,6 +74,8 @@ def search(
             min_genesets=request.min_genesets or 0,
             result_limit=RESULT_LIMIT,
             thresholds=Thresholds(**request.membership_kwargs()),
+            deadline=deadline,
+            statement_timeout_seconds=statement_timeout_seconds,
         )
     return shape(found, request, species, tiers, attributions)
 

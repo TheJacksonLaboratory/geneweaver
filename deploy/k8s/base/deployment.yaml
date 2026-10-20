@@ -29,5 +29,11 @@ spec:
             - secretRef:
                 name: geneweaver-api-auth
                 optional: true
+            # ABBA_IDENTITY_SECRET, keying the identity ABBA runs carry to the tools
+            # worker (geneweaver.tools.abba.identity). Optional: without it both sides key it
+            # with DB_PASSWORD. Give the tools worker the same Secret.
+            - secretRef:
+                name: geneweaver-abba-identity
+                optional: true
           ports:
             - containerPort: 8000

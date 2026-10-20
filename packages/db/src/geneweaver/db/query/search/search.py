@@ -8,6 +8,7 @@ from geneweaver.db.query.geneset.utils import (
     restrict_species,
     restrict_tier,
 )
+from geneweaver.db.query.readable import readable_by
 from geneweaver.db.query.search import const
 from geneweaver.db.query.search.utils import search
 from geneweaver.db.query.utils import add_op_filters, construct_filters
@@ -98,42 +99,10 @@ def _holds_gene(predicate: Composed | None = None) -> Composed:
 
 
 def _readable(filters: list, params: dict, user_id: int | None) -> None:
-    """Only gene sets ``user_id`` may read: ``production.geneset_is_readable2``, set-based.
-
-    The function is right but costs ~15 ms for each private gene set it has to decide: it
-    re-runs the user's group and project lookups for every row. A search that stops at its
-    first page barely notices; a sorted one checks every match -- 10,825 for "dopamine",
-    2,616 of them private Tier V sets, 40 s. Here the same six cases are written once, with
-    the user's groups, shared projects and admin flag looked up once per query.
-
-    Keep it in step with the function (``pg_get_functiondef('production.geneset_is_readable2'
-    ::regproc)``): the user owns the set; the set is public (``gs_groups = '0'``) or in a
-    public tier (``cur_id < 5``); one of the user's groups shares it; one of the user's groups
-    shares a project holding it; or the user is an admin or curator (``usr_admin > 0``), who
-    sees every private gene set, as in legacy. Checked equal to the function on dev for
-    anonymous, grouped, project-sharing, admin, curator and ordinary users.
-    """
+    """Only gene sets ``user_id`` may read (`geneweaver.db.query.readable`)."""
     if user_id is None:
         return
-    filters.append(
-        SQL(
-            """(geneset.usr_id = %(is_readable_by)s
-            OR geneset.gs_groups = '0'
-            OR geneset.cur_id < 5
-            OR ('{' || geneset.gs_groups || '}')::integer[] && ARRAY(
-                SELECT u2g.grp_id FROM production.usr2grp u2g
-                 WHERE u2g.usr_id = %(is_readable_by)s)
-            OR geneset.gs_id IN (
-                SELECT p2g.gs_id FROM production.project2geneset p2g
-                  JOIN production.project p ON p.pj_id = p2g.pj_id
-                  JOIN production.usr2grp u2g
-                    ON u2g.grp_id = ANY(('{' || p.pj_groups || '}')::integer[])
-                 WHERE u2g.usr_id = %(is_readable_by)s)
-            OR EXISTS (
-                SELECT 1 FROM production.usr u
-                 WHERE u.usr_admin > 0 AND u.usr_id = %(is_readable_by)s))"""
-        )
-    )
+    filters.append(readable_by("geneset"))
     params["is_readable_by"] = user_id
 
 
