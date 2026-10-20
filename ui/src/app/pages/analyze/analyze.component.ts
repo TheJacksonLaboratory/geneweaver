@@ -722,10 +722,11 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   private describeError(error: HttpFailure): string {
     const detail = error?.error?.detail;
     if (error?.status === 403) {
+      // The API words a private gene set and a missing one alike, so as not to say which
+      // ids exist; say both here.
       return (
-        detail ??
-        'Not authorised to read one or more of those gene sets. Signed-out runs can only ' +
-          'use publicly readable gene sets.'
+        (detail ?? 'Not authorised to read one or more of those gene sets.') +
+        ' Each may be private to someone else, or may not exist.'
       );
     }
     if (error?.status === 401) {

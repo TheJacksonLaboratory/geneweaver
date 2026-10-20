@@ -11,6 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
+import { Subscription } from 'rxjs';
 import { AutoComplete, AutoCompleteModule } from 'primeng/autocomplete';
 
 import { environment } from '../../../environments/environment';
@@ -28,7 +29,9 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
  * `filters` narrow them (G3-777, G3-764), as on the /next search page.
  *
  * Ids stay first-class. Typing or pasting `514, 515` and pressing Enter, a comma, or leaving
- * the field adds them without a search, so a known list is as quick to enter as it was.
+ * the field adds them without picking from the list -- once each is looked up: an id the user
+ * may not read, or that does not exist, is reported and not added. (It used to be added as
+ * typed, and the run then refused it: "Not authorized to read gene set(s): 51, 54".)
  *
  * Bound as `[(ids)]` to the page's list of id strings, so the page's own checks and its
  * other ways of filling the field (ABBA's "use these gene sets") are unchanged.
@@ -81,6 +84,12 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
     <small *ngIf="source.failed" class="block mt-1 text-color-secondary" aria-live="polite">
       The gene set search is not responding. You can still type gene set IDs.
     </small>
+    <small *ngIf="checking" class="block mt-1 text-color-secondary" aria-live="polite">
+      Checking {{ checking }}…
+    </small>
+    <small *ngIf="rejected" class="block mt-1 text-orange-600 rejected-ids" aria-live="polite">
+      {{ rejected }}
+    </small>
   `,
 })
 export class GenesetPickerComponent implements OnChanges, OnDestroy {
@@ -99,14 +108,40 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   readonly listHeight = LIST_HEIGHT;
   readonly source: GenesetSearchSource;
   selected: GenesetOption[] = [];
+  /** Typed ids still being looked up, and those refused since the user last chose. */
+  private checkingIds = new Set<number>();
+  private rejectedIds: number[] = [];
+  private uncheckedIds: number[] = [];
+  /** Every lookup runs to the end: typing "1, 2, 3" starts one per comma. */
+  private lookups = new Subscription();
 
   constructor(apiBaseServiceFactory: ApiBaseServiceFactory) {
     this.source = new GenesetSearchSource(apiBaseServiceFactory.create(environment.urls.geneWeaverApi));
   }
 
+  /** Typed ids being looked up, e.g. "GS51, GS54". */
+  get checking(): string | undefined {
+    return this.checkingIds.size ? [...this.checkingIds].map((id) => `GS${id}`).join(', ') : undefined;
+  }
+
+  /** Why some typed ids were not added. */
+  get rejected(): string | undefined {
+    const notes: string[] = [];
+    if (this.rejectedIds.length) {
+      notes.push(
+        `Not added: ${this.rejectedIds.map((id) => `GS${id}`).join(', ')} -- no gene set you ` +
+          'can read has that ID. It may be private to someone else, or not exist.',
+      );
+    }
+    if (this.uncheckedIds.length) {
+      notes.push(`Could not check ${this.uncheckedIds.map((id) => `GS${id}`).join(', ')}; try again.`);
+    }
+    return notes.join(' ') || undefined;
+  }
+
   get emptyMessage(): string {
     return parseIds(this.source.currentQuery)
-      ? 'No readable gene set has that ID. Press Enter to add it anyway.'
+      ? 'No gene set you can read has that ID.'
       : 'No gene sets match. Try other words or filters, or type gene set IDs.';
   }
 
@@ -124,13 +159,21 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.source.destroy();
+    this.lookups.unsubscribe();
   }
 
   search(query: string): void {
     this.source.search(query);
   }
 
+  /** The user changed the chips: earlier refusals no longer apply. */
   selectionChanged(options: GenesetOption[] | null): void {
+    this.rejectedIds = [];
+    this.uncheckedIds = [];
+    this.setSelected(options);
+  }
+
+  private setSelected(options: GenesetOption[] | null): void {
     this.selected = options ?? [];
     this.selected.forEach((option) => this.source.known.set(option.id, option));
     this.idsChange.emit(this.selected.map((option) => String(option.id)));
@@ -153,8 +196,8 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
     if (!input || !ids) {
       return;
     }
-    const present = new Set(this.selected.map((option) => option.id));
-    const added = ids.filter((id) => !present.has(id) && present.add(id));
+    const present = new Set([...this.selected.map((option) => option.id), ...this.checkingIds]);
+    const typed = ids.filter((id) => !present.has(id) && present.add(id));
     input.value = '';
     this.source.reset();
     // The keystrokes that typed the ids started a debounced search; it would open the list
@@ -166,9 +209,23 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
         this.autoComplete.hide();
       }
     }
-    if (added.length) {
-      this.selectionChanged([...this.selected, ...added.map((id) => this.optionFor(String(id)))]);
+    if (!typed.length) {
+      return;
     }
+    // Only what this user may read becomes a chip, as a run would refuse the rest.
+    typed.forEach((id) => this.checkingIds.add(id));
+    this.lookups.add(
+      this.source.lookup(typed).subscribe((lookup) => {
+        typed.forEach((id) => this.checkingIds.delete(id));
+        const have = new Set(this.selected.map((option) => option.id));
+        const added = lookup.found.filter((option) => !have.has(option.id));
+        if (added.length) {
+          this.setSelected([...this.selected, ...added]);
+        }
+        this.rejectedIds = [...new Set([...this.rejectedIds, ...lookup.unreadable])];
+        this.uncheckedIds = [...new Set([...this.uncheckedIds, ...lookup.unchecked])];
+      }),
+    );
   }
 
   private optionFor(id: string): GenesetOption {

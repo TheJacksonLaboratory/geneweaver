@@ -25,17 +25,30 @@ describe('GenesetPickerComponent', () => {
   let requests: { url: string; params: HttpParams }[];
   let respond: (params: HttpParams) => Observable<unknown>;
   let emitted: string[][];
+  /** Gene sets this caller may read, for `GET /genesets?gs_id=`; anything else is refused. */
+  let readable: Set<number>;
+  let lookupFails: boolean;
 
   const apiStub = {
     getCollection: (url: string, params: HttpParams) => {
       requests.push({ url, params });
+      if (url === '/genesets') {
+        if (lookupFails) {
+          return throwError(() => new Error('502'));
+        }
+        const id = Number(params.get('gs_id'));
+        return of({ data: readable.has(id) ? [{ id, abbreviation: `Set ${id}`, species_id: 1 }] : [] });
+      }
       return respond(params);
     },
   };
 
+
   beforeEach(async () => {
     requests = [];
     emitted = [];
+    readable = new Set([514, 515, 516]);
+    lookupFails = false;
     respond = (params) => of({ data: page(Number(params.get('offset')) + 1, PAGE_SIZE) });
     await TestBed.configureTestingModule({
       imports: [GenesetPickerComponent],
@@ -111,6 +124,43 @@ describe('GenesetPickerComponent', () => {
     expect(input.value).toBe('');
   });
 
+  it('does not add a typed id the user may not read, and says why', () => {
+    // GS51 and GS54 do not exist on dev; a private gene set is refused the same way.
+    picker.keyUp(typed('514, 51, 54', 'Enter').event);
+    expect(emitted.at(-1)).toEqual(['514']);
+    expect(picker.selected.map((option) => option.chip)).toEqual(['GS514 · Set 514']);
+    expect(picker.rejected).toContain('Not added: GS51, GS54');
+    expect(picker.rejected).toContain('private to someone else, or not exist');
+  });
+
+  it('reports every refused id when they are typed one comma at a time', () => {
+    picker.keyUp(typed('514,', ',').event);
+    picker.keyUp(typed('51,', ',').event);
+    picker.keyUp(typed('54', 'Enter').event);
+    expect(emitted.at(-1)).toEqual(['514']);
+    expect(picker.rejected).toContain('Not added: GS51, GS54');
+
+    picker.selectionChanged([]); // The user changes the chips: the note goes.
+    expect(picker.rejected).toBeUndefined();
+  });
+
+  it('adds nothing it could not check', () => {
+    lookupFails = true;
+    picker.keyUp(typed('514', 'Enter').event);
+    expect(emitted).toEqual([]);
+    expect(picker.rejected).toContain('Could not check GS514');
+  });
+
+  it('lists the gene set with a typed id first, above text matches for the number', () => {
+    picker.search('515');
+    expect(requests.some((request) => request.url === '/genesets' && request.params.get('gs_id') === '515')).toBe(true);
+    expect(picker.source.suggestions[0]).toMatchObject({ id: 515, chip: 'GS515 · Set 515' });
+    expect(picker.source.suggestions).toHaveLength(PAGE_SIZE + 1);
+
+    picker.search('51');
+    expect(picker.source.suggestions[0].id).toBe(1); // No GS51 to put first: text matches only.
+  });
+
   it('adds a picked suggestion and emits ids as the page holds them', () => {
     picker.search('dopamine');
     picker.selectionChanged([picker.source.suggestions[2]]);
@@ -129,7 +179,12 @@ describe('GenesetPickerComponent', () => {
     const { input } = typed('516', 'Tab');
     picker.blur({ target: input } as unknown as Event);
     expect(emitted.at(-1)).toEqual(['514', '515', '516']);
-    expect(picker.selected.map((option) => option.chip)).toEqual(['GS514', 'GS515', 'GS516']);
+    // Looked up, so each chip carries its gene set's name.
+    expect(picker.selected.map((option) => option.chip)).toEqual([
+      'GS514 · Set 514',
+      'GS515 · Set 515',
+      'GS516 · Set 516',
+    ]);
   });
 
   it('leaves words in the field as a search', () => {
