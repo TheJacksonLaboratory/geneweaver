@@ -97,22 +97,21 @@ def _holds_gene(predicate: Composed | None = None) -> Composed:
     return query + SQL(")")
 
 
-def _visible_in_search(filters: list, params: dict, user_id: int | None) -> None:
-    """Only gene sets a search may show ``user_id``: what they may read, admin rights aside.
+def _readable(filters: list, params: dict, user_id: int | None) -> None:
+    """Only gene sets ``user_id`` may read: ``production.geneset_is_readable2``, set-based.
 
-    Decided 2026-10-20: a search shows no one another user's private gene set on the strength
-    of being an admin or curator. So this is ``production.geneset_is_readable2`` without its
-    last case, "the user is an admin": the user owns the set; the set is public
-    (``gs_groups = '0'``) or in a public tier (``cur_id < 5``); one of the user's groups
-    shares it; or one of the user's groups shares a project holding it. Opening a gene set and
-    a tool run's access check still use the function, admin case included.
+    The function is right but costs ~15 ms for each private gene set it has to decide: it
+    re-runs the user's group and project lookups for every row. A search that stops at its
+    first page barely notices; a sorted one checks every match -- 10,825 for "dopamine",
+    2,616 of them private Tier V sets, 40 s. Here the same six cases are written once, with
+    the user's groups, shared projects and admin flag looked up once per query.
 
-    Written set-based rather than calling the function: it costs ~15 ms for each private gene
-    set it decides, re-running the user's group and project lookups every row, and a sorted
-    search checks every match -- 10,825 for "dopamine", 40 s. Here the user's groups and shared
-    projects are looked up once per query. Before the admin case was dropped, this was checked
-    equal to the function on dev for anonymous, grouped, project-sharing, admin and ordinary
-    users; it now differs only for admins and curators.
+    Keep it in step with the function (``pg_get_functiondef('production.geneset_is_readable2'
+    ::regproc)``): the user owns the set; the set is public (``gs_groups = '0'``) or in a
+    public tier (``cur_id < 5``); one of the user's groups shares it; one of the user's groups
+    shares a project holding it; or the user is an admin or curator (``usr_admin > 0``), who
+    sees every private gene set, as in legacy. Checked equal to the function on dev for
+    anonymous, grouped, project-sharing, admin, curator and ordinary users.
     """
     if user_id is None:
         return
@@ -129,7 +128,10 @@ def _visible_in_search(filters: list, params: dict, user_id: int | None) -> None
                   JOIN production.project p ON p.pj_id = p2g.pj_id
                   JOIN production.usr2grp u2g
                     ON u2g.grp_id = ANY(('{' || p.pj_groups || '}')::integer[])
-                 WHERE u2g.usr_id = %(is_readable_by)s))"""
+                 WHERE u2g.usr_id = %(is_readable_by)s)
+            OR EXISTS (
+                SELECT 1 FROM production.usr u
+                 WHERE u.usr_admin > 0 AND u.usr_id = %(is_readable_by)s))"""
         )
     )
     params["is_readable_by"] = user_id
@@ -205,7 +207,7 @@ def genesets(
     if search_text is not None or publication_id is not None or pubmed_id is not None:
         query += SQL("JOIN geneset_search ON geneset_search.gs_id = geneset.gs_id")
 
-    _visible_in_search(filtering, params, is_readable_by)
+    _readable(filtering, params, is_readable_by)
     filtering, params = search(filtering, params, const.SEARCH_COMBINED_COL, search_text)
     filtering, params = restrict_tier(filtering, params, curation_tier)
     filtering, params = restrict_score_type(filtering, params, score_type)

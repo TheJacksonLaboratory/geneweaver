@@ -15,13 +15,13 @@ class GenesetSearch(BaseModel):
 
     Text, a gene, a gene set id, or any of them together: text matches a gene set's name and
     other metadata; a gene keeps the gene sets holding it (G3-764); an id looks one gene set
-    up. Every other filter combines with them (G3-777). Results never include another user's
-    private gene set because the searcher is an admin.
+    up. Every other filter combines with them (G3-777). Results are the gene sets the caller
+    may read (``geneset_is_readable2``): admins and curators see private gene sets too.
     """
 
     search_text: str | None = None
     gs_id: int | None = Field(
-        None, ge=1, description="Only this gene set, if this user may find it in a search."
+        None, ge=1, description="Only this gene set, if the caller may read it."
     )
     publication_id: int | None = None
     pubmed_id: int | None = None

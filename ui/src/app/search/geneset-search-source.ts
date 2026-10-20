@@ -65,9 +65,10 @@ export class GenesetSearchSource {
   }
 
   /**
-   * Look gene set ids up: which this user may find. Each is checked by
-   * `GET /genesets/search?gs_id=`, so a typed id follows the search's rule -- in particular,
-   * an admin does not find another user's private gene set by typing its id.
+   * Look gene set ids up: which exist and this user may read. Each is checked by
+   * `GET /genesets/search?gs_id=`, so a typed id follows the same rule as the suggestions
+   * (and a tool run's access check): the owner, sharing groups and projects, and admins and
+   * curators may read a private gene set.
    */
   lookup(ids: number[]): Observable<IdLookup> {
     if (!ids.length) {

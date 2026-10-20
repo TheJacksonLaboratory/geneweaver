@@ -99,8 +99,8 @@ def test_first_mode_keeps_every_gene_set_holding_it_and_puts_passing_ones_first(
     assert order.rstrip().endswith("geneset.gs_id + 0 LIMIT 25 OFFSET 0")
 
 
-def test_search_shows_the_functions_cases_set_based() -> None:
-    """Owner, public, public tier, shared group, shared project: looked up once, not per row."""
+def test_readability_is_the_functions_cases_set_based() -> None:
+    """The user's groups, shared projects and admin flag are looked up once, not per row."""
     sql, params = _sql(search_text="x", is_readable_by=7)
     assert params["is_readable_by"] == 7
     for case in (
@@ -109,16 +109,11 @@ def test_search_shows_the_functions_cases_set_based() -> None:
         "geneset.cur_id < 5",
         "FROM production.usr2grp u2g WHERE u2g.usr_id = %(is_readable_by)s",
         "FROM production.project2geneset p2g",
+        # Admins and curators see private gene sets in search, as in legacy.
+        "u.usr_admin > 0",
     ):
         assert case in sql
     assert "geneset_is_readable2" not in sql
-
-
-def test_being_an_admin_shows_no_one_elses_private_gene_sets() -> None:
-    """Decided 2026-10-20: the function's admin case is not part of what a search shows."""
-    sql, _ = _sql(search_text="x", is_readable_by=7)
-    assert "usr_admin" not in sql
-    assert "production.usr " not in sql
 
 
 def test_a_gene_set_can_be_looked_up_by_id_under_the_same_rule() -> None:
