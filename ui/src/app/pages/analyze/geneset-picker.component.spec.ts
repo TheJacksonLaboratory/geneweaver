@@ -96,6 +96,32 @@ describe('GenesetPickerComponent', () => {
     expect(picker.source.suggestions[PAGE_SIZE].id).toBe(PAGE_SIZE + 1);
   });
 
+  it('pages the search from its own offset when an id lookup leads the list', () => {
+    // GS515 is not among the 25 text matches for "515", so the first page lists 26.
+    picker.search('515');
+    expect(picker.source.suggestions).toHaveLength(PAGE_SIZE + 1);
+    picker.source.loadMore(PAGE_SIZE);
+    const offsets = requests
+      .filter((request) => request.url === '/genesets/search' && !request.params.has('gs_id'))
+      .map((request) => request.params.get('offset'));
+    expect(offsets).toEqual(['0', String(PAGE_SIZE)]);
+  });
+
+  it("says why the API refused a search, instead of 'not responding'", () => {
+    respond = () =>
+      throwError(() => ({
+        status: 422,
+        error: { detail: [{ loc: ['query', 'p_value'], msg: 'Input should be less than or equal to 1' }] },
+      }));
+    picker.search('dopamine');
+    expect(picker.source.failed).toBe(false);
+    expect(picker.source.refused).toBe('p_value: Input should be less than or equal to 1');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.search-refused')?.textContent).toContain(
+      'less than or equal to 1',
+    );
+  });
+
   it('stops paging after a short page: there is nothing more', () => {
     respond = () => of({ data: page(1, 3) });
     picker.search('rare words');

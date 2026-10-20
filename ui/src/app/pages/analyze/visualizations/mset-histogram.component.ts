@@ -68,7 +68,7 @@ export class MsetHistogramComponent implements OnChanges {
     // From -1, so the overlap-0 bar sits clear of the y axis rather than on it.
     const x = scaleLinear().domain([-1, xMax]).range([m.left, width - m.right]);
     const y = scaleLinear()
-      .domain([0, max(bins, (b) => b.share) ?? 1])
+      .domain([0, max(bins, (b) => b.share) || 1])
       .nice()
       .range([height - m.bottom, m.top]);
     const barWidth = Math.max(2, x(1) - x(0) - 1);

@@ -208,7 +208,7 @@ export class ToolResultComponent implements OnChanges {
           : undefined;
     this.vennGrid =
       this.tool === 'jaccard_similarity'
-        ? jaccardVennGrid(r as Parameters<typeof jaccardVennGrid>[0])
+        ? jaccardVennGrid(r as Parameters<typeof jaccardVennGrid>[0], this.geneCounts)
         : undefined;
     this.tree = this.tool === 'jaccard_clustering' ? dendrogramModel(r['tree']) : undefined;
     this.pack = this.tool === 'dbscan' ? dbscanModel(r as Parameters<typeof dbscanModel>[0]) : undefined;
