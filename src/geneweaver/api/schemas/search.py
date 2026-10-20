@@ -13,11 +13,16 @@ SortKey = Literal["id", "name", "size", "species", "tier", "score_type", "create
 class GenesetSearch(BaseModel):
     """Schema for geneset search.
 
-    Text, a gene, or both: text matches a gene set's name and other metadata; a gene keeps
-    the gene sets holding it (G3-764). Every other filter combines with them (G3-777).
+    Text, a gene, a gene set id, or any of them together: text matches a gene set's name and
+    other metadata; a gene keeps the gene sets holding it (G3-764); an id looks one gene set
+    up. Every other filter combines with them (G3-777). Results never include another user's
+    private gene set because the searcher is an admin.
     """
 
     search_text: str | None = None
+    gs_id: int | None = Field(
+        None, ge=1, description="Only this gene set, if this user may find it in a search."
+    )
     publication_id: int | None = None
     pubmed_id: int | None = None
     species: set[Species] | None = None
@@ -70,8 +75,12 @@ class GenesetSearch(BaseModel):
     @model_validator(mode="after")
     def _check_search(self) -> "GenesetSearch":
         """Refuse a search with nothing to search for, or cutoffs with no gene to apply to."""
-        if not (self.search_text and self.search_text.strip()) and not self.gene:
-            raise ValueError("Give search_text, a gene, or both.")
+        if (
+            not (self.search_text and self.search_text.strip())
+            and not self.gene
+            and not self.gs_id
+        ):
+            raise ValueError("Give search_text, a gene, or a gs_id.")
         cutoffs = (
             self.p_value,
             self.q_value,

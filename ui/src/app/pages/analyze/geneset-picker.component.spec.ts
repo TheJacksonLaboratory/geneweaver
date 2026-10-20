@@ -25,14 +25,14 @@ describe('GenesetPickerComponent', () => {
   let requests: { url: string; params: HttpParams }[];
   let respond: (params: HttpParams) => Observable<unknown>;
   let emitted: string[][];
-  /** Gene sets this caller may read, for `GET /genesets?gs_id=`; anything else is refused. */
+  /** Gene sets this caller may find, for `GET /genesets/search?gs_id=`; anything else is refused. */
   let readable: Set<number>;
   let lookupFails: boolean;
 
   const apiStub = {
     getCollection: (url: string, params: HttpParams) => {
       requests.push({ url, params });
-      if (url === '/genesets') {
+      if (url === '/genesets/search' && params.has('gs_id')) {
         if (lookupFails) {
           return throwError(() => new Error('502'));
         }
@@ -153,7 +153,7 @@ describe('GenesetPickerComponent', () => {
 
   it('lists the gene set with a typed id first, above text matches for the number', () => {
     picker.search('515');
-    expect(requests.some((request) => request.url === '/genesets' && request.params.get('gs_id') === '515')).toBe(true);
+    expect(requests.some((request) => request.url === '/genesets/search' && request.params.get('gs_id') === '515')).toBe(true);
     expect(picker.source.suggestions[0]).toMatchObject({ id: 515, chip: 'GS515 · Set 515' });
     expect(picker.source.suggestions).toHaveLength(PAGE_SIZE + 1);
 

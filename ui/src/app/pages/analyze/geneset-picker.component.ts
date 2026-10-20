@@ -29,8 +29,9 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
  * `filters` narrow them (G3-777, G3-764), as on the /next search page.
  *
  * Ids stay first-class. Typing or pasting `514, 515` and pressing Enter, a comma, or leaving
- * the field adds them without picking from the list -- once each is looked up: an id the user
- * may not read, or that does not exist, is reported and not added. (It used to be added as
+ * the field adds them without picking from the list -- once each is looked up through the
+ * search, so under its rule: an id the user may not find (private to someone else, an admin
+ * included, or no such gene set) is reported and not added. (It used to be added as
  * typed, and the run then refused it: "Not authorized to read gene set(s): 51, 54".)
  *
  * Bound as `[(ids)]` to the page's list of id strings, so the page's own checks and its

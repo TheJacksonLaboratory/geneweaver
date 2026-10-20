@@ -35,6 +35,15 @@ def test_the_options_reach_the_search(client, params, expected) -> None:
         assert kwargs[key] == value
 
 
+def test_a_gene_set_id_alone_is_a_search(client) -> None:
+    """The analyze picker checks a typed id this way, under the search's visibility rule."""
+    with patch(SEARCH, return_value=[]) as search:
+        response = client.get("/api/genesets/search", params={"gs_id": 51})
+    assert response.status_code == 200, response.text
+    assert search.call_args.kwargs["gs_id"] == 51
+    assert "search_text" not in search.call_args.kwargs
+
+
 def test_filters_combine(client) -> None:
     """Several species, tiers and score types at once, with a size range (G3-777)."""
     params = [
@@ -59,8 +68,9 @@ def test_filters_combine(client) -> None:
 @pytest.mark.parametrize(
     ("params", "message"),
     [
-        ({}, "search_text, a gene, or both"),
-        ({"search_text": "   "}, "search_text, a gene, or both"),
+        ({}, "search_text, a gene, or a gs_id"),
+        ({"search_text": "   "}, "search_text, a gene, or a gs_id"),
+        ({"gs_id": "0"}, "greater than or equal to 1"),
         ({"search_text": "x", "p_value": "0.05"}, "give gene"),
         ({"gene": "Drd2", "effect_low": "2", "effect_high": "1"}, "effect_low"),
         ({"gene": "Drd2", "p_value": "2"}, "less than or equal to 1"),

@@ -65,8 +65,9 @@ export class GenesetSearchSource {
   }
 
   /**
-   * Look gene set ids up: which exist and may be read by this user. Each is checked by
-   * `GET /genesets?gs_id=`, which applies the same rule as a tool run's access check.
+   * Look gene set ids up: which this user may find. Each is checked by
+   * `GET /genesets/search?gs_id=`, so a typed id follows the search's rule -- in particular,
+   * an admin does not find another user's private gene set by typing its id.
    */
   lookup(ids: number[]): Observable<IdLookup> {
     if (!ids.length) {
@@ -75,10 +76,7 @@ export class GenesetSearchSource {
     return forkJoin(
       ids.map((id) =>
         this.gwApi
-          .getCollection<GeneSet>(
-            '/genesets',
-            new HttpParams().set('gs_id', id).set('limit', 1).set('with_publication_info', false),
-          )
+          .getCollection<GeneSet>('/genesets/search', new HttpParams().set('gs_id', id).set('limit', 1))
           .pipe(
             map((response) => ({ id, geneset: (response.data ?? []).find((row) => row.id === id) ?? null })),
             catchError(() => of({ id, geneset: undefined })),
