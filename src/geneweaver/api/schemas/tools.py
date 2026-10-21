@@ -126,7 +126,8 @@ class ToolRunRequest(BaseModel):
             "hypergeometric); `p_value_threshold` (jaccard_similarity, phenome_map); "
             "`method` (jaccard_clustering: ward, single, centroid, mcquitty, average, "
             "complete); `relation` and `at_least` (boolean_algebra); `epsilon` and "
-            "`min_points` (dbscan); `number_of_samples` (mset); `min_genes`, "
+            "`min_points` (dbscan); `min_degree` (a number or 'auto'), `suppress_disconnected`, "
+            "`emphasis_genes` (geneset_graph); `number_of_samples` (mset); `min_genes`, "
             "`max_level`, `use_fdr`, `disable_bootstrap` (phenome_map)."
         ),
     )

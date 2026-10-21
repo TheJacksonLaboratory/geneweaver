@@ -163,6 +163,28 @@ export const TOOL_OPTIONS: Record<string, ToolOptionDefinition[]> = {
       help: 'How many neighbours a gene needs to start a cluster.',
     },
   ],
+  geneset_graph: [
+    HOMOLOGY,
+    {
+      key: 'min_degree',
+      label: 'Minimum degree',
+      kind: 'select',
+      // Legacy's "Minimum Degree (connectedness) of displayed genes": Auto, or a number.
+      choices: [
+        { label: 'Auto', value: 'auto' },
+        ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => ({ label: String(value), value })),
+      ],
+      default: 1,
+      help: 'Draw only genes in at least this many of the gene sets. Auto picks a cut as legacy did.',
+    },
+    {
+      key: 'suppress_disconnected',
+      label: 'Hide disconnected gene sets',
+      kind: 'checkbox',
+      default: true,
+      help: 'Leave out gene sets none of whose genes reach the minimum degree.',
+    },
+  ],
   mset: [
     {
       key: 'number_of_samples',

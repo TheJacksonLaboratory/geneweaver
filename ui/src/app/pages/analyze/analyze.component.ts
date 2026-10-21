@@ -159,6 +159,7 @@ const TOOL_LABELS: Record<string, string> = {
   upset: 'UpSet',
   hypergeometric: 'HyperGeometric',
   dbscan: 'DBSCAN',
+  geneset_graph: 'GeneSet Graph',
   mset: 'MSET',
   phenome_map: 'PhenomeMap',
   boolean_algebra: 'BooleanAlgebra',

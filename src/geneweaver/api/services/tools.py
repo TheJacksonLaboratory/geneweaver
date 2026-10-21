@@ -367,6 +367,7 @@ HOMOLOGY_TOOLS = frozenset(
     {
         "upset",
         "dbscan",
+        "geneset_graph",
         "hypergeometric",
         "jaccard_clustering",
         "jaccard_similarity",
@@ -449,6 +450,27 @@ def _dbscan_input(cursor, geneset_ids, memberships, parameters) -> dict:
         "epsilon": int(parameters.get("epsilon", 1)),
         "min_points": int(parameters.get("min_points", 2)),
         "geneset_ids": _as_strings(geneset_ids),
+    }
+
+
+def _geneset_graph_input(cursor, geneset_ids, memberships, parameters) -> dict:
+    # Legacy's "Minimum Degree": a number, or "Auto" (any case) for legacy's own pick.
+    min_degree = parameters.get("min_degree", 1)
+    if isinstance(min_degree, str) and min_degree.strip().lower() == "auto":
+        min_degree = "auto"
+    else:
+        min_degree = int(min_degree)
+    emphasis = parameters.get("emphasis_genes") or []
+    if isinstance(emphasis, str):
+        emphasis = [gene for gene in emphasis.replace(",", " ").split() if gene]
+    return {
+        "geneset_ids": _as_strings(geneset_ids),
+        "gene_memberships": memberships,
+        "include_homology": flag(parameters, "include_homology", False),
+        "min_degree": min_degree,
+        # Legacy's "Suppress disconnected", On by default.
+        "suppress_disconnected": flag(parameters, "suppress_disconnected", True),
+        "emphasis_genes": list(emphasis),
     }
 
 
@@ -535,6 +557,7 @@ def _boolean_algebra_input(cursor, geneset_ids, memberships, parameters) -> dict
 INPUT_BUILDERS: dict[str, Callable[..., dict]] = {
     "upset": _upset_input,
     "dbscan": _dbscan_input,
+    "geneset_graph": _geneset_graph_input,
     "hypergeometric": _hypergeometric_input,
     "jaccard_clustering": _jaccard_clustering_input,
     "jaccard_similarity": _jaccard_similarity_input,

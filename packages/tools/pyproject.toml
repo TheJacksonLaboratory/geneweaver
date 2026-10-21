@@ -58,6 +58,7 @@ temporal = [
 boolean_algebra = "geneweaver.tools.boolean_algebra:BooleanAlgebra"
 combine = "geneweaver.tools.combine:Combine"
 dbscan = "geneweaver.tools.dbscan:DBSCAN"
+geneset_graph = "geneweaver.tools.geneset_graph:GenesetGraph"
 hypergeometric = "geneweaver.tools.hypergeometric:HyperGeometric"
 jaccard_clustering = "geneweaver.tools.jaccard_clustering:JaccardClustering"
 jaccard_similarity = "geneweaver.tools.jaccard_similarity:JaccardSimilarity"

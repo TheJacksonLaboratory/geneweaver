@@ -1127,3 +1127,105 @@ export function combineModel(output: {
   rows.sort((a, b) => b.count - a.count || a.gene.localeCompare(b.gene));
   return { columns, rows };
 }
+
+// --- GeneSet Graph (legacy GeneSetViewer) ------------------------------------------------
+
+export interface GenesetGraphOutput {
+  geneset_ids: string[];
+  include_homology: boolean;
+  min_degree: number;
+  genesets: { id: string; genes: number; size: number }[];
+  genes: { symbol: string; degree: number; genesets: string[]; emphasized?: boolean }[];
+  total_genes: number;
+  min_gene_degree: number;
+  max_gene_degree: number;
+  avg_gene_degree: number;
+}
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  kind: 'geneset' | 'gene';
+  x: number;
+  y: number;
+  /** A gene set's colour index; a gene's degree. */
+  colour?: number;
+  degree?: number;
+  emphasized?: boolean;
+}
+
+export interface GenesetGraphModel {
+  nodes: GraphNode[];
+  edges: { id: string; source: string; target: string; colour: number }[];
+  /** Too many links to draw legibly; the table still lists every gene. */
+  tooLarge: boolean;
+  budget: number;
+  summary: string;
+}
+
+/** Past this many links the graph is a solid mass, as with DBSCAN's network. */
+export const GENESET_GRAPH_EDGE_BUDGET = 4000;
+
+const GENES_PER_COLUMN = 30;
+const COLUMN_GAP = 170;
+const ROW_GAP = 26;
+
+/**
+ * Legacy's GeneSetViewer layout, as positions: gene sets in one column on the left, genes to
+ * the right in columns by degree -- the genes most gene sets share nearest them -- each degree
+ * wrapping into extra columns past `GENES_PER_COLUMN`. Every edge joins a gene set to a gene
+ * it holds, coloured as the gene set, as legacy coloured them.
+ */
+export function genesetGraphModel(output: GenesetGraphOutput): GenesetGraphModel {
+  const colours = new Map(output.genesets.map((set, i) => [set.id, i]));
+  const shown = new Set(output.genesets.map((set) => set.id));
+  const nodes: GraphNode[] = output.genesets.map((set, i) => ({
+    id: `gs:${set.id}`,
+    label: genesetLabel(set.id),
+    kind: 'geneset',
+    x: 0,
+    y: (i - (output.genesets.length - 1) / 2) * ROW_GAP * 2,
+    colour: colours.get(set.id),
+  }));
+  const degrees = [...new Set(output.genes.map((gene) => gene.degree))].sort((a, b) => b - a);
+  let column = 1;
+  for (const degree of degrees) {
+    const genes = output.genes.filter((gene) => gene.degree === degree);
+    for (let start = 0; start < genes.length; start += GENES_PER_COLUMN) {
+      const chunk = genes.slice(start, start + GENES_PER_COLUMN);
+      chunk.forEach((gene, row) => {
+        nodes.push({
+          id: `gene:${gene.symbol}`,
+          label: gene.symbol,
+          kind: 'gene',
+          x: column * COLUMN_GAP,
+          y: (row - (chunk.length - 1) / 2) * ROW_GAP,
+          degree: gene.degree,
+          emphasized: !!gene.emphasized,
+        });
+      });
+      column += 1;
+    }
+  }
+  const edges = output.genes.flatMap((gene) =>
+    gene.genesets
+      .filter((id) => shown.has(id))
+      .map((id) => ({
+        id: `${id}->${gene.symbol}`,
+        source: `gs:${id}`,
+        target: `gene:${gene.symbol}`,
+        colour: colours.get(id) ?? 0,
+      })),
+  );
+  return {
+    nodes,
+    edges,
+    tooLarge: edges.length > GENESET_GRAPH_EDGE_BUDGET,
+    budget: GENESET_GRAPH_EDGE_BUDGET,
+    summary:
+      `${output.genes.length} of ${output.total_genes} genes are in at least ${output.min_degree} ` +
+      `gene set${output.min_degree === 1 ? '' : 's'}; ${output.genesets.length} gene sets shown. ` +
+      `Gene degree ranges ${output.min_gene_degree}-${output.max_gene_degree}, ` +
+      `average ${output.avg_gene_degree.toFixed(2)}.`,
+  };
+}

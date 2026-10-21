@@ -159,7 +159,7 @@ class TestToolAvailability:
 
     def test_every_registered_tool_is_reported(self) -> None:
         """The picker used to list five of nine; the list must come from the registry."""
-        assert len(tool_service.available_tools()) == 9
+        assert len(tool_service.available_tools()) == 10
         assert set(tool_service.tool_availability()) == set(tool_service.available_tools())
 
     def test_the_binary_backed_tools_are_unavailable_in_process(self) -> None:
@@ -169,7 +169,7 @@ class TestToolAvailability:
             assert availability[name]["available"] is False
             assert "AsyncTask" in availability[name]["reason"]
 
-    def test_the_other_seven_are_available(self) -> None:
+    def test_the_pure_python_tools_are_available(self) -> None:
         """Pins the set, so adding a tool without a resolver fails here."""
         availability = tool_service.tool_availability()
         runnable = sorted(n for n, s in availability.items() if s["available"])
@@ -177,6 +177,7 @@ class TestToolAvailability:
             "boolean_algebra",
             "combine",
             "dbscan",
+            "geneset_graph",
             "hypergeometric",
             "jaccard_clustering",
             "jaccard_similarity",
@@ -806,6 +807,34 @@ class TestOptions:
             tool_service.run_tool(
                 mock_cursor, "boolean_algebra", [1, 2], user=Mock(), parameters={"relation": "x"}
             )
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected"),
+        [
+            ({}, {"min_degree": 1, "suppress_disconnected": True, "emphasis_genes": []}),
+            (
+                {
+                    "min_degree": "Auto",
+                    "suppress_disconnected": "Off",
+                    "emphasis_genes": "Drd2, Th",
+                },
+                {
+                    "min_degree": "auto",
+                    "suppress_disconnected": False,
+                    "emphasis_genes": ["Drd2", "Th"],
+                },
+            ),
+            ({"min_degree": "3"}, {"min_degree": 3}),
+        ],
+    )
+    def test_geneset_graph_reads_legacys_options(self, parameters, expected, mock_cursor) -> None:
+        """Legacy's spellings: "Auto", On/Off, and a comma or space separated gene list."""
+        built = tool_service.INPUT_BUILDERS["geneset_graph"](
+            mock_cursor, [1, 2], MEMBERSHIPS, parameters
+        )
+        assert built["gene_memberships"] == MEMBERSHIPS
+        for key, value in expected.items():
+            assert built[key] == value
 
     def test_clustering_method_is_case_insensitive(self, mock_cursor) -> None:
         """Legacy sends "Average"; the tool's schema wants lowercase."""

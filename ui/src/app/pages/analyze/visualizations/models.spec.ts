@@ -1,5 +1,7 @@
 import { FIXTURES } from './fixtures';
 import {
+  genesetGraphModel,
+  GENESET_GRAPH_EDGE_BUDGET,
   booleanModel,
   BooleanAlgebraOutput,
   combineModel,
@@ -549,5 +551,51 @@ describe('phenomeMapMatches and phenomeMapStats', () => {
     expect(stats['Genes']).toBe('448');
     expect(stats['Bicliques shown']).toBe('26');
     expect(stats['Levels']).toBe('5');
+  });
+});
+
+describe('genesetGraphModel', () => {
+  const output = {
+    geneset_ids: ['1', '2', '3'],
+    include_homology: false,
+    min_degree: 2,
+    genesets: [
+      { id: '1', genes: 2, size: 3 },
+      { id: '2', genes: 2, size: 3 },
+      { id: '3', genes: 1, size: 2 },
+    ],
+    genes: [
+      { symbol: 'C', degree: 3, genesets: ['1', '2', '3'], emphasized: true },
+      { symbol: 'B', degree: 2, genesets: ['1', '2'] },
+    ],
+    total_genes: 5,
+    min_gene_degree: 1,
+    max_gene_degree: 3,
+    avg_gene_degree: 1.6,
+  };
+
+  it('puts gene sets in one column and genes in columns by degree, most shared nearest', () => {
+    const model = genesetGraphModel(output);
+    const x = (id: string) => model.nodes.find((n) => n.id === id)!.x;
+    expect(new Set(['gs:1', 'gs:2', 'gs:3'].map(x))).toEqual(new Set([0]));
+    expect(x('gene:C')).toBeLessThan(x('gene:B'));
+    expect(model.nodes.find((n) => n.id === 'gene:C')!.emphasized).toBe(true);
+  });
+
+  it('links each gene to every shown gene set holding it, in that set\'s colour', () => {
+    const model = genesetGraphModel(output);
+    expect(model.edges.map((e) => e.id).sort()).toEqual(['1->B', '1->C', '2->B', '2->C', '3->C']);
+    expect(model.edges.find((e) => e.id === '3->C')!.colour).toBe(2);
+    expect(model.tooLarge).toBe(false);
+    expect(model.summary).toContain('2 of 5 genes are in at least 2 gene sets');
+  });
+
+  it('refuses to draw past the edge budget', () => {
+    const genes = Array.from({ length: GENESET_GRAPH_EDGE_BUDGET + 1 }, (_, i) => ({
+      symbol: `G${i}`,
+      degree: 1,
+      genesets: ['1'],
+    }));
+    expect(genesetGraphModel({ ...output, genes }).tooLarge).toBe(true);
   });
 });

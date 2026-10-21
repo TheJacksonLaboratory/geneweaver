@@ -26,6 +26,7 @@ EXPECTED_PLUGINS = {
     "boolean_algebra": "BooleanAlgebra",
     "combine": "Combine",
     "dbscan": "DBSCAN",
+    "geneset_graph": "GenesetGraph",
     "hypergeometric": "HyperGeometric",
     "jaccard_clustering": "JaccardClustering",
     "jaccard_similarity": "JaccardSimilarity",
@@ -70,7 +71,7 @@ def entry_points() -> dict:
 
 
 def test_every_expected_tool_is_registered(entry_points: dict) -> None:
-    """All nine canonical tools are discoverable by the GeneWeaver activity."""
+    """All ten canonical tools are discoverable by the GeneWeaver activity."""
     assert set(entry_points) == set(EXPECTED_PLUGINS)
 
 
