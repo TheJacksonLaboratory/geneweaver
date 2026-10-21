@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ApiBaseServiceFactory } from "jax-apiutils";
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
+import { SessionService } from '../../services/session.service';
 
 
 describe('GeneSetComponent', () => {
@@ -20,6 +21,7 @@ describe('GeneSetComponent', () => {
       imports: [GeneSetComponent, NoopAnimationsModule],
       providers: [
         { provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory },
+        { provide: SessionService, useValue: { authenticated: false, refresh: jest.fn() } },
         {
           provide: ActivatedRoute,
           useValue: {

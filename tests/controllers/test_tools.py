@@ -508,6 +508,58 @@ def test_refusals_happen_before_a_connection_is_leased(app, client, path, expect
     assert response.status_code == expected
 
 
+# --- Similar gene sets ---------------------------------------------------------------
+
+
+def test_similar_genesets_endpoint_is_not_taken_for_a_tool_name(client) -> None:
+    """`/tools/similar_genesets` reaches its own route, not `/tools/{tool}`'s."""
+    ran = {"tool": "similar_genesets", "executed_by": "in_process", "run_id": None, "result": {}}
+    with patch(
+        "geneweaver.api.services.similar_genesets.run_similar_genesets", return_value=ran
+    ) as run:
+        response = client.post(
+            "/api/tools/similar_genesets", json={"geneset_id": 5, "threshold": "uploader"}
+        )
+    assert response.status_code == 200
+    assert run.call_args.args[1].geneset_id == 5
+    assert run.call_args.args[1].threshold == "uploader"
+
+
+def test_similar_genesets_endpoint_reports_a_long_search_as_202(client) -> None:
+    """A search past the API's wait is answered with its run id, as every tool's is."""
+    from geneweaver.api.services import tools as tool_service
+
+    pending = tool_service.ToolRunPending(
+        {"tool": "similar_genesets", "geneset_ids": [5], "gene_counts": {}, "caveat": None},
+        11,
+        "running",
+    )
+    with patch(
+        "geneweaver.api.services.similar_genesets.run_similar_genesets", side_effect=pending
+    ):
+        response = client.post("/api/tools/similar_genesets", json={"geneset_id": 5})
+    assert response.status_code == 202
+    assert response.json()["object"]["run_id"] == 11
+
+
+def test_similar_genesets_endpoint_reports_a_busy_process_as_503(client) -> None:
+    """In-process, one search at a time; the next is told when to retry."""
+    from geneweaver.api.services import similar_genesets as similar_service
+
+    with patch(
+        "geneweaver.api.services.similar_genesets.run_similar_genesets",
+        side_effect=similar_service.SimilarGenesetsBusy("busy"),
+    ):
+        response = client.post("/api/tools/similar_genesets", json={"geneset_id": 5})
+    assert response.status_code == 503
+    assert response.headers["Retry-After"] == "120"
+
+
+def test_similar_genesets_endpoint_needs_a_gene_set(client) -> None:
+    """No gene set id is a 422."""
+    assert client.post("/api/tools/similar_genesets", json={}).status_code == 422
+
+
 # --- ABBA ----------------------------------------------------------------------------
 
 

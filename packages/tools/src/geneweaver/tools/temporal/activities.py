@@ -19,6 +19,7 @@ from typing import Any
 
 from geneweaver.tools.abba import TOOL_NAME as ABBA
 from geneweaver.tools.framework.binary import progress_hook
+from geneweaver.tools.similar_genesets import TOOL_NAME as SIMILAR_GENESETS
 from geneweaver.tools.temporal.resolvers import resolve_input
 from geneweaver.tools.temporal.routing import check_tool_served_here
 from geneweaver.tools_plugin.contract import ACTIVITY_NAME
@@ -127,11 +128,47 @@ def run_abba(input_data: dict) -> dict:
         return search(connection, request, user_id).model_dump(mode="json")
 
 
+def run_similar_genesets(input_data: dict) -> dict:
+    """Find the gene sets most like one gene set, on this worker, against the database.
+
+    Read-only, unlike legacy, which rewrote ``geneset_jaccard`` on every view.
+
+    :param input_data: ``{"tool": "similar_genesets", "input": {...}, "identity": {...}}``;
+        the identity is signed as ABBA's is.
+    """
+    from geneweaver.tools.abba.identity import verified_user_id
+    from geneweaver.tools.similar_genesets.schema import SimilarGenesetsInput
+    from geneweaver.tools.similar_genesets.search import search
+    from geneweaver.tools.temporal.db import connect
+
+    try:
+        request = SimilarGenesetsInput(**(input_data.get("input") or {}))
+        user_id = verified_user_id(input_data.get("identity"), os.environ.get("DB_PASSWORD"))
+    except ValueError as error:  # pydantic's ValidationError is a ValueError
+        raise ApplicationError(
+            f"similar_genesets rejected its input: {error}",
+            type="InvalidToolInput",
+            non_retryable=True,
+        ) from error
+
+    activity.logger.info(
+        "Finding gene sets like GS%d, threshold %s, user %s",
+        request.geneset_id,
+        request.threshold,
+        user_id,
+    )
+    with connect(read_only=True) as connection, _heartbeating(connection):
+        return search(connection, request, user_id).model_dump(mode="json")
+
+
 #: Tools that search the database rather than compute over their input, so they are not in
 #: the `geneweaver.tools` registry and have no `AbstractTool` to load. Routed to the python
 #: worker by the plugin's existing rule (they are not native), so adding one needs no
 #: plugin or AsyncTask release.
-DATABASE_TOOLS: dict[str, Callable[[dict], dict]] = {ABBA: run_abba}
+DATABASE_TOOLS: dict[str, Callable[[dict], dict]] = {
+    ABBA: run_abba,
+    SIMILAR_GENESETS: run_similar_genesets,
+}
 
 
 #: Registered under `ACTIVITY_NAME` from the plugin's contract, the name the workflow

@@ -42,8 +42,14 @@ from jax.apiutils import Response
 
 from geneweaver.api import dependencies as deps
 from geneweaver.api.schemas.auth import UserInternal
-from geneweaver.api.schemas.tools import ABBARequest, ToolRunRequest, UpSetRequest
+from geneweaver.api.schemas.tools import (
+    ABBARequest,
+    SimilarGenesetsRequest,
+    ToolRunRequest,
+    UpSetRequest,
+)
 from geneweaver.api.services import abba as abba_service
+from geneweaver.api.services import similar_genesets as similar_service
 from geneweaver.api.services import tools as tool_service
 from geneweaver.api.services.asynctask import AsyncTaskError
 
@@ -111,6 +117,41 @@ def run_abba(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=str(error),
                 headers={"Retry-After": "60"},
+            ) from error
+
+    return _run_and_map(http_response, run)
+
+
+@router.post("/similar_genesets")
+def run_similar_genesets(
+    request: Annotated[SimilarGenesetsRequest, Body(description="The gene set to compare.")],
+    http_response: HTTPResponse,
+    user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
+) -> Response:
+    """Find the gene sets most like one gene set: legacy's "Find Similar GeneSets".
+
+    The top `limit` (default 500) gene sets the caller may read, by Jaccard over their
+    genes with homologs counted as one gene, under the run's threshold choice. Read-only:
+    nothing is cached.
+
+    Runs on AsyncTask where it is configured, and answers as `POST /tools/{tool}` does: the
+    result if the search finishes within the wait, else 202 with a `run_id` to poll at
+    `GET /tools/runs/{run_id}`. Searches take about two minutes. Responds 401 if the caller
+    is not signed in, 403 if the gene set is not readable, 422 for an invalid request, and
+    -- only where it runs in-process -- 503 if a search is already running.
+
+    Declared before `POST /tools/{tool}`, which would otherwise take the name as a tool's.
+    """
+
+    def run() -> Any:
+        try:
+            return similar_service.run_similar_genesets(open_cursor, request, user)
+        except similar_service.SimilarGenesetsBusy as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(error),
+                headers={"Retry-After": "120"},
             ) from error
 
     return _run_and_map(http_response, run)

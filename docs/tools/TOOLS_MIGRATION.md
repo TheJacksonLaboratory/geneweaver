@@ -67,7 +67,7 @@ properties. The reimplementations follow consistent principles:
 
 | Legacy tool | Where it went | Why |
 |---|---|---|
-| SimilarGenesets | `geneweaver-db`: `geneset_jaccard.calculate_jaccard()` + `query/geneset_jaccard.py` | No in-process algorithm — it triggers the `calculate_jaccard` Postgres stored proc + timestamp/cache bookkeeping (one set vs all ~50k, over 2M+ memberships). Ported the stored proc to a versioned, testable query; heavy set-work stays in Postgres. A pure-Python port would be a perf/memory regression. |
+| SimilarGenesets | `geneweaver-db`: `query/similar_genesets.py`, run by `geneweaver.tools.similar_genesets` on AsyncTask (`POST /tools/similar_genesets`); a section of `/next/geneset/:id` | Legacy's live method, not the stored proc it no longer calls: Jaccard over homology keys (`application.dynamic_jaccard`, GWC-35 / G3-805), now in one **read-only** query with the run's threshold choice. It reads every gene of every gene set sharing a gene with the viewed one (15k–86k on dev), ~105 s, so it runs on AsyncTask like ABBA. Checked against legacy's `calculate_jaccard` on dev (GS400340, GS407161, legacy's in-threshold flag on both sides): the same top 500, in order, with identical Jaccard; it also finds the gene sets sharing only genes without a homolog, which legacy's `hom2geneset` lookup missed (206 of 40,291 for GS407161). Legacy also wrote the result into `geneset_jaccard` on every view; v3 never writes it — see §11 for the cache to build once legacy is off. (`geneset_jaccard.calculate_jaccard()` / `query/geneset_jaccard.py`, the port of the old stored proc, stays unused.) |
 | ABBA | `geneweaver-db`: `abba.abba()` + `query/abba.py` | DB query/aggregation: builds 4 session temp tables (input genes → homology-expanded genes of interest → matching gene sets → recurring result genes) plus tier/species count rollups. Ported to versioned, parameterised query builders + an orchestration function returning an `ABBAResult`. **Improvements**: list values bind via `= ANY(%(...)s)` and temp-table names use `sql.Identifier` (the legacy string-joined `IN (...)` clauses were an injection/quoting hazard); the "ignore homology" branch now actually creates its temp table (legacy ran a bare `SELECT` and broke every later step); per-call uuid table suffixes for concurrency. Rendering (JSON dump, zero-padding/list reshaping) dropped. |
 
 Every legacy tool is now ported or moved; none is flagged.
@@ -216,6 +216,8 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    happen to appear in curated genesets" — then any real gene is in-universe by construction. Until
    then, MSET fails early with a clear message naming the out-of-universe genes (see
    `MSET.check_list_in_background`) instead of surfacing the raw C++ stderr.
+
+7. **Similar gene sets cache** — build it once legacy is turned off, not before; see §11.
 
 ## 9. Validation against the legacy tools (local DB)
 
@@ -403,3 +405,43 @@ repository:
    whether to retire the older plugin is a product decision, not a packaging necessity.
 4. **Resolve tool inputs from the database.** Tools take fully-built input and nothing yet
    assembles it — only ABBA has a resolver.
+
+## 11. Similar gene sets: the cache, once legacy is turned off
+
+**Decision (2026-10-21): v3 computes Similar gene sets live and read-only, and never writes
+`geneset_jaccard`.** While legacy runs, that table is legacy's: `dynamic_jaccard` deletes and
+rewrites a gene set's rows on every view of `/viewSimilarGenesets`, so v3 writing it too would
+race legacy and change what legacy shows. Once legacy is turned off, v3 should build its own
+cache, because the live search costs what legacy's did.
+
+**What it costs live (dev, 2026-10-21).** One gene set shares a gene with 15,000 to 86,000
+others. Legacy's page spends 89–123 s just fetching their membership keys
+(`get_genesets_similarity_keys`), before its Python Jaccard and the rewrite. v3's one query
+takes 103–108 s at `work_mem = 256MB` (117–156 s at the default), so it runs on AsyncTask and
+the page polls it.
+
+**What the cache has to get right** (why it is not just "reuse `geneset_jaccard`"):
+
+1. **The threshold choice.** Gene sets are not inherently thresholded (curation, 2026-10-16):
+   a run picks All genes, the uploader's thresholds, or its own cutoffs. Only the first two
+   are fixed per gene set, so cache those two (a `threshold` column, or two tables) and
+   compute custom cutoffs live, as now.
+2. **Invalidation.** A gene set's row changes when its genes, scores or stored threshold
+   change, when it is deprecated, and when homology is reloaded (which renumbers keys). Legacy
+   never invalidated: it recomputed on view. Key the cache by gene set and an
+   `updated`/homology version, and recompute on change rather than on view.
+3. **Both directions.** Jaccard is symmetric, so a gene set's row is also a row of every gene
+   set it is compared with. Storing `(left < right)` as legacy did halves the table, but a new
+   gene set then touches up to 86,000 rows: batch it on AsyncTask, not in a request.
+4. **Readability stays live.** Cache the numbers, never the list a user sees: whether a gene
+   set may be shown is decided per request, as `query/similar_genesets.py` does now (search's
+   predicate, admins and curators included).
+5. **Membership is legacy's key** (`hom_id`, else the gene itself) — keep it, or the cache and
+   the live search disagree.
+
+**Shape.** A `similar_genesets_cache (gs_id_left, gs_id_right, threshold, jaccard, shared,
+computed)` table written by an AsyncTask job on gene set change and on homology reload, and
+a read path in `query/similar_genesets.py` that serves All genes / Uploader's from the cache
+and falls back to the live query for custom cutoffs or a gene set not yet cached. Retire
+`geneset_jaccard`, `geneset_info.gsi_jac_*` and `query/geneset_jaccard.py` with legacy.
+

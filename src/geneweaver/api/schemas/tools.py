@@ -1,6 +1,7 @@
 """Request and response schemas for running analysis tools."""
 
 from geneweaver.tools.abba import ABBAInput
+from geneweaver.tools.similar_genesets import SimilarGenesetsInput
 from geneweaver.tools.thresholds import ThresholdOptions
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -176,6 +177,15 @@ class ToolRunResult(BaseModel):
         default=None, description="The run's threshold choice: the mode and any cutoffs."
     )
     result: dict = Field(..., description="The tool's own output.")
+
+
+class SimilarGenesetsRequest(SimilarGenesetsInput):
+    """Parameters for Similar gene sets (legacy `/viewSimilarGenesets`).
+
+    The options and their checks are the tool's own
+    (`geneweaver.tools.similar_genesets.SimilarGenesetsInput`): the gene set, how many to
+    return, and the run's threshold choice, which applies to every gene set compared.
+    """
 
 
 class ABBARequest(ABBAInput):
