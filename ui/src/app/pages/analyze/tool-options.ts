@@ -185,6 +185,8 @@ export const TOOL_OPTIONS: Record<string, ToolOptionDefinition[]> = {
       help: 'Leave out gene sets none of whose genes reach the minimum degree.',
     },
   ],
+  // Its two groups are chosen beside the gene sets (`triclique-groups.ts`), not here.
+  triclique: [HOMOLOGY],
   mset: [
     {
       key: 'number_of_samples',

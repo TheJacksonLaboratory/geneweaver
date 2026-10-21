@@ -311,6 +311,41 @@
       </div>
     </section>
 
+    <!-- Triclique's two groups: legacy compared two projects; v3 splits the run's gene sets. -->
+    <section
+      *ngIf="isTriclique && !selectedToolReason && genesetIds.length"
+      class="tool-options mb-3"
+      aria-labelledby="tricliqueGroupsHeading"
+    >
+      <h3 id="tricliqueGroupsHeading" class="text-base mt-0 mb-2">Groups</h3>
+      <fieldset class="border-none p-0 m-0" aria-describedby="tricliqueGroupsHelp">
+        <legend class="block mb-2">Group B</legend>
+        <div class="flex flex-wrap gap-3">
+          <div *ngFor="let id of genesetIds" class="flex align-items-center">
+            <input
+              type="checkbox"
+              [id]="'group-b-' + id"
+              [checked]="tricliqueGroupB.includes(id)"
+              (change)="toggleGroupB(id)"
+            />
+            <label [for]="'group-b-' + id" class="ml-2">GS{{ id }}</label>
+          </div>
+        </div>
+      </fieldset>
+      <small id="tricliqueGroupsHelp" class="block mt-2 text-color-secondary">
+        Group A: {{ tricliqueGroupA.length ? 'GS' + tricliqueGroupA.join(', GS') : 'none' }}.
+        Triclique finds the largest set of gene sets from both groups that all share the same
+        genes. At most 50 genes may be in both groups.
+      </small>
+    </section>
+
+    <p-message
+      *ngIf="tricliqueProblem && !selectedToolReason"
+      severity="warn"
+      [text]="tricliqueProblem"
+      styleClass="w-full mb-3"
+    ></p-message>
+
     <p-message
       *ngIf="toolsLoading"
       severity="info"

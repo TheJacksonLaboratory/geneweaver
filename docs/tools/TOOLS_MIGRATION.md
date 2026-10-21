@@ -4,15 +4,15 @@
 > `geneweaver-tools` `AbstractTool` framework (`packages/tools`), as faithful, pure,
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
-> **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 124 passing;
+> **Status:** 11 compute tools ported, GeneSet Graph (legacy GeneSetViewer) and Triclique
+> (legacy TricliqueViewer) the latest; 2 moved to the DB layer (SimilarGenesets, ABBA). **`packages/tools` unit suite: 124 passing;
 > `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
 > and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
 > changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md). The tools are
 > registered as AsyncTask plugins (see §10). Which genes a run uses, and the run-wide option
 > to turn gene set thresholds off, are in
 > [TOOL_GENE_SCORE_THRESHOLD.md](TOOL_GENE_SCORE_THRESHOLD.md).
-> **Last updated:** 2026-10-16
+> **Last updated:** 2026-10-21
 
 ---
 
@@ -60,6 +60,9 @@ properties. The reimplementations follow consistent principles:
 | MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. **Background is now passed in as a resolved gene universe**, not a `*BG.txt` file name (G3-784). |
 | PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. KS term is a pure-Python transcription of the legacy asymptotic KS (a `scipy.stats.ks_2samp` swap was reverted — [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4). All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
 
+| GeneSet Graph | `geneset_graph` | pure | legacy GeneSetViewer: genes drawn by degree (how many of the gene sets hold them), legacy's Auto minimum degree, suppress-disconnected and emphasis genes. Graphviz rendering dropped; the UI draws it. Checked against legacy's `GeneSetViewer.mainexec`, run unchanged on dev gene sets: identical in 23 of 24 cases, the 24th a legacy bug (§4). |
+| Triclique | `triclique` | pure | legacy TricliqueViewer: the maximum clique across a three-part graph (group A gene sets, group B gene sets, the genes both groups hold). Two lists of gene sets replace legacy's two projects; the exact-overlap graph only (the Jaccard "three or more projects" method is not ported); legacy's 50-shared-gene limit kept. `kpartite` is a Python port of the `bk-partite` binary, checked identical to the compiled binary on 475 graphs (random and dev), ties included. Worst case ~2 s at 50 genes and 10+10 gene sets. |
+
 ### Moved to the data layer (not an `AbstractTool`)
 
 | Legacy tool | Where it went | Why |
@@ -67,12 +70,7 @@ properties. The reimplementations follow consistent principles:
 | SimilarGenesets | `geneweaver-db`: `geneset_jaccard.calculate_jaccard()` + `query/geneset_jaccard.py` | No in-process algorithm — it triggers the `calculate_jaccard` Postgres stored proc + timestamp/cache bookkeeping (one set vs all ~50k, over 2M+ memberships). Ported the stored proc to a versioned, testable query; heavy set-work stays in Postgres. A pure-Python port would be a perf/memory regression. |
 | ABBA | `geneweaver-db`: `abba.abba()` + `query/abba.py` | DB query/aggregation: builds 4 session temp tables (input genes → homology-expanded genes of interest → matching gene sets → recurring result genes) plus tier/species count rollups. Ported to versioned, parameterised query builders + an orchestration function returning an `ABBAResult`. **Improvements**: list values bind via `= ANY(%(...)s)` and temp-table names use `sql.Identifier` (the legacy string-joined `IN (...)` clauses were an injection/quoting hazard); the "ignore homology" branch now actually creates its temp table (legacy ran a bare `SELECT` and broke every later step); per-call uuid table suffixes for concurrency. Rendering (JSON dump, zero-padding/list reshaping) dropped. |
 
-### Flagged — not yet ported (with reason + approach)
-
-| Legacy tool | Category | Reason / approach |
-|---|---|---|
-| TricliqueViewer | binary (incomplete) | Legacy is a **scaffold**: reads a pre-built `.kel` edge list, runs `bk-partite`, dumps raw stdout; the JSON/CSV result generation is an unimplemented TODO and the I/O contract is undefined. Needs the `.kel` + `bk-partite` output formats specified before a faithful port. |
-| GeneSetViewer | presentation | Builds a graph and renders it via graphviz `dot` (`os.system`). This is **visualization**, not a compute algorithm — belongs in the UI/rendering layer. The graph-building could be a pure helper if needed. |
+Every legacy tool is now ported or moved; none is flagged.
 
 ## 4. Bug fixes & improvements made during the port
 
@@ -110,6 +108,13 @@ properties. The reimplementations follow consistent principles:
   quoting hazard); fixed the "ignore homology" branch that ran a bare `SELECT` and never
   created the genes-of-interest table (breaking every later step); per-call uuid table
   suffixes for concurrency safety.
+- **GeneSet Graph** — legacy started its *minimum gene degree* statistic at the number of
+  gene sets shown rather than from the genes, so when the cut left no gene set it reported
+  0. The port reports the genes' own minimum (the one case in 24 that differs from legacy).
+- **Triclique** — legacy never ran: it was `tool_active = 0`, its worker a stub, and the
+  `.kel` header it wrote held *edge* counts where `bk-partite` reads the partite sets'
+  *vertex* counts, so the binary would have misread every graph. The port builds the graph
+  in memory and needs no file.
 - **dead/conflicted code** — excluded the unparseable `jaccardsimilarityblueprint2.py`
   (merge-conflict marker) from lint; dropped vendored/compiled artifacts from version control.
 
@@ -169,8 +174,10 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
 ## 8. Remaining work
 1. Add **PhenomeMap permutation** significance (the `bicliquer` add-on) as a third injectable
    runner once the `.odemat` encoding is specified (see §5.1).
-2. Decide **GeneSetViewer**'s home (UI rendering vs a pure graph-building helper).
-3. Specify **TricliqueViewer**'s `.kel` / `bk-partite` contract, then port (or retire if unused).
+2. ~~Decide GeneSetViewer's home~~ — done: the `geneset_graph` tool builds the graph, the UI
+   draws it.
+3. ~~Port TricliqueViewer~~ — done: the `triclique` tool, with two gene set groups in place
+   of projects. Revisit the groups once v3 has projects.
 4. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
    default runners work in production; wire the binary paths via env vars (e.g.
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).

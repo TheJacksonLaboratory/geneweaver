@@ -64,6 +64,7 @@ jaccard_clustering = "geneweaver.tools.jaccard_clustering:JaccardClustering"
 jaccard_similarity = "geneweaver.tools.jaccard_similarity:JaccardSimilarity"
 mset = "geneweaver.tools.mset:MSET"
 phenome_map = "geneweaver.tools.phenome_map:PhenomeMap"
+triclique = "geneweaver.tools.triclique:TricliqueTool"
 upset = "geneweaver.tools.upset:UpSet"
 
 # No `jax.ats.plugins*` entry points: AsyncTask is offered the workflow by

@@ -32,6 +32,7 @@ EXPECTED_PLUGINS = {
     "jaccard_similarity": "JaccardSimilarity",
     "mset": "MSET",
     "phenome_map": "PhenomeMap",
+    "triclique": "TricliqueTool",
     "upset": "UpSet",
 }
 
@@ -71,7 +72,7 @@ def entry_points() -> dict:
 
 
 def test_every_expected_tool_is_registered(entry_points: dict) -> None:
-    """All ten canonical tools are discoverable by the GeneWeaver activity."""
+    """All eleven canonical tools are discoverable by the GeneWeaver activity."""
     assert set(entry_points) == set(EXPECTED_PLUGINS)
 
 

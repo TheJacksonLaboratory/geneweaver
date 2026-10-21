@@ -37,10 +37,10 @@ def test_the_two_profiles_partition_every_registered_tool() -> None:
     assert not set(python) & set(native)
 
 
-def test_the_split_is_eight_and_two() -> None:
+def test_the_split_is_nine_and_two() -> None:
     """Pins the profile membership the two images are built around."""
     tools = available_tools()
-    assert len(tools_for_profile(PYTHON_PROFILE, tools)) == 8
+    assert len(tools_for_profile(PYTHON_PROFILE, tools)) == 9
     assert tools_for_profile(NATIVE_PROFILE, tools) == NATIVE
 
 

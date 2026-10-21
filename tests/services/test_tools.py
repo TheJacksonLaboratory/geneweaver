@@ -159,7 +159,7 @@ class TestToolAvailability:
 
     def test_every_registered_tool_is_reported(self) -> None:
         """The picker used to list five of nine; the list must come from the registry."""
-        assert len(tool_service.available_tools()) == 10
+        assert len(tool_service.available_tools()) == 11
         assert set(tool_service.tool_availability()) == set(tool_service.available_tools())
 
     def test_the_binary_backed_tools_are_unavailable_in_process(self) -> None:
@@ -181,6 +181,7 @@ class TestToolAvailability:
             "hypergeometric",
             "jaccard_clustering",
             "jaccard_similarity",
+            "triclique",
             "upset",
         ]
 
@@ -836,6 +837,41 @@ class TestOptions:
         for key, value in expected.items():
             assert built[key] == value
 
+    @pytest.mark.parametrize("group_b", [[2], "GS2", "2", ["2"]])
+    def test_triclique_splits_the_run_by_group_b(self, group_b, mock_cursor) -> None:
+        """Group B is named; group A is the rest of the run's gene sets."""
+        built = tool_service.INPUT_BUILDERS["triclique"](
+            mock_cursor, [1, 2], MEMBERSHIPS, {"group_b": group_b}
+        )
+        assert built["group_a"] == ["1"]
+        assert built["group_b"] == ["2"]
+        assert built["gene_memberships"] == MEMBERSHIPS
+
+    @pytest.mark.parametrize(
+        ("group_b", "message"),
+        [
+            (None, "Each group needs at least one"),
+            ("1 2", "Each group needs at least one"),
+            ("3", r"not in the run: \[3\]"),
+        ],
+    )
+    def test_triclique_needs_two_groups_of_the_runs_gene_sets(
+        self, group_b, message, mock_cursor
+    ) -> None:
+        """No group B, all of the run in B, or a stranger in B: refused before the run."""
+        with pytest.raises(tool_service.ToolRequestError, match=message):
+            tool_service.INPUT_BUILDERS["triclique"](
+                mock_cursor, [1, 2], MEMBERSHIPS, {"group_b": group_b}
+            )
+
+    def test_triclique_refuses_too_many_shared_genes_up_front(self, mock_cursor) -> None:
+        """Legacy's 50-gene limit is a 422 now, not a failed run later."""
+        genes = [f"G{i}" for i in range(51)]
+        with pytest.raises(tool_service.ToolRequestError, match="share 51 genes"):
+            tool_service.INPUT_BUILDERS["triclique"](
+                mock_cursor, [1, 2], {"1": genes, "2": genes}, {"group_b": "2"}
+            )
+
     def test_clustering_method_is_case_insensitive(self, mock_cursor) -> None:
         """Legacy sends "Average"; the tool's schema wants lowercase."""
         built = tool_service.INPUT_BUILDERS["jaccard_clustering"](
@@ -867,7 +903,12 @@ class TestOptions:
                 tool,
                 [1, 2],
                 user=Mock(token=None),
-                parameters={"include_homology": "Included", "epsilon": 1, "min_points": 1},
+                parameters={
+                    "include_homology": "Included",
+                    "epsilon": 1,
+                    "min_points": 1,
+                    "group_b": "2",
+                },
                 runner=runner,
             )
             merged.assert_called_once_with(mock_cursor, [1, 2], Thresholds())
@@ -945,6 +986,7 @@ class TestOptions:
                     "threshold": "custom",
                     "p_value": 0.01,
                     "correlation_low": 0.5,
+                    "group_b": "2",
                 },
                 runner=runner,
             )

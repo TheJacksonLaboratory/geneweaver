@@ -154,8 +154,8 @@ def test_list_tools_reports_every_registered_tool(client) -> None:
 
     assert response.status_code == 200
     tools = response.json()["object"]["tools"]
-    # The ten registered tools, plus ABBA's search.
-    assert len(tools) == 11
+    # The eleven registered tools, plus ABBA's search.
+    assert len(tools) == 12
     for missing_before in (
         "boolean_algebra",
         "combine",

@@ -35,6 +35,7 @@ import { MsetEulerComponent } from './mset-euler.component';
 import { MsetHistogramComponent } from './mset-histogram.component';
 import { PhenomeMapGraphComponent } from './phenome-map-graph.component';
 import { SunburstComponent } from './sunburst.component';
+import { TricliqueComponent } from './triclique.component';
 import { UpsetPlotComponent } from './upset-plot.component';
 import { VennGridComponent } from './venn-grid.component';
 import { VennComponent } from './venn.component';
@@ -57,6 +58,10 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
   geneset_graph: [
     { id: 'graph', label: 'Graph' },
     { id: 'table', label: 'Genes by degree' },
+  ],
+  triclique: [
+    { id: 'edge', label: 'Most links' },
+    { id: 'vertex', label: 'Most members' },
   ],
 };
 
@@ -87,6 +92,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
     MsetHistogramComponent,
     PhenomeMapGraphComponent,
     SunburstComponent,
+    TricliqueComponent,
     UpsetPlotComponent,
     VennComponent,
     VennGridComponent,
@@ -150,6 +156,9 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
             </tr>
           </tbody>
         </table>
+      </ng-container>
+      <ng-container *ngSwitchCase="'triclique'">
+        <app-triclique [result]="$any(result)" [maximum]="$any(view)"></app-triclique>
       </ng-container>
       <ng-container *ngSwitchCase="'dbscan'">
         <ng-container *ngIf="pack; else noClusters">

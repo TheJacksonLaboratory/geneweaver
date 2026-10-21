@@ -19,6 +19,7 @@ import { SessionService } from '../../services/session.service';
 import { AbbaResult, parseGeneList } from './visualizations/abba-models';
 import { AbbaResultComponent } from './visualizations/abba-result.component';
 import { GenesetPickerComponent } from './geneset-picker.component';
+import { groupA, groupB, toggleGroupB, tricliqueGroupProblem } from './triclique-groups';
 import {
   defaultRunThresholds,
   describeThresholds,
@@ -160,6 +161,7 @@ const TOOL_LABELS: Record<string, string> = {
   hypergeometric: 'HyperGeometric',
   dbscan: 'DBSCAN',
   geneset_graph: 'GeneSet Graph',
+  triclique: 'Triclique',
   mset: 'MSET',
   phenome_map: 'PhenomeMap',
   boolean_algebra: 'BooleanAlgebra',
@@ -247,6 +249,31 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
       this.optionValues = defaultOptionValues(value);
       this.abbaOptions = defaultAbbaOptions();
     }
+  }
+
+  // --- Triclique: the run's gene sets split into two groups ---------------------------
+
+  /** The gene sets marked as group B; kept across edits to the list, used if still in it. */
+  tricliqueMarked: number[] = [];
+
+  get isTriclique(): boolean {
+    return this.selectedTool === 'triclique';
+  }
+
+  get tricliqueGroupA(): number[] {
+    return groupA(this.genesetIds, this.tricliqueMarked);
+  }
+
+  get tricliqueGroupB(): number[] {
+    return groupB(this.genesetIds, this.tricliqueMarked);
+  }
+
+  get tricliqueProblem(): string | undefined {
+    return this.isTriclique ? tricliqueGroupProblem(this.genesetIds, this.tricliqueMarked) : undefined;
+  }
+
+  toggleGroupB(id: number): void {
+    this.tricliqueMarked = toggleGroupB(this.tricliqueMarked, id);
   }
 
   // --- ABBA: a gene-centred search, seeded with genes and optionally gene sets ---------
@@ -522,6 +549,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
       this.genesetIds.length >= MIN_GENESETS &&
       !this.limitViolation &&
       !this.optionProblem &&
+      !this.tricliqueProblem &&
       !this.thresholdProblem
     );
   }
@@ -637,9 +665,13 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
    * table instead is roadmap A5; until then, a change there must be copied here.
    */
   private toolParameters(): Record<string, unknown> {
-    return Object.fromEntries(
+    const parameters: Record<string, unknown> = Object.fromEntries(
       this.visibleOptions.map((option) => [option.key, this.optionValues[option.key]]),
     );
+    if (this.isTriclique) {
+      parameters['group_b'] = this.tricliqueGroupB;
+    }
+    return parameters;
   }
 
   /**

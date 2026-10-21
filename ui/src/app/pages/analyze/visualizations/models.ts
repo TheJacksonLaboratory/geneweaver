@@ -1229,3 +1229,85 @@ export function genesetGraphModel(output: GenesetGraphOutput): GenesetGraphModel
       `average ${output.avg_gene_degree.toFixed(2)}.`,
   };
 }
+
+// --- Triclique (legacy TricliqueViewer) --------------------------------------------------
+
+export interface Triclique {
+  group_a: string[];
+  group_b: string[];
+  genes: string[];
+  edges: number;
+}
+
+export interface TricliqueOutput {
+  group_a: string[];
+  group_b: string[];
+  include_homology: boolean;
+  shared_genes: string[];
+  maximal_tricliques: number;
+  edge_maximum: Triclique | null;
+  vertex_maximum: Triclique | null;
+}
+
+export interface TricliqueNode {
+  id: string;
+  label: string;
+  part: 'a' | 'b' | 'gene';
+  x: number;
+  y: number;
+}
+
+export interface TricliqueModel {
+  width: number;
+  height: number;
+  nodes: TricliqueNode[];
+  links: { source: TricliqueNode; target: TricliqueNode }[];
+  summary: string;
+}
+
+const TRICLIQUE_MARGIN = 90;
+const TRICLIQUE_GENE_GAP = 22;
+const TRICLIQUE_SET_GAP = 30;
+
+/**
+ * A triclique as a triangle: group A down the left, group B down the right, the genes along
+ * the bottom. Every node is linked to every node of the other two parts -- that is what
+ * makes it a clique -- so the links are drawn, not looked up.
+ */
+export function tricliqueModel(clique: Triclique): TricliqueModel {
+  const sets = Math.max(clique.group_a.length, clique.group_b.length);
+  const width = Math.max(560, clique.genes.length * TRICLIQUE_GENE_GAP + 2 * TRICLIQUE_MARGIN + 80);
+  const setsHeight = Math.max(1, sets - 1) * TRICLIQUE_SET_GAP;
+  const geneY = 40 + setsHeight + 140;
+  const height = geneY + 70;
+  const column = (ids: string[], part: 'a' | 'b', x: number): TricliqueNode[] =>
+    ids.map((id, i) => ({
+      id: `${part}:${id}`,
+      label: genesetLabel(id),
+      part,
+      x,
+      y: 40 + (i - (ids.length - 1) / 2) * TRICLIQUE_SET_GAP + setsHeight / 2,
+    }));
+  const a = column(clique.group_a, 'a', TRICLIQUE_MARGIN);
+  const b = column(clique.group_b, 'b', width - TRICLIQUE_MARGIN);
+  const span = (clique.genes.length - 1) * TRICLIQUE_GENE_GAP;
+  const genes: TricliqueNode[] = clique.genes.map((symbol, i) => ({
+    id: `gene:${symbol}`,
+    label: symbol,
+    part: 'gene',
+    x: width / 2 - span / 2 + i * TRICLIQUE_GENE_GAP,
+    y: geneY,
+  }));
+  const pairs = (from: TricliqueNode[], to: TricliqueNode[]) =>
+    from.flatMap((source) => to.map((target) => ({ source, target })));
+  return {
+    width,
+    height,
+    nodes: [...a, ...b, ...genes],
+    links: [...pairs(a, b), ...pairs(a, genes), ...pairs(b, genes)],
+    summary:
+      `${clique.group_a.length} gene set${clique.group_a.length === 1 ? '' : 's'} of group A and ` +
+      `${clique.group_b.length} of group B all share ${clique.genes.length} ` +
+      `gene${clique.genes.length === 1 ? '' : 's'}: ${clique.edges} links.`,
+  };
+}

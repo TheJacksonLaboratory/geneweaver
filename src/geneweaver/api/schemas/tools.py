@@ -127,7 +127,8 @@ class ToolRunRequest(BaseModel):
             "`method` (jaccard_clustering: ward, single, centroid, mcquitty, average, "
             "complete); `relation` and `at_least` (boolean_algebra); `epsilon` and "
             "`min_points` (dbscan); `min_degree` (a number or 'auto'), `suppress_disconnected`, "
-            "`emphasis_genes` (geneset_graph); `number_of_samples` (mset); `min_genes`, "
+            "`emphasis_genes` (geneset_graph); `group_b`, which of the gene sets form group B, the "
+            "rest being group A (triclique); `number_of_samples` (mset); `min_genes`, "
             "`max_level`, `use_fdr`, `disable_bootstrap` (phenome_map)."
         ),
     )
