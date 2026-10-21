@@ -14,12 +14,17 @@ returned and the UI can shape them.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from uuid import uuid4
 
 from geneweaver.db.query import abba as q
 from geneweaver.db.query.membership import ALL_GENES, Thresholds
-from psycopg import Cursor
+from psycopg import Cursor, errors
+
+
+class ABBADeadlineExceeded(TimeoutError):
+    """The search ran out of its time budget (``deadline``) before it finished."""
 
 
 @dataclass
@@ -43,17 +48,6 @@ class ABBAResult:
     species_counts: dict = field(default_factory=dict)
 
 
-def _resolve_input_genes(
-    cursor: Cursor, input_genes: list[str], geneset_ids: list[int], thresholds: Thresholds
-) -> list[str]:
-    """Merge the text-supplied input genes with the genes drawn from the input gene sets."""
-    genes = {g.lower() for g in input_genes}
-    if geneset_ids:
-        cursor.execute(*q.ref_ids_for_genesets(geneset_ids, thresholds))
-        genes.update(str(row[0]).lower() for row in cursor.fetchall())
-    return sorted(genes)
-
-
 def abba(
     cursor: Cursor,
     input_genes: list[str],
@@ -67,6 +61,8 @@ def abba(
     min_genesets: int = 0,
     result_limit: int = 50,
     thresholds: Thresholds = ALL_GENES,
+    deadline: float | None = None,
+    statement_timeout_seconds: float | None = None,
 ) -> ABBAResult:
     """Run the ABBA association pipeline and return the structured results.
 
@@ -85,9 +81,41 @@ def abba(
     :param result_limit: row cap for the matching-gene-set and result-gene lists.
     :param thresholds: which of each gene set's genes count, in every step that reads
         membership: every gene by default (`geneweaver.db.query.membership`).
+    :param deadline: a ``time.monotonic()`` instant the whole search must finish by. A
+        statement timeout bounds each query alone, and the search runs ~20 statements plus
+        4 per result gene, so without this a slow database can keep it going far past what
+        its caller waits for. Each statement's timeout shrinks to the time left, capped at
+        ``statement_timeout_seconds``.
+    :raises ABBADeadlineExceeded: If the search would run past ``deadline``.
     """
     geneset_ids = geneset_ids or []
-    resolved_genes = _resolve_input_genes(cursor, input_genes, geneset_ids, thresholds)
+
+    def run(query: tuple) -> None:
+        if deadline is not None:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise ABBADeadlineExceeded("The ABBA search ran out of time.")
+            cap = (
+                left if statement_timeout_seconds is None else min(left, statement_timeout_seconds)
+            )
+            cursor.execute(
+                "SELECT set_config('statement_timeout', %s, true)",
+                (f"{max(1, int(cap * 1000))}ms",),
+            )
+        try:
+            cursor.execute(*query)
+        except errors.QueryCanceled as error:
+            if deadline is not None and deadline - time.monotonic() <= 1:
+                raise ABBADeadlineExceeded("The ABBA search ran out of time.") from error
+            raise
+
+    if geneset_ids:
+        run(q.ref_ids_for_genesets(geneset_ids, thresholds))
+        resolved_genes = sorted(
+            {g.lower() for g in input_genes} | {str(row[0]).lower() for row in cursor.fetchall()}
+        )
+    else:
+        resolved_genes = sorted({g.lower() for g in input_genes})
 
     # Unique per-call temp-table names so concurrent ABBA runs don't collide.
     suffix = uuid4().hex[:12]
@@ -97,19 +125,17 @@ def abba(
     result_table = f"abba_result_genes_{suffix}"
 
     for table in (input_table, interest_table, matching_table, result_table):
-        cursor.execute(*q.drop_table(table))
+        run(q.drop_table(table))
 
-    cursor.execute(*q.create_input_genes_table(input_table, resolved_genes, species_ids))
-    cursor.execute(
-        *q.create_genes_of_interest_table(
+    run(q.create_input_genes_table(input_table, resolved_genes, species_ids))
+    run(
+        q.create_genes_of_interest_table(
             interest_table, input_table, species_ids, include_homology=include_homology
         )
     )
-    cursor.execute(
-        *q.create_matching_genesets_table(matching_table, interest_table, user_id, thresholds)
-    )
-    cursor.execute(
-        *q.create_result_genes_table(
+    run(q.create_matching_genesets_table(matching_table, interest_table, user_id, thresholds))
+    run(
+        q.create_result_genes_table(
             result_table,
             matching_table,
             interest_table,
@@ -122,40 +148,40 @@ def abba(
 
     result = ABBAResult()
 
-    cursor.execute(*q.count_available_genes())
+    run(q.count_available_genes())
     result.available_genes = cursor.fetchone()[0]
-    cursor.execute(*q.count_available_genesets(tiers))
+    run(q.count_available_genesets(tiers))
     result.available_genesets = cursor.fetchone()[0]
 
-    cursor.execute(*q.select_genes_of_interest(interest_table))
+    run(q.select_genes_of_interest(interest_table))
     result.genes_of_interest = cursor.fetchall()
-    cursor.execute(*q.select_input_species(interest_table))
+    run(q.select_input_species(interest_table))
     result.input_species = cursor.fetchall()
 
     # The matching-gene-set list uses the effective gene gate (0 under "auto").
     matching_gate = min_genes if min_genes is not None else 0
-    cursor.execute(*q.select_matching_genesets(matching_table, tiers, matching_gate, result_limit))
+    run(q.select_matching_genesets(matching_table, tiers, matching_gate, result_limit))
     result.geneset_results = cursor.fetchall()
 
-    cursor.execute(*q.select_result_genes(result_table, min_genesets, result_limit))
+    run(q.select_result_genes(result_table, min_genesets, result_limit))
     result.gene_results = cursor.fetchall()
 
-    cursor.execute(*q.select_max_occurrences(result_table))
+    run(q.select_max_occurrences(result_table))
     result.max_occurrences = cursor.fetchall()
 
     for gene_row in result.gene_results:
         ode_gene_id = gene_row[0]
 
-        cursor.execute(*q.select_gene_ref_ids(ode_gene_id))
+        run(q.select_gene_ref_ids(ode_gene_id))
         result.ode_mapping[ode_gene_id] = [row[0] for row in cursor.fetchall()]
-        cursor.execute(*q.select_preferred_ref_id(ode_gene_id))
+        run(q.select_preferred_ref_id(ode_gene_id))
         pref = cursor.fetchone()
         if pref:
             result.preferred_mapping[ode_gene_id] = pref[0]
 
-        cursor.execute(*q.count_genesets_by_tier(ode_gene_id, thresholds))
+        run(q.count_genesets_by_tier(ode_gene_id, thresholds))
         result.tier_counts[ode_gene_id] = {cur_id: count for count, cur_id in cursor.fetchall()}
-        cursor.execute(*q.count_genesets_by_species(ode_gene_id, thresholds))
+        run(q.count_genesets_by_species(ode_gene_id, thresholds))
         result.species_counts[ode_gene_id] = {sp_id: count for count, sp_id in cursor.fetchall()}
 
     return result

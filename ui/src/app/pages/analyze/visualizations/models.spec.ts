@@ -367,6 +367,31 @@ describe('jaccardVennGrid', () => {
     }
   });
 
+  it('sizes each cell from its own pair when pairwise deletion makes pairs disagree', () => {
+    // GS1 has 10 genes against GS2 but 3 against GS3: the pair is cut to shared platforms.
+    const output = {
+      geneset_ids: ['1', '2', '3'],
+      include_homology: false,
+      p_value_threshold: 1,
+      results: [
+        { i: 0, j: 1, jaccard: 0.25, p_value: null, intersection: 4, only_i: 6, only_j: 6 },
+        { i: 0, j: 2, jaccard: 0.2, p_value: null, intersection: 1, only_i: 2, only_j: 2 },
+        { i: 1, j: 2, jaccard: 0.1, p_value: null, intersection: 1, only_i: 9, only_j: 2 },
+      ],
+    };
+    const deleted = jaccardVennGrid(output, { '1': 12, '2': 10, '3': 3 });
+    const cell = (row: string, col: string) => deleted.cells.find((c) => c.row === row && c.col === col)!;
+    expect([cell('1', '2').rowSize, cell('1', '2').colSize]).toEqual([10, 10]);
+    expect([cell('1', '3').rowSize, cell('1', '3').colSize]).toEqual([3, 3]);
+    expect([cell('3', '1').rowSize, cell('3', '1').colSize]).toEqual([3, 3]);
+    // The diagonal is the gene set's own size, with a note where its pairs are smaller.
+    expect(cell('1', '1').lines).toEqual(['(12)']);
+    expect(cell('1', '1').tooltip.note).toContain('pairwise deletion');
+    expect(cell('3', '3').tooltip.note).toBe('The same gene set on both axes.');
+    // Without gene counts, the largest pair size rather than whichever pair came last.
+    expect(jaccardVennGrid(output).sizes['1']).toBe(10);
+  });
+
   it('orients counts by cell: below the diagonal the row set is the pair\'s second set', () => {
     const r = FIXTURES.jaccard_similarity.results[0];
     const above = grid.cells.find((c) => c.row === grid.ids[r.i] && c.col === grid.ids[r.j])!;
@@ -509,8 +534,22 @@ describe('speciesSummary', () => {
       },
     })!;
     expect(rows).toEqual([
-      { species: 1, name: 'Mouse', specific: 1, shared: 2, total: 3 },
-      { species: 2, name: 'Human', specific: 1, shared: 2, total: 3 },
+      // Full species names, as legacy's table (`all_species_full`).
+      { species: 1, name: 'Mus musculus', specific: 1, shared: 2, total: 3 },
+      { species: 2, name: 'Homo sapiens', specific: 1, shared: 2, total: 3 },
+    ]);
+  });
+
+  it('names species by id: the ids skip 7, so 8 is C. elegans and 9 S. cerevisiae', () => {
+    const rows = speciesSummary({
+      relation: 'Union',
+      at_least: 2,
+      geneset_ids: [10, 20],
+      bool_results: { '7': [[1, 'unc-1', 8, 10], [2, 'UNC1', 9, 20]] },
+    })!;
+    expect(rows.map((row) => [row.species, row.name])).toEqual([
+      [8, 'Caenorhabditis elegans'],
+      [9, 'Saccharomyces cerevisiae'],
     ]);
   });
 

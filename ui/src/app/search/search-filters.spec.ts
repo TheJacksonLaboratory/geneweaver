@@ -71,6 +71,8 @@ describe('search filters', () => {
 
   it.each([
     [filters({ sizeMin: 10, sizeMax: 5 }), 'smallest size'],
+    [filters({ gene: 'Drd2', pValue: 5 }), 'between 0 and 1'],
+    [filters({ gene: 'Drd2', qValue: -0.1 }), 'between 0 and 1'],
     [filters({ gene: 'Drd2', effectLow: 2, effectHigh: 1 }), 'effect'],
     [filters({ pValue: 0.05 }), 'enter one'],
   ])('says what is wrong with %o', (value, message) => {

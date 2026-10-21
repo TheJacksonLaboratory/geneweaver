@@ -97,8 +97,9 @@ def run_abba(
     `POST /tools/{tool}` does: the result if the search finishes within the wait, else 202
     with a `run_id` to poll at `GET /tools/runs/{run_id}`. Searches take 20 to 60 seconds.
     Responds 401 if the caller is not signed in, 403 if a seed gene set is not readable, 422
-    for an invalid request, and -- only where it runs in-process -- 503 if too many searches
-    are already running.
+    for an invalid request (including a seed of more than 20,000 genes), and -- only where it
+    runs in-process -- 503 if too many searches are already running, or 504 if the search
+    outlasts `ABBA_REQUEST_TIMEOUT_SECONDS`.
 
     Declared before `POST /tools/{tool}`, which would otherwise take "abba" as a tool name.
     """
@@ -111,6 +112,11 @@ def run_abba(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=str(error),
                 headers={"Retry-After": "60"},
+            ) from error
+        except abba_service.ABBATimedOut as error:
+            # Answered before the ingress gives up (300 s), so the caller hears why.
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(error)
             ) from error
 
     return _run_and_map(http_response, run)

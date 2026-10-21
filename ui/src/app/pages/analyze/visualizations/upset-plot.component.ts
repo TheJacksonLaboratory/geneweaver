@@ -74,14 +74,16 @@ export class UpsetPlotComponent implements OnChanges {
       .range([left, left + col * bars.length])
       .padding(0.2);
     const yBar = scaleLinear()
-      .domain([0, max(bars, (b) => b.size) ?? 1])
+      // `|| 1`, not `?? 1`: d3's max of all-zero sizes is 0, not undefined, and a [0, 0]
+      // domain maps every value to the middle of the range -- a half-width bar for nothing.
+      .domain([0, max(bars, (b) => b.size) || 1])
       .nice()
       .range([top - 10, 22]);
     const yRow = scaleBand<string>()
       .domain(sets.map((s) => s.id))
       .range([top, top + row * sets.length]);
     const setWidth = scaleLinear()
-      .domain([0, max(sets, (s) => s.size) ?? 1])
+      .domain([0, max(sets, (s) => s.size) || 1])
       .range([0, 70]);
 
     svg.append('g').attr('transform', `translate(${left},0)`).call(axisLeft(yBar).ticks(4));

@@ -24,6 +24,7 @@ Schema qualifications match the legacy tool (``extsrc``/``production``/``odestat
 """
 
 from geneweaver.db.query.membership import ALL_GENES, Thresholds, membership_filter
+from geneweaver.db.query.readable import readable_by
 from psycopg.sql import SQL, Composed, Identifier
 
 # Gene-identifier source used throughout ABBA (Gene Symbol), as in the legacy tool.
@@ -42,7 +43,13 @@ def _table(name: str) -> Identifier:
 def ref_ids_for_genesets(
     geneset_ids: list[int], thresholds: Thresholds = ALL_GENES
 ) -> tuple[Composed, dict]:
-    """Distinct gene reference ids (symbols) for the genes in the given gene sets."""
+    """The preferred gene symbol of each gene in the given gene sets, without repeats.
+
+    One per gene. Legacy took every identifier of every gene (Entrez, Ensembl, RefSeq, every
+    symbol synonym): the seed only matches gene symbols, so the rest matched nothing, but a
+    synonym matched every *other* gene sharing it, pulling unrelated genes into the seed,
+    and the list grew several times larger than the gene sets.
+    """
     member, params = membership_filter(thresholds, gv="gsv", gs="gs")
     query = SQL(
         """
@@ -52,9 +59,11 @@ def ref_ids_for_genesets(
            AND gs.gs_id = gsv.gs_id
            AND {member}
            AND gsv.ode_gene_id = g.ode_gene_id
+           AND g.gdb_id = %(gdb_id)s
+           AND g.ode_pref
         """
     ).format(member=member)
-    return query, {"gs_ids": geneset_ids, **params}
+    return query, {"gs_ids": geneset_ids, "gdb_id": GENE_SYMBOL_GDB_ID, **params}
 
 
 def create_input_genes_table(
@@ -121,8 +130,11 @@ def create_matching_genesets_table(
 ) -> tuple[Composed, dict]:
     """Create the matching-gene-sets temp table: gene sets containing genes of interest.
 
-    ``geneMatchCount`` is the number of genes-of-interest each gene set contains. Gene-set
-    visibility is restricted to the groups the user belongs to (``||0`` keeps public sets).
+    ``geneMatchCount`` is the number of genes-of-interest each gene set contains. Only gene
+    sets the user may read match (`geneweaver.db.query.readable`), the rule search and a tool
+    run use. Legacy's own rule -- every group of the gene set must be one of the user's --
+    hid the user's own private gene sets and an admin's or curator's view, and admitted a
+    gene set with no groups to anyone.
     """
     member, params = membership_filter(thresholds, gv="gv", gs="gs")
     query = SQL(
@@ -134,14 +146,14 @@ def create_matching_genesets_table(
          WHERE ode_gene_id IN (SELECT ode_gene_id FROM {interest})
            AND gs_status = 'normal'
            AND {member}
-           AND (ARRAY(SELECT grp_id FROM production.usr2grp WHERE usr_id = %(user_id)s) || 0
-                @> string_to_array(gs_groups, ',')::int[])
+           AND {readable}
          GROUP BY gs.gs_id
         """
     ).format(
         matching=_table(matching_table),
         interest=_table(interest_table),
         member=member,
+        readable=readable_by("gs", "user_id"),
     )
     return query, {"user_id": user_id, **params}
 
