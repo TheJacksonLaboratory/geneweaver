@@ -41,6 +41,16 @@ describe('similar gene sets models', () => {
     expect(groupSimilar(SIMILAR, 'attribution').map((g) => g.label)).toEqual(['GWAS', 'No attribution']);
   });
 
+  it('lists a gene set with no tier, last when grouped, and leaves it off the radar', () => {
+    const untiered = { ...SIMILAR.genesets[0], gs_id: 11, tier: null };
+    const output = { ...SIMILAR, genesets: [...SIMILAR.genesets, untiered] };
+    const groups = groupSimilar(output, 'tier');
+    expect(groups.at(-1)?.label).toBe('No tier');
+    expect(groups.at(-1)?.genesets.map((gs) => gs.gs_id)).toEqual([11]);
+    expect(radarModel(output).series.map((s) => s.tier)).toEqual([1, 3, 5]);
+    expect(similarCsv(output)).toContain('GS11,Seven,S7,13,12,0.9000,No tier,Homo sapiens');
+  });
+
   it('averages Jaccard per tier and species, zero where a tier has none of a species', () => {
     const radar = radarModel(SIMILAR);
     expect(radar.axes).toEqual(['Mus musculus', 'Homo sapiens', 'Rattus norvegicus']);

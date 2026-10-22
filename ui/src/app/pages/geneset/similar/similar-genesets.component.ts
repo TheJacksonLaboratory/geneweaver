@@ -44,6 +44,11 @@ const TIER_COLOURS = ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F'];
 
 const RADAR_RADIUS = 120;
 
+/** A tier's colour; grey for a gene set never given a tier. */
+function tierColour(tier: number | null): string {
+  return tier === null ? '#94A3B8' : TIER_COLOURS[(tier - 1) % TIER_COLOURS.length];
+}
+
 interface RunBody {
   run_id?: number | null;
   status?: string;
@@ -212,7 +217,7 @@ interface HttpFailure {
                 [attr.fill]="bar.colour"
               ><title>{{ bar.title }}</title></rect>
             </svg>
-            <p class="text-xs text-color-secondary m-0 text-left">Coloured by tier; the tallest is {{ result.genesets[0].jaccard | number: '1.4-4' }}.</p>
+            <p class="text-xs text-color-secondary m-0 text-left">Coloured by tier (grey: no tier); the tallest is {{ result.genesets[0].jaccard | number: '1.4-4' }}.</p>
           </figure>
         </div>
 
@@ -435,8 +440,8 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
     return this.result ? speciesLabel(this.result, id) : String(id);
   }
 
-  tier(id: number): string {
-    return this.result ? tierLabel(this.result, id) : String(id);
+  tier(id: number | null): string {
+    return this.result ? tierLabel(this.result, id) : String(id ?? '');
   }
 
   describe(result: SimilarGenesetsOutput): string {
@@ -464,7 +469,7 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
     this.radarSeries = this.radar.series.map((series) => ({
       label: series.label,
       count: series.count,
-      colour: TIER_COLOURS[(series.tier - 1) % TIER_COLOURS.length],
+      colour: tierColour(series.tier),
       points: radarPoints(series.values, this.radar.max, RADAR_RADIUS),
     }));
     this.radarLabel =
@@ -483,7 +488,7 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
       x: i * width,
       width: Math.max(width - (width > 3 ? 1 : 0), 0.5),
       height: (gs.jaccard / top) * 195,
-      colour: TIER_COLOURS[(gs.tier - 1) % TIER_COLOURS.length],
+      colour: tierColour(gs.tier),
       title: `${i + 1}. GS${gs.gs_id}: ${gs.jaccard.toFixed(4)}`,
     }));
   }

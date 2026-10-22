@@ -32,7 +32,13 @@ class SimilarGeneset(BaseModel):
     name: str
     abbreviation: str | None
     species_id: int
-    tier: int = Field(..., description="Curation tier, 1 (Tier I) to 5 (Tier V).")
+    tier: int | None = Field(
+        ...,
+        description=(
+            "Curation tier, 1 (Tier I) to 5 (Tier V); null for a gene set never assigned one "
+            "(`cur_id` is nullable: 7,214 live gene sets on dev)."
+        ),
+    )
     attribution: str | None
     genes: int = Field(..., description="Its genes under the threshold choice, homologs as one.")
     shared: int = Field(..., description="Genes it shares with the viewed gene set.")

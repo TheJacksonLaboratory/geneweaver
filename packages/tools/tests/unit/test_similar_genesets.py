@@ -46,6 +46,13 @@ def test_rows_are_named_for_the_page() -> None:
     }
 
 
+def test_a_gene_set_without_a_tier_is_listed() -> None:
+    """cur_id is nullable; a run on dev failed validating one (GS514, 2026-10-22)."""
+    untiered = (8, "Name", "Abbr", 2, None, None, 13, 12, 0.5, 12, 15438)
+    out = shape([ROW, untiered], SimilarGenesetsInput(geneset_id=5), {}, {})
+    assert [gs.tier for gs in out.genesets] == [3, None]
+
+
 def test_nothing_found_still_reports_the_gene_sets_size() -> None:
     """With no row to read it from, the size comes from its own query."""
     out = shape([], SimilarGenesetsInput(geneset_id=5), {}, {}, viewed=4)

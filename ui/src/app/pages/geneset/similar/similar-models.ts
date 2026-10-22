@@ -15,7 +15,8 @@ export interface SimilarGeneset {
   name: string;
   abbreviation: string | null;
   species_id: number;
-  tier: number;
+  /** Null for a gene set never given a curation tier (`cur_id` is nullable). */
+  tier: number | null;
   attribution: string | null;
   genes: number;
   shared: number;
@@ -48,8 +49,8 @@ export interface SimilarGroup {
   genesets: SimilarGeneset[];
 }
 
-export function tierLabel(output: SimilarGenesetsOutput, tier: number): string {
-  return output.tiers[String(tier)] ?? `Tier ${tier}`;
+export function tierLabel(output: SimilarGenesetsOutput, tier: number | null): string {
+  return tier === null ? 'No tier' : (output.tiers[String(tier)] ?? `Tier ${tier}`);
 }
 
 export function speciesLabel(output: SimilarGenesetsOutput, species: number): string {
@@ -77,10 +78,10 @@ export function groupSimilar(output: SimilarGenesetsOutput, by: GroupBy): Simila
   );
   return keys.map((key) => ({
     label:
-      key === null
-        ? 'No attribution'
-        : by === 'tier'
-          ? tierLabel(output, key as number)
+      by === 'tier'
+        ? tierLabel(output, key as number | null)
+        : key === null
+          ? 'No attribution'
           : by === 'species'
             ? speciesLabel(output, key as number)
             : String(key),
@@ -105,11 +106,14 @@ export interface RadarModel {
 /**
  * Legacy's radar: for each curation tier, the average Jaccard of the listed gene sets of
  * each species. Legacy drew every species; this draws the species in the list, so the axes
- * carry data. Tiers with no gene set listed are left out.
+ * carry data. Tiers with no gene set listed are left out, and so are gene sets with no
+ * tier, as legacy's loop over tiers 1-5 left them out; they stay in the list.
  */
 export function radarModel(output: SimilarGenesetsOutput): RadarModel {
   const speciesIds = [...new Set(output.genesets.map((gs) => gs.species_id))].sort((a, b) => a - b);
-  const tiers = [...new Set(output.genesets.map((gs) => gs.tier))].sort((a, b) => a - b);
+  const tiers = [
+    ...new Set(output.genesets.map((gs) => gs.tier).filter((tier): tier is number => tier !== null)),
+  ].sort((a, b) => a - b);
   const series = tiers.map((tier) => {
     const ofTier = output.genesets.filter((gs) => gs.tier === tier);
     return {
