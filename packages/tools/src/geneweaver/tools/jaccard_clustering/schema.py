@@ -7,8 +7,9 @@ from typing import Literal
 from geneweaver.tools.framework.schema import ToolInput, ToolOutput
 from pydantic import BaseModel, Field
 
-# Linkage methods supported by the legacy tool (mcquitty == scipy's "weighted").
-LinkageMethod = Literal["ward", "complete", "average", "mcquitty", "single"]
+# Linkage methods legacy offered (mcquitty == scipy's "weighted"; centroid was on its form,
+# odestatic.tool_param, though missing from its own API's list).
+LinkageMethod = Literal["ward", "complete", "average", "mcquitty", "single", "centroid"]
 
 
 class JaccardClusteringInput(ToolInput):

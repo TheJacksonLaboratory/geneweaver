@@ -8,10 +8,13 @@
 >
     <ng-template pTemplate="header">
         <tr>
-            <th class="w-3rem">ID</th>
-            <th>Name</th>
-            <th class="w-2rem">Size</th>
-            <th class="w-2rem">Tier</th>
+            <!-- Sorted by the search, not in the table: results arrive a page at a time (G3-777). -->
+            <th *ngFor="let column of columns" [attr.aria-sort]="ariaSort(column.key)">
+                <button type="button" class="sort-header" (click)="toggleSort(column.key)"
+                        [attr.aria-label]="'Sort by ' + column.label">
+                    {{ column.label }} <i [class]="sortIcon(column.key)" aria-hidden="true"></i>
+                </button>
+            </th>
             <th class="w-2rem"></th>
         </tr>
     </ng-template>
@@ -32,12 +35,23 @@
                 </p-button>
             </td>
             <td>
+                <span class="p-column-title">Species</span>
+                <em>{{ speciesName(geneset.species_id) }}</em>
+            </td>
+            <td>
                 <span class="p-column-title">Size</span>
                 {{ geneset.count }}
             </td>
             <td>
                 <span class="p-column-title">Tier</span>
                 <app-tier-tag [tier]="geneset.curation_id"></app-tier-tag>
+            </td>
+            <td>
+                <span class="p-column-title">Score</span>
+                {{ scoreTypeName(geneset.score_type) }}
+                <small *ngIf="geneset.threshold && geneset.score_type !== 3" class="block text-color-secondary">
+                    threshold {{ geneset.threshold }}
+                </small>
             </td>
             <td>
                 <span class="p-column-title">Details</span>
@@ -49,7 +63,7 @@
     </ng-template>
     <ng-template pTemplate="rowexpansion" let-geneset>
         <tr>
-            <td colspan="5">
+            <td colspan="7">
                 <div class="px-8 pb-4">
                     {{ geneset.description }}
                 </div>

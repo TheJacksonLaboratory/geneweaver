@@ -2,8 +2,10 @@
 
 from unittest.mock import MagicMock
 
+import pytest
 from geneweaver.db.abba import ABBAResult, abba
 from geneweaver.db.query import abba as q
+from geneweaver.db.query.membership import Thresholds
 from psycopg.sql import Composed, Identifier
 
 
@@ -45,7 +47,7 @@ def test_genes_of_interest_no_homology_creates_table() -> None:
     """The no-homology branch creates the interest table (legacy bug fixed)."""
     sql, params = q.create_genes_of_interest_table("i", "in", [1], include_homology=False)
     rendered = _sql((sql, params))
-    assert rendered.startswith('CREATE TEMP TABLE "i" AS SELECT * FROM "in"')
+    assert rendered.startswith('CREATE TEMP TABLE "i" ON COMMIT DROP AS SELECT * FROM "in"')
     assert params == {}
 
 
@@ -131,6 +133,9 @@ def test_abba_creates_unique_temp_tables() -> None:
         if "CREATE TEMP TABLE" in _render(c.args[0])
     ]
     assert len(creates) == 4
+    # Dropped when the caller's transaction ends, so a pooled connection does not carry
+    # them into its next request.
+    assert all("ON COMMIT DROP" in s for s in creates)
     # names are suffixed for concurrency safety
     assert any("abba_input_genes_" in s for s in creates)
     assert any("abba_result_genes_" in s for s in creates)
@@ -153,3 +158,52 @@ def test_abba_merges_genes_from_input_genesets() -> None:
         if "abba_input_genes_" in _render(c.args[0]) and "CREATE TEMP TABLE" in _render(c.args[0])
     )
     assert set(create_call.args[1]["genes"]) == {"brca1", "pten", "egfr"}
+
+
+# ------------------------------------------------------------------ threshold choice
+
+_MEMBERSHIP_QUERIES = {
+    "seed": lambda t: q.ref_ids_for_genesets([1], t),
+    "matching": lambda t: q.create_matching_genesets_table("m", "i", 0, t),
+    "result": lambda t: q.create_result_genes_table("r", "m", "i", [1], [1], None, t),
+    "tier_counts": lambda t: q.count_genesets_by_tier(42, t),
+    "species_counts": lambda t: q.count_genesets_by_species(42, t),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_MEMBERSHIP_QUERIES))
+def test_every_membership_step_counts_every_gene_by_default(name) -> None:
+    """The stored flag is not the rule any more: no choice, no filter."""
+    rendered = _sql(_MEMBERSHIP_QUERIES[name](Thresholds()))
+    assert "gsv_in_threshold" not in rendered
+
+
+@pytest.mark.parametrize("name", sorted(_MEMBERSHIP_QUERIES))
+def test_every_membership_step_applies_custom_cutoffs(name) -> None:
+    """Each step reads the run's cutoffs, bound, against its own geneset alias."""
+    sql, params = _MEMBERSHIP_QUERIES[name](Thresholds("custom", q_value=0.05))
+    rendered = _sql((sql, params))
+    assert params["t_q_value"] == 0.05
+    assert "gs_threshold_type = 2 THEN" in rendered
+    assert "<= %(t_q_value)s" in rendered
+
+
+def test_the_pipeline_passes_the_choice_to_every_membership_step() -> None:
+    """No step of the search falls back to another rule."""
+    cursor = _orchestration_cursor()
+    cursor.fetchall.side_effect = [[("Pten",)], *cursor.fetchall.side_effect]
+    abba(
+        cursor,
+        ["Brca1"],
+        geneset_ids=[55],
+        species_ids=[1],
+        tiers=[1],
+        thresholds=Thresholds("custom", p_value=0.001),
+    )
+    bound = [
+        c.args[1]["t_p_value"]
+        for c in cursor.execute.call_args_list
+        if len(c.args) > 1 and "t_p_value" in c.args[1]
+    ]
+    # seed, matching, result, and the tier and species counts for the one result gene
+    assert bound == [0.001] * 5

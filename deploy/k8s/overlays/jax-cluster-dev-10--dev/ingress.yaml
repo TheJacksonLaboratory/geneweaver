@@ -14,6 +14,11 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-methods: "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
     nginx.ingress.kubernetes.io/cors-allow-origin: "https://*.jax.org, http://localhost:4200, http://localhost:8080"
     nginx.ingress.kubernetes.io/enable-cors: "true"
+    # Without AsyncTask (no ASYNCTASK_API_URL), ABBA runs in the request for up to a
+    # minute, its queries bounded at 240 s (ABBA_STATEMENT_TIMEOUT_SECONDS); nginx's 60 s
+    # default would cut it off first. With AsyncTask a request waits 30 s at most.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/auth-snippet: |
       if ($request_method = "OPTIONS") {
         return 202;

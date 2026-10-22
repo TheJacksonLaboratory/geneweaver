@@ -12,7 +12,11 @@ export default {
       },
     ],
   },
-  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
+  // D3 v7 and its three dependencies ship only ES modules, which Jest must transform; every
+  // other package is left alone, as before.
+  transformIgnorePatterns: [
+    'node_modules/(?!(?:d3|d3-[^/]+|internmap|delaunator|robust-predicates)/|.*\\.mjs$)',
+  ],
   snapshotSerializers: [
     'jest-preset-angular/build/serializers/no-ng-attributes',
     'jest-preset-angular/build/serializers/ng-snapshot',
