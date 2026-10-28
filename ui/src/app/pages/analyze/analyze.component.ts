@@ -8,6 +8,7 @@ import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DropdownModule } from 'primeng/dropdown';
+import { TooltipModule } from 'primeng/tooltip';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -85,6 +86,8 @@ const MAX_GENESETS_WITH_ZEROS = 10;
 interface ToolOption {
   label: string;
   value: string;
+  /** What the tool does, shown as a tooltip on its entry in the picker. */
+  description?: string;
   /** Why a tool is not selectable yet, shown to the user. */
   disabledReason?: string;
   /** Qualifies how a successful result should be read, if anything does. */
@@ -155,20 +158,50 @@ interface ToolAvailability {
   caveat?: string | null;
 }
 
-/** Display names for the registered tool keys. Unknown keys fall back to the key. */
+/**
+ * Display names for the registered tool keys. Unknown keys fall back to the key.
+ * phenome_map, jaccard_clustering and triclique carry legacy's names (HiSim Graph, GeneSet
+ * Clustering, TricliqueViewer), not the v3 registry keys, so people who know the legacy
+ * tools can find them.
+ */
 const TOOL_LABELS: Record<string, string> = {
   upset: 'UpSet',
   hypergeometric: 'HyperGeometric',
   dbscan: 'DBSCAN',
   geneset_graph: 'GeneSet Graph',
-  triclique: 'Triclique',
+  triclique: 'TricliqueViewer',
   mset: 'MSET',
-  phenome_map: 'PhenomeMap',
+  phenome_map: 'HiSim Graph',
   boolean_algebra: 'BooleanAlgebra',
   combine: 'Combine',
-  jaccard_clustering: 'JaccardClustering',
+  jaccard_clustering: 'GeneSet Clustering',
   jaccard_similarity: 'JaccardSimilarity',
   abba: 'ABBA gene search',
+};
+
+/** One-line descriptions shown as a tooltip on each tool in the picker. */
+const TOOL_DESCRIPTIONS: Record<string, string> = {
+  upset:
+    'Counts the genes in every exact combination of the chosen gene sets, shown as an UpSet plot.',
+  hypergeometric:
+    "Fisher's exact test of whether two gene sets share more, or fewer, genes than chance.",
+  dbscan:
+    'Density-based clustering of gene sets by the genes they share; gene sets that fit no cluster are left out.',
+  geneset_graph:
+    'Draws the gene sets and their genes as a graph, with genes ranked by how many of the gene sets hold them.',
+  triclique:
+    'Finds the largest group of genes shared by gene sets from two groups: the maximum clique across a three-part graph.',
+  mset: 'Randomization-based test of whether two gene lists overlap more, or less, than chance, against a background of genes.',
+  phenome_map:
+    'Builds a hierarchy of the gene sets from the genes they share, from small overlaps of many gene sets to large ones of few.',
+  boolean_algebra: "Union, intersection or difference of the gene sets' genes, including homologs.",
+  combine:
+    'Combines the gene sets into one table of which genes each gene set holds, merging homologous genes.',
+  jaccard_clustering:
+    'Hierarchical clustering of the gene sets by how similar their genes are, drawn as a dendrogram and a sunburst.',
+  jaccard_similarity:
+    'Scores how similar each pair of gene sets is: the Jaccard coefficient of their genes, with a p-value.',
+  abba: 'Starting from seed genes, finds the gene sets that hold several of them, then other genes those gene sets share.',
 };
 
 /**
@@ -193,6 +226,7 @@ const TOOL_LABELS: Record<string, string> = {
     ButtonModule,
     CardModule,
     DropdownModule,
+    TooltipModule,
     InputTextModule,
     MessageModule,
     ProgressBarModule,
@@ -407,6 +441,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
           .map(([value, state]) => ({
             value,
             label: TOOL_LABELS[value] ?? value,
+            description: TOOL_DESCRIPTIONS[value],
             disabledReason: state.available ? undefined : (state.reason ?? undefined),
             caveat: state.caveat ?? undefined,
           }))

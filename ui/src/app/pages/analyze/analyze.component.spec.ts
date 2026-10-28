@@ -214,6 +214,21 @@ describe('AnalyzeComponent tool list', () => {
     expect(blocked[0].disabledReason).toBeTruthy();
   });
 
+  it('describes every tool, for the tooltip in the picker', async () => {
+    await build();
+    for (const tool of component.tools) {
+      expect(tool.description).toBeTruthy();
+    }
+  });
+
+  it('names the ported tools as legacy did', async () => {
+    await build();
+    const label = (value: string) => component.tools.find((tool) => tool.value === value)?.label;
+    expect(label('phenome_map')).toBe('HiSim Graph');
+    expect(label('jaccard_clustering')).toBe('GeneSet Clustering');
+    expect(label('triclique')).toBe('TricliqueViewer');
+  });
+
   it('puts runnable tools before blocked ones', async () => {
     await build();
     const firstBlocked = component.tools.findIndex((tool) => !!tool.disabledReason);

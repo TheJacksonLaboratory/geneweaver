@@ -24,7 +24,9 @@
         ></p-button>
         <small *ngIf="!isAbba" class="block mt-2 text-color-secondary">
           Search by name, description or ID and pick from the list, or type IDs and press
-          Enter. At least two, at most twenty -- or ten with empty combinations included.
+          Enter. Every search term must match; put OR in capitals for either, as in
+          "alcohol OR cocaine". At least two, at most twenty -- or ten with empty combinations
+          included.
         </small>
         <small *ngIf="isAbba" class="block mt-2 text-color-secondary">
           Optional for ABBA: up to twenty gene sets, whose genes join the seed genes.
@@ -41,7 +43,13 @@
           optionValue="value"
           optionDisabled="disabledReason"
           styleClass="w-full"
-        ></p-dropdown>
+        >
+          <ng-template let-tool pTemplate="item">
+            <span [pTooltip]="tool.description" tooltipPosition="right" appendTo="body">{{
+              tool.label
+            }}</span>
+          </ng-template>
+        </p-dropdown>
       </div>
     </div>
 
