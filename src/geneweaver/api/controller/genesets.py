@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from geneweaver.core.enum import GeneIdentifier, GenesetTier, Species
 from geneweaver.core.schema.geneset import GeneValue
 from geneweaver.core.schema.publication import Publication
-from geneweaver.core.schema.score import GenesetScoreType, ScoreType
+from geneweaver.core.schema.score import ScoreType
 from geneweaver.db import search as db_search
 from jax.apiutils import CollectionResponse, Response
 
@@ -297,17 +297,23 @@ def get_publication_for_geneset(
     return Response[Publication](pub_resp)
 
 
-@router.put("/{geneset_id}/threshold", status_code=204)
-def put_geneset_threshold(
-    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
-    gene_score_type: GenesetScoreType,
-    user: UserInternal = Security(deps.full_user),
-    cursor: deps.Cursor | None = Depends(deps.cursor),
-) -> None:
-    """Set geneset threshold for geneset owner."""
-    response = geneset_service.update_geneset_threshold(cursor, geneset_id, gene_score_type, user)
-
-    raise_http_error(response)
+# Retired: a gene set is its full list of genes and scores, and whoever runs an analysis
+# chooses the threshold for that run (curation decision, 2026-10-16; see
+# docs/tools/TOOL_GENE_SCORE_THRESHOLD.md). This rewrote `gsv_in_threshold` for every user and
+# tool, and overwrote binary gene sets' flags with `value < threshold`. Legacy, which still
+# serves prod, keeps its own /setthreshold. Restoring this needs `GenesetScoreType` imported from
+# geneweaver.core.schema.score again.
+# @router.put("/{geneset_id}/threshold", status_code=204)
+# def put_geneset_threshold(
+#     geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
+#     gene_score_type: GenesetScoreType,
+#     user: UserInternal = Security(deps.full_user),
+#     cursor: deps.Cursor | None = Depends(deps.cursor),
+# ) -> None:
+#     """Set geneset threshold for geneset owner."""
+#     response = geneset_service.update_geneset_threshold(cursor, geneset_id, gene_score_type, user)
+#
+#     raise_http_error(response)
 
 
 @router.get("/{geneset_id}/ontologies")
