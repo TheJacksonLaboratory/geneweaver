@@ -35,4 +35,12 @@ describe('SearchBarComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('tells people how to search for several terms, and the input points at it', () => {
+    const root: HTMLElement = fixture.nativeElement;
+    const help = root.querySelector('#search-help');
+    expect(help?.textContent).toContain('OR');
+    expect(help?.textContent).toContain('alcohol AND RNA-seq OR cocaine');
+    expect(root.querySelector('input')?.getAttribute('aria-describedby')).toBe('search-help');
+  });
 });

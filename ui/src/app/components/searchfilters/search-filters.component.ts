@@ -77,7 +77,7 @@ import {
           ></p-multiSelect>
         </div>
         <div class="field col-6 md:col-2">
-          <label [for]="idPrefix + '-min'" class="block mb-1 text-sm">Genes, at least</label>
+          <label [for]="idPrefix + '-min'" class="block mb-1 text-sm">Gene set size, min</label>
           <p-inputNumber
             [inputId]="idPrefix + '-min'"
             [ngModel]="filters.sizeMin"
@@ -89,7 +89,7 @@ import {
           ></p-inputNumber>
         </div>
         <div class="field col-6 md:col-2">
-          <label [for]="idPrefix + '-max'" class="block mb-1 text-sm">Genes, at most</label>
+          <label [for]="idPrefix + '-max'" class="block mb-1 text-sm">Gene set size, max</label>
           <p-inputNumber
             [inputId]="idPrefix + '-max'"
             [ngModel]="filters.sizeMax"
