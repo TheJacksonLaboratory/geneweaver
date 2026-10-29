@@ -15,6 +15,7 @@ import { GenesetSearchSource } from '../../search/geneset-search-source';
 import {
   activeFilterCount,
   canSearch,
+  describeSearch,
   emptyFilters,
   filterProblem,
   fromQueryParams,
@@ -62,7 +63,7 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
           emptyMessage="No gene sets match. Press Enter to search anyway, or change the filters."
           (onSelect)="open($event.value)"
           (onKeyUp)="keyUp($event)"
-          placeholder="Search gene sets by name, description or ID"
+          placeholder="Search gene sets by keyword or ID"
           ariaLabel="Search gene sets"
           styleClass="w-full"
           inputStyleClass="w-full"
@@ -88,6 +89,13 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
         (onClick)="showFilters = !showFilters"
       ></p-button>
     </div>
+    <small id="genesetSearchHelp" class="block mt-2 text-left text-color-secondary font-normal">
+      Results are always gene sets. Keywords find gene sets whose name, description, publication
+      (title, abstract, authors), ontology terms or genes mention them; every keyword must match, and
+      <strong>OR</strong> in capitals matches either (<em>alcohol OR cocaine</em>). To find the gene
+      sets that contain a gene, optionally only where its score is in a range, use
+      <strong>Filters</strong> &rsaquo; <em>Gene</em>.
+    </small>
     <app-search-filters
       *ngIf="showFilters"
       class="block mt-3"
@@ -121,6 +129,8 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
   errorMessage?: string;
   /** Whether the last page was full, so there may be more. */
   hasMore = false;
+  /** What the results of the last search run are, e.g. "Gene sets that contain Drd2". */
+  resultsDescription = '';
 
   private gwApi: ApiBaseService;
   private results: GeneSet[] = [];
@@ -234,6 +244,7 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
     this.hasMore = false;
     this.isSearching = false;
     this.errorMessage = undefined;
+    this.resultsDescription = '';
     this.source.reset();
     this.source.setFilters(this.filters);
     this.searchCleared.emit(true);
@@ -244,6 +255,9 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
     this.isSearching = true;
     this.errorMessage = undefined;
     this.searchExecuted.emit(this.query);
+    if (offset === 0) {
+      this.resultsDescription = describeSearch(this.query, this.filters);
+    }
     this.lastSearch?.unsubscribe();
     this.lastSearch = this.gwApi
       .getCollection<GeneSet>(

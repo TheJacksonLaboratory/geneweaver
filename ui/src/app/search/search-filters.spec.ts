@@ -1,6 +1,7 @@
 import {
   activeFilterCount,
   canSearch,
+  describeSearch,
   emptyFilters,
   filterProblem,
   fromQueryParams,
@@ -98,5 +99,32 @@ describe('search filters', () => {
   it('names species by id, including ids above the gap at 7', () => {
     expect(speciesName(8)).toBe('Caenorhabditis elegans');
     expect(speciesName(99)).toBe('Species 99');
+  });
+
+  describe('describeSearch', () => {
+    it('says text results are gene sets matched by their text', () => {
+      expect(describeSearch(' alcohol ', emptyFilters())).toBe(
+        'Gene sets whose name, description, publication, ontology terms or genes match "alcohol"',
+      );
+    });
+
+    it('says gene results are gene sets that contain the gene', () => {
+      expect(describeSearch('', filters({ gene: ' Drd2 ' }))).toBe('Gene sets that contain Drd2');
+    });
+
+    it('names the cutoffs, and whether they filter or only order', () => {
+      const cut = filters({ gene: 'Drd2', pValue: 0.05, correlationLow: 0.3 });
+      expect(describeSearch('', cut)).toBe('Gene sets that contain Drd2 with p-value ≤ 0.05 or correlation ≥ 0.3');
+      expect(describeSearch('', { ...cut, thresholdMode: 'first' })).toBe(
+        'Gene sets that contain Drd2, those where its p-value ≤ 0.05 or correlation ≥ 0.3 first',
+      );
+    });
+
+    it('joins text and gene, and is empty with neither', () => {
+      expect(describeSearch('alcohol', filters({ gene: 'Drd2' }))).toBe(
+        'Gene sets whose name, description, publication, ontology terms or genes match "alcohol", and that contain Drd2',
+      );
+      expect(describeSearch(' ', emptyFilters())).toBe('');
+    });
   });
 });

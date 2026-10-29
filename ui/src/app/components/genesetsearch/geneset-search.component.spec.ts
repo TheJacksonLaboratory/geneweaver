@@ -56,6 +56,25 @@ describe('GenesetSearchComponent', () => {
     respond = (params) => of({ data: genesets(Number(params.get('offset')) + 1, 25), paging: {} });
   });
 
+  it('says results are gene sets, and how keywords and the gene filter find them', async () => {
+    await setUp();
+    const help = (fixture.nativeElement as HTMLElement).querySelector('#genesetSearchHelp')?.textContent ?? '';
+    expect(help).toContain('Results are always gene sets');
+    expect(help).toContain('OR');
+    expect(help).toContain('contain a gene');
+  });
+
+  it('describes the results of the search it ran, not filters edited since', async () => {
+    queryParams = { search: 'alcohol', gene: 'Drd2' };
+    await setUp();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(search.resultsDescription).toContain('contain Drd2');
+    search.filtersChanged({ ...emptyFilters(), gene: 'Tp53' });
+    expect(search.resultsDescription).toContain('contain Drd2');
+    search.clear();
+    expect(search.resultsDescription).toBe('');
+  });
+
   it('runs a search shared in the URL once, with its filters and sort', async () => {
     queryParams = { search: 'dopamine', species: '1', sort: 'size', order: 'desc' };
     await setUp();

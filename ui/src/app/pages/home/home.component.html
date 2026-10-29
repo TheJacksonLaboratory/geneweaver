@@ -44,6 +44,8 @@
             <!-- The Search Results Component -->
             <div id="genesetResults" *ngIf="geneSets.length > 0" class="flex justify-content-center">
                 <div class="w-full md:w-12 lg:w-10 xl:w-8 xxl:w-6 sm:w-full p-3">
+                    <p *ngIf="searchField.resultsDescription" id="resultsDescription"
+                       class="mt-0 mb-2 text-left font-normal">{{ searchField.resultsDescription }}</p>
                     <app-gene-set-list
                             [geneSets]="geneSets"
                             [sort]="searchField.sort"

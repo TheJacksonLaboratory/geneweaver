@@ -259,6 +259,45 @@ export function fromQueryParams(params: Record<string, string | undefined>): { f
   return { filters, sort: { by, order: params['order'] === 'desc' ? 'desc' : 'asc' } };
 }
 
+/** The cutoffs set, as "p-value ≤ 0.05 or correlation 0.3 to 1"; a gene set has one score type. */
+function describeCutoffs(filters: SearchFilters): string {
+  const parts: string[] = [];
+  if (filters.pValue !== null) parts.push(`p-value ≤ ${filters.pValue}`);
+  if (filters.qValue !== null) parts.push(`q-value ≤ ${filters.qValue}`);
+  for (const [name, low, high] of [
+    ['correlation', filters.correlationLow, filters.correlationHigh],
+    ['effect', filters.effectLow, filters.effectHigh],
+  ] as const) {
+    if (low !== null && high !== null) parts.push(`${name} ${low} to ${high}`);
+    else if (low !== null) parts.push(`${name} ≥ ${low}`);
+    else if (high !== null) parts.push(`${name} ≤ ${high}`);
+  }
+  return parts.join(' or ');
+}
+
+/**
+ * What a search returns, in words: always gene sets, matched by their text, by holding a gene
+ * (with its score in range, if cutoffs are set), or both. Other filters only narrow it.
+ */
+export function describeSearch(text: string, filters: SearchFilters): string {
+  const reasons: string[] = [];
+  if (text.trim()) {
+    reasons.push(`whose name, description, publication, ontology terms or genes match "${text.trim()}"`);
+  }
+  const gene = filters.gene.trim();
+  if (gene) {
+    const cutoffs = describeCutoffs(filters);
+    if (!cutoffs) {
+      reasons.push(`that contain ${gene}`);
+    } else if (filters.thresholdMode === 'first') {
+      reasons.push(`that contain ${gene}, those where its ${cutoffs} first`);
+    } else {
+      reasons.push(`that contain ${gene} with ${cutoffs}`);
+    }
+  }
+  return reasons.length ? `Gene sets ${reasons.join(', and ')}` : '';
+}
+
 /** "Mus musculus", or the id when it is not one we name. */
 export function speciesName(id: number | null | undefined): string {
   return SPECIES_OPTIONS.find((option) => option.id === id)?.label ?? (id ? `Species ${id}` : '');
