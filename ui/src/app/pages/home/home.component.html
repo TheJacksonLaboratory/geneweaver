@@ -24,20 +24,54 @@
             <!-- The Search Component -->
             <div class="flex justify-content-center">
                 <div class="w-full md:w-12 lg:w-10 xl:w-8 xxl:w-6 sm:w-full p-3">
+                    <!-- The previous search bar (components/searchbar), kept for reference; replaced by
+                         the autocomplete search with filters and sorting (G3-777, G3-764).
                     <app-search-bar
                             [searchValue]="searchValue"
                             (searchExecuted)="onSearchExecuted()"
                             (searchCompleted)="onSearchCompleted($event)"
                             (searchPaging)="onSearchPaging($event)">
                     </app-search-bar>
+                    -->
+                    <app-geneset-search #searchField
+                            (searchExecuted)="onSearchExecuted()"
+                            (searchCompleted)="onSearchCompleted($event)"
+                            (searchPaging)="onSearchPaging($event)">
+                    </app-geneset-search>
                 </div>
             </div>
 
             <!-- The Search Results Component -->
             <div id="genesetResults" *ngIf="geneSets.length > 0" class="flex justify-content-center">
                 <div class="w-full md:w-12 lg:w-10 xl:w-8 xxl:w-6 sm:w-full p-3">
-                    <app-gene-set-list [geneSets]="geneSets"></app-gene-set-list>
+                    <div class="flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2 font-normal text-left">
+                        <p *ngIf="searchField.resultsDescription" id="resultsDescription"
+                           class="m-0 flex-1 min-w-0">{{ searchField.resultsDescription }}</p>
+                        <span id="resultsTotal" class="white-space-nowrap">
+                            <strong>{{ searchField.totalRecords | number }}</strong>
+                            {{ searchField.totalRecords === 1 ? 'gene set' : 'gene sets' }} found
+                        </span>
+                    </div>
+                    <app-gene-set-list
+                            [geneSets]="geneSets"
+                            [sort]="searchField.sort"
+                            (sortChange)="searchField.sortBy($event)">
+                    </app-gene-set-list>
+                    <!-- Results come a page at a time; sorting and filters are the search's. -->
+                    <p-paginator id="resultsPaginator"
+                                 styleClass="mt-2 font-normal text-sm"
+                                 [first]="searchField.first"
+                                 [rows]="searchField.rows"
+                                 [totalRecords]="searchField.totalRecords"
+                                 [rowsPerPageOptions]="searchField.rowsPerPageOptions"
+                                 [showCurrentPageReport]="true"
+                                 [currentPageReportTemplate]="searchField.pageReport"
+                                 (onPageChange)="onPageChange($event)">
+                    </p-paginator>
                 </div>
+            </div>
+            <div *ngIf="isSearchActive && !isLoading && geneSets.length === 0" class="font-normal text-color-secondary">
+                No gene sets match this search.
             </div>
         </div>
     </div>

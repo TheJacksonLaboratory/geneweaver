@@ -14,7 +14,7 @@ from psycopg.rows import Row
 
 def genesets(
     cursor: Cursor,
-    search_text: str,
+    search_text: str | None = None,
     is_readable_by: int | None = None,
     publication_id: int | None = None,
     pubmed_id: int | None = None,
@@ -30,6 +30,7 @@ def genesets(
     limit: int | None = None,
     offset: int | None = None,
     _status: str | None = "normal",
+    **search_options: object,
 ) -> list[Row]:
     """Search genesets using all relevant metadata fields.
 
@@ -50,6 +51,8 @@ def genesets(
     :param limit: Limit the number of results.
     :param offset: Offset the results.
     :param _status: Show only results with this status. Default is "normal".
+    :param search_options: Sorting and the gene-threshold search, as
+        `geneweaver.db.query.search.search.genesets` documents them (G3-777, G3-764).
     """
     cursor.execute(
         *search.genesets(
@@ -69,6 +72,24 @@ def genesets(
             limit=limit,
             offset=offset,
             _status=_status,
+            **search_options,
         )
     )
     return cursor.fetchall()
+
+
+def count_genesets(
+    cursor: Cursor,
+    is_readable_by: int | None = None,
+    **search_args: object,
+) -> int:
+    """How many gene sets `genesets` finds across all its pages, for the same arguments.
+
+    :param cursor: A database cursor.
+    :param is_readable_by: A user ID to check if the user can read the results.
+    :param search_args: `genesets`' other arguments; paging and sorting are ignored.
+    """
+    cursor.execute(*search.count_genesets(is_readable_by=is_readable_by, **search_args))
+    row = cursor.fetchone()
+    # The API's cursors return rows as dicts (dict_row); others return tuples.
+    return row["total"] if isinstance(row, dict) else row[0]

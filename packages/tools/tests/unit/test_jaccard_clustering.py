@@ -53,7 +53,9 @@ def test_run_builds_dendrogram() -> None:
     assert _leaves(root) == set(GS)
 
 
-@pytest.mark.parametrize("method", ["ward", "complete", "average", "mcquitty", "single"])
+@pytest.mark.parametrize(
+    "method", ["ward", "complete", "average", "mcquitty", "single", "centroid"]
+)
 def test_all_methods_supported(method: str) -> None:
     """Every legacy linkage method maps to a valid scipy method."""
     out = JaccardClustering().run(

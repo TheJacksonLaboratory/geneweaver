@@ -343,7 +343,7 @@ Phase A is **7, the frozen parity baseline**, because A2 and A8 measure against 
 
 ### A0. Wire the tools package in — **done in PR #32**
 
-`geneweaver-tools[sklearn]` is now in root `pyproject.toml` `[project].dependencies`. The API needs only `sklearn`, because it runs tools **in-process** and is not a Temporal worker; `asynctask` needs `[sklearn,temporal]` (see A1b item 2). Two different consumers, two different extra sets — not a contradiction.
+`geneweaver-tools[sklearn]` is now in root `pyproject.toml` `[project].dependencies`. The API needs only `sklearn`, because it runs tools **in-process** and is not a Temporal worker; `asynctask` needs only `geneweaver-tools-plugin` (see A1b item 2), and the API takes the plugin too, for its request checks.
 `[tool.uv.sources]` already pinned the name to `packages/tools`, so the lock resolves it
 `editable = "packages/tools"` — never the archived PyPI `0.0.5`, which ships the `AbstractTool`
 framework only and none of the nine tools. The `sklearn` extra is required, not optional:
@@ -488,11 +488,10 @@ to this repository** — which makes this the step most likely to stall:
    the test of whether that secret's service account holds `artifactregistry.writer` on
    `python-dev`, which cannot be determined from outside GitHub; the workflow logs the
    authenticated identity so a refusal names the account to fix.
-2. **Add `geneweaver-tools[sklearn,temporal]` to `asynctask`'s dependencies** (Bitbucket,
-   separate review path), and confirm its image can satisfy both extras. The `temporal` extra is
-   **not** optional: without it `geneweaver.tools.temporal` will not import, so the three
-   Temporal entry points resolve to nothing and AsyncTask registers no workflow. The branch
-   `feat/geneweaver-tools-plugin` installs both.
+2. **`asynctask` depends on `geneweaver-tools-plugin` only** (Bitbucket, separate review
+   path; branch `feat/geneweaver-tools-plugin`). The plugin holds the workflow and routing and
+   needs only `temporalio`; the tools, scikit-learn and the database driver stay in the two
+   worker images. See `docs/tools/TOOLS_MIGRATION.md`, "Three parts".
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
    `geneweaver-boolean-algebra 0.3.0a23`, whose GitHub repo is **archived** (last push
    2025-01-15), against `packages/tools/.../boolean_algebra/` which is actively developed.

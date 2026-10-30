@@ -63,8 +63,9 @@ async def _exercise() -> list[str]:
     its activity has to be picked up on another. A single worker registering both would
     have passed even if `task_queue_for` were wrong.
     """
-    from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS
-    from geneweaver.tools.temporal.routing import PYTHON_TASK_QUEUE
+    from geneweaver.tools.temporal import ACTIVITIES
+    from geneweaver.tools_plugin.contract import PYTHON_TASK_QUEUE
+    from geneweaver.tools_plugin.workflows import WORKFLOWS
     from temporalio.client import WorkflowFailureError
     from temporalio.testing import WorkflowEnvironment
     from temporalio.worker import Worker

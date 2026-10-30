@@ -9,6 +9,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import HTTPException
+from geneweaver.db.query.membership import Thresholds
+from geneweaver.tools.thresholds import ThresholdOptions
 
 from geneweaver.api.schemas.tools import UpSetResult
 from geneweaver.api.services import tools as tool_service
@@ -157,7 +159,7 @@ class TestToolAvailability:
 
     def test_every_registered_tool_is_reported(self) -> None:
         """The picker used to list five of nine; the list must come from the registry."""
-        assert len(tool_service.available_tools()) == 9
+        assert len(tool_service.available_tools()) == 11
         assert set(tool_service.tool_availability()) == set(tool_service.available_tools())
 
     def test_the_binary_backed_tools_are_unavailable_in_process(self) -> None:
@@ -167,7 +169,7 @@ class TestToolAvailability:
             assert availability[name]["available"] is False
             assert "AsyncTask" in availability[name]["reason"]
 
-    def test_the_other_seven_are_available(self) -> None:
+    def test_the_pure_python_tools_are_available(self) -> None:
         """Pins the set, so adding a tool without a resolver fails here."""
         availability = tool_service.tool_availability()
         runnable = sorted(n for n, s in availability.items() if s["available"])
@@ -175,9 +177,11 @@ class TestToolAvailability:
             "boolean_algebra",
             "combine",
             "dbscan",
+            "geneset_graph",
             "hypergeometric",
             "jaccard_clustering",
             "jaccard_similarity",
+            "triclique",
             "upset",
         ]
 
@@ -409,6 +413,7 @@ class TestExecutionRouting:
             "geneset_ids": [1, 2],
             "gene_counts": {"1": 2, "2": 2},
             "caveat": None,
+            "thresholds": {"threshold": "none"},
             "run_id": 11,
             "status": "running",
         }
@@ -725,3 +730,430 @@ def test_anonymous_is_refused_before_availability(tool, mock_cursor) -> None:
         pytest.raises(tool_service.SignInRequired),
     ):
         tool_service.run_tool(mock_cursor, tool, [1, 2], user=None)
+
+
+class TestOptions:
+    """Legacy options reach the tools, parsed strictly."""
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (True, True),
+            (False, False),
+            ("false", False),
+            ("True", True),
+            ("Included", True),
+            ("Excluded", False),
+            ("Enabled", True),
+            ("Disabled", False),
+            (0, False),
+            (1, True),
+        ],
+    )
+    def test_flags_parse_strictly(self, value, expected) -> None:
+        """``bool("false")`` is True; this must not be."""
+        assert tool_service.flag({"key": value}, "key", not expected) is expected
+
+    @pytest.mark.parametrize("value", ["maybe", 2, None, [True]])
+    def test_an_unrecognised_flag_is_a_request_error(self, value) -> None:
+        """Refused, never guessed."""
+        with pytest.raises(tool_service.ToolRequestError, match="key"):
+            tool_service.flag({"key": value}, "key", False)
+
+    def test_a_missing_flag_takes_the_default(self) -> None:
+        """The API defaults are unchanged; the UI sends legacy's explicitly."""
+        assert tool_service.flag({}, "key", True) is True
+
+    @pytest.mark.parametrize("relation", ["union", "Intersection", "intersect", "EXCEPT"])
+    def test_boolean_relations_are_accepted_case_insensitively(
+        self, relation, mock_cursor
+    ) -> None:
+        """Legacy's spellings and the API's both work."""
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+                return_value={1: 1},
+            ),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homolog_annotations",
+                return_value=[],
+            ),
+        ):
+            built = tool_service.INPUT_BUILDERS["boolean_algebra"](
+                mock_cursor, [1, 2], {}, {"relation": relation, "at_least": "3"}
+            )
+        assert built["relation"] == relation.lower()
+        assert built["at_least"] == 3
+
+    @pytest.mark.parametrize(
+        ("parameters", "match"),
+        [({"relation": "intersektion"}, "relation"), ({"at_least": 0}, "at_least")],
+    )
+    def test_a_bad_boolean_option_is_refused_before_any_query(
+        self, parameters, match, mock_cursor
+    ) -> None:
+        """The tool runs anything unrecognised as an intersection; refuse it instead."""
+        with (
+            patch("geneweaver.api.services.tools.db_tool_input.species_by_geneset") as species,
+            pytest.raises(tool_service.ToolRequestError, match=match),
+        ):
+            tool_service.INPUT_BUILDERS["boolean_algebra"](mock_cursor, [1, 2], {}, parameters)
+        species.assert_not_called()
+
+    def test_a_bad_relation_is_a_422_through_the_run(
+        self, mock_cursor, readable_memberships
+    ) -> None:
+        """End to end through `run_tool`, the request error surfaces as itself."""
+        with pytest.raises(tool_service.ToolRequestError, match="relation"):
+            tool_service.run_tool(
+                mock_cursor, "boolean_algebra", [1, 2], user=Mock(), parameters={"relation": "x"}
+            )
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected"),
+        [
+            ({}, {"min_degree": 1, "suppress_disconnected": True, "emphasis_genes": []}),
+            (
+                {
+                    "min_degree": "Auto",
+                    "suppress_disconnected": "Off",
+                    "emphasis_genes": "Drd2, Th",
+                },
+                {
+                    "min_degree": "auto",
+                    "suppress_disconnected": False,
+                    "emphasis_genes": ["Drd2", "Th"],
+                },
+            ),
+            ({"min_degree": "3"}, {"min_degree": 3}),
+        ],
+    )
+    def test_geneset_graph_reads_legacys_options(self, parameters, expected, mock_cursor) -> None:
+        """Legacy's spellings: "Auto", On/Off, and a comma or space separated gene list."""
+        built = tool_service.INPUT_BUILDERS["geneset_graph"](
+            mock_cursor, [1, 2], MEMBERSHIPS, parameters
+        )
+        assert built["gene_memberships"] == MEMBERSHIPS
+        for key, value in expected.items():
+            assert built[key] == value
+
+    @pytest.mark.parametrize("group_b", [[2], "GS2", "2", ["2"]])
+    def test_triclique_splits_the_run_by_group_b(self, group_b, mock_cursor) -> None:
+        """Group B is named; group A is the rest of the run's gene sets."""
+        built = tool_service.INPUT_BUILDERS["triclique"](
+            mock_cursor, [1, 2], MEMBERSHIPS, {"group_b": group_b}
+        )
+        assert built["group_a"] == ["1"]
+        assert built["group_b"] == ["2"]
+        assert built["gene_memberships"] == MEMBERSHIPS
+
+    @pytest.mark.parametrize(
+        ("group_b", "message"),
+        [
+            (None, "Each group needs at least one"),
+            ("1 2", "Each group needs at least one"),
+            ("3", r"not in the run: \[3\]"),
+        ],
+    )
+    def test_triclique_needs_two_groups_of_the_runs_gene_sets(
+        self, group_b, message, mock_cursor
+    ) -> None:
+        """No group B, all of the run in B, or a stranger in B: refused before the run."""
+        with pytest.raises(tool_service.ToolRequestError, match=message):
+            tool_service.INPUT_BUILDERS["triclique"](
+                mock_cursor, [1, 2], MEMBERSHIPS, {"group_b": group_b}
+            )
+
+    def test_triclique_refuses_too_many_shared_genes_up_front(self, mock_cursor) -> None:
+        """Legacy's 50-gene limit is a 422 now, not a failed run later."""
+        genes = [f"G{i}" for i in range(51)]
+        with pytest.raises(tool_service.ToolRequestError, match="share 51 genes"):
+            tool_service.INPUT_BUILDERS["triclique"](
+                mock_cursor, [1, 2], {"1": genes, "2": genes}, {"group_b": "2"}
+            )
+
+    def test_clustering_method_is_case_insensitive(self, mock_cursor) -> None:
+        """Legacy sends "Average"; the tool's schema wants lowercase."""
+        built = tool_service.INPUT_BUILDERS["jaccard_clustering"](
+            mock_cursor, [1, 2], MEMBERSHIPS, {"method": "Centroid"}
+        )
+        assert built["method"] == "centroid"
+
+    @pytest.mark.parametrize("tool", sorted(tool_service.HOMOLOGY_TOOLS - {"phenome_map"}))
+    def test_homology_merges_memberships_for_membership_tools(self, tool, mock_cursor) -> None:
+        """Included: the homology resolver. Excluded (the API default): the plain one."""
+        runner = _RecordingRunner(Mock(model_dump=Mock(return_value={})))
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homologous_gene_symbols_by_geneset",
+                return_value=MEMBERSHIPS,
+            ) as merged,
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+                return_value=MEMBERSHIPS,
+            ) as plain,
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.jaccard_distributions",
+                return_value=[],
+            ),
+        ):
+            tool_service.run_tool(
+                mock_cursor,
+                tool,
+                [1, 2],
+                user=Mock(token=None),
+                parameters={
+                    "include_homology": "Included",
+                    "epsilon": 1,
+                    "min_points": 1,
+                    "group_b": "2",
+                },
+                runner=runner,
+            )
+            merged.assert_called_once_with(mock_cursor, [1, 2], Thresholds())
+            plain.assert_not_called()
+
+    def test_homology_off_uses_plain_memberships(self, mock_cursor, readable_memberships) -> None:
+        """A "false" string must not switch homology on."""
+        runner = _RecordingRunner(Mock(model_dump=Mock(return_value={})))
+        with patch(
+            "geneweaver.api.services.tools.db_tool_input.homologous_gene_symbols_by_geneset"
+        ) as merged:
+            tool_service.run_tool(
+                mock_cursor,
+                "hypergeometric",
+                [1, 2],
+                user=Mock(token=None),
+                parameters={"include_homology": "false"},
+                runner=runner,
+            )
+        merged.assert_not_called()
+
+    def test_a_bad_homology_value_is_refused_before_resolving(
+        self, mock_cursor, readable_memberships
+    ) -> None:
+        """Strict parsing happens before the membership query."""
+        with pytest.raises(tool_service.ToolRequestError, match="include_homology"):
+            tool_service.run_tool(
+                mock_cursor,
+                "upset",
+                [1, 2],
+                user=Mock(token=None),
+                parameters={"include_homology": "sometimes"},
+            )
+
+    def test_upset_endpoint_forwards_homology(self, mock_cursor) -> None:
+        """The dedicated UpSet path honours the option too."""
+        runner = _RecordingRunner(_Output([]))
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homologous_gene_symbols_by_geneset",
+                return_value=MEMBERSHIPS,
+            ) as merged,
+        ):
+            tool_service.run_upset(
+                mock_cursor, [1, 2], user=Mock(token=None), include_homology=True, runner=runner
+            )
+        merged.assert_called_once()
+        assert runner.tool_input.include_homology is True
+
+    @pytest.mark.parametrize("homology", [False, True])
+    @pytest.mark.parametrize("tool", sorted(tool_service.HOMOLOGY_TOOLS - {"phenome_map"}))
+    def test_custom_cutoffs_reach_the_membership_query(self, tool, homology, mock_cursor) -> None:
+        """The run's choice reaches whichever resolver the run uses, and is echoed."""
+        runner = _RecordingRunner(Mock(model_dump=Mock(return_value={})))
+        resolver = "homologous_gene_symbols_by_geneset" if homology else "gene_symbols_by_geneset"
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                f"geneweaver.api.services.tools.db_tool_input.{resolver}",
+                return_value=MEMBERSHIPS,
+            ) as resolve,
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.jaccard_distributions",
+                return_value=[],
+            ),
+        ):
+            result = tool_service.run_tool(
+                mock_cursor,
+                tool,
+                [1, 2],
+                user=Mock(token=None),
+                parameters={
+                    "include_homology": homology,
+                    "threshold": "custom",
+                    "p_value": 0.01,
+                    "correlation_low": 0.5,
+                    "group_b": "2",
+                },
+                runner=runner,
+            )
+        resolve.assert_called_once_with(
+            mock_cursor, [1, 2], Thresholds("custom", p_value=0.01, correlation_low=0.5)
+        )
+        assert result["thresholds"] == {
+            "threshold": "custom",
+            "p_value": 0.01,
+            "correlation_low": 0.5,
+        }
+
+    def test_every_gene_unless_a_threshold_is_chosen(self, mock_cursor) -> None:
+        """Curation (2026-10-16): a gene set is not inherently thresholded."""
+        runner = _RecordingRunner(Mock(model_dump=Mock(return_value={})))
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+                return_value=MEMBERSHIPS,
+            ) as resolve,
+        ):
+            result = tool_service.run_tool(
+                mock_cursor, "hypergeometric", [1, 2], user=Mock(token=None), runner=runner
+            )
+        resolve.assert_called_once_with(mock_cursor, [1, 2], Thresholds())
+        assert result["thresholds"] == {"threshold": "none"}
+
+    def test_the_uploaders_threshold_is_one_choice(self, mock_cursor, readable_memberships):
+        """One click: each gene set's own stored threshold."""
+        result = tool_service.run_tool(
+            mock_cursor,
+            "upset",
+            [1, 2],
+            user=Mock(token=None),
+            parameters={"threshold": "uploader"},
+            runner=_RecordingRunner(Mock(model_dump=Mock(return_value={}))),
+        )
+        assert result["thresholds"] == {"threshold": "uploader"}
+
+    @pytest.mark.parametrize(
+        ("parameters", "message"),
+        [
+            ({"threshold": "sometimes"}, "threshold"),
+            ({"threshold": "uploader", "p_value": 0.05}, "only with threshold 'custom'"),
+            ({"threshold": "custom", "effect_low": 3, "effect_high": 1}, "effect_low"),
+        ],
+    )
+    def test_a_bad_threshold_choice_is_refused_before_resolving(
+        self, parameters, message, mock_cursor
+    ) -> None:
+        """A 422 naming what is wrong, and no membership query."""
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset"
+            ) as resolve,
+            pytest.raises(tool_service.ToolRequestError, match=message),
+        ):
+            tool_service.run_tool(
+                mock_cursor, "upset", [1, 2], user=Mock(token=None), parameters=parameters
+            )
+        resolve.assert_not_called()
+
+    @pytest.mark.parametrize("homology", [False, True])
+    def test_combine_reads_members_and_orthologs_under_one_rule(
+        self, homology, mock_cursor
+    ) -> None:
+        """Its matrix and its ortholog pairs must agree on which genes are in the run."""
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.membership_rows", return_value=[]
+            ) as rows,
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homology_pairs", return_value=[]
+            ) as pairs,
+            patch("geneweaver.api.services.tools.db_tool_input.geneset_labels", return_value=[]),
+        ):
+            tool_service.INPUT_BUILDERS["combine"](
+                mock_cursor,
+                [1, 2],
+                {},
+                {"include_homology": homology, "threshold": "uploader"},
+            )
+        rows.assert_called_once_with(mock_cursor, [1, 2], Thresholds("uploader"))
+        if homology:
+            pairs.assert_called_once_with(mock_cursor, [1, 2], Thresholds("uploader"))
+        else:
+            pairs.assert_not_called()
+
+    def test_boolean_algebra_reads_membership_by_the_choice(self, mock_cursor) -> None:
+        """Its homolog-annotated membership is its gene source, so the choice goes there."""
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.species_by_geneset",
+                return_value={1: 1, 2: 1},
+            ),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.homolog_annotations",
+                return_value=[],
+            ) as annotations,
+        ):
+            tool_service.INPUT_BUILDERS["boolean_algebra"](
+                mock_cursor, [1, 2], {}, {"threshold": "custom", "q_value": 0.05}
+            )
+        annotations.assert_called_once_with(
+            mock_cursor, [1, 2], [1], Thresholds("custom", q_value=0.05)
+        )
+
+    def test_upset_endpoint_forwards_thresholds(self, mock_cursor) -> None:
+        """The dedicated UpSet path takes the choice and reports it."""
+        runner = _RecordingRunner(_Output([]))
+        with (
+            patch("geneweaver.api.services.tools.db_geneset.is_readable", return_value=True),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.gene_symbols_by_geneset",
+                return_value=MEMBERSHIPS,
+            ) as resolve,
+        ):
+            result = tool_service.run_upset(
+                mock_cursor,
+                [1, 2],
+                user=Mock(token=None),
+                thresholds=ThresholdOptions(threshold="custom", p_value=0.05),
+                runner=runner,
+            )
+        resolve.assert_called_once_with(mock_cursor, [1, 2], Thresholds("custom", p_value=0.05))
+        assert result.thresholds == {"threshold": "custom", "p_value": 0.05}
+
+    @pytest.mark.parametrize("tool", ["jaccard_similarity", "hypergeometric"])
+    def test_pairwise_deletion_queries_only_the_platforms_in_play(self, tool, mock_cursor) -> None:
+        """Two mouse sets on different platforms: both platforms' genes, nothing else."""
+        with (
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.geneset_platforms",
+                return_value={1: (1, 8), 2: (1, 13)},
+            ),
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.platform_gene_symbols",
+                side_effect=lambda cursor, platform: {"B"} if platform == 8 else {"B", "C"},
+            ) as genes,
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.jaccard_distributions",
+                return_value=[],
+            ),
+        ):
+            built = tool_service.INPUT_BUILDERS[tool](
+                mock_cursor, [1, 2], MEMBERSHIPS, {"pairwise_deletion": "Enabled"}
+            )
+        assert sorted(call.args[1] for call in genes.call_args_list) == [8, 13]
+        pair = built["pairs"][0]
+        # Only "B" is on both platforms: "A" and "C" drop out of the pair.
+        if tool == "jaccard_similarity":
+            assert (pair["only_i"], pair["only_j"], pair["intersection"]) == (0, 0, 1)
+        else:
+            assert (pair["f11"], pair["f10"], pair["f01"], pair["f00"]) == (1, 0, 0, 0)
+
+    def test_pairwise_deletion_off_queries_nothing(self, mock_cursor) -> None:
+        """The default: no platform lookups at all."""
+        with (
+            patch("geneweaver.api.services.tools.db_tool_input.geneset_platforms") as platforms,
+            patch(
+                "geneweaver.api.services.tools.db_tool_input.jaccard_distributions",
+                return_value=[],
+            ),
+        ):
+            tool_service.INPUT_BUILDERS["jaccard_similarity"](
+                mock_cursor, [1, 2], MEMBERSHIPS, {"pairwise_deletion": False}
+            )
+        platforms.assert_not_called()

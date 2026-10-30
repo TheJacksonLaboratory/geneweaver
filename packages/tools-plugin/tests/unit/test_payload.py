@@ -1,7 +1,7 @@
-"""Tests for the Temporal payload size guard.
+"""Tests for the request checks: its shape, whether the tool is allowed, and its size.
 
-The point of the guard is attribution: a payload over Temporal's limit is otherwise refused
-by the server with a transport error naming neither the tool nor the field.
+The point of the size guard is attribution: a payload over Temporal's limit is otherwise
+refused by the server with a transport error naming neither the tool nor the field.
 """
 
 import json
@@ -9,8 +9,8 @@ import random
 import string
 
 import pytest
-from geneweaver.tools.temporal.activities import run_tool
-from geneweaver.tools.temporal.payload import (
+from geneweaver.tools_plugin import payload as payload_module
+from geneweaver.tools_plugin.payload import (
     ASYNCTASK_BLOCKED_TOOLS,
     MAX_PAYLOAD_BYTES,
     PAYLOAD_FRAMING_BYTES,
@@ -18,6 +18,7 @@ from geneweaver.tools.temporal.payload import (
     check_payload_size,
     check_submission,
     payload_size,
+    requested_tool,
 )
 
 
@@ -40,8 +41,6 @@ def _identifiers(count: int, kind: str = "symbol") -> list[str]:
 def check_tool_allowed_with(blocked: dict, tool: str) -> None:
     """Run the block check against a substituted map, leaving the real one alone."""
     from unittest.mock import patch
-
-    from geneweaver.tools.temporal import payload as payload_module
 
     with patch.object(payload_module, "ASYNCTASK_BLOCKED_TOOLS", blocked):
         payload_module.check_tool_allowed(tool)
@@ -152,12 +151,6 @@ def test_an_allowed_tool_passes_the_block_check() -> None:
     check_tool_allowed_with({"widget": "nope"}, "mset")
 
 
-def test_an_oversized_payload_fails_before_the_tool_is_loaded() -> None:
-    """Refuse on size rather than spending the resolution and validation first."""
-    with pytest.raises(ValueError, match="over the"):
-        run_tool(_mset_payload(150_000))
-
-
 def test_payload_size_matches_temporals_own_converter() -> None:
     """Pins the pure measurement to the real converter, byte for byte.
 
@@ -194,8 +187,6 @@ def test_submission_checks_policy_before_size() -> None:
     """
     from unittest.mock import patch
 
-    from geneweaver.tools.temporal import payload as payload_module
-
     oversized = _mset_payload(150_000)
     oversized["tool"] = "widget"
     with (
@@ -228,8 +219,6 @@ class TestRequestShape:
 
     def test_a_well_formed_request_yields_its_tool(self) -> None:
         """The ordinary path returns the tool name."""
-        from geneweaver.tools.temporal.payload import requested_tool
-
         assert requested_tool({"tool": "upset", "input": {}}) == "upset"
 
     @pytest.mark.parametrize(
@@ -247,16 +236,12 @@ class TestRequestShape:
     )
     def test_a_malformed_request_raises_value_error(self, request_body: dict) -> None:
         """ValueError specifically -- that is what the workflow converts to non-retryable."""
-        from geneweaver.tools.temporal.payload import requested_tool
-
         with pytest.raises(ValueError):
             requested_tool(request_body)
 
     @pytest.mark.parametrize("request_body", [None, "upset", 42, ["upset"]])
     def test_a_non_mapping_request_raises_value_error(self, request_body: object) -> None:
         """Not a dict at all -- indexing would have raised TypeError, also unwrapped."""
-        from geneweaver.tools.temporal.payload import requested_tool
-
         with pytest.raises(ValueError, match="must be an object"):
             requested_tool(request_body)
 
@@ -284,8 +269,8 @@ def test_a_universe_reference_is_orders_of_magnitude_smaller() -> None:
     assert payload_size(inline) / payload_size(reference) > 100
 
 
-def test_the_size_guard_imports_without_temporalio() -> None:
-    """The API installs geneweaver-tools without the `temporal` extra and calls this guard.
+def test_the_checks_import_without_temporalio() -> None:
+    """The API calls these before submitting, and need not load the Temporal SDK to do so.
 
     Run in a fresh interpreter, because this test process has already imported temporalio.
     """
@@ -293,16 +278,7 @@ def test_the_size_guard_imports_without_temporalio() -> None:
     import sys
 
     probe = (
-        "import sys; import geneweaver.tools.framework.payload_size; "
+        "import sys; import geneweaver.tools_plugin.payload; "
         "sys.exit(1 if 'temporalio' in sys.modules else 0)"
     )
     assert subprocess.run([sys.executable, "-c", probe], check=False).returncode == 0
-
-
-def test_the_temporal_module_re_exports_the_guard() -> None:
-    """The workflow and activity keep importing it from `temporal.payload`."""
-    from geneweaver.tools.framework import payload_size
-    from geneweaver.tools.temporal import payload
-
-    assert payload.check_payload_size is payload_size.check_payload_size
-    assert payload.MAX_PAYLOAD_BYTES == payload_size.MAX_PAYLOAD_BYTES
