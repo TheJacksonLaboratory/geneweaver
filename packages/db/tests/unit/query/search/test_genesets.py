@@ -158,7 +158,7 @@ def test_the_count_matches_the_same_rows_as_the_pages(kwargs) -> None:
     page, page_params = _sql(**kwargs)
     count, count_params = _count_sql(**kwargs)
     page_matches = page.split(" FROM geneset", 1)[1].split(" ORDER BY")[0]
-    assert count == "SELECT count(*) FROM geneset" + page_matches
+    assert count == "SELECT count(*) AS total FROM geneset" + page_matches
     assert count_params == page_params
 
 

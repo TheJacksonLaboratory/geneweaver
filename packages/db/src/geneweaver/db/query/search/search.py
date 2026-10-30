@@ -257,7 +257,7 @@ def count_genesets(**search_args: object) -> tuple[Composed, dict]:
     for key in _PAGING_AND_SORTING:
         search_args.pop(key, None)
     matches, _, params = _matches(**search_args)
-    return (SQL("SELECT count(*) FROM geneset") + matches).join(" "), params
+    return (SQL("SELECT count(*) AS total FROM geneset") + matches).join(" "), params
 
 
 def _matches(
