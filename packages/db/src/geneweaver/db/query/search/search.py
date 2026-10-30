@@ -198,10 +198,103 @@ def genesets(
         returns every gene set holding the gene, those that pass first.
     :param gs_id: Only this gene set: how a typed id is looked up, under the search's rule.
     """
+    matches, ordering, params = _matches(
+        search_text=search_text,
+        is_readable_by=is_readable_by,
+        publication_id=publication_id,
+        pubmed_id=pubmed_id,
+        species=species,
+        curation_tier=curation_tier,
+        score_type=score_type,
+        lte_count=lte_count,
+        gte_count=gte_count,
+        created_before=created_before,
+        created_after=created_after,
+        updated_before=updated_before,
+        updated_after=updated_after,
+        _status=_status,
+        gene=gene,
+        p_value=p_value,
+        q_value=q_value,
+        correlation_low=correlation_low,
+        correlation_high=correlation_high,
+        effect_low=effect_low,
+        effect_high=effect_high,
+        threshold_mode=threshold_mode,
+        gs_id=gs_id,
+    )
+    query = format_select_query() + matches
+
+    if sort_by is not None:
+        ordering.append(
+            SQL(" ").join([SORT_COLUMNS[sort_by], SORT_ORDERS[sort_order], SQL("NULLS LAST")])
+        )
+    # Always ordered, the id last: without an ORDER BY, Postgres may return the rows of
+    # successive pages in different orders, so paging repeated some gene sets and skipped
+    # others (on dev, 499 repeats in 2,000 rows of a gene search, 70 of a text search).
+    # "+ 0" keeps the planner from walking the primary key in id order and testing every
+    # gene set until it has a page: fast for common words, but 1.7 s for a rare one or an
+    # id, 7 s cold. Finding the matches first, then sorting them, took 0.02-0.36 s on dev
+    # for every search tried, "gene" (161k matches) included.
+    query += SQL("ORDER BY") + SQL(", ").join([*ordering, SQL("geneset.gs_id + 0")])
+
+    query = limit_and_offset(query, limit, offset).join(" ")
+
+    return query, params
+
+
+#: `genesets` arguments that page or order the matches without changing which they are.
+_PAGING_AND_SORTING = ("limit", "offset", "sort_by", "sort_order")
+
+
+def count_genesets(**search_args: object) -> tuple[Composed, dict]:
+    """How many gene sets `genesets` finds across all its pages, for the paginator's total.
+
+    Counted over the same joins and filters as the page query, so the total is the number of
+    rows the pages walk through and cannot drift from them. It takes `genesets`' arguments;
+    paging and sorting change no count, so they are ignored.
+    """
+    for key in _PAGING_AND_SORTING:
+        search_args.pop(key, None)
+    matches, _, params = _matches(**search_args)
+    return (SQL("SELECT count(*) FROM geneset") + matches).join(" "), params
+
+
+def _matches(
+    search_text: str | None = None,
+    is_readable_by: int | None = None,
+    publication_id: int | None = None,
+    pubmed_id: int | None = None,
+    species: SpeciesOrSpeciesSet | None = None,
+    curation_tier: GenesetTierOrTiers | None = None,
+    score_type: GenesetScoreTypeOrScoreTypes | None = None,
+    lte_count: int | None = None,
+    gte_count: int | None = None,
+    created_before: date | None = None,
+    created_after: date | None = None,
+    updated_before: date | None = None,
+    updated_after: date | None = None,
+    _status: str | None = "normal",
+    gene: str | None = None,
+    p_value: float | None = None,
+    q_value: float | None = None,
+    correlation_low: float | None = None,
+    correlation_high: float | None = None,
+    effect_low: float | None = None,
+    effect_high: float | None = None,
+    threshold_mode: str = "only",
+    gs_id: int | None = None,
+) -> tuple[Composed, list[Composed], dict]:
+    """The joins and WHERE clause after ``FROM geneset`` that pick the search's gene sets.
+
+    Shared by `genesets` and `count_genesets`. Also returns the ordering the matching itself
+    implies (``threshold_mode="first"`` puts passing gene sets first), which only
+    `genesets` uses. Arguments as `genesets` documents them.
+    """
     params = {}
     filtering = []
 
-    query = format_select_query()
+    query = SQL("")
     # The text index and publication fields live in the search view; a gene-only search
     # (G3-764) needs neither, so it does not join the view's ~261k rows.
     if search_text is not None or publication_id is not None or pubmed_id is not None:
@@ -265,19 +358,4 @@ def genesets(
     if len(filtering) > 0:
         query += SQL("WHERE") + SQL("AND").join(filtering)
 
-    if sort_by is not None:
-        ordering.append(
-            SQL(" ").join([SORT_COLUMNS[sort_by], SORT_ORDERS[sort_order], SQL("NULLS LAST")])
-        )
-    # Always ordered, the id last: without an ORDER BY, Postgres may return the rows of
-    # successive pages in different orders, so paging repeated some gene sets and skipped
-    # others (on dev, 499 repeats in 2,000 rows of a gene search, 70 of a text search).
-    # "+ 0" keeps the planner from walking the primary key in id order and testing every
-    # gene set until it has a page: fast for common words, but 1.7 s for a rare one or an
-    # id, 7 s cold. Finding the matches first, then sorting them, took 0.02-0.36 s on dev
-    # for every search tried, "gene" (161k matches) included.
-    query += SQL("ORDER BY") + SQL(", ").join([*ordering, SQL("geneset.gs_id + 0")])
-
-    query = limit_and_offset(query, limit, offset).join(" ")
-
-    return query, params
+    return query, ordering, params

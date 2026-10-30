@@ -147,15 +147,25 @@ def search(
     user: UserInternal = Security(deps.optional_full_user),
     cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> CollectionResponse:
-    """Search genesets."""
+    """Search genesets.
+
+    ``paging.total_items`` is how many gene sets match across every page, so a paginator can
+    say "25 of 1,696".
+    """
+    search_args = geneset_search.model_dump(exclude_none=True)
+    is_readable_by = 0 if user is None else user.id
+    results = db_search.genesets(cursor, is_readable_by=is_readable_by, **search_args)
+    # A short first page is every match, so it needs no second query to count them.
+    offset, limit = geneset_search.offset or 0, geneset_search.limit
+    if offset == 0 and limit is not None and len(results) < limit:
+        total = len(results)
+    else:
+        total = db_search.count_genesets(cursor, is_readable_by=is_readable_by, **search_args)
     return CollectionResponse(
-        db_search.genesets(
-            cursor,
-            is_readable_by=0 if user is None else user.id,
-            **geneset_search.model_dump(exclude_none=True),
-        ),
+        results,
         url=request.url,
-        **geneset_search.model_dump(exclude_none=True),
+        total=total,
+        **search_args,
     )
 
 

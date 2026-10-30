@@ -76,3 +76,18 @@ def genesets(
         )
     )
     return cursor.fetchall()
+
+
+def count_genesets(
+    cursor: Cursor,
+    is_readable_by: int | None = None,
+    **search_args: object,
+) -> int:
+    """How many gene sets `genesets` finds across all its pages, for the same arguments.
+
+    :param cursor: A database cursor.
+    :param is_readable_by: A user ID to check if the user can read the results.
+    :param search_args: `genesets`' other arguments; paging and sorting are ignored.
+    """
+    cursor.execute(*search.count_genesets(is_readable_by=is_readable_by, **search_args))
+    return cursor.fetchone()[0]

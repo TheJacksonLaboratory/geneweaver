@@ -36,7 +36,8 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
  *   and its sort, so a search can be shared and survives a reload.
  * - Filters (G3-777) and a gene with score cutoffs (G3-764) narrow both the suggestions and
  *   the results. A gene alone is a search: text is optional when one is given.
- * - `sortBy` and `loadMore` are for the results table below it.
+ * - `sortBy`, `changePage` and the paging fields are for the results table and paginator
+ *   below it: results come a page at a time, and the API counts every match for the total.
  */
 @Component({
   selector: 'app-geneset-search',
@@ -109,7 +110,7 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
 })
 export class GenesetSearchComponent implements OnInit, OnDestroy {
   @Output() searchExecuted = new EventEmitter<string>();
-  /** Every result so far: the first page, then each page `loadMore` added. */
+  /** The page of results now shown. */
   @Output() searchCompleted = new EventEmitter<GeneSet[]>();
   @Output() searchPaging = new EventEmitter<Paging>();
   @Output() searchCleared = new EventEmitter<boolean>();
@@ -127,8 +128,13 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
   showFilters = false;
   isSearching = false;
   errorMessage?: string;
-  /** Whether the last page was full, so there may be more. */
-  hasMore = false;
+  /** The offset of the page shown, as the paginator counts it. */
+  first = 0;
+  /** Results per page. */
+  rows = PAGE_SIZE;
+  readonly rowsPerPageOptions = [PAGE_SIZE, 50, 100];
+  /** How many gene sets the search found across every page. */
+  totalRecords = 0;
   /** What the results of the last search run are, e.g. "Gene sets that contain Drd2". */
   resultsDescription = '';
 
@@ -227,11 +233,16 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
     this.submit();
   }
 
-  /** Append the next page of results. */
-  loadMore(): void {
-    if (this.hasMore && !this.isSearching) {
-      this.run(this.results.length);
-    }
+  /** Show another page, or the same results with more or fewer per page (the paginator). */
+  changePage(page: { first?: number; rows?: number }): void {
+    this.rows = page.rows ?? this.rows;
+    this.run(page.first ?? 0);
+  }
+
+  /** The paginator's report: "25 out of 1,696 gene sets shown". */
+  get pageReport(): string {
+    const total = this.totalRecords.toLocaleString('en-US');
+    return `${this.results.length.toLocaleString('en-US')} out of ${total} gene sets shown`;
   }
 
   clear(): void {
@@ -241,7 +252,8 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
     this.sort = { by: null, order: 'asc' };
     this.showFilters = false;
     this.results = [];
-    this.hasMore = false;
+    this.first = 0;
+    this.totalRecords = 0;
     this.isSearching = false;
     this.errorMessage = undefined;
     this.resultsDescription = '';
@@ -262,13 +274,14 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
     this.lastSearch = this.gwApi
       .getCollection<GeneSet>(
         '/genesets/search',
-        searchParams(this.query, this.filters, { offset, limit: PAGE_SIZE }, this.sort),
+        searchParams(this.query, this.filters, { offset, limit: this.rows }, this.sort),
       )
       .subscribe({
         next: (response) => {
-          const page = response.data ?? [];
-          this.results = offset === 0 ? page : [...this.results, ...page];
-          this.hasMore = page.length === PAGE_SIZE;
+          this.results = response.data ?? [];
+          this.first = offset;
+          // An API without the count still pages: the total is at least what has been seen.
+          this.totalRecords = response.paging?.total_items ?? offset + this.results.length;
           this.isSearching = false;
           this.searchCompleted.emit(this.results);
           this.searchPaging.emit(response.paging);
@@ -278,7 +291,12 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
           const detail = error?.error?.detail;
           this.errorMessage =
             typeof detail === 'string' ? detail : 'The search failed. Check the filters and try again.';
-          this.searchCompleted.emit(offset === 0 ? [] : this.results);
+          if (offset === 0) {
+            this.results = [];
+            this.first = 0;
+            this.totalRecords = 0;
+          }
+          this.searchCompleted.emit(this.results);
         },
       });
   }

@@ -137,3 +137,35 @@ def test_no_cutoffs_no_threshold_predicate() -> None:
     predicate, params = search.gene_threshold_filter()
     assert predicate is None
     assert params == {}
+
+
+def _count_sql(**kwargs) -> tuple[str, dict]:
+    query, params = search.count_genesets(**kwargs)
+    return " ".join(_render(query).split()).replace(" , ", ", "), params
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"search_text": "alcohol OR cocaine", "is_readable_by": 7},
+        {"gene": "Drd2", "p_value": 0.05, "species": None, "gte_count": 10},
+        {"gene": "Drd2", "p_value": 0.05, "threshold_mode": "first"},
+        {"gs_id": 51, "is_readable_by": 0},
+    ],
+)
+def test_the_count_matches_the_same_rows_as_the_pages(kwargs) -> None:
+    """Counted over the page query's own joins and WHERE, so the total cannot drift."""
+    page, page_params = _sql(**kwargs)
+    count, count_params = _count_sql(**kwargs)
+    page_matches = page.split(" FROM geneset", 1)[1].split(" ORDER BY")[0]
+    assert count == "SELECT count(*) FROM geneset" + page_matches
+    assert count_params == page_params
+
+
+def test_the_count_ignores_paging_and_sorting() -> None:
+    """The API passes its page and sort through; none of it changes how many match."""
+    count, _ = _count_sql(
+        search_text="dopamine", limit=50, offset=100, sort_by="size", sort_order="desc"
+    )
+    for clause in ("ORDER BY", "LIMIT", "OFFSET", "gs_count"):
+        assert clause not in count

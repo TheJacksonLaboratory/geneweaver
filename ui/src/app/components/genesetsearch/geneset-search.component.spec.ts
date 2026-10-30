@@ -53,7 +53,11 @@ describe('GenesetSearchComponent', () => {
     navigations = [];
     results = [];
     queryParams = {};
-    respond = (params) => of({ data: genesets(Number(params.get('offset')) + 1, 25), paging: {} });
+    respond = (params) =>
+      of({
+        data: genesets(Number(params.get('offset')) + 1, Number(params.get('limit'))),
+        paging: { total_items: 1696 },
+      });
   });
 
   it('says results are gene sets, and how keywords and the gene filter find them', async () => {
@@ -99,7 +103,8 @@ describe('GenesetSearchComponent', () => {
     expect(navigations[0].extras?.queryParams).toMatchObject({ search: 'dopamine', sort: null });
     expect(requests[0].get('offset')).toBe('0');
     expect(results.at(-1)).toHaveLength(25);
-    expect(search.hasMore).toBe(true);
+    expect(search.totalRecords).toBe(1696);
+    expect(search.pageReport).toBe('25 out of 1,696 gene sets shown');
   });
 
   it('opens a chosen suggestion instead of searching', async () => {
@@ -136,17 +141,41 @@ describe('GenesetSearchComponent', () => {
     expect(navigations.at(-1)!.extras?.queryParams).toMatchObject({ sort: 'species' });
   });
 
-  it('loads more results onto the ones shown, until a short page', async () => {
+  it('shows one page at a time, replacing the last, with the total over every page', async () => {
     await setUp();
     search.text = 'dopamine';
     search.submit();
-    respond = () => of({ data: genesets(26, 3), paging: {} });
-    search.loadMore();
-    expect(requests.at(-1)!.get('offset')).toBe('25');
-    expect(results.at(-1)).toHaveLength(28);
-    expect(search.hasMore).toBe(false);
-    search.loadMore();
-    expect(requests).toHaveLength(2);
+    search.changePage({ first: 50, rows: 25 });
+    expect(requests.at(-1)!.get('offset')).toBe('50');
+    expect(results.at(-1)!.map((row) => (row as { id: number }).id)).toEqual(
+      Array.from({ length: 25 }, (_, index) => 51 + index),
+    );
+    expect(search.first).toBe(50);
+    expect(search.totalRecords).toBe(1696);
+
+    respond = () => of({ data: genesets(1676, 21), paging: { total_items: 1696 } });
+    search.changePage({ first: 1675, rows: 25 });
+    expect(search.pageReport).toBe('21 out of 1,696 gene sets shown');
+  });
+
+  it('asks for as many rows as the paginator shows, and starts a new search on page one', async () => {
+    await setUp();
+    search.text = 'dopamine';
+    search.submit();
+    search.changePage({ first: 100, rows: 100 });
+    expect(requests.at(-1)!.get('limit')).toBe('100');
+    search.sortBy({ by: 'size', order: 'desc' });
+    expect(requests.at(-1)!.get('offset')).toBe('0');
+    expect(requests.at(-1)!.get('limit')).toBe('100');
+    expect(search.first).toBe(0);
+  });
+
+  it('still pages against an API that sends no total', async () => {
+    await setUp();
+    respond = () => of({ data: genesets(26, 25), paging: {} });
+    search.text = 'dopamine';
+    search.changePage({ first: 25, rows: 25 });
+    expect(search.totalRecords).toBe(50);
   });
 
   it("shows the API's reason when a search is refused", async () => {
@@ -156,6 +185,7 @@ describe('GenesetSearchComponent', () => {
     search.submit();
     expect(search.errorMessage).toBe('Give search_text, a gene, or both.');
     expect(results.at(-1)).toEqual([]);
+    expect(search.totalRecords).toBe(0);
   });
 
   it('clears everything, as the logo does', async () => {
@@ -166,6 +196,7 @@ describe('GenesetSearchComponent', () => {
     expect(search.query).toBe('');
     expect(search.filters).toEqual(emptyFilters());
     expect(results.at(-1)).toEqual([]);
+    expect([search.first, search.totalRecords]).toEqual([0, 0]);
   });
 });
 
