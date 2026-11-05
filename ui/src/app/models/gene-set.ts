@@ -1,3 +1,5 @@
+import type { MatchedGene } from '../search/search-filters';
+
 export interface GeneSet {
     abbreviation: string;
     attribution: string;
@@ -25,4 +27,6 @@ export interface GeneSet {
     threshold: string;
     updated: string;
     user_id: number;
+    /** With a gene search: which of its genes matched each searched gene (G3-834). */
+    matched_genes?: MatchedGene[];
 }
