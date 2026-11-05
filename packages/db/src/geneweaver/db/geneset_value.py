@@ -175,6 +175,19 @@ def by_geneset_id_and_identifier(
 ) -> list:
     """Retrieve all geneset values associated with a geneset.
 
+    One row per gene, with one identifier of the requested type. A gene can have several
+    (three Ensembl gene IDs, say), so the one returned is chosen by a fixed rule (G3-836):
+
+    1. the identifier the uploader used, if it is of the requested type (it is kept, with
+       each value, in ``gsv_source_list``; compared ignoring case);
+    2. otherwise the gene's preferred identifier of that type (``ode_pref``);
+    3. otherwise the lowest ``ode_ref_id``.
+
+    The same request then returns the same identifiers on every call and across data
+    reloads. Before, the choice was whichever row Postgres met first: GS412566's gene
+    uploaded as ENSMUSG00000089945 came back as ENSMUSG00000038729, which the Strain
+    Recommender's reference data does not hold.
+
     NOTE: If you are mapping identifiers across species, you will need to use the
     `geneweaver.db.gene.get_homolog_ids_by_ode_id` function to get the homolog ids
     for the geneset values after processing the results of this function.
@@ -198,7 +211,8 @@ def by_geneset_id_and_identifier(
             -- Use a subquery here so we can prevent duplicate gene identifiers
             -- of the same type from being returned (the DISTINCT ON section)
             -- otherwise when we try to change identifier types from the view
-            -- GS page, duplicate entries screw things up
+            -- GS page, duplicate entries screw things up. Which one is kept is
+            -- set by the sort order below (G3-836): see the docstring.
             --
             FROM (
                 SELECT DISTINCT ON (g.ode_gene_id, g.gdb_id)
@@ -226,6 +240,16 @@ def by_geneset_id_and_identifier(
                             WHEN g.gdb_id = 7 THEN g.ode_pref = 't'
                             ELSE true
                         END
+                ORDER BY g.ode_gene_id, g.gdb_id,
+                        -- 1. the identifier the uploader used
+                        EXISTS (
+                            SELECT 1 FROM unnest(gsv.gsv_source_list) AS uploaded(id)
+                            WHERE lower(uploaded.id) = lower(g.ode_ref_id)
+                        ) DESC,
+                        -- 2. the preferred identifier
+                        g.ode_pref DESC NULLS LAST,
+                        -- 3. a fixed order
+                        g.ode_ref_id
             ) gsv
 
             --

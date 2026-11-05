@@ -241,6 +241,11 @@ def get_homolog_ids_by_ode_id(
 ) -> list:
     """Get all homolog ids associated with a specific gene id.
 
+    A gene can have several homologs with an identifier of the requested type (several
+    orthologs, or one ortholog with several IDs). Rows come in a fixed order (G3-836): by
+    source gene, then preferred identifiers (``ode_pref``) first, then by ``ode_ref_id``.
+    A caller that keeps one homolog per gene should keep each gene's first row.
+
     :param cursor: The database cursor.
     :param ode_gene_ids: The gene ids to search for.
     :param identifier: The identifier to return genes in.
@@ -249,14 +254,15 @@ def get_homolog_ids_by_ode_id(
     """
     cursor.execute(
         """
-        SELECT DISTINCT     h.ode_gene_id, g.ode_ref_id
+        SELECT DISTINCT     h.ode_gene_id, g.ode_ref_id, g.ode_pref
         FROM                homology AS h
         INNER JOIN          homology AS h2
         ON                  h.hom_id = h2.hom_id
         INNER JOIN          gene AS g
         ON                  g.ode_gene_id = h2.ode_gene_id
         WHERE               h.ode_gene_id = ANY(%(ode_gene_ids)s) AND
-                            g.gdb_id = %(genedb_id)s;
+                            g.gdb_id = %(genedb_id)s
+        ORDER BY            h.ode_gene_id, g.ode_pref DESC NULLS LAST, g.ode_ref_id;
         """,
         {"ode_gene_ids": list(ode_gene_ids), "genedb_id": int(identifier)},
     )
