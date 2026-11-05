@@ -1,4 +1,7 @@
-"""GET /genesets/search: sorting and filters (G3-777), a gene and its cutoffs (G3-764)."""
+"""GET /genesets/search.
+
+Sorting and filters (G3-777), genes and their cutoffs (G3-764, G3-832), homologs (G3-834).
+"""
 
 from unittest.mock import patch
 
@@ -17,11 +20,26 @@ SEARCH = "geneweaver.api.controller.genesets.db_search.genesets"
         ),
         (
             {"gene": "Drd2", "p_value": "0.01", "correlation_low": "0.5"},
-            {"gene": "Drd2", "p_value": 0.01, "correlation_low": 0.5, "threshold_mode": "only"},
+            {
+                "gene": ["Drd2"],
+                "p_value": 0.01,
+                "correlation_low": 0.5,
+                "threshold_mode": "only",
+                "gene_match": "all",
+                "homology": True,
+            },
         ),
         (
             {"gene": "Drd2", "q_value": "0.05", "threshold_mode": "first"},
-            {"gene": "Drd2", "q_value": 0.05, "threshold_mode": "first"},
+            {"gene": ["Drd2"], "q_value": 0.05, "threshold_mode": "first"},
+        ),
+        (
+            [("gene", "Drd2"), ("gene", "Tp53"), ("gene_match", "any"), ("homology", "false")],
+            {"gene": ["Drd2", "Tp53"], "gene_match": "any", "homology": False},
+        ),
+        (
+            [("gene", " Drd2 "), ("gene", "drd2"), ("gene", "Tp53")],
+            {"gene": ["Drd2", "Tp53"]},
         ),
     ],
 )
@@ -76,6 +94,9 @@ def test_filters_combine(client) -> None:
         ({"gene": "Drd2", "p_value": "2"}, "less than or equal to 1"),
         ({"search_text": "x", "sort_by": "gs_name"}, "sort_by"),
         ({"search_text": "x", "threshold_mode": "sometimes"}, "threshold_mode"),
+        ([("gene", g) for g in ("A", "B", "C", "D", "E", "F")], "at most 5"),
+        ({"gene": "Drd2", "gene_match": "most"}, "gene_match"),
+        ({"gene": "x" * 101}, "at most 100 characters"),
     ],
 )
 def test_a_search_with_nothing_to_search_or_a_bad_option_is_refused(
@@ -101,7 +122,7 @@ def test_a_full_page_reports_the_total_counted_over_every_page(client) -> None:
     assert response.status_code == 200, response.text
     assert response.json()["paging"]["total_items"] == 5751
     kwargs = count.call_args.kwargs
-    assert (kwargs["search_text"], kwargs["gene"]) == ("alcohol OR cocaine", "Drd2")
+    assert (kwargs["search_text"], kwargs["gene"]) == ("alcohol OR cocaine", ["Drd2"])
 
 
 def test_a_short_first_page_is_the_whole_result_so_it_is_not_counted_again(client) -> None:
@@ -111,3 +132,12 @@ def test_a_short_first_page_is_the_whole_result_so_it_is_not_counted_again(clien
     assert response.status_code == 200, response.text
     assert response.json()["paging"]["total_items"] == 2
     count.assert_not_called()
+
+
+def test_each_result_says_which_gene_it_matched(client) -> None:
+    """``matched_genes`` reaches the caller as the query returns it (G3-834)."""
+    matched = [{"query": "TP53", "gene": "Trp53", "homolog": True, "value": 0.01}]
+    with patch(SEARCH, return_value=[{"id": 1, "matched_genes": matched}]):
+        response = client.get("/api/genesets/search", params={"gene": "TP53"})
+    assert response.status_code == 200, response.text
+    assert response.json()["data"][0]["matched_genes"] == matched
