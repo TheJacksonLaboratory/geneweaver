@@ -9,6 +9,8 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import {
   emptyFilters,
   filterProblem,
+  MAX_GENES,
+  parseGenes,
   SCORE_TYPE_OPTIONS,
   SearchFilters,
   SPECIES_OPTIONS,
@@ -17,7 +19,8 @@ import {
 
 /**
  * Gene set search filters (prototype): any combination of species, tier, score type and size
- * (G3-777), and a gene with a score cutoff per score type (G3-764).
+ * (G3-777), and genes with a score cutoff per score type (G3-764): several at once, all or any
+ * (G3-832), and by default their homologs in other species (G3-834).
  *
  * Emits a new `SearchFilters` object on every change, so a holder can compare by reference.
  * Used by the /next search page and the analyze page's gene set picker.
@@ -101,25 +104,42 @@ import {
           ></p-inputNumber>
         </div>
         <div class="field col-12 md:col-8">
-          <label [for]="idPrefix + '-gene'" class="block mb-1 text-sm">Gene</label>
+          <label [for]="idPrefix + '-gene'" class="block mb-1 text-sm">Genes</label>
           <input
             pInputText
             [id]="idPrefix + '-gene'"
             class="w-full"
             [ngModel]="filters.gene"
             (change)="set('gene', $any($event.target).value)"
-            placeholder="e.g. Drd2, ENSMUSG00000032259, MGI:94924"
+            placeholder="e.g. Drd2, or Drd2 AND Tp53, or Drd2 OR Th"
             [attr.aria-describedby]="idPrefix + '-gene-help'"
           />
           <small [id]="idPrefix + '-gene-help'" class="block mt-1 text-color-secondary">
-            Finds the gene sets that contain this gene, by any of its identifiers. Add score
-            cutoffs below to keep only those where its score is in range, or to list them first.
+            Finds the gene sets that contain a gene, by any of its identifiers (symbol, Ensembl,
+            MGI, ...). Up to {{ maxGenes }} genes: separated by spaces, commas or
+            <strong>AND</strong>, a gene set must contain every one; with <strong>OR</strong>
+            in capitals, any one. Add score cutoffs below to keep only those where the genes'
+            scores are in range, or to list them first.
+          </small>
+          <div class="flex align-items-center mt-2 text-sm">
+            <input
+              type="checkbox"
+              [id]="idPrefix + '-homology'"
+              [ngModel]="filters.homology"
+              (ngModelChange)="set('homology', $event)"
+              [attr.aria-describedby]="idPrefix + '-homology-help'"
+            />
+            <label [for]="idPrefix + '-homology'" class="ml-2">Include homologs in other species</label>
+          </div>
+          <small [id]="idPrefix + '-homology-help'" class="block mt-1 text-color-secondary">
+            So TP53 also finds mouse gene sets holding Trp53, as the analysis tools match genes.
+            Clear it to search for the exact gene only.
           </small>
         </div>
       </div>
 
       <fieldset *ngIf="filters.gene.trim()" class="border-1 surface-border border-round p-3 mb-2">
-        <legend class="text-sm px-1">Score cutoffs for {{ filters.gene.trim() }}</legend>
+        <legend class="text-sm px-1">Score cutoffs for {{ genesLabel }}</legend>
         <div class="formgrid grid">
           <div class="field col-6 md:col-3">
             <label [for]="idPrefix + '-p'" class="block mb-1 text-sm">p-value at most</label>
@@ -160,18 +180,19 @@ import {
           <div class="flex align-items-center">
             <input type="radio" [id]="idPrefix + '-mode-only'" [name]="idPrefix + '-mode'" value="only"
               [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
-            <label [for]="idPrefix + '-mode-only'" class="ml-2">Only gene sets where its score passes</label>
+            <label [for]="idPrefix + '-mode-only'" class="ml-2">{{ onlyLabel }}</label>
           </div>
           <div class="flex align-items-center">
             <input type="radio" [id]="idPrefix + '-mode-first'" [name]="idPrefix + '-mode'" value="first"
               [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
-            <label [for]="idPrefix + '-mode-first'" class="ml-2">All gene sets holding it, passing ones first</label>
+            <label [for]="idPrefix + '-mode-first'" class="ml-2">{{ firstLabel }}</label>
           </div>
         </div>
         <small class="block mt-2 text-color-secondary">
           A gene set has one score type, so each cutoff applies to the gene sets of its type, and
-          a gene set passes if its type's cutoff does. Leave a type empty to leave its gene sets
-          out; binary gene sets have no score to cut.
+          a gene set passes if its type's cutoff does. With several genes, the cutoff applies to
+          each gene's score. Leave a type empty to leave its gene sets out; binary gene sets have
+          no score to cut.
         </small>
       </fieldset>
 
@@ -191,6 +212,30 @@ export class SearchFiltersComponent {
   readonly speciesOptions = SPECIES_OPTIONS;
   readonly tierOptions = TIER_OPTIONS;
   readonly scoreTypeOptions = SCORE_TYPE_OPTIONS;
+  readonly maxGenes = MAX_GENES;
+
+  /** The genes the cutoffs apply to, as "Drd2, Tp53". */
+  get genesLabel(): string {
+    return parseGenes(this.filters.gene).genes.join(', ');
+  }
+
+  /** The "only" choice, worded for one gene, all of several, or any of several. */
+  get onlyLabel(): string {
+    const { genes, match } = parseGenes(this.filters.gene);
+    if (genes.length < 2) {
+      return 'Only gene sets where its score passes';
+    }
+    return match === 'any'
+      ? 'Only gene sets where one of them is held with a passing score'
+      : 'Only gene sets where every gene passes';
+  }
+
+  /** The "first" choice, worded for one gene or several. */
+  get firstLabel(): string {
+    return parseGenes(this.filters.gene).genes.length < 2
+      ? 'All gene sets holding it, passing ones first'
+      : 'All gene sets holding them, those where the most genes pass first';
+  }
 
   get problem(): string | undefined {
     return filterProblem(this.filters);
@@ -207,6 +252,9 @@ export class SearchFiltersComponent {
       case 'tiers':
       case 'scoreTypes':
         next[key] = Array.isArray(value) ? (value as number[]) : [];
+        break;
+      case 'homology':
+        next.homology = value !== false;
         break;
       case 'thresholdMode':
         next.thresholdMode = value === 'first' ? 'first' : 'only';

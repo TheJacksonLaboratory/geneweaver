@@ -7,7 +7,7 @@ import { Button } from "primeng/button";
 import { GeneSet } from "../../models/gene-set";
 import { TierTagComponent } from "../tiertag/tiertag.component";
 import { RippleModule } from 'primeng/ripple';
-import { scoreTypeName, Sort, SortKey, speciesName } from '../../search/search-filters';
+import { describeMatches, scoreTypeName, Sort, SortKey, speciesName } from '../../search/search-filters';
 
 /** The sortable columns, in the table's order (G3-777). */
 export const SORTABLE_COLUMNS: { key: SortKey; label: string }[] = [
@@ -39,6 +39,8 @@ export class GeneSetListComponent {
   readonly columns = SORTABLE_COLUMNS;
   readonly speciesName = speciesName;
   readonly scoreTypeName = scoreTypeName;
+  /** Which gene each result matched in a gene search, e.g. "Trp53 (homolog of TP53)". */
+  readonly describeMatches = describeMatches;
 
   constructor(private router: Router) {
   }

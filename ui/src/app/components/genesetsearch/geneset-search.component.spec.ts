@@ -65,7 +65,7 @@ describe('GenesetSearchComponent', () => {
     const help = (fixture.nativeElement as HTMLElement).querySelector('#genesetSearchHelp')?.textContent ?? '';
     expect(help).toContain('Results are always gene sets');
     expect(help).toContain('OR');
-    expect(help).toContain('contain a gene');
+    expect(help).toContain('contain one or more genes or their homologs');
   });
 
   it('describes the results of the search it ran, not filters edited since', async () => {
