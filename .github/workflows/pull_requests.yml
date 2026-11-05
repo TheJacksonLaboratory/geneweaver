@@ -97,14 +97,17 @@ jobs:
   #
   # The whole dependency chain is published, in order: geneweaver-tools 0.20.0a0 requires
   # geneweaver-core >=0.20.0a0, and the public index only carries core up to 0.10.0a5, so
-  # tools on its own is a package nobody can install.
+  # tools on its own is a package nobody can install. AsyncTask installs only
+  # geneweaver-tools-plugin; the worker images install geneweaver-tools[temporal], which
+  # brings the plugin.
   publish-packages:
     name: "Package publish: Dev index (internal)"
     needs: [test]
     uses: ./.github/workflows/_publish-package.yml
     secrets: inherit
     with:
-      packages: "geneweaver-core geneweaver-db geneweaver-tools"
+      packages: "geneweaver-core geneweaver-db geneweaver-tools-plugin geneweaver-tools"
+      plugin_package: "geneweaver-tools-plugin"
       smoke_package: "geneweaver-tools"
       extras: "sklearn temporal"
       dev_release: true

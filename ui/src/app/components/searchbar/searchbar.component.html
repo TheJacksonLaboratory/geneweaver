@@ -6,6 +6,7 @@
            pInputText
            placeholder="Search GeneSets"
            [(ngModel)]="searchValue"
+           aria-describedby="search-help"
            (keydown.enter)="onSearch(searchInput.value)"
     />
 
@@ -16,6 +17,12 @@
     >
     </button>
 </p-inputGroup>
+<small id="search-help" class="block mt-2 text-color-secondary">
+    Every term must match: <em>alcohol RNA-seq</em> or <em>alcohol, RNA-seq</em>. Put
+    <strong>OR</strong> in capitals for either: <em>alcohol OR cocaine</em>. Together,
+    <em>alcohol AND RNA-seq OR cocaine</em> finds gene sets with both alcohol and RNA-seq, or with
+    cocaine.
+</small>
 <p-progressBar *ngIf="isSearching" 
                mode="indeterminate" 
                [style]="{ height: '6px' }" />

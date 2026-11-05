@@ -261,25 +261,10 @@ def test_get_geneset_gene_values_w_gs_id_type_and_in_threshold(
     assert response.json()["data"] == geneset_genes_values_resp["data"]
 
 
-@patch("geneweaver.api.services.geneset.update_geneset_threshold")
-def test_set_geneset_endpoint_response(mock_update_geneset_threshold, client):
-    """Test set geneset threshold endpoint."""
-    mock_update_geneset_threshold.return_value = {}
-
+def test_set_geneset_threshold_endpoint_is_retired(client):
+    """A gene set's threshold is chosen per analysis run, so nothing writes it any more."""
     response = client.put("/api/genesets/1234/threshold", json=geneset_threshold_update_req)
-    assert response.status_code == 204
-
-
-@patch("geneweaver.api.services.geneset.update_geneset_threshold")
-def test_set_geneset_endpoint_response_errors(mock_update_geneset_threshold, client):
-    """Test set geneset threshold endpoint errors."""
-    mock_update_geneset_threshold.return_value = {
-        "error": True,
-        "message": message.ACCESS_FORBIDDEN,
-    }
-
-    response = client.put("/api/genesets/1234/threshold", json=geneset_threshold_update_req)
-    assert response.status_code == 403
+    assert response.status_code in (404, 405)
 
 
 @patch("geneweaver.api.services.geneset.get_geneset_ontology_terms")

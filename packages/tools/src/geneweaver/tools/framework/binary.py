@@ -34,10 +34,10 @@ from collections.abc import Callable, Iterator
 #: environment rather than being compiled in.
 TIMEOUT_ENV_VAR = "GENEWEAVER_TOOL_BINARY_TIMEOUT"
 
-#: The activity deadline this bound has to stay under -- `TOOL_RUN_TIMEOUT` in
-#: ``geneweaver.tools.temporal.workflows`` is built from it. It lives here rather than there
-#: so this module can cap against it without importing temporalio, which the tools must not
-#: require just to run a binary.
+#: The activity deadline this bound has to stay under: the workflow's `TOOL_RUN_TIMEOUT`, from
+#: ``geneweaver.tools_plugin.contract.TOOL_RUN_TIMEOUT_SECONDS``. Restated rather than
+#: imported, because the tools library must not depend on the AsyncTask plugin;
+#: ``test_plugin_worker_contract`` fails if the two drift apart.
 TOOL_RUN_TIMEOUT_SECONDS = 30 * 60
 
 #: Seconds of margin below the activity deadline, leaving room to collect the child's output

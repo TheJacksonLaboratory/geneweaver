@@ -34,6 +34,11 @@ spec:
           envFrom:
             - configMapRef:
                 name: geneweaver-tools-config
+            # ABBA, the gene-centred search, runs here and is a database query. The
+            # password also keys the signature on a run's identity (geneweaver.tools.abba.
+            # identity), so this must be the same Secret the API reads.
+            - secretRef:
+                name: geneweaver-db
           env:
             # Overrides the image default, so the profile a pod runs is visible here
             # rather than only in the image.
@@ -76,8 +81,7 @@ spec:
             - configMapRef:
                 name: geneweaver-tools-config
             # MSET resolves its gene universe from the database (G3-784), so this worker
-            # needs the same credentials as the API. The Python-profile worker does not:
-            # none of its tools touch a database, and the connection is opened lazily.
+            # needs the same credentials as the API.
             - secretRef:
                 name: geneweaver-db
           env:

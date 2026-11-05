@@ -15,7 +15,8 @@ Three things follow from that, all of which the in-AsyncTask arrangement could n
   does not have to share a pod with fast interactive UpSet runs.
 
 Two deployments run this module, distinguished only by `GENEWEAVER_TOOLS_PROFILE`; see
-`routing.py` for why the split is by dependency profile rather than per tool.
+`geneweaver.tools_plugin.contract` for why the split is by dependency profile rather than
+per tool.
 """
 
 import asyncio
@@ -26,9 +27,7 @@ import os
 from geneweaver.tools.temporal import ACTIVITIES
 from geneweaver.tools.temporal.activities import available_tools
 from geneweaver.tools.temporal.routing import (
-    NATIVE_PROFILE,
-    NATIVE_TASK_QUEUE,
-    PYTHON_TASK_QUEUE,
+    QUEUE_FOR_PROFILE,
     current_profile,
     tools_for_profile,
 )
@@ -79,8 +78,8 @@ def max_concurrent_activities() -> int:
 
 
 def task_queue(profile: str) -> str:
-    """The queue this worker consumes, from its profile."""
-    return NATIVE_TASK_QUEUE if profile == NATIVE_PROFILE else PYTHON_TASK_QUEUE
+    """The queue this worker consumes, from its profile: the plugin's name for it."""
+    return QUEUE_FOR_PROFILE[profile]
 
 
 async def run() -> None:

@@ -13,10 +13,12 @@ reading another's run. A run id is not an authorization control; this is.
 
 The contract, read from AsyncTask's code rather than assumed:
 
-* `POST /runs` with an `InputSubmission` body ``{task_type, name, values}``. Our plugin's
-  input schema is a plain ``dict``, so ``values`` is the ``{"tool", "input"[, "universe"]}``
-  envelope verbatim -- checked against AsyncTask's own model on dev, where a dict survives
-  validation intact rather than being coerced into another plugin's input.
+* `POST /runs` with an `InputSubmission` body ``{task_type, name, values}``. ``values`` is
+  the ``{"tool", "input"[, "universe" | "identity"]}`` envelope verbatim. AsyncTask parses
+  it against the union of every plugin's input schema, whatever ``task_type`` says, so our
+  plugin declares it as `geneweaver.tools_plugin.payload.ToolRequest`: as a bare ``dict`` it
+  lost that union to the strain recommender's all-defaults model, and the workflow received
+  that model instead of the request.
 * `GET /runs/{id}` refreshes the run from Temporal and returns its status as Temporal's
   `WorkflowExecutionStatus` integer. Reaching COMPLETED is also what makes AsyncTask store
   the result, so it must be called before the result is read.

@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HomeComponent } from './home.component';
-import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
+// The previous search bar, replaced by GenesetSearchComponent (G3-777, G3-764).
+// import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
+import { GenesetSearchComponent } from "../../components/genesetsearch/geneset-search.component";
 import { GeneSetListComponent } from "../../components/genesetlist/genesetlist.component";
 import { GeneSet } from "../../models/gene-set";
 import { By } from '@angular/platform-browser';
@@ -46,7 +48,8 @@ describe('HomeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         HomeComponent,
-        SearchBarComponent,
+        // SearchBarComponent,
+        GenesetSearchComponent,
         GeneSetListComponent,
       ],
       providers: [
@@ -136,6 +139,23 @@ describe('HomeComponent', () => {
     });
   });
 
+  describe('Result counts', () => {
+    it('shows the total found above the table and a paginator below it', () => {
+      component.searchField.totalRecords = 1696;
+      component.geneSets = [mockGeneset];
+      fixture.detectChanges();
+      const total = fixture.debugElement.query(By.css('#resultsTotal'));
+      expect(total.nativeElement.textContent.replace(/\s+/g, ' ').trim()).toBe('1,696 gene sets found');
+      expect(fixture.debugElement.query(By.css('#resultsPaginator'))).toBeTruthy();
+    });
+
+    it('fetches the page the paginator asks for', () => {
+      const changePage = jest.spyOn(component.searchField, 'changePage').mockImplementation(() => undefined);
+      component.onPageChange({ first: 25, rows: 25 });
+      expect(changePage).toHaveBeenCalledWith({ first: 25, rows: 25 });
+    });
+  });
+
   describe('Style Classes', () => {
     it('should apply correct font family to title', () => {
       const titleElement = fixture.debugElement.query(By.css('.carrois-gothic-regular'));
@@ -149,9 +169,14 @@ describe('HomeComponent', () => {
   });
 
   describe('Child Component Integration', () => {
-    it('should include SearchBarComponent', () => {
-      const searchBar = fixture.debugElement.query(By.directive(SearchBarComponent));
-      expect(searchBar).toBeTruthy();
+    // it('should include SearchBarComponent', () => {
+    //   const searchBar = fixture.debugElement.query(By.directive(SearchBarComponent));
+    //   expect(searchBar).toBeTruthy();
+    // });
+
+    it('should include the autocomplete GenesetSearchComponent', () => {
+      const searchField = fixture.debugElement.query(By.directive(GenesetSearchComponent));
+      expect(searchField).toBeTruthy();
     });
 
     it('should include GeneSetListComponent when results exist', () => {

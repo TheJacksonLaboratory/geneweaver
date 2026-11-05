@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from geneweaver.core.enum import GeneIdentifier, GenesetTier, Species
 from geneweaver.core.schema.geneset import GeneValue
 from geneweaver.core.schema.publication import Publication
-from geneweaver.core.schema.score import GenesetScoreType, ScoreType
+from geneweaver.core.schema.score import ScoreType
 from geneweaver.db import search as db_search
 from jax.apiutils import CollectionResponse, Response
 
@@ -147,15 +147,25 @@ def search(
     user: UserInternal = Security(deps.optional_full_user),
     cursor: deps.Cursor | None = Depends(deps.cursor),
 ) -> CollectionResponse:
-    """Search genesets."""
+    """Search genesets.
+
+    ``paging.total_items`` is how many gene sets match across every page, so a paginator can
+    say "25 of 1,696".
+    """
+    search_args = geneset_search.model_dump(exclude_none=True)
+    is_readable_by = 0 if user is None else user.id
+    results = db_search.genesets(cursor, is_readable_by=is_readable_by, **search_args)
+    # A short first page is every match, so it needs no second query to count them.
+    offset, limit = geneset_search.offset or 0, geneset_search.limit
+    if offset == 0 and limit is not None and len(results) < limit:
+        total = len(results)
+    else:
+        total = db_search.count_genesets(cursor, is_readable_by=is_readable_by, **search_args)
     return CollectionResponse(
-        db_search.genesets(
-            cursor,
-            is_readable_by=0 if user is None else user.id,
-            **geneset_search.model_dump(exclude_none=True),
-        ),
+        results,
         url=request.url,
-        **geneset_search.model_dump(exclude_none=True),
+        total=total,
+        **search_args,
     )
 
 
@@ -297,17 +307,23 @@ def get_publication_for_geneset(
     return Response[Publication](pub_resp)
 
 
-@router.put("/{geneset_id}/threshold", status_code=204)
-def put_geneset_threshold(
-    geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
-    gene_score_type: GenesetScoreType,
-    user: UserInternal = Security(deps.full_user),
-    cursor: deps.Cursor | None = Depends(deps.cursor),
-) -> None:
-    """Set geneset threshold for geneset owner."""
-    response = geneset_service.update_geneset_threshold(cursor, geneset_id, gene_score_type, user)
-
-    raise_http_error(response)
+# Retired: a gene set is its full list of genes and scores, and whoever runs an analysis
+# chooses the threshold for that run (curation decision, 2026-10-16; see
+# docs/tools/TOOL_GENE_SCORE_THRESHOLD.md). This rewrote `gsv_in_threshold` for every user and
+# tool, and overwrote binary gene sets' flags with `value < threshold`. Legacy, which still
+# serves prod, keeps its own /setthreshold. Restoring this needs `GenesetScoreType` imported from
+# geneweaver.core.schema.score again.
+# @router.put("/{geneset_id}/threshold", status_code=204)
+# def put_geneset_threshold(
+#     geneset_id: Annotated[int, Path(format="int64", minimum=0, maxiumum=9223372036854775807)],
+#     gene_score_type: GenesetScoreType,
+#     user: UserInternal = Security(deps.full_user),
+#     cursor: deps.Cursor | None = Depends(deps.cursor),
+# ) -> None:
+#     """Set geneset threshold for geneset owner."""
+#     response = geneset_service.update_geneset_threshold(cursor, geneset_id, gene_score_type, user)
+#
+#     raise_http_error(response)
 
 
 @router.get("/{geneset_id}/ontologies")

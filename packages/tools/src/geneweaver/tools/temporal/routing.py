@@ -1,39 +1,19 @@
-"""Which worker runs which tool, and on which task queue.
+"""Which of the two workers this process is, and which tools it will run.
 
-The nine tools split into exactly two dependency profiles, and that split -- not the tool
-count -- is what the deployment mirrors:
-
-* **python** -- seven tools that need only wheels (`scipy`/`scikit-learn` for DBSCAN's
-  in-process default and JaccardClustering). No apt packages, no compilation.
-* **native** -- MSET and PhenomeMap, which shell out to TOOLBOX binaries (`MSETcpp` needs
-  OpenMP, `bstrap` needs Boost) and so need a build toolchain in their image.
-
-One image per tool would produce seven near-identical images with nothing to isolate;
-`asynctask-mpd-plugin` makes the same trade, running four analyses from three base images
-with `anova` and `gxl` sharing one. Grouping by dependency profile also keeps MSET's Monte
-Carlo sampling and PhenomeMap's biclique enumeration -- the two slow tools -- off the worker
-serving fast interactive runs.
-
-Task queue names are **constants, deliberately not configuration**, which is an exception to
-this repository's rule that infrastructure comes from the environment. The rule assumes one
-process reads the value; here two do, in different repositories. `task_queue_for` is called
-from workflow code, which runs inside *AsyncTask's* worker, while the queue is consumed by
-*our* worker. An environment override reaches only the consumer, so the producer would keep
-scheduling to the old name and every run would sit unclaimed until it timed out -- a
-split-brain that no test in either repository could see. Renaming a queue therefore means
-releasing a new `geneweaver-tools` version, which is the only change both sides observe at
-once.
-
-Being constants also makes them replay-safe: a workflow that scheduled an activity on one
-queue must schedule it on the same queue when its history is replayed.
+The queue names and which tools are native are the plugin's (`geneweaver.tools_plugin.contract`),
+shared with the workflow that routes to them. What lives here is the worker-only half: this
+worker's profile, read from its deployment, and the refusal of a tool that belongs to the
+other worker.
 """
 
 import os
 
-#: Tools whose runtime needs a compiled TOOLBOX binary. Everything else is pure Python.
-#: DBSCAN is **not** here: its in-process implementation is the default and the binary is
-#: only the legacy-parity fallback, so it belongs with the Python tools.
-NATIVE_TOOLS: frozenset[str] = frozenset({"mset", "phenome_map"})
+from geneweaver.tools_plugin.contract import (
+    NATIVE_TASK_QUEUE,
+    NATIVE_TOOLS,
+    PYTHON_TASK_QUEUE,
+    task_queue_for,
+)
 
 PYTHON_PROFILE = "python"
 NATIVE_PROFILE = "native"
@@ -42,18 +22,9 @@ PROFILES = (PYTHON_PROFILE, NATIVE_PROFILE)
 #: Selects what a worker serves and which queue it consumes. Set per deployment.
 PROFILE_ENV_VAR = "GENEWEAVER_TOOLS_PROFILE"
 
-#: Part of the plugin's contract with AsyncTask, like the entry-point names. See the module
-#: docstring for why these are not environment-configurable.
-PYTHON_TASK_QUEUE = "geneweaver-tools"
-NATIVE_TASK_QUEUE = "geneweaver-tools-native"
-
-
-def task_queue_for(tool: str) -> str:
-    """The queue whose worker can actually run `tool`.
-
-    Called from workflow code to route the activity, so it must stay pure.
-    """
-    return NATIVE_TASK_QUEUE if tool in NATIVE_TOOLS else PYTHON_TASK_QUEUE
+#: The task queue each profile consumes: the plugin's names, so the worker listens where the
+#: workflow sends.
+QUEUE_FOR_PROFILE = {PYTHON_PROFILE: PYTHON_TASK_QUEUE, NATIVE_PROFILE: NATIVE_TASK_QUEUE}
 
 
 def profile_for(tool: str) -> str:
@@ -105,5 +76,5 @@ def check_tool_served_here(tool: str, profile: str | None = None) -> None:
         raise ValueError(
             f"{tool} is served by the {wanted!r} worker profile, but this worker is "
             f"{here!r}. It should have been scheduled on {task_queue_for(tool)!r}; check "
-            "the routing in GeneWeaverToolWorkflow and that the target worker is deployed."
+            "the routing in geneweaver-tools-plugin and that the target worker is deployed."
         )

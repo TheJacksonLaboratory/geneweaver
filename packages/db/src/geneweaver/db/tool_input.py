@@ -10,12 +10,20 @@ whatever ends up executing the tool, in-process today or AsyncTask later.
 Access control is deliberately *not* done here. These functions answer "what is in this
 gene set"; deciding whether the caller may see it belongs to the service layer, which knows
 about users. Callers must gate first.
+
+Every membership resolver takes the run's ``thresholds``
+(`geneweaver.db.query.membership`): every gene by default, each gene set's stored cutoff
+(the uploader's), or the run's own cutoffs per score type. A gene set is not inherently
+thresholded any more -- curation decided it is the full set of genes and scores, thresholded
+only by whoever runs an analysis. Every resolver feeding one run must get the same choice.
 """
 
 from typing import Any
 
 from geneweaver.core.enum import GeneIdentifier
+from geneweaver.db.query.membership import ALL_GENES, Thresholds, membership_filter
 from psycopg import Cursor
+from psycopg.sql import SQL
 
 
 def _symbol(row: Any) -> str:
@@ -29,19 +37,19 @@ def _symbol(row: Any) -> str:
     return row[0]
 
 
-def gene_symbols_by_geneset(cursor: Cursor, geneset_ids: list[int]) -> dict[str, list[str]]:
-    """Map each gene set id to its preferred, in-threshold gene symbols.
+def gene_symbols_by_geneset(
+    cursor: Cursor, geneset_ids: list[int], thresholds: Thresholds = ALL_GENES
+) -> dict[str, list[str]]:
+    """Map each gene set id to its preferred gene symbols, as the run thresholds them.
 
     This is the input shape shared by the membership-based tools -- UpSet, DBSCAN,
     HyperGeometric, JaccardClustering and PhenomeMap all want "the genes in each of these
     sets".
 
-    Uses the filter the legacy tools did: ``gdb_id = 7`` and ``ode_pref = 't'`` for the
-    preferred symbol, and **``gsv_in_threshold``** for membership. That last one matters:
-    every resolver in ``scripts/validation/`` filters on it, as legacy's ``TOOLSET_SQL``
-    does, and without it a gene set contributes genes the legacy worker would have
-    excluded. On dev, 5.7% of gene sets carry below-threshold genes, so for those sets the
-    unfiltered result is a different analysis, not a rounding difference.
+    Uses the filter the legacy tools did for the symbol: ``gdb_id = 7`` and
+    ``ode_pref = 't'``. Membership is the run's choice (`membership_filter`); legacy always
+    used the stored ``gsv_in_threshold``, which ``thresholds`` of mode ``uploader`` comes
+    closest to (it reads the stored cutoff with ``<=`` where the flag used ``<``).
 
     Tables are schema-qualified rather than relying on ``search_path``: v3 puts ``public``
     first where legacy omits it, so an unqualified name does not necessarily resolve to the
@@ -49,22 +57,27 @@ def gene_symbols_by_geneset(cursor: Cursor, geneset_ids: list[int]) -> dict[str,
 
     :param cursor: The database cursor.
     :param geneset_ids: The gene sets to resolve, in the caller's order.
+    :param thresholds: Which of each gene set's genes take part; every gene by default.
     :return: ``{geneset_id_as_str: [symbol, ...]}``, preserving input order.
     """
     memberships: dict[str, list[str]] = {str(geneset_id): [] for geneset_id in geneset_ids}
     if not geneset_ids:
         return memberships
+    member, params = membership_filter(thresholds)
     cursor.execute(
-        """
+        SQL(
+            """
         SELECT gv.gs_id, g.ode_ref_id
         FROM extsrc.geneset_value gv
         JOIN extsrc.gene g ON g.ode_gene_id = gv.ode_gene_id
+        JOIN production.geneset gs ON gs.gs_id = gv.gs_id
         WHERE gv.gs_id = ANY(%(geneset_ids)s)
-          AND gv.gsv_in_threshold
+          AND {member}
           AND g.gdb_id = 7
           AND g.ode_pref = 't';
-        """,
-        {"geneset_ids": list(geneset_ids)},
+        """
+        ).format(member=member),
+        {"geneset_ids": list(geneset_ids), **params},
     )
     for row in cursor.fetchall():
         geneset_id, symbol = (row["gs_id"], row["ode_ref_id"]) if isinstance(row, dict) else row
@@ -73,46 +86,218 @@ def gene_symbols_by_geneset(cursor: Cursor, geneset_ids: list[int]) -> dict[str,
     return memberships
 
 
-def membership_rows(cursor: Cursor, geneset_ids: list[int]) -> list[list]:
-    """``(gs_id, ode_gene_id, ode_ref_id)`` for in-threshold members -- Combine's matrix.
+def _fields(row: Any, *names: str) -> tuple:
+    """Read named columns from a row under either row factory, in the order named."""
+    if isinstance(row, dict):
+        return tuple(row[name] for name in names)
+    return tuple(row)
 
-    Promoted from legacy ``TOOLSET_SQL[0]``, schema-qualified.
+
+def collapse_homologs(
+    member_rows: list[tuple[Any, int, str]],
+    homology_rows: list[tuple[int, int]],
+    geneset_ids: list[int],
+) -> dict[str, list[str]]:
+    """Merge homologous genes into one member each, as legacy ``combine_genesets`` did.
+
+    Legacy's "Homology: Included" treated genes sharing a homology group as the same gene
+    across every gene set in the run, so a mouse and a human set overlap on their
+    orthologs. Groups merge transitively (union-find over ``hom_id``): a gene in two groups
+    joins both. A merged member is labelled with the sorted, distinct preferred symbols of
+    its group that occur in this run, joined by ``/`` (``"DRD2/Drd2"``); a gene with no
+    homolog in the run keeps its own symbol, so a same-species run changes only where
+    homologous genes (paralogs in one group) occur together.
+
+    :param member_rows: ``(gs_id, ode_gene_id, symbol)`` per member taking part.
+    :param homology_rows: ``(ode_gene_id, hom_id)`` for those genes.
+    :param geneset_ids: The gene sets, in the caller's order.
+    :return: ``{geneset_id_as_str: [label, ...]}``, de-duplicated, preserving order.
+    """
+    parent: dict[tuple, tuple] = {}
+
+    def find(node: tuple) -> tuple:
+        parent.setdefault(node, node)
+        while parent[node] != node:
+            parent[node] = parent[parent[node]]
+            node = parent[node]
+        return node
+
+    present = {gene_id for _, gene_id, symbol in member_rows if symbol is not None}
+    for gene_id, hom_id in homology_rows:
+        if gene_id in present:
+            parent[find(("gene", gene_id))] = find(("hom", hom_id))
+
+    symbols_by_root: dict[tuple, set[str]] = {}
+    for _, gene_id, symbol in member_rows:
+        if symbol is not None:
+            symbols_by_root.setdefault(find(("gene", gene_id)), set()).add(symbol)
+    labels = {root: "/".join(sorted(symbols)) for root, symbols in symbols_by_root.items()}
+
+    memberships: dict[str, list[str]] = {str(geneset_id): [] for geneset_id in geneset_ids}
+    seen: dict[str, set[str]] = {key: set() for key in memberships}
+    for geneset_id, gene_id, symbol in member_rows:
+        key = str(geneset_id)
+        if symbol is None or key not in memberships:
+            continue
+        label = labels[find(("gene", gene_id))]
+        if label not in seen[key]:
+            seen[key].add(label)
+            memberships[key].append(label)
+    return memberships
+
+
+def homologous_gene_symbols_by_geneset(
+    cursor: Cursor, geneset_ids: list[int], thresholds: Thresholds = ALL_GENES
+) -> dict[str, list[str]]:
+    """:func:`gene_symbols_by_geneset` with homologous genes merged across the run.
+
+    The membership-based tools' "Homology: Included" option (legacy's default). Members are
+    filtered exactly as in :func:`gene_symbols_by_geneset`; homology groups come from
+    ``extsrc.homology`` by ``hom_id``, any source, as legacy ``TOOLSET_SQL[1]`` read them.
+    See :func:`collapse_homologs` for how groups become members.
+
+    :param cursor: The database cursor.
+    :param geneset_ids: The gene sets to resolve, in the caller's order.
+    :param thresholds: Which of each gene set's genes take part; every gene by default.
+    :return: ``{geneset_id_as_str: [label, ...]}``, preserving input order.
+    """
+    if not geneset_ids:
+        return {}
+    member, params = membership_filter(thresholds)
+    cursor.execute(
+        SQL(
+            """
+        SELECT gv.gs_id, g.ode_gene_id, g.ode_ref_id
+        FROM extsrc.geneset_value gv
+        JOIN extsrc.gene g ON g.ode_gene_id = gv.ode_gene_id
+        JOIN production.geneset gs ON gs.gs_id = gv.gs_id
+        WHERE gv.gs_id = ANY(%(geneset_ids)s)
+          AND {member}
+          AND g.gdb_id = 7
+          AND g.ode_pref = 't';
+        """
+        ).format(member=member),
+        {"geneset_ids": list(geneset_ids), **params},
+    )
+    member_rows = [_fields(row, "gs_id", "ode_gene_id", "ode_ref_id") for row in cursor.fetchall()]
+    gene_ids = sorted({gene_id for _, gene_id, _ in member_rows})
+    homology_rows: list[tuple] = []
+    if gene_ids:
+        cursor.execute(
+            """
+            SELECT ode_gene_id, hom_id
+            FROM extsrc.homology
+            WHERE ode_gene_id = ANY(%(gene_ids)s);
+            """,
+            {"gene_ids": gene_ids},
+        )
+        homology_rows = [_fields(row, "ode_gene_id", "hom_id") for row in cursor.fetchall()]
+    return collapse_homologs(member_rows, homology_rows, geneset_ids)
+
+
+def geneset_platforms(cursor: Cursor, geneset_ids: list[int]) -> dict[int, tuple[int, int]]:
+    """``{gs_id: (sp_id, gs_gene_id_type)}`` -- what pairwise deletion decides on.
+
+    A positive ``gs_gene_id_type`` is the microarray platform (``odestatic.platform.pf_id``)
+    the set was measured on; a negative one is a gene identifier type. Promoted from legacy
+    ``TOOLSET_SQL[3]``, for every gene set at once rather than one query per pair.
+    """
+    if not geneset_ids:
+        return {}
+    cursor.execute(
+        """
+        SELECT gs_id, sp_id, gs_gene_id_type
+        FROM production.geneset
+        WHERE gs_id = ANY(%(geneset_ids)s);
+        """,
+        {"geneset_ids": list(geneset_ids)},
+    )
+    rows = (_fields(row, "gs_id", "sp_id", "gs_gene_id_type") for row in cursor.fetchall())
+    return {gs_id: (sp_id, gene_id_type) for gs_id, sp_id, gene_id_type in rows}
+
+
+def platform_gene_symbols(cursor: Cursor, platform_id: int) -> set[str]:
+    """Preferred gene symbols a microarray platform (or platform set) can measure.
+
+    Legacy ``TOOLSET_SQL[5]``/``[6]`` in gene symbols rather than ``ode_gene_id``: the
+    membership-based tools compare symbols, so the platform's gene space has to be in the
+    same space. A platform id matches the platform itself or any platform in that set
+    (``pf_set``), as legacy's ``m.pf_id = %s OR m.pf_set = %s`` did.
     """
     cursor.execute(
         """
+        SELECT DISTINCT g.ode_ref_id
+        FROM extsrc.probe2gene p2g
+        JOIN odestatic.probe p ON p.prb_id = p2g.prb_id
+        JOIN odestatic.platform m ON m.pf_id = p.pf_id
+        JOIN extsrc.gene g ON g.ode_gene_id = p2g.ode_gene_id
+        WHERE (m.pf_id = %(platform_id)s OR m.pf_set = %(platform_id)s)
+          AND g.gdb_id = 7
+          AND g.ode_pref = 't';
+        """,
+        {"platform_id": platform_id},
+    )
+    return {symbol for symbol in map(_symbol, cursor.fetchall()) if symbol is not None}
+
+
+def membership_rows(
+    cursor: Cursor, geneset_ids: list[int], thresholds: Thresholds = ALL_GENES
+) -> list[list]:
+    """``(gs_id, ode_gene_id, ode_ref_id)`` for the members taking part -- Combine's matrix.
+
+    Promoted from legacy ``TOOLSET_SQL[0]``, schema-qualified; membership is the run's
+    ``thresholds``, where legacy used the stored ``gsv_in_threshold``.
+    """
+    member, params = membership_filter(thresholds)
+    cursor.execute(
+        SQL(
+            """
         SELECT gv.gs_id, gv.ode_gene_id, g.ode_ref_id
         FROM extsrc.geneset_value gv
         JOIN extsrc.gene g ON g.ode_gene_id = gv.ode_gene_id
-        WHERE gv.gsv_in_threshold AND gv.gs_id = ANY(%(geneset_ids)s) AND g.ode_pref;
-        """,
-        {"geneset_ids": list(geneset_ids)},
+        JOIN production.geneset gs ON gs.gs_id = gv.gs_id
+        WHERE {member}
+          AND gv.gs_id = ANY(%(geneset_ids)s) AND g.ode_pref;
+        """
+        ).format(member=member),
+        {"geneset_ids": list(geneset_ids), **params},
     )
     return [
         list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()
     ]
 
 
-def homology_pairs(cursor: Cursor, geneset_ids: list[int]) -> list[list]:
+def homology_pairs(
+    cursor: Cursor, geneset_ids: list[int], thresholds: Thresholds = ALL_GENES
+) -> list[list]:
     """``(left_ode_gene_id, right_ode_gene_id, hom_id)`` across the given gene sets.
 
     Promoted from legacy ``TOOLSET_SQL[1]``, schema-qualified. Combine and BooleanAlgebra
-    use it to treat orthologous genes as the same gene across species.
+    use it to treat orthologous genes as the same gene across species. ``thresholds`` must
+    be the ones :func:`membership_rows` was called with, or pairs name genes the matrix does
+    not hold.
     """
+    member, params = membership_filter(thresholds)
+    members = SQL(
+        """SELECT DISTINCT gv.ode_gene_id FROM extsrc.geneset_value gv
+             JOIN production.geneset gs ON gs.gs_id = gv.gs_id
+            WHERE {member} AND gv.gs_id = ANY(%(geneset_ids)s)"""
+    ).format(member=member)
     cursor.execute(
-        """
+        SQL(
+            """
         SELECT a.ode_gene_id AS left_ode_gene_id,
                b.ode_gene_id AS right_ode_gene_id,
                a.hom_id
         FROM extsrc.homology a, extsrc.homology b
         WHERE a.hom_id = b.hom_id
           AND a.ode_gene_id <> b.ode_gene_id
-          AND a.ode_gene_id IN (SELECT DISTINCT ode_gene_id FROM extsrc.geneset_value
-                                WHERE gsv_in_threshold AND gs_id = ANY(%(geneset_ids)s))
-          AND b.ode_gene_id IN (SELECT DISTINCT ode_gene_id FROM extsrc.geneset_value
-                                WHERE gsv_in_threshold AND gs_id = ANY(%(geneset_ids)s))
+          AND a.ode_gene_id IN ({members})
+          AND b.ode_gene_id IN ({members})
         GROUP BY left_ode_gene_id, right_ode_gene_id, a.hom_id;
-        """,
-        {"geneset_ids": list(geneset_ids)},
+        """
+        ).format(members=members),
+        {"geneset_ids": list(geneset_ids), **params},
     )
     return [
         list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()
@@ -236,7 +421,10 @@ def gene_universe(
 
 
 def homolog_annotations(
-    cursor: Cursor, geneset_ids: list[int], species_ids: list[int]
+    cursor: Cursor,
+    geneset_ids: list[int],
+    species_ids: list[int],
+    thresholds: Thresholds = ALL_GENES,
 ) -> list[list]:
     """Gene membership annotated with Homologene groups -- BooleanAlgebra's input.
 
@@ -252,12 +440,22 @@ def homolog_annotations(
     formatted into the string -- legacy interpolated them, which is the pattern `CLAUDE.md`
     forbids.
 
+    Its filter is legacy's, ``gdb_id = 7`` included: one row per gene, its preferred symbol.
+    ``ode_pref`` alone is not one per gene -- on dev a gene can have a preferred UniGene id
+    as well (``Ppp1ccb`` and ``Mm.334198``) -- and BooleanAlgebra counts rows, so a gene in
+    one set with two identifiers passed "in at least 2 sets" (G3-830). Membership is the
+    run's ``thresholds``, in both the gene sets and the homology groups looked up for them.
+
     :param cursor: The database cursor.
     :param geneset_ids: The gene sets whose members to return.
     :param species_ids: Species to look for homologs in.
+    :param thresholds: Which of each gene set's genes take part; every gene by default.
     """
+    member, params = membership_filter(thresholds)
+    inner_member, _ = membership_filter(thresholds, gv="gv2", gs="gs2")
     cursor.execute(
-        """
+        SQL(
+            """
         SELECT hom.hom_source_id, g.ode_gene_id, g.ode_ref_id, g.sp_id,
                gv.gs_id, gs.gs_abbreviation
         FROM extsrc.gene g
@@ -271,16 +469,20 @@ def homolog_annotations(
                   SELECT h.hom_source_id
                   FROM extsrc.homology h
                   JOIN extsrc.geneset_value gv2 ON gv2.ode_gene_id = h.ode_gene_id
-                  WHERE gv2.gs_id = ANY(%(geneset_ids)s) AND gv2.gsv_in_threshold
+                  JOIN production.geneset gs2 ON gs2.gs_id = gv2.gs_id
+                  WHERE gv2.gs_id = ANY(%(geneset_ids)s)
+                    AND {inner_member}
               )
               AND sp_id = ANY(%(species_ids)s)
         ) hom ON g.ode_gene_id = hom.ode_gene_id
         WHERE gv.gs_id = ANY(%(geneset_ids)s)
-          AND gv.gsv_in_threshold
+          AND {member}
+          AND g.gdb_id = 7
           AND g.ode_pref = TRUE
         ORDER BY hom.hom_source_id, gv.gs_id;
-        """,
-        {"geneset_ids": list(geneset_ids), "species_ids": list(species_ids)},
+        """
+        ).format(member=member, inner_member=inner_member),
+        {"geneset_ids": list(geneset_ids), "species_ids": list(species_ids), **params},
     )
     return [
         list(row.values()) if isinstance(row, dict) else list(row) for row in cursor.fetchall()

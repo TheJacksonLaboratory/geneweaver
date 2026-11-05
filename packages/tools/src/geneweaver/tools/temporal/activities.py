@@ -9,13 +9,21 @@ One generic activity serves every tool rather than one per tool. The tools all s
 schema, which each tool declares and which is used to validate the request.
 """
 
+import contextvars
 import importlib.metadata
+import os
+import threading
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import Any
 
+from geneweaver.tools.abba import TOOL_NAME as ABBA
 from geneweaver.tools.framework.binary import progress_hook
-from geneweaver.tools.temporal.payload import check_payload_size, check_tool_allowed
+from geneweaver.tools.similar_genesets import TOOL_NAME as SIMILAR_GENESETS
 from geneweaver.tools.temporal.resolvers import resolve_input
 from geneweaver.tools.temporal.routing import check_tool_served_here
+from geneweaver.tools_plugin.contract import ACTIVITY_NAME
+from geneweaver.tools_plugin.payload import check_payload_size, check_tool_allowed
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
@@ -54,13 +62,118 @@ def _cancellation_requested() -> bool:
     return activity.is_cancelled()
 
 
-#: Activity names share one flat namespace across every installed plugin:
-#: `asynctask.plugins.temporal.discover_activity_plugins()` collects them with no dedup, and
-#: Temporal's `Worker` raises `ValueError("More than one activity named ...")` at startup --
-#: which would take down strain-recommendation and the MPD plugins with us. So the name is
-#: explicit and prefixed, as `asynctask-mpd-plugin` does (`mpd_effects_download_drs_input`),
-#: rather than defaulting to the bare function name `run_tool`.
-ACTIVITY_NAME = "geneweaver_run_tool"
+#: Seconds between heartbeats while a database search runs. The workflow's heartbeat timeout
+#: is 60 s, and one ABBA query alone can take ~14 s on dev.
+DATABASE_HEARTBEAT_SECONDS = 10.0
+
+
+@contextmanager
+def _heartbeating(connection: Any, interval: float = DATABASE_HEARTBEAT_SECONDS) -> Iterator[None]:
+    """Heartbeat from a side thread while the activity thread waits on Postgres.
+
+    A query blocks its thread, so the heartbeat cannot come from between steps as a binary's
+    does: one slow statement would outlast the heartbeat timeout and the run would be failed
+    as dead. On cancellation the running query is cancelled server-side, so a cancelled run
+    stops costing the database at once rather than at its statement timeout.
+
+    The thread runs in a copy of the activity's context: Temporal finds the current activity
+    through a context variable, which a new thread does not otherwise inherit.
+    """
+    stop = threading.Event()
+    context = contextvars.copy_context()
+
+    def beat() -> None:
+        while not stop.wait(interval):
+            if context.run(_cancellation_requested):
+                # `cancel_safe` from psycopg 3.2; `cancel` before it.
+                getattr(connection, "cancel_safe", connection.cancel)()
+                return
+
+    thread = threading.Thread(target=beat, name="geneweaver-heartbeat", daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join()
+
+
+def run_abba(input_data: dict) -> dict:
+    """Run an ABBA search on this worker, against the database.
+
+    :param input_data: ``{"tool": "abba", "input": {...}, "identity": {...}}``; see
+        `geneweaver.tools.abba.identity` for why the identity is signed and separate.
+    """
+    from geneweaver.tools.abba.identity import verified_user_id
+    from geneweaver.tools.abba.schema import ABBAInput
+    from geneweaver.tools.abba.search import search
+    from geneweaver.tools.temporal.db import connect
+
+    try:
+        request = ABBAInput(**(input_data.get("input") or {}))
+        user_id = verified_user_id(input_data.get("identity"), os.environ.get("DB_PASSWORD"))
+    except ValueError as error:  # pydantic's ValidationError is a ValueError
+        raise ApplicationError(
+            f"abba rejected its input: {error}", type="InvalidToolInput", non_retryable=True
+        ) from error
+
+    activity.logger.info(
+        "Running ABBA: %d seed genes, tiers %s, user %s",
+        len(request.genes),
+        request.tiers,
+        user_id,
+    )
+    # Not read-only: the pipeline builds temp tables, dropped when its transaction ends.
+    with connect(read_only=False) as connection, _heartbeating(connection):
+        return search(connection, request, user_id).model_dump(mode="json")
+
+
+def run_similar_genesets(input_data: dict) -> dict:
+    """Find the gene sets most like one gene set, on this worker, against the database.
+
+    Read-only, unlike legacy, which rewrote ``geneset_jaccard`` on every view.
+
+    :param input_data: ``{"tool": "similar_genesets", "input": {...}, "identity": {...}}``;
+        the identity is signed as ABBA's is.
+    """
+    from geneweaver.tools.abba.identity import verified_user_id
+    from geneweaver.tools.similar_genesets.schema import SimilarGenesetsInput
+    from geneweaver.tools.similar_genesets.search import search
+    from geneweaver.tools.temporal.db import connect
+
+    try:
+        request = SimilarGenesetsInput(**(input_data.get("input") or {}))
+        user_id = verified_user_id(input_data.get("identity"), os.environ.get("DB_PASSWORD"))
+    except ValueError as error:  # pydantic's ValidationError is a ValueError
+        raise ApplicationError(
+            f"similar_genesets rejected its input: {error}",
+            type="InvalidToolInput",
+            non_retryable=True,
+        ) from error
+
+    activity.logger.info(
+        "Finding gene sets like GS%d, threshold %s, user %s",
+        request.geneset_id,
+        request.threshold,
+        user_id,
+    )
+    with connect(read_only=True) as connection, _heartbeating(connection):
+        return search(connection, request, user_id).model_dump(mode="json")
+
+
+#: Tools that search the database rather than compute over their input, so they are not in
+#: the `geneweaver.tools` registry and have no `AbstractTool` to load. Routed to the python
+#: worker by the plugin's existing rule (they are not native), so adding one needs no
+#: plugin or AsyncTask release.
+DATABASE_TOOLS: dict[str, Callable[[dict], dict]] = {
+    ABBA: run_abba,
+    SIMILAR_GENESETS: run_similar_genesets,
+}
+
+
+#: Registered under `ACTIVITY_NAME` from the plugin's contract, the name the workflow
+#: schedules. Explicit and prefixed because activity names share one flat namespace in
+#: Temporal, and `asynctask-mpd-plugin` does the same (`mpd_effects_download_drs_input`).
 
 
 # `no_thread_cancel_exception`: by default Temporal injects `CancelledError` into the
@@ -93,6 +206,9 @@ def run_tool(input_data: dict) -> dict:
     # may have no binary for. Refuse them by profile rather than letting the tool fail deep
     # inside with a missing-binary error that says nothing about which worker ran it.
     check_tool_served_here(name)
+
+    if name in DATABASE_TOOLS:
+        return DATABASE_TOOLS[name](input_data)
 
     tool = load_tool(name)
 

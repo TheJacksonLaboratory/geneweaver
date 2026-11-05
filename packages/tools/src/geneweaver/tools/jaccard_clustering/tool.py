@@ -38,6 +38,7 @@ _METHOD_MAP = {
     "average": "average",
     "mcquitty": "weighted",
     "single": "single",
+    "centroid": "centroid",
 }
 
 

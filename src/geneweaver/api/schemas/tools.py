@@ -1,5 +1,8 @@
 """Request and response schemas for running analysis tools."""
 
+from geneweaver.tools.abba import ABBAInput
+from geneweaver.tools.similar_genesets import SimilarGenesetsInput
+from geneweaver.tools.thresholds import ThresholdOptions
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 #: With `include_zeros` the tool emits every combination of the requested gene sets --
@@ -9,11 +12,12 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 MAX_GENESETS_WITH_ZEROS = 10
 
 
-class UpSetRequest(BaseModel):
+class UpSetRequest(ThresholdOptions):
     """Parameters for an UpSet run.
 
     Mirrors `geneweaver.tools.upset.UpSetInput`, minus the resolved gene memberships --
-    those come from the database, keyed by the gene set ids given here.
+    those come from the database, keyed by the gene set ids given here -- plus the run's
+    threshold choice (`ThresholdOptions`; every gene unless one is given).
     """
 
     geneset_ids: list[int] = Field(
@@ -30,6 +34,13 @@ class UpSetRequest(BaseModel):
         description=(
             "Include combinations with no genes. The number of combinations is "
             f"2^n - 1, so this is capped at {MAX_GENESETS_WITH_ZEROS} gene sets."
+        ),
+    )
+    include_homology: bool = Field(
+        default=False,
+        description=(
+            "Merge homologous genes across the gene sets, so sets from different species "
+            'intersect on their orthologs (legacy\'s "Homology: Included").'
         ),
     )
 
@@ -77,6 +88,9 @@ class UpSetResult(BaseModel):
     gene_counts: dict[str, int] = Field(
         ..., description="Genes resolved per gene set, keyed by gene set id."
     )
+    thresholds: dict | None = Field(
+        default=None, description="The run's threshold choice: the mode and any cutoffs."
+    )
     intersections: list[UpSetIntersection] = Field(
         ..., description="Exclusive intersection sizes, largest first."
     )
@@ -102,7 +116,22 @@ class ToolRunRequest(BaseModel):
     )
     parameters: dict = Field(
         default_factory=dict,
-        description="Tool-specific options. Unknown keys are ignored by the tool.",
+        description=(
+            "Tool options; unknown keys are ignored. Every tool: `threshold` -- 'none' "
+            "(default, every gene), 'uploader' (each gene set's stored threshold) or "
+            "'custom', with `p_value`, `q_value` (keep genes <= the cutoff), "
+            "`correlation_low/high`, `effect_low/high` (keep genes inside the range). "
+            "`include_homology` "
+            "(upset, dbscan, hypergeometric, jaccard_clustering, jaccard_similarity, "
+            "phenome_map, combine); `pairwise_deletion` (jaccard_similarity, "
+            "hypergeometric); `p_value_threshold` (jaccard_similarity, phenome_map); "
+            "`method` (jaccard_clustering: ward, single, centroid, mcquitty, average, "
+            "complete); `relation` and `at_least` (boolean_algebra); `epsilon` and "
+            "`min_points` (dbscan); `min_degree` (a number or 'auto'), `suppress_disconnected`, "
+            "`emphasis_genes` (geneset_graph); `group_b`, which of the gene sets form group B, the "
+            "rest being group A (triclique); `number_of_samples` (mset); `min_genes`, "
+            "`max_level`, `use_fdr`, `disable_bootstrap` (phenome_map)."
+        ),
     )
 
     @field_validator("geneset_ids")
@@ -144,4 +173,46 @@ class ToolRunResult(BaseModel):
     caveat: str | None = Field(
         default=None, description="Qualifies how to read this result, if anything does."
     )
+    thresholds: dict | None = Field(
+        default=None, description="The run's threshold choice: the mode and any cutoffs."
+    )
     result: dict = Field(..., description="The tool's own output.")
+
+
+class SimilarGenesetsRequest(SimilarGenesetsInput):
+    """Parameters for Similar gene sets (legacy `/viewSimilarGenesets`).
+
+    The options and their checks are the tool's own
+    (`geneweaver.tools.similar_genesets.SimilarGenesetsInput`): the gene set, how many to
+    return, and the run's threshold choice, which applies to every gene set compared.
+    """
+
+
+class ABBARequest(ABBAInput):
+    """Parameters for an ABBA gene-centred search (legacy `ABBA_options.html`).
+
+    Unlike the other tools, ABBA starts from genes: the seed is the genes given here plus
+    the genes of any gene sets named, as the run's threshold choice keeps them. It then
+    finds the gene sets containing those genes and the other genes that recur across them.
+    The options and their checks are the tool's own (`geneweaver.tools.abba.ABBAInput`);
+    this adds the seed gene sets, which the API gates and expands before the search sees
+    them.
+    """
+
+    genes: list[str] = Field(
+        default_factory=list,
+        max_length=1000,
+        description="Seed gene symbols, matched case-insensitively.",
+    )
+    geneset_ids: list[int] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Gene sets whose in-threshold genes join the seed.",
+    )
+
+    @model_validator(mode="after")
+    def _needs_a_seed(self) -> "ABBARequest":
+        """There is nothing to search from without at least one gene or gene set."""
+        if not self.genes and not self.geneset_ids:
+            raise ValueError("Give at least one seed gene or one gene set.")
+        return self

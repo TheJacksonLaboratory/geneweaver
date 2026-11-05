@@ -14,8 +14,8 @@
 #
 # G3-804 (biclique SIGTRAP) is fixed -- see the header of bigraph_edgelist_in in
 # legacy/tools-worker/tools/TOOLBOX/biclique_tool/bigraph.c -- so PhenomeMap works with
-# this image. MSET still needs its inline-universe payload resolved (G3-784) before it is
-# cleared for Temporal; see temporal/payload.py.
+# this image. MSET sends its gene universe as a reference that the worker resolves
+# (G3-784), so it is cleared for Temporal too.
 #
 # Build from the repository root:
 #   docker build -f deploy/docker/Dockerfile.tools-native-worker \
@@ -124,10 +124,11 @@ RUN uv sync --frozen --no-dev --package geneweaver-tools \
 # look for them starts cleanly and fails every run.
 RUN python -c "\
 import os, shutil; \
-from geneweaver.tools.temporal import ACTIVITIES, WORKFLOWS; \
+from geneweaver.tools.temporal import ACTIVITIES; \
+from geneweaver.tools_plugin.contract import ACTIVITY_NAME; \
 from geneweaver.tools.temporal.activities import available_tools; \
 from geneweaver.tools.temporal.routing import NATIVE_PROFILE, tools_for_profile; \
-assert WORKFLOWS and ACTIVITIES, 'temporal entry points did not load'; \
+assert [a.__temporal_activity_definition.name for a in ACTIVITIES] == [ACTIVITY_NAME], 'the activity is not registered under the name the workflow schedules'; \
 served = tools_for_profile(NATIVE_PROFILE, available_tools()); \
 assert sorted(served) == ['mset', 'phenome_map'], f'unexpected native tools: {served}'; \
 missing = [v for v in ('GENEWEAVER_MSET_BINARY', 'GENEWEAVER_BICLIQUE_BINARY', \

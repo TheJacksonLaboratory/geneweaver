@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
-    from psycopg import Cursor
+    from psycopg import Connection, Cursor
 
 #: Read once per connection rather than cached at import, so a restarted pod picks up a
 #: rotated password without a rebuild.
@@ -57,13 +57,15 @@ def connection_info() -> str:
 
 
 @contextmanager
-def cursor() -> Iterator["Cursor"]:
-    """A short-lived read cursor, opened and closed around one resolution.
+def connect(read_only: bool = True) -> Iterator["Connection"]:
+    """A short-lived connection, opened and closed around one run's database work.
 
-    Not a pool: an activity resolves its input once, at the start of a run that then spends
-    minutes in a binary. Holding a pooled connection across that would tie up a connection
-    slot for the whole run.
+    Not a pool: an activity uses the database once per run, and a worker serves only a few
+    runs at a time. Holding a pooled connection across a run that then spends minutes in a
+    binary would tie up a connection slot for the whole run.
 
+    :param read_only: Off only for ABBA, whose pipeline creates temp tables -- which
+        Postgres refuses in a read-only transaction, temporary or not.
     :raises DatabaseNotConfigured: If the worker has no database settings.
     """
     try:
@@ -76,7 +78,16 @@ def cursor() -> Iterator["Cursor"]:
         ) from error
 
     with psycopg.connect(connection_info(), row_factory=dict_row) as connection:
-        # Read-only: these resolvers answer questions, they never write.
-        connection.read_only = True
-        with connection.cursor() as open_cursor:
-            yield open_cursor
+        connection.read_only = read_only
+        yield connection
+
+
+@contextmanager
+def cursor() -> Iterator["Cursor"]:
+    """A short-lived read cursor, opened and closed around one resolution.
+
+    :raises DatabaseNotConfigured: If the worker has no database settings.
+    """
+    # Read-only: these resolvers answer questions, they never write.
+    with connect(read_only=True) as connection, connection.cursor() as open_cursor:
+        yield open_cursor

@@ -106,6 +106,12 @@
 <!--                          <div class="text-left sm:text-left">Genes in threshold:</div>-->
                           <app-gene-list *ngIf="geneset" [genes]="geneset_values" [geneset_id]="geneset.id"  (genesListChange)="onGeneListChange($event)"></app-gene-list>
                         </p-panel>
+
+                        <!-- Legacy's "Find Similar GeneSets" (/viewSimilarGenesets), started on request:
+                             it takes about two minutes, on AsyncTask. -->
+                        <p-panel *ngIf="geneset" header="Similar GeneSets" styleClass="mt-4" [toggleable]="true">
+                          <app-similar-genesets [genesetId]="geneset.id"></app-similar-genesets>
+                        </p-panel>
                     </div>
                 </div>
             </div>

@@ -4,13 +4,15 @@
 > `geneweaver-tools` `AbstractTool` framework (`packages/tools`), as faithful, pure,
 > testable reimplementations — decoupled from the legacy DB/Celery/file plumbing.
 >
-> **Status:** 9 compute tools ported; 2 moved to the DB layer (SimilarGenesets, ABBA);
-> 2 flagged (presentation / incomplete). **`packages/tools` unit suite: 124 passing;
+> **Status:** 11 compute tools ported, GeneSet Graph (legacy GeneSetViewer) and Triclique
+> (legacy TricliqueViewer) the latest; 2 moved to the DB layer (SimilarGenesets, ABBA). **`packages/tools` unit suite: 124 passing;
 > `packages/db` suite green (incl. 10 new ABBA tests).** ABBA, PhenomeMap, HyperGeometric,
 > and DBSCAN validated against the legacy tools on the local DB (see §9); the algorithm
 > changes are benchmarked in [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md). The tools are
-> registered as AsyncTask plugins (see §10).
-> **Last updated:** 2026-09-22
+> registered as AsyncTask plugins (see §10). Which genes a run uses, and the run-wide option
+> to turn gene set thresholds off, are in
+> [TOOL_GENE_SCORE_THRESHOLD.md](TOOL_GENE_SCORE_THRESHOLD.md).
+> **Last updated:** 2026-10-21
 
 ---
 
@@ -58,19 +60,17 @@ properties. The reimplementations follow consistent principles:
 | MSET | `mset` | binary wrapper | wraps `MSETcpp` (Monte-Carlo enrichment); injectable runner. **Bug fix**: legacy used `group_1_background` for both lists. **Background is now passed in as a resolved gene universe**, not a `*BG.txt` file name (G3-784). |
 | PhenomeMap | `phenome_map` | binary wrapper (+ pure pipeline) | maximal-biclique intersection graph. `build_edge_list`/`parse_bicliques` (pure) wrap the `biclique` C binary via an injectable runner; the subset-link + scoring pass, p-value/FDR trim, cut-depth, and unconnected-node trim are pure; optional bootstrap reduction via a second injectable runner. KS term is a pure-Python transcription of the legacy asymptotic KS (a `scipy.stats.ks_2samp` swap was reverted — [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §4). All rendering (dot/graphml/svg/pdf/csv/json, graphviz) dropped; permutation add-on (`bicliquer`) deferred — see §5.1. |
 
+| GeneSet Graph | `geneset_graph` | pure | legacy GeneSetViewer: genes drawn by degree (how many of the gene sets hold them), legacy's Auto minimum degree, suppress-disconnected and emphasis genes. Graphviz rendering dropped; the UI draws it. Checked against legacy's `GeneSetViewer.mainexec`, run unchanged on dev gene sets: identical in 23 of 24 cases, the 24th a legacy bug (§4). |
+| Triclique | `triclique` | pure | legacy TricliqueViewer: the maximum clique across a three-part graph (group A gene sets, group B gene sets, the genes both groups hold). Two lists of gene sets replace legacy's two projects; the exact-overlap graph only (the Jaccard "three or more projects" method is not ported); legacy's 50-shared-gene limit kept. `kpartite` is a Python port of the `bk-partite` binary, checked identical to the compiled binary on 475 graphs (random and dev), ties included. Worst case ~2 s at 50 genes and 10+10 gene sets. |
+
 ### Moved to the data layer (not an `AbstractTool`)
 
 | Legacy tool | Where it went | Why |
 |---|---|---|
-| SimilarGenesets | `geneweaver-db`: `geneset_jaccard.calculate_jaccard()` + `query/geneset_jaccard.py` | No in-process algorithm — it triggers the `calculate_jaccard` Postgres stored proc + timestamp/cache bookkeeping (one set vs all ~50k, over 2M+ memberships). Ported the stored proc to a versioned, testable query; heavy set-work stays in Postgres. A pure-Python port would be a perf/memory regression. |
+| SimilarGenesets | `geneweaver-db`: `query/similar_genesets.py`, run by `geneweaver.tools.similar_genesets` on AsyncTask (`POST /tools/similar_genesets`); a section of `/next/geneset/:id` | Legacy's live method, not the stored proc it no longer calls: Jaccard over homology keys (`application.dynamic_jaccard`, GWC-35 / G3-805), now in one **read-only** query with the run's threshold choice. It reads every gene of every gene set sharing a gene with the viewed one (15k–86k on dev), ~105 s, so it runs on AsyncTask like ABBA. Checked against legacy's `calculate_jaccard` on dev (GS400340, GS407161, legacy's in-threshold flag on both sides): the same top 500, in order, with identical Jaccard; it also finds the gene sets sharing only genes without a homolog, which legacy's `hom2geneset` lookup missed (206 of 40,291 for GS407161). Legacy also wrote the result into `geneset_jaccard` on every view; v3 never writes it — see §11 for the cache to build once legacy is off. (`geneset_jaccard.calculate_jaccard()` / `query/geneset_jaccard.py`, the port of the old stored proc, stays unused.) |
 | ABBA | `geneweaver-db`: `abba.abba()` + `query/abba.py` | DB query/aggregation: builds 4 session temp tables (input genes → homology-expanded genes of interest → matching gene sets → recurring result genes) plus tier/species count rollups. Ported to versioned, parameterised query builders + an orchestration function returning an `ABBAResult`. **Improvements**: list values bind via `= ANY(%(...)s)` and temp-table names use `sql.Identifier` (the legacy string-joined `IN (...)` clauses were an injection/quoting hazard); the "ignore homology" branch now actually creates its temp table (legacy ran a bare `SELECT` and broke every later step); per-call uuid table suffixes for concurrency. Rendering (JSON dump, zero-padding/list reshaping) dropped. |
 
-### Flagged — not yet ported (with reason + approach)
-
-| Legacy tool | Category | Reason / approach |
-|---|---|---|
-| TricliqueViewer | binary (incomplete) | Legacy is a **scaffold**: reads a pre-built `.kel` edge list, runs `bk-partite`, dumps raw stdout; the JSON/CSV result generation is an unimplemented TODO and the I/O contract is undefined. Needs the `.kel` + `bk-partite` output formats specified before a faithful port. |
-| GeneSetViewer | presentation | Builds a graph and renders it via graphviz `dot` (`os.system`). This is **visualization**, not a compute algorithm — belongs in the UI/rendering layer. The graph-building could be a pure helper if needed. |
+Every legacy tool is now ported or moved; none is flagged.
 
 ## 4. Bug fixes & improvements made during the port
 
@@ -108,6 +108,13 @@ properties. The reimplementations follow consistent principles:
   quoting hazard); fixed the "ignore homology" branch that ran a bare `SELECT` and never
   created the genes-of-interest table (breaking every later step); per-call uuid table
   suffixes for concurrency safety.
+- **GeneSet Graph** — legacy started its *minimum gene degree* statistic at the number of
+  gene sets shown rather than from the genes, so when the cut left no gene set it reported
+  0. The port reports the genes' own minimum (the one case in 24 that differs from legacy).
+- **Triclique** — legacy never ran: it was `tool_active = 0`, its worker a stub, and the
+  `.kel` header it wrote held *edge* counts where `bk-partite` reads the partite sets'
+  *vertex* counts, so the binary would have misread every graph. The port builds the graph
+  in memory and needs no file.
 - **dead/conflicted code** — excluded the unparseable `jaccardsimilarityblueprint2.py`
   (merge-conflict marker) from lint; dropped vendored/compiled artifacts from version control.
 
@@ -167,8 +174,10 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
 ## 8. Remaining work
 1. Add **PhenomeMap permutation** significance (the `bicliquer` add-on) as a third injectable
    runner once the `.odemat` encoding is specified (see §5.1).
-2. Decide **GeneSetViewer**'s home (UI rendering vs a pure graph-building helper).
-3. Specify **TricliqueViewer**'s `.kel` / `bk-partite` contract, then port (or retire if unused).
+2. ~~Decide GeneSetViewer's home~~ — done: the `geneset_graph` tool builds the graph, the UI
+   draws it.
+3. ~~Port TricliqueViewer~~ — done: the `triclique` tool, with two gene set groups in place
+   of projects. Revisit the groups once v3 has projects.
 4. Build the `TOOLBOX` binaries (`make`) in the deploy image so the binary-wrapper tools'
    default runners work in production; wire the binary paths via env vars (e.g.
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
@@ -207,6 +216,8 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    happen to appear in curated genesets" — then any real gene is in-universe by construction. Until
    then, MSET fails early with a clear message naming the out-of-universe genes (see
    `MSET.check_list_in_background`) instead of surfacing the raw C++ stderr.
+
+7. **Similar gene sets cache** — build it once legacy is turned off, not before; see §11.
 
 ## 9. Validation against the legacy tools (local DB)
 
@@ -280,52 +291,68 @@ AsyncTask discovers plugins with `importlib.metadata` over **three** entry-point
 registers. `create_worker` registers *only* what the latter two return, so a plugin
 present in the general group alone is discoverable but has no workflow to start.
 
-### What this package declares
+### Three parts: AsyncTask depends on a thin plugin, not on the tools
 
-The plugin package owns its whole integration, the way `strain-recommendation` does —
-nothing GeneWeaver-specific lives in AsyncTask. `packages/tools/pyproject.toml` declares:
+Following the ATS integration guidance, AsyncTask installs **only
+`geneweaver-tools-plugin`** (`packages/tools-plugin`), never the tools:
+
+| Part | Package | Contains | Runs in |
+|---|---|---|---|
+| Thin plugin | `geneweaver-tools-plugin` (`geneweaver.tools_plugin`) | the workflow, the queue each tool goes to, the request and size checks. Depends only on `temporalio`; imports no tool. | AsyncTask |
+| Workers | `geneweaver-tools[temporal]` (`geneweaver.tools.temporal`) | the activity that runs a tool, the database look-ups that expand a request, the worker process | the two tool-worker images |
+| Tools library | `geneweaver-tools` | the tools and their own dependencies (scikit-learn, scipy) | the workers, and the API in-process |
+
+The plugin declares:
 
 | Group | Entry |
 |---|---|
-| `jax.ats.plugins` | `GeneWeaverTools` → `geneweaver.tools.temporal.workflows:GeneWeaverToolWorkflow` |
-| `jax.ats.plugins.temporal.workflows` | `geneweaver.tools.temporal:WORKFLOWS` |
-| `jax.ats.plugins.temporal.activities` | `geneweaver.tools.temporal:ACTIVITIES` |
-| `geneweaver.tools` | the nine tools, by name (`upset`, `mset`, …) |
+| `jax.ats.plugins` | `GeneWeaverTools` → `geneweaver.tools_plugin.workflows:GeneWeaverToolWorkflow` |
+| `jax.ats.plugins.temporal.workflows` | `geneweaver.tools_plugin.workflows:WORKFLOWS` |
+
+and deliberately **no** `jax.ats.plugins.temporal.activities` entry: the workflow schedules
+the activity **by name** (`geneweaver_run_tool`) onto GeneWeaver's own queues, so AsyncTask
+never registers or imports the code that runs a tool or reads the database.
+`geneweaver-tools` declares no `jax.ats.plugins*` entries at all; its `geneweaver.tools`
+group registers the nine tools by name (`upset`, `mset`, …) for the activity.
 
 Two deliberate choices:
 
 * **The tools are registered in our own `geneweaver.tools` group, not in
   `jax.ats.plugins`.** AsyncTask passes entries from that group to `start_workflow`,
   which accepts only a Temporal workflow; a bare `AbstractTool` there would be
-  discovered and then fail at run time. AsyncTask is offered the *workflow*; the
-  activity resolves a tool name against our registry. This also sidesteps the
-  duplicate-name error in AsyncTask's loader, since `geneweaver-boolean-algebra` is
-  already installed there.
+  discovered and then fail at run time.
 * **`BinaryDBSCAN` is not registered.** It is the legacy-parity fallback; the in-process
   `DBSCAN` is canonical (see [TOOLS_BENCHMARKS.md](TOOLS_BENCHMARKS.md) §1).
 
-### The Temporal bindings
+### The agreement between the plugin and the workers
 
-`geneweaver.tools.temporal` mirrors `strainrecommend.temporal`: `workflows.py` holds one
-generic `@workflow.defn` that delegates immediately to `activities.py`'s single
-`@activity.defn`, and `__init__.py` exports `WORKFLOWS` and `ACTIVITIES`. One pair serves
-every tool, since they share `run(ToolInput) -> ToolOutput` and differ only in input
-schema.
+The two sides are released separately, so what they share lives in one place,
+`geneweaver.tools_plugin.contract`, and the workers import it:
+
+* the two task queues — `geneweaver-tools` (python: the seven wheel-only tools and ABBA)
+  and `geneweaver-tools-native` (MSET and PhenomeMap, which need compiled binaries) — and
+  which tools go to which;
+* the activity name, `geneweaver_run_tool`;
+* the 30-minute run deadline (replacing legacy's 900 s Celery soft limit).
+  `geneweaver.tools.framework.binary` restates it, because the tools library must not
+  depend on the plugin;
+* the request shape, `{"tool": ..., "input": {...}}`, checked by
+  `geneweaver.tools_plugin.payload` — which the API also calls before submitting.
+
+`packages/tools/tests/unit/test_plugin_worker_contract.py` fails if the workers disagree
+with any of these. `packages/tools-plugin/tests/unit/test_clean_import.py`, and the
+publish job's clean install of the plugin wheel, fail if the plugin pulls in the tools,
+scientific libraries or a database driver.
 
 The work is in the activity because tool runs are CPU-bound and some shell out to native
 binaries — neither permissible in deterministic workflow code. Retries are disabled: a
 run is fully determined by its request, so retrying repeats the computation, and failures
-are bad input or a missing binary. The 30-minute ceiling replaces legacy's 900s Celery
-soft limit.
+are bad input or a missing binary.
 
-Requires the **`temporal` extra** (`temporalio`), kept optional so callers that need only
-the compute classes and schemas — the GeneWeaver API — do not pull in a workflow runtime.
-
-`packages/tools/tests/unit/test_asynctask_plugin_contract.py` restates the protocol
-locally and asserts every entry point resolves, is an `AbstractTool`, satisfies the
-protocol, and exposes its `ToolInput`/`ToolOutput`. AsyncTask is privately published, so
-the contract is mirrored rather than imported; the test fails if a tool stops being
-loadable — which would otherwise only surface inside AsyncTask.
+| Change | Release |
+|---|---|
+| A new tool, or a fix inside one | `geneweaver-tools` and the worker images. AsyncTask is untouched. |
+| Routing, the checks or the workflow | `geneweaver-tools-plugin`, then AsyncTask. The workers too if the agreement changed. |
 
 ### What is still required to actually run there
 
@@ -369,14 +396,52 @@ repository:
    PyPI `0.0.5` framework-only release is **archived** (last pushed 2025-01-15) and
    should be disregarded. `[tool.uv.sources]` already pins the name to the workspace
    copy, so nothing in this repository can resolve the archived release.
-2. **Add `geneweaver-tools[sklearn,temporal]` to `asynctask`'s dependencies** — the only
-   change that repository needs. Both extras are required: `temporal` provides the
-   workflow/activity definitions, and `sklearn` because `jaccard_clustering/__init__.py`
-   imports `.tool` eagerly and raises `ImportError` without scipy/scikit-learn. (`dbscan`
-   is safe either way — it lazy-loads the in-process default via PEP 562.)
+2. **Add `geneweaver-tools-plugin` to `asynctask`'s dependencies**, and only that — the
+   tools, scikit-learn and the database driver stay with the workers.
 3. **Resolve the BooleanAlgebra duplication.** AsyncTask already installs
    `geneweaver-boolean-algebra 0.3.0a23`, which overlaps
-   `packages/tools/.../boolean_algebra/`. Namespacing avoids a name collision; it does not
-   decide which implementation is authoritative.
+   `packages/tools/.../boolean_algebra/`. The plugin installs into
+   `geneweaver/tools_plugin/`, not the tools' folders, so the two no longer clash on disk;
+   whether to retire the older plugin is a product decision, not a packaging necessity.
 4. **Resolve tool inputs from the database.** Tools take fully-built input and nothing yet
    assembles it — only ABBA has a resolver.
+
+## 11. Similar gene sets: the cache, once legacy is turned off
+
+**Decision (2026-10-21): v3 computes Similar gene sets live and read-only, and never writes
+`geneset_jaccard`.** While legacy runs, that table is legacy's: `dynamic_jaccard` deletes and
+rewrites a gene set's rows on every view of `/viewSimilarGenesets`, so v3 writing it too would
+race legacy and change what legacy shows. Once legacy is turned off, v3 should build its own
+cache, because the live search costs what legacy's did.
+
+**What it costs live (dev, 2026-10-21).** One gene set shares a gene with 15,000 to 86,000
+others. Legacy's page spends 89–123 s just fetching their membership keys
+(`get_genesets_similarity_keys`), before its Python Jaccard and the rewrite. v3's one query
+takes 103–108 s at `work_mem = 256MB` (117–156 s at the default), so it runs on AsyncTask and
+the page polls it.
+
+**What the cache has to get right** (why it is not just "reuse `geneset_jaccard`"):
+
+1. **The threshold choice.** Gene sets are not inherently thresholded (curation, 2026-10-16):
+   a run picks All genes, the uploader's thresholds, or its own cutoffs. Only the first two
+   are fixed per gene set, so cache those two (a `threshold` column, or two tables) and
+   compute custom cutoffs live, as now.
+2. **Invalidation.** A gene set's row changes when its genes, scores or stored threshold
+   change, when it is deprecated, and when homology is reloaded (which renumbers keys). Legacy
+   never invalidated: it recomputed on view. Key the cache by gene set and an
+   `updated`/homology version, and recompute on change rather than on view.
+3. **Both directions.** Jaccard is symmetric, so a gene set's row is also a row of every gene
+   set it is compared with. Storing `(left < right)` as legacy did halves the table, but a new
+   gene set then touches up to 86,000 rows: batch it on AsyncTask, not in a request.
+4. **Readability stays live.** Cache the numbers, never the list a user sees: whether a gene
+   set may be shown is decided per request, as `query/similar_genesets.py` does now (search's
+   predicate, admins and curators included).
+5. **Membership is legacy's key** (`hom_id`, else the gene itself) — keep it, or the cache and
+   the live search disagree.
+
+**Shape.** A `similar_genesets_cache (gs_id_left, gs_id_right, threshold, jaccard, shared,
+computed)` table written by an AsyncTask job on gene set change and on homology reload, and
+a read path in `query/similar_genesets.py` that serves All genes / Uploader's from the cache
+and falls back to the live query for custom cutoffs or a gene set not yet cached. Retire
+`geneset_jaccard`, `geneset_info.gsi_jac_*` and `query/geneset_jaccard.py` with legacy.
+

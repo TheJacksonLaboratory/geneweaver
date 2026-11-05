@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from uuid import uuid4
 
 from geneweaver.db.query import abba as q
+from geneweaver.db.query.membership import ALL_GENES, Thresholds
 from psycopg import Cursor
 
 
@@ -43,12 +44,12 @@ class ABBAResult:
 
 
 def _resolve_input_genes(
-    cursor: Cursor, input_genes: list[str], geneset_ids: list[int]
+    cursor: Cursor, input_genes: list[str], geneset_ids: list[int], thresholds: Thresholds
 ) -> list[str]:
     """Merge the text-supplied input genes with the genes drawn from the input gene sets."""
     genes = {g.lower() for g in input_genes}
     if geneset_ids:
-        cursor.execute(*q.ref_ids_for_genesets(geneset_ids))
+        cursor.execute(*q.ref_ids_for_genesets(geneset_ids, thresholds))
         genes.update(str(row[0]).lower() for row in cursor.fetchall())
     return sorted(genes)
 
@@ -65,10 +66,14 @@ def abba(
     min_genes: int | None = None,
     min_genesets: int = 0,
     result_limit: int = 50,
+    thresholds: Thresholds = ALL_GENES,
 ) -> ABBAResult:
     """Run the ABBA association pipeline and return the structured results.
 
-    :param cursor: a database cursor; the caller owns the transaction/commit.
+    :param cursor: a **tuple-row** database cursor (rows are read by position), inside a
+        transaction the caller owns. The four temp tables are ``ON COMMIT DROP``, so they
+        last until that transaction ends: on an autocommit connection, open one with
+        ``connection.transaction()`` first, or each table vanishes as it is created.
     :param input_genes: text-supplied gene reference ids (symbols); case-insensitive.
     :param geneset_ids: gene sets whose member genes are added to the input genes.
     :param species_ids: species to restrict genes/gene sets to.
@@ -78,9 +83,11 @@ def abba(
     :param min_genes: minimum ``geneMatchCount`` for a gene set (``None`` = auto).
     :param min_genesets: minimum occurrences for a result gene.
     :param result_limit: row cap for the matching-gene-set and result-gene lists.
+    :param thresholds: which of each gene set's genes count, in every step that reads
+        membership: every gene by default (`geneweaver.db.query.membership`).
     """
     geneset_ids = geneset_ids or []
-    resolved_genes = _resolve_input_genes(cursor, input_genes, geneset_ids)
+    resolved_genes = _resolve_input_genes(cursor, input_genes, geneset_ids, thresholds)
 
     # Unique per-call temp-table names so concurrent ABBA runs don't collide.
     suffix = uuid4().hex[:12]
@@ -98,10 +105,18 @@ def abba(
             interest_table, input_table, species_ids, include_homology=include_homology
         )
     )
-    cursor.execute(*q.create_matching_genesets_table(matching_table, interest_table, user_id))
+    cursor.execute(
+        *q.create_matching_genesets_table(matching_table, interest_table, user_id, thresholds)
+    )
     cursor.execute(
         *q.create_result_genes_table(
-            result_table, matching_table, interest_table, tiers, species_ids, min_genes
+            result_table,
+            matching_table,
+            interest_table,
+            tiers,
+            species_ids,
+            min_genes,
+            thresholds,
         )
     )
 
@@ -138,9 +153,9 @@ def abba(
         if pref:
             result.preferred_mapping[ode_gene_id] = pref[0]
 
-        cursor.execute(*q.count_genesets_by_tier(ode_gene_id))
+        cursor.execute(*q.count_genesets_by_tier(ode_gene_id, thresholds))
         result.tier_counts[ode_gene_id] = {cur_id: count for count, cur_id in cursor.fetchall()}
-        cursor.execute(*q.count_genesets_by_species(ode_gene_id))
+        cursor.execute(*q.count_genesets_by_species(ode_gene_id, thresholds))
         result.species_counts[ode_gene_id] = {sp_id: count for count, sp_id in cursor.fetchall()}
 
     return result

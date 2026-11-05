@@ -10,6 +10,11 @@ metadata:
     nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.oauth2-proxy.svc.cluster.local/oauth2/auth"
     nginx.ingress.kubernetes.io/auth-signin: "https://auth.jax-cluster-prod-10.jax.org/oauth2/start?rd=https://$http_host$escaped_request_uri"
     nginx.ingress.kubernetes.io/enable-cors: "true"
+    # Without AsyncTask (no ASYNCTASK_API_URL), ABBA runs in the request for up to a
+    # minute, its queries bounded at 240 s (ABBA_STATEMENT_TIMEOUT_SECONDS); nginx's 60 s
+    # default would cut it off first. With AsyncTask a request waits 30 s at most.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"

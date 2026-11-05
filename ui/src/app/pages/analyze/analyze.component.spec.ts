@@ -4,6 +4,9 @@ import { Observable, of, throwError } from 'rxjs';
 
 import { AnalyzeComponent, RUN_POLL_INTERVAL_MS } from './analyze.component';
 import { SessionService } from '../../services/session.service';
+import { provideRouter } from '@angular/router';
+import { ABBA_FIXTURE } from './visualizations/abba-fixture';
+import { FIXTURES } from './visualizations/fixtures';
 
 /** A signed-in session; analyses require one. Tests of the signed-out page set it to false. */
 const sessionStub = {
@@ -26,6 +29,7 @@ const TOOL_LIST = {
   boolean_algebra: { available: true, reason: null, caveat: null },
   jaccard_clustering: { available: true, reason: null, caveat: null },
   jaccard_similarity: { available: true, reason: null, caveat: 'p-values need distributions' },
+  triclique: { available: true, reason: null, caveat: null },
   mset: { available: false, reason: 'MSET needs the MSETcpp binary', caveat: null },
   phenome_map: { available: false, reason: 'PhenomeMap needs biclique', caveat: null },
 };
@@ -194,7 +198,7 @@ describe('AnalyzeComponent tool list', () => {
 
   it('lists every registered tool, not a hand-picked subset', async () => {
     await build();
-    expect(component.tools).toHaveLength(9);
+    expect(component.tools).toHaveLength(10);
     // The four that used to be missing entirely.
     const names = component.tools.map((tool) => tool.value);
     expect(names).toContain('boolean_algebra');
@@ -208,6 +212,21 @@ describe('AnalyzeComponent tool list', () => {
     const blocked = component.tools.filter((tool) => tool.disabledReason);
     expect(blocked.map((tool) => tool.value).sort()).toEqual(['mset', 'phenome_map']);
     expect(blocked[0].disabledReason).toBeTruthy();
+  });
+
+  it('describes every tool, for the tooltip in the picker', async () => {
+    await build();
+    for (const tool of component.tools) {
+      expect(tool.description).toBeTruthy();
+    }
+  });
+
+  it('names the ported tools as legacy did', async () => {
+    await build();
+    const label = (value: string) => component.tools.find((tool) => tool.value === value)?.label;
+    expect(label('phenome_map')).toBe('HiSim Graph');
+    expect(label('jaccard_clustering')).toBe('GeneSet Clustering');
+    expect(label('triclique')).toBe('TricliqueViewer');
   });
 
   it('puts runnable tools before blocked ones', async () => {
@@ -257,11 +276,333 @@ describe('AnalyzeComponent tool list', () => {
     component.selectedTool = 'dbscan';
     component.run();
     expect(posted.at(-1)?.path).toBe('/tools/dbscan');
-    expect(posted.at(-1)?.body).toMatchObject({ parameters: { epsilon: 1, min_points: 2 } });
+  });
 
-    component.selectedTool = 'boolean_algebra';
+  it('runs Triclique only with a gene set in each group, and sends group B', async () => {
+    await build();
+    component.genesetIdInput = ['1', '2', '3'];
+    component.selectedTool = 'triclique';
+    expect(component.tricliqueProblem).toContain('group B');
+    expect(component.canRun).toBe(false);
+
+    component.toggleGroupB(3);
+    expect(component.tricliqueGroupA).toEqual([1, 2]);
+    expect(component.canRun).toBe(true);
     component.run();
-    expect(posted.at(-1)?.body).toMatchObject({ parameters: { relation: 'intersection' } });
+    expect(posted.at(-1)?.path).toBe('/tools/triclique');
+    expect((posted.at(-1)?.body as { parameters: Record<string, unknown> }).parameters).toEqual(
+      expect.objectContaining({ group_b: [3], include_homology: true }),
+    );
+  });
+});
+
+/**
+ * Each tool's options, with legacy's defaults from `odestatic.tool_param`, and the exact
+ * body each sends. Defaults are sent explicitly because legacy's are not always the API's.
+ */
+describe('AnalyzeComponent tool options', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+  let posted: { path: string; body: unknown }[];
+
+  const apiStub = {
+    get: (path: string) =>
+      path === '/tools'
+        ? of({
+            object: {
+              // Every tool runnable here: the options are under test, not availability.
+              tools: Object.fromEntries(
+                Object.keys(TOOL_LIST).map((key) => [key, { available: true }]),
+              ),
+            },
+          })
+        : of({ object: {} }),
+    post: (path: string, body: unknown) => {
+      posted.push({ path, body });
+      return of({ object: { tool: 'stub', geneset_ids: [], gene_counts: {}, result: {} } });
+    },
+  };
+
+  beforeEach(async () => {
+    posted = [];
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+        sessionProvider,
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.genesetIdInput = ['1', '2'];
+  });
+
+  /** Select a tool, render, and return the page. */
+  const choose = async (tool: string): Promise<HTMLElement> => {
+    component.selectedTool = tool;
+    // Triclique runs only with two groups; the rest ignore the mark.
+    component.tricliqueMarked = [2];
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+
+  const runAndRead = () => {
+    component.run();
+    return posted.at(-1)!;
+  };
+
+  it.each([
+    ['upset', '/tools/upset', { geneset_ids: [1, 2], include_homology: true, include_zeros: false, threshold: 'none' }],
+    [
+      'jaccard_similarity',
+      '/tools/jaccard_similarity',
+      {
+        geneset_ids: [1, 2],
+        parameters: { include_homology: true, pairwise_deletion: false, p_value_threshold: 1.0, threshold: 'none' },
+      },
+    ],
+    [
+      'jaccard_clustering',
+      '/tools/jaccard_clustering',
+      { geneset_ids: [1, 2], parameters: { include_homology: true, method: 'ward', threshold: 'none' } },
+    ],
+    [
+      'hypergeometric',
+      '/tools/hypergeometric',
+      { geneset_ids: [1, 2], parameters: { include_homology: true, pairwise_deletion: false, threshold: 'none' } },
+    ],
+    ['combine', '/tools/combine', { geneset_ids: [1, 2], parameters: { include_homology: true, threshold: 'none' } }],
+    [
+      'boolean_algebra',
+      '/tools/boolean_algebra',
+      { geneset_ids: [1, 2], parameters: { relation: 'union', threshold: 'none' } },
+    ],
+    [
+      'dbscan',
+      '/tools/dbscan',
+      { geneset_ids: [1, 2], parameters: { include_homology: true, epsilon: 1, min_points: 1, threshold: 'none' } },
+    ],
+    ['mset', '/tools/mset', { geneset_ids: [1, 2], parameters: { number_of_samples: 5000, threshold: 'none' } }],
+    [
+      'phenome_map',
+      '/tools/phenome_map',
+      {
+        geneset_ids: [1, 2],
+        parameters: {
+          include_homology: true,
+          disable_bootstrap: false,
+          use_fdr: false,
+          p_value_threshold: 1.0,
+          min_genes: 1,
+          max_level: 40,
+          threshold: 'none',
+        },
+      },
+    ],
+  ])('%s sends legacy\'s defaults', async (tool, path, body) => {
+    await choose(tool);
+    const sent = runAndRead();
+    expect(sent.path).toBe(path);
+    expect(sent.body).toEqual(body);
+  });
+
+  it('JaccardSimilarity sends a changed pairwise deletion and p-value from the form', async () => {
+    const page = await choose('jaccard_similarity');
+    const pairwise = page.querySelector<HTMLInputElement>('#option-pairwise_deletion')!;
+    pairwise.click();
+    const threshold = page.querySelector<HTMLSelectElement>('#option-p_value_threshold')!;
+    // The choices are legacy's, labels as written.
+    expect(Array.from(threshold.options).map((option) => option.textContent?.trim())).toEqual([
+      '1.0',
+      '0.5',
+      '0.10',
+      '0.05',
+      '0.01',
+    ]);
+    threshold.selectedIndex = 3;
+    threshold.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { include_homology: true, pairwise_deletion: true, p_value_threshold: 0.05, threshold: 'none' },
+    });
+  });
+
+  it('Homology can be excluded, and the radio group is labelled', async () => {
+    const page = await choose('combine');
+    const legend = page.querySelector('.tool-options fieldset legend');
+    expect(legend?.textContent).toContain('Homology');
+    const excluded = page.querySelector<HTMLInputElement>('#option-include_homology-1')!;
+    expect(page.querySelector(`label[for="${excluded.id}"]`)?.textContent).toBe('Excluded');
+    excluded.click();
+    fixture.detectChanges();
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { include_homology: false, threshold: 'none' },
+    });
+  });
+
+  it('JaccardClustering sends the method in lower case', async () => {
+    const page = await choose('jaccard_clustering');
+    const method = page.querySelector<HTMLSelectElement>('#option-method')!;
+    expect(Array.from(method.options).map((option) => option.textContent?.trim())).toEqual([
+      'Ward',
+      'Single',
+      'Centroid',
+      'McQuitty',
+      'Average',
+      'Complete',
+    ]);
+    method.selectedIndex = 4;
+    method.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(runAndRead().body).toMatchObject({ parameters: { method: 'average' } });
+  });
+
+  it('BooleanAlgebra shows "at least N" only for an intersection, and sends it then', async () => {
+    let page = await choose('boolean_algebra');
+    expect(page.querySelector('#option-at_least')).toBeNull();
+
+    page.querySelector<HTMLInputElement>('#option-relation-1')!.click(); // Intersection
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    page = fixture.nativeElement;
+    const atLeast = page.querySelector<HTMLInputElement>('#option-at_least');
+    expect(atLeast).not.toBeNull();
+    expect(atLeast!.getAttribute('aria-describedby')).toBe('option-at_least-help');
+
+    component.optionValues['at_least'] = 3;
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { relation: 'intersection', at_least: 3, threshold: 'none' },
+    });
+  });
+
+  it('labels the symmetric difference as legacy does, sending "except"', async () => {
+    const page = await choose('boolean_algebra');
+    const except = page.querySelector<HTMLInputElement>('#option-relation-2')!;
+    expect(page.querySelector(`label[for="${except.id}"]`)?.textContent).toBe(
+      'Symmetric difference',
+    );
+    except.click();
+    fixture.detectChanges();
+    expect(runAndRead().body).toMatchObject({ parameters: { relation: 'except' } });
+  });
+
+  it('MSET sends the chosen number of trials', async () => {
+    const page = await choose('mset');
+    const trials = page.querySelector<HTMLSelectElement>('#option-number_of_samples')!;
+    trials.selectedIndex = 1;
+    trials.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(runAndRead().body).toEqual({
+      geneset_ids: [1, 2],
+      parameters: { number_of_samples: 10000, threshold: 'none' },
+    });
+  });
+
+  it('does not offer PhenomeMap options the v3 tool cannot honour', async () => {
+    const page = await choose('phenome_map');
+    const text = page.textContent ?? '';
+    expect(text).not.toContain('Permutation');
+    expect(text).not.toContain('Max in node');
+    // A default that is not the first choice is the one shown selected.
+    const maxLevel = page.querySelector<HTMLSelectElement>('#option-max_level')!;
+    expect(maxLevel.options[maxLevel.selectedIndex].textContent?.trim()).toBe('40');
+  });
+
+  it('resets the options to their defaults when the tool changes', async () => {
+    await choose('dbscan');
+    component.optionValues['epsilon'] = 4;
+    component.optionValues['include_homology'] = false;
+    await choose('combine');
+    await choose('dbscan');
+    expect(component.optionValues).toEqual({ include_homology: true, epsilon: 1, min_points: 1 });
+  });
+
+  it('cannot run with a blank or zero DBSCAN option, and says why', async () => {
+    await choose('dbscan');
+    component.optionValues['epsilon'] = 0;
+    fixture.detectChanges();
+    expect(component.canRun).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Epsilon must be a whole number of at least 1');
+
+    component.optionValues['epsilon'] = null as unknown as number; // a cleared number input
+    expect(component.canRun).toBe(false);
+
+    component.optionValues['epsilon'] = 2;
+    expect(component.canRun).toBe(true);
+  });
+
+  /** The threshold part of a request, wherever the tool's endpoint puts its options. */
+  const sentThresholds = (tool: string) => {
+    const body = runAndRead().body as Record<string, unknown> & { parameters?: Record<string, unknown> };
+    // UpSet's endpoint takes its options at the top level; the others under `parameters`.
+    const options = tool === 'upset' ? body : (body.parameters ?? {});
+    return Object.fromEntries(
+      Object.entries(options).filter(([key]) =>
+        ['threshold', 'p_value', 'q_value', 'correlation_low', 'correlation_high', 'effect_low', 'effect_high'].includes(key),
+      ),
+    );
+  };
+
+  it.each(Object.keys(TOOL_LIST))("%s runs on all genes unless a threshold is chosen", async (tool) => {
+    const page = await choose(tool);
+    expect(page.querySelector('.run-thresholds legend')?.textContent).toBe('Gene set thresholds');
+    const all = page.querySelector<HTMLInputElement>('#threshold-none')!;
+    expect(all.checked).toBe(true);
+    expect(page.querySelector('label[for="threshold-none"]')?.textContent).toBe('All genes');
+    expect(sentThresholds(tool)).toEqual({ threshold: 'none' });
+  });
+
+  it.each(Object.keys(TOOL_LIST))("%s takes the uploader's thresholds in one click", async (tool) => {
+    const page = await choose(tool);
+    page.querySelector<HTMLInputElement>('#threshold-uploader')!.click();
+    fixture.detectChanges();
+    expect(sentThresholds(tool)).toEqual({ threshold: 'uploader' });
+  });
+
+  it('takes custom cutoffs, sending only those given, and refuses an empty or inverted choice', async () => {
+    const page = await choose('hypergeometric');
+    page.querySelector<HTMLInputElement>('#threshold-custom')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(page.querySelector('#cutoff-p')).not.toBeNull();
+    expect(component.canRun).toBe(false);
+    expect(page.querySelector('.threshold-problem')?.textContent).toContain('at least one cutoff');
+
+    component.runThresholds.pValue = 0.01;
+    component.runThresholds.correlationLow = 0.9;
+    component.runThresholds.correlationHigh = 0.1;
+    expect(component.canRun).toBe(false);
+    expect(component.thresholdProblem).toContain('correlation');
+
+    component.runThresholds.correlationHigh = 1;
+    expect(component.canRun).toBe(true);
+    expect(sentThresholds('hypergeometric')).toEqual({
+      threshold: 'custom',
+      p_value: 0.01,
+      correlation_low: 0.9,
+      correlation_high: 1,
+    });
+  });
+
+  it('keeps the threshold choice when the tool changes: it is the run\'s, not the tool\'s', async () => {
+    await choose('dbscan');
+    component.runThresholds = { ...component.runThresholds, mode: 'uploader' };
+    await choose('combine');
+    expect(component.runThresholds.mode).toBe('uploader');
+    expect(runAndRead().body).toMatchObject({ parameters: { threshold: 'uploader' } });
   });
 });
 
@@ -320,6 +661,24 @@ describe('AnalyzeComponent pending runs', () => {
   afterEach(() => {
     component.ngOnDestroy();
     jest.useRealTimers();
+  });
+
+  it('polls a pending ABBA search to its result page', () => {
+    postBody = { tool: 'abba', geneset_ids: [], gene_counts: {}, caveat: null, run_id: 43, status: 'running' };
+    pollResponses = [{ run_id: 43, status: 'completed', result: ABBA_FIXTURE }];
+    component.selectedTool = 'abba';
+    component.abbaGenesText = 'Drd2';
+
+    component.run();
+    expect(component.pendingRunId).toBe(43);
+    expect(component.abbaResult).toBeUndefined();
+
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+    expect(polled).toEqual(['/tools/runs/43']);
+    expect(component.running).toBe(false);
+    expect(component.abbaResult).toBe(ABBA_FIXTURE);
+    expect(component.abbaRanAt).toBeInstanceOf(Date);
+    expect(component.genericResult).toBeUndefined();
   });
 
   it('polls a pending run through a running poll to its result', () => {
@@ -423,6 +782,36 @@ describe('AnalyzeComponent pending runs', () => {
     expect(component.pendingRunId).toBeUndefined();
     expect(component.genericResult?.result).toEqual({ ran: true });
   });
+
+  it('carries the threshold choice of a pending run through to its result', () => {
+    postBody = { ...PENDING, thresholds: { threshold: 'custom', p_value: 0.01 } };
+    pollResponses = [{ run_id: 42, status: 'completed', result: { clusters: [], ran: true } }];
+    component.selectedTool = 'dbscan';
+
+    component.run();
+    jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS);
+    expect(component.genericResult?.thresholds).toEqual({ threshold: 'custom', p_value: 0.01 });
+  });
+
+  it.each([
+    [{ threshold: 'none' }, 'all genes in each gene set'],
+    [undefined, 'all genes in each gene set'],
+    [{ threshold: 'uploader' }, "each gene set's uploader threshold"],
+    [{ threshold: 'custom', p_value: 0.01, effect_low: -2 }, 'custom thresholds -- p-value ≤ 0.01; effect at least -2'],
+  ])('every result says which genes it counted: %o', (thresholds, text) => {
+    postBody = {
+      tool: 'combine',
+      geneset_ids: FIXTURES.combine.geneset_ids,
+      gene_counts: {},
+      thresholds,
+      result: FIXTURES.combine,
+    };
+    component.selectedTool = 'combine';
+
+    component.run();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.thresholds-used')?.textContent).toContain(text);
+  });
 });
 
 describe('AnalyzeComponent signed out', () => {
@@ -468,5 +857,233 @@ describe('AnalyzeComponent signed out', () => {
     expect(notice.querySelector('a')?.getAttribute('href')).toBe(
       '/api/sessions/login?next=%2Fnext%2Fanalyze',
     );
+  });
+});
+
+/** `POST /tools/abba` once the search has finished: every tool run's envelope. */
+function completed(result: unknown) {
+  return {
+    tool: 'abba',
+    geneset_ids: [],
+    gene_counts: {},
+    caveat: null,
+    executed_by: 'asynctask',
+    run_id: 11,
+    result,
+  };
+}
+
+describe('AnalyzeComponent ABBA gene search', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+  let posted: { path: string; body: unknown }[];
+  let answer: () => Observable<unknown>;
+
+  const apiStub = {
+    get: () =>
+      of({ object: { tools: { ...TOOL_LIST, abba: { available: true, reason: null, caveat: null } } } }),
+    post: (path: string, body: unknown) => {
+      posted.push({ path, body });
+      return answer();
+    },
+  };
+
+  beforeEach(async () => {
+    posted = [];
+    answer = () => of({ object: completed(ABBA_FIXTURE) });
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+        sessionProvider,
+        provideRouter([]),
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    // Let the tool picker settle on its default before choosing ABBA, or its pending model
+    // write lands afterwards and selects UpSet again.
+    await fixture.whenStable();
+    component.selectedTool = 'abba';
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
+
+  const host = () => fixture.nativeElement as HTMLElement;
+
+  it('is in the tool picker, by its legacy name', () => {
+    expect(component.toolOptions.find((tool) => tool.value === 'abba')?.label).toBe('ABBA gene search');
+  });
+
+  it('cannot run with neither seed genes nor gene sets', () => {
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toBeUndefined(); // Not an error: nothing entered yet.
+  });
+
+  it('runs with seed genes alone -- no gene sets needed', () => {
+    component.abbaGenesText = 'Drd2, Drd1';
+    expect(component.canRun).toBe(true);
+  });
+
+  it('runs with a single gene set alone', () => {
+    component.genesetIdInput = ['167180'];
+    expect(component.canRun).toBe(true);
+  });
+
+  it("posts legacy's defaults: homology, Auto thresholds, tiers 1-3, every species", () => {
+    component.abbaGenesText = 'Drd2\nDrd1\ndrd2';
+    component.run();
+    expect(posted).toEqual([
+      {
+        path: '/tools/abba',
+        body: {
+          genes: ['Drd2', 'Drd1'],
+          geneset_ids: [],
+          include_homology: true,
+          min_genes: null,
+          min_genesets: null,
+          tiers: [1, 2, 3],
+          species_ids: null,
+          threshold: 'none',
+        },
+      },
+    ]);
+  });
+
+  it('drops a minimum the seed genes no longer offer, rather than sending it hidden', () => {
+    component.abbaGenesText = 'Drd2 Drd1 Th';
+    fixture.detectChanges();
+    const el = host();
+    const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
+    minGenes.selectedIndex = 3;
+    minGenes.dispatchEvent(new Event('input'));
+    expect(component.abbaOptions.minGenes).toBe(3);
+
+    const genes = el.querySelector<HTMLTextAreaElement>('#abbaGenes')!;
+    genes.value = 'Drd2 Drd1';
+    genes.dispatchEvent(new Event('input'));
+    // 2 is still offered, so the choice of 3 is not; the select shows Auto, and so does the request.
+    expect(component.abbaOptions.minGenes).toBeNull();
+    component.run();
+    expect((posted[0].body as { min_genes: unknown }).min_genes).toBeNull();
+  });
+
+  it('keeps a minimum the seed genes still offer', () => {
+    component.abbaGenesText = 'Drd2 Drd1 Th';
+    fixture.detectChanges();
+    const el = host();
+    const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
+    minGenes.selectedIndex = 2;
+    minGenes.dispatchEvent(new Event('input'));
+    const genes = el.querySelector<HTMLTextAreaElement>('#abbaGenes')!;
+    genes.value = 'Drd2 Drd1';
+    genes.dispatchEvent(new Event('input'));
+    expect(component.abbaOptions.minGenes).toBe(2);
+  });
+
+  it('posts the options as changed in the form', () => {
+    component.abbaGenesText = 'Drd2 Drd1 Th';
+    component.genesetIdInput = ['167180'];
+    fixture.detectChanges();
+    const el = host();
+    el.querySelector<HTMLInputElement>('#abbaHomology')!.click();
+    const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
+    // Auto, then 1-3: one per seed gene typed, as legacy offered.
+    expect(minGenes.options).toHaveLength(4);
+    minGenes.selectedIndex = 2;
+    minGenes.dispatchEvent(new Event('input'));
+    const minGenesets = el.querySelector<HTMLSelectElement>('#abbaMinGenesets')!;
+    expect(minGenesets.options).toHaveLength(51);
+    minGenesets.selectedIndex = 5;
+    minGenesets.dispatchEvent(new Event('input'));
+    el.querySelector<HTMLInputElement>('#abbaTier1')!.click();
+    el.querySelector<HTMLInputElement>('#abbaTier4')!.click();
+    el.querySelector<HTMLInputElement>('#abbaRestrict')!.click();
+    fixture.detectChanges();
+    el.querySelector<HTMLInputElement>('#abbaSpecies2')!.click();
+    el.querySelector<HTMLInputElement>('#abbaSpecies1')!.click();
+    el.querySelector<HTMLInputElement>('#threshold-uploader')!.click();
+    component.run();
+    expect(posted[0].body).toEqual({
+      genes: ['Drd2', 'Drd1', 'Th'],
+      geneset_ids: [167180],
+      threshold: 'uploader',
+      include_homology: false,
+      min_genes: 2,
+      min_genesets: 5,
+      tiers: [2, 3, 4],
+      species_ids: [1, 2],
+    });
+  });
+
+  it('needs at least one curation tier', () => {
+    component.abbaGenesText = 'Drd2';
+    component.abbaOptions.tiers = [];
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toBe('Choose at least one curation tier.');
+  });
+
+  it('needs a species when restricting to species, and shows the list only then', () => {
+    component.abbaGenesText = 'Drd2';
+    fixture.detectChanges();
+    expect(host().querySelector('#abbaSpecies1')).toBeNull();
+    component.abbaOptions.restrictSpecies = true;
+    fixture.detectChanges();
+    expect(host().querySelector('#abbaSpecies1')).not.toBeNull();
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toContain('at least one species');
+  });
+
+  it('allows one gene set, and refuses more than twenty', () => {
+    component.genesetIdInput = Array.from({ length: 21 }, (_, i) => String(i + 1));
+    expect(component.canRun).toBe(false);
+    expect(component.abbaProblem).toContain('at most 20');
+    expect(component.limitViolation).toBeUndefined();
+  });
+
+  it('says a search can take a while, then shows the result', () => {
+    component.abbaGenesText = 'Drd2';
+    let finish!: (value: unknown) => void;
+    answer = () => new Observable((subscriber) => {
+      finish = (value) => {
+        subscriber.next(value);
+        subscriber.complete();
+      };
+    });
+    component.run();
+    fixture.detectChanges();
+    expect(host().textContent).toContain('can take up to a minute');
+    finish({ object: completed(ABBA_FIXTURE) });
+    fixture.detectChanges();
+    expect(component.abbaResult).toBe(ABBA_FIXTURE);
+    expect(component.abbaRanAt).toBeInstanceOf(Date);
+    expect(host().querySelector('app-abba-result')).not.toBeNull();
+    expect(host().textContent).toContain('Highly connected gene sets');
+  });
+
+  it('explains a busy server', () => {
+    component.abbaGenesText = 'Drd2';
+    answer = () => throwError(() => ({ status: 503, error: {} }));
+    component.run();
+    expect(component.errorMessage).toBe('The server is busy with other searches. Try again in a minute.');
+    expect(component.running).toBe(false);
+  });
+
+  it('hands gene sets picked in the result back to the form, for another tool', () => {
+    component.useGenesets([282317, 259156]);
+    expect(component.genesetIdInput).toEqual(['282317', '259156']);
+    expect(component.selectedTool).toBe('upset');
+  });
+
+  it('resets its options on returning to it from another tool', () => {
+    component.abbaOptions.tiers = [5];
+    component.selectedTool = 'upset';
+    component.selectedTool = 'abba';
+    expect(component.abbaOptions.tiers).toEqual([1, 2, 3]);
   });
 });

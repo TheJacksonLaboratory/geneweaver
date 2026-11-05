@@ -20,10 +20,10 @@ from geneweaver.tools.framework.binary import (
 def test_default_timeout_is_below_the_temporal_deadline() -> None:
     """The child must die before Temporal declares the activity timed out.
 
-    `geneweaver.tools.temporal.workflows.TOOL_RUN_TIMEOUT` is 30 minutes; Temporal cannot
-    interrupt a blocking call or reap its child, so this bound has to fire first.
+    The plugin workflow's `TOOL_RUN_TIMEOUT` is 30 minutes; Temporal cannot interrupt a
+    blocking call or reap its child, so this bound has to fire first.
     """
-    from geneweaver.tools.temporal.workflows import TOOL_RUN_TIMEOUT
+    from geneweaver.tools_plugin.workflows import TOOL_RUN_TIMEOUT
 
     assert TOOL_RUN_TIMEOUT.total_seconds() > DEFAULT_TIMEOUT_SECONDS
 

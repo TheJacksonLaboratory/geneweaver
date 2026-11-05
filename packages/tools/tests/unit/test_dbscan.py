@@ -90,3 +90,21 @@ def test_unconfigured_binary_raises() -> None:
     tool = BinaryDBSCAN()  # no runner, no binary_path, env var unset in test
     with pytest.raises(RuntimeError, match="dbscan binary not configured"):
         tool.run(DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2))
+
+
+def test_run_reports_every_genes_genesets() -> None:
+    """Gene -> containing gene sets, for every gene, in input order."""
+    out = BinaryDBSCAN(runner=lambda *_: json.dumps([[0, 1]])).run(
+        DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=2)
+    )
+    # "c" is noise, and still reported: legacy's network drew noise genes grey.
+    assert out.gene_genesets == {"a": ["GS1"], "b": ["GS1", "GS2"], "c": ["GS2"]}
+
+
+def test_skipped_run_reports_no_gene_genesets() -> None:
+    """Nothing clustered, nothing to draw."""
+    out = BinaryDBSCAN(runner=lambda *_: "@").run(
+        DBSCANInput(gene_symbols=GENE_SYMBOLS, epsilon=1, min_points=5)
+    )
+    assert out.ran is False
+    assert out.gene_genesets == {}

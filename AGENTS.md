@@ -3,6 +3,7 @@
 - Primary app: FastAPI backend in `src/geneweaver/api`
 - Tests live in `tests/`
 - Shared Python workspace packages live in `packages/core`, `packages/db`, and `packages/client`
+- Analysis tools: `packages/tools` (the tools, and the worker side behind its `temporal` extra) and `packages/tools-plugin` (the thin AsyncTask plugin: workflow and routing only; it is all AsyncTask installs)
 - Separate frontend app lives in `ui/`
 - Legacy code lives in `legacy/`; avoid changing it unless the task explicitly targets legacy behavior
 ## Setup
