@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geneweaver-aon-config
+data:
+  AUTH_CLIENT_ID: "T7bj6wlmtVcAN2O6kzDRwPVFyIj4UQNs"
+  TEMPORAL_URI: "temporal-frontend.temporal.svc.cluster.local:7233"
