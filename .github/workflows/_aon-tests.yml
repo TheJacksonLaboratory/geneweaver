@@ -1,0 +1,55 @@
+name: 'AON Tests Definition'
+
+# Reusable workflow: lint, format-check and test the AON (ortholog/homolog
+# mapping) service in aon/.
+#
+# AON keeps its own Poetry project and lock file (aon/pyproject.toml,
+# aon/poetry.lock) and is NOT a member of the root uv workspace: it pins older
+# geneweaver-core / geneweaver-db releases from PyPI, and its Docker image is
+# built from that lock. So it is installed and checked on its own here, the same
+# way the standalone geneweaver-aon repo did (ruff + black + pytest), rather
+# than through the root _format-lint / _run-tests actions.
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to set up'
+        required: false
+        default: '3.9'
+        type: string
+      runner-os:
+        description: 'Runner OS'
+        required: false
+        default: 'ubuntu-latest'
+        type: string
+
+jobs:
+  test:
+    name: "AON lint + tests (py${{ inputs.python-version }})"
+    runs-on: ${{ inputs.runner-os }}
+    defaults:
+      run:
+        working-directory: aon
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Poetry
+        run: pipx install "poetry==2.2.1"
+
+      - name: Install dependencies with Poetry
+        run: poetry install
+
+      - name: Run Ruff Linter
+        run: poetry run ruff src/ tests/
+
+      - name: Run Black Formatter
+        run: poetry run black --check src/ tests/
+
+      - name: Test with pytest
+        run: poetry run pytest tests --cov=geneweaver.aon --cov-report=term
