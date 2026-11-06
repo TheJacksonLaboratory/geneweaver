@@ -135,6 +135,18 @@ def test_upset_endpoint_refuses_cutoffs_without_custom(client) -> None:
     assert "only with threshold 'custom'" in response.text
 
 
+def test_an_abba_search_out_of_time_is_a_504_with_its_reason(client) -> None:
+    """Answered before the ingress gives up, so the caller learns why."""
+    from geneweaver.api.services import abba as abba_service
+
+    with patch.object(
+        abba_service, "run_abba", side_effect=abba_service.ABBATimedOut("took longer than 270 s")
+    ):
+        response = client.post("/api/tools/abba", json={"genes": ["Drd2"]})
+    assert response.status_code == 504
+    assert "270 s" in response.text
+
+
 def test_in_process_runner_runs_the_real_tool() -> None:
     """The default runner executes the actual ported tool, not a stub."""
     output = InProcessToolRunner().run(

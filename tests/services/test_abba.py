@@ -86,10 +86,26 @@ def test_the_caller_is_sent_signed_not_in_the_input() -> None:
         service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
 
     assert "user_id" not in fake.envelope["input"]
-    assert verified_user_id(fake.envelope["identity"], SECRET) == 7
+    tool_input = fake.envelope["input"]
+    assert verified_user_id(fake.envelope["identity"], SECRET, tool_input) == 7
     forged = {**fake.envelope["identity"], "user_id": 8}
     with pytest.raises(ValueError, match="does not verify"):
-        verified_user_id(forged, SECRET)
+        verified_user_id(forged, SECRET, tool_input)
+    # Signed for this search only: it cannot be moved onto another.
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(fake.envelope["identity"], SECRET, {**tool_input, "genes": ["Th"]})
+
+
+def test_a_dedicated_identity_secret_is_used_where_set(monkeypatch) -> None:
+    """`ABBA_IDENTITY_SECRET`, when provisioned, keys the identity instead of the password."""
+    monkeypatch.setattr(service.settings, "ABBA_IDENTITY_SECRET", "own-secret")
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
+    signed, tool_input = fake.envelope["identity"], fake.envelope["input"]
+    assert verified_user_id(signed, "own-secret", tool_input) == 7
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(signed, SECRET, tool_input)
 
 
 def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
@@ -104,7 +120,8 @@ def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
 
     assert gate.call_args.args[2] == [5]
     cursors.cursor.connection.cursor.assert_called_with(row_factory=tuple_row)
-    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5]}
+    # One preferred symbol per gene (gdb_id 7), not every identifier it has.
+    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5], "gdb_id": 7}
     # Repeats are dropped case-insensitively, the typed gene first.
     assert fake.envelope["input"]["genes"] == ["drd2", "Th"]
     assert "geneset_ids" not in fake.envelope["input"]
@@ -121,10 +138,44 @@ def test_custom_cutoffs_seed_and_reach_the_worker() -> None:
             Mock(id=7),
         )
 
-    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5], "t_p_value": 0.01}
+    assert cursors.rows.execute.call_args.args[1] == {
+        "gs_ids": [5],
+        "gdb_id": 7,
+        "t_p_value": 0.01,
+    }
     assert fake.envelope["input"]["threshold"] == "custom"
     assert fake.envelope["input"]["p_value"] == 0.01
     assert result["thresholds"] == {"threshold": "custom", "p_value": 0.01}
+
+
+def test_a_seed_too_large_to_search_is_refused_with_its_size(monkeypatch) -> None:
+    """Gene sets expand to more seed genes than ABBA takes: a 422 that says how many."""
+    monkeypatch.setattr(service, "MAX_SEED_GENES", 3)
+    cursors = _Cursors(seed_rows=[("A",), ("B",), ("C",)])
+    fake = _FakeAsyncTask(result={})
+    with (
+        _on_asynctask(fake),
+        patch.object(service, "_gate_geneset_access"),
+        pytest.raises(tool_service.ToolRequestError, match="4 genes"),
+    ):
+        service.run_abba(cursors, ABBARequest(genes=["D"], geneset_ids=[5]), Mock(id=7))
+    assert fake.envelope is None
+
+
+def test_an_in_process_search_out_of_time_is_a_timeout_not_a_hang() -> None:
+    """The whole search has a budget under the ingress timeout; past it, ABBATimedOut."""
+    from geneweaver.db.abba import ABBADeadlineExceeded
+
+    with (
+        _in_process(),
+        patch.object(service, "search", side_effect=ABBADeadlineExceeded("out of time")) as search,
+        pytest.raises(service.ABBATimedOut, match="longer than 270 s"),
+    ):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
+    assert search.call_args.kwargs["deadline_seconds"] == 270
+    # The concurrency slot is given back.
+    assert service._running.acquire(blocking=False)
+    service._running.release()
 
 
 def test_an_unreadable_seed_gene_set_is_refused_before_submission() -> None:

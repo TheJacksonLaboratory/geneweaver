@@ -207,3 +207,91 @@ def test_the_pipeline_passes_the_choice_to_every_membership_step() -> None:
     ]
     # seed, matching, result, and the tier and species counts for the one result gene
     assert bound == [0.001] * 5
+
+
+# ------------------------------------------------------------- review findings 5, 6, 8
+
+
+def test_matching_gene_sets_use_the_shared_readable_rule() -> None:
+    """Search's rule (geneset_is_readable2), not legacy's "every group is the user's"."""
+    rendered = _sql(q.create_matching_genesets_table("m", "i", 7))
+    assert "@> string_to_array(gs_groups" not in rendered
+    for case in (
+        "gs.usr_id = %(user_id)s",
+        "gs.gs_groups = '0'",
+        "gs.cur_id < 5",
+        "FROM production.project2geneset p2g",
+        "u.usr_admin > 0",
+    ):
+        assert case in rendered
+
+
+def test_seed_gene_sets_give_one_preferred_symbol_per_gene() -> None:
+    """Not every identifier: other kinds match nothing, and synonyms pulled in other genes."""
+    sql, params = q.ref_ids_for_genesets([5])
+    rendered = _sql((sql, params))
+    assert "g.gdb_id = %(gdb_id)s" in rendered
+    assert "g.ode_pref" in rendered
+    assert params["gdb_id"] == q.GENE_SYMBOL_GDB_ID
+
+
+def test_a_search_with_time_left_bounds_each_statement_by_it() -> None:
+    """Each statement's timeout is what is left of the budget, at most the per-statement cap."""
+    import time
+
+    cursor = _orchestration_cursor()
+    abba(
+        cursor,
+        ["Brca1"],
+        species_ids=[1],
+        tiers=[1],
+        deadline=time.monotonic() + 100,
+        statement_timeout_seconds=30,
+    )
+    timeouts = [
+        c.args[1][0]
+        for c in cursor.execute.call_args_list
+        if c.args and c.args[0] == "SELECT set_config('statement_timeout', %s, true)"
+    ]
+    assert timeouts
+    assert all(value == "30000ms" for value in timeouts)  # 100 s left, capped at 30 s.
+
+
+def test_a_search_out_of_time_stops_instead_of_running_on() -> None:
+    """Past the deadline no further statement is sent."""
+    import time
+
+    from geneweaver.db.abba import ABBADeadlineExceeded
+
+    cursor = _orchestration_cursor()
+    with pytest.raises(ABBADeadlineExceeded):
+        abba(cursor, ["Brca1"], species_ids=[1], tiers=[1], deadline=time.monotonic() - 1)
+    cursor.execute.assert_not_called()
+
+
+def test_a_statement_cancelled_at_the_deadline_is_reported_as_out_of_time() -> None:
+    """Postgres cancelling the last statement reads as the budget, not a database error."""
+    import time
+
+    from geneweaver.db.abba import ABBADeadlineExceeded
+    from psycopg import errors
+
+    cursor = _orchestration_cursor()
+
+    def execute(query, params=None):
+        if "CREATE TEMP TABLE" in _render(query) if not isinstance(query, str) else False:
+            raise errors.QueryCanceled("canceling statement due to statement timeout")
+
+    cursor.execute.side_effect = execute
+    with pytest.raises(ABBADeadlineExceeded):
+        abba(cursor, ["Brca1"], species_ids=[1], tiers=[1], deadline=time.monotonic() + 0.5)
+
+
+def test_without_a_deadline_the_pipeline_is_unchanged() -> None:
+    """The worker path sets no budget: no extra statements, as before."""
+    cursor = _orchestration_cursor()
+    abba(cursor, ["Brca1"], species_ids=[1], tiers=[1])
+    assert not any(
+        c.args and c.args[0] == "SELECT set_config('statement_timeout', %s, true)"
+        for c in cursor.execute.call_args_list
+    )

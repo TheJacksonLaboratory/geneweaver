@@ -95,6 +95,13 @@ class GeneweaverAPIConfig(BaseSettings):
     # read timeout must exceed the latter. On AsyncTask the worker bounds its own queries.
     ABBA_MAX_CONCURRENT: int = 2
     ABBA_STATEMENT_TIMEOUT_SECONDS: int = 240
+    # The whole in-process search, every statement together, must answer before the ingress
+    # gives up (proxy-read-timeout 300 s): past this it stops and answers 504. A statement's
+    # own timeout shrinks to what is left of it.
+    ABBA_REQUEST_TIMEOUT_SECONDS: int = 270
+    # Keys the signed identity ABBA runs carry to the tool worker; set the same value on the
+    # worker. Unset, the database password is used, as before.
+    ABBA_IDENTITY_SECRET: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

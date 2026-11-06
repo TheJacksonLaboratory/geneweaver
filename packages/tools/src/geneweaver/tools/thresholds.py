@@ -54,12 +54,21 @@ class ThresholdOptions(BaseModel):
 
     @model_validator(mode="after")
     def _check_cutoffs(self) -> "ThresholdOptions":
-        """Cutoffs only with ``custom``; ranges the right way round."""
+        """Cutoffs with ``custom`` and only then; ranges the right way round.
+
+        ``custom`` with no cutoff would cut nothing yet be reported as thresholded, so it is
+        refused, as the analysis page refuses it.
+        """
         given = [name for name in _CUTOFFS if getattr(self, name) is not None]
         if given and self.threshold != "custom":
             raise ValueError(
                 f"Cutoffs ({', '.join(given)}) apply only with threshold 'custom', "
                 f"not {self.threshold!r}."
+            )
+        if self.threshold == "custom" and not given:
+            raise ValueError(
+                "threshold 'custom' needs at least one cutoff (p_value, q_value, "
+                "correlation_low/high, effect_low/high); for every gene, use 'none'."
             )
         for name in ("correlation", "effect"):
             low, high = getattr(self, f"{name}_low"), getattr(self, f"{name}_high")

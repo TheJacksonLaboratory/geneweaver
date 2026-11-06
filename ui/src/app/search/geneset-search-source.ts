@@ -35,24 +35,58 @@ interface PageRequest {
 
 interface PageResult extends PageRequest {
   options: GenesetOption[];
-  /** The search page's own length, which says whether there is a next page. */
+  /** The search page's own length: where the next page starts, and whether there is one. */
   pageLength: number;
   failed?: boolean;
+  /** Why the API refused the search (a 4xx detail), when it said. */
+  refused?: string;
 }
 
 /** Load the next page when the list is scrolled to within this many rows of its end. */
 const PREFETCH_ROWS = 5;
 
+/**
+ * The API's reason for refusing a search (a 4xx with a detail), as one line; `undefined` for
+ * a server or network failure, which is not the user's to fix.
+ */
+function refusal(error: { status?: number; error?: { detail?: unknown } }): string | undefined {
+  if (!error?.status || error.status < 400 || error.status >= 500) {
+    return undefined;
+  }
+  const detail = error.error?.detail;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    // FastAPI's validation errors: [{loc, msg, ...}].
+    return detail
+      .map((item: { msg?: string; loc?: unknown[] }) =>
+        [item.loc?.filter((part) => part !== 'query').join('.'), item.msg].filter(Boolean).join(': '),
+      )
+      .join('; ');
+  }
+  return 'The search was refused; check the filters.';
+}
+
 export class GenesetSearchSource {
   suggestions: GenesetOption[] = [];
   loading = false;
+  /** The search could not be reached, or failed on the server. */
   failed = false;
+  /** The API refused the search and said why, e.g. a cutoff out of range. */
+  refused?: string;
   /** Every option seen in a result, so a chip or label can be shown again by id. */
   readonly known = new Map<number, GenesetOption>();
 
   private query = '';
   private filters: SearchFilters = emptyFilters();
   private exhausted = true;
+  /**
+   * Where the next page of the *search* starts. Not `suggestions.length`: an id query leads
+   * with looked-up gene sets that are not search rows, and repeats are dropped, so counting
+   * the list skipped or repeated rows at each page boundary.
+   */
+  private searchOffset = 0;
   private requests = new Subject<PageRequest>();
   private subscription: Subscription;
 
@@ -104,19 +138,24 @@ export class GenesetSearchSource {
         searchParams(request.query, request.filters, { offset: request.offset, limit: PAGE_SIZE }),
       )
       .pipe(
-        map((response) => (response.data ?? []).map(toOption)),
-        catchError(() => of(null)),
+        map((response): GenesetOption[] | { refused?: string } => (response.data ?? []).map(toOption)),
+        catchError((error: { status?: number; error?: { detail?: unknown } }) =>
+          of({ refused: refusal(error) }),
+        ),
       );
     const ids = request.offset === 0 ? (parseIds(request.query) ?? []) : [];
     const exact = ids.length && ids.length <= MAX_ID_LOOKUPS ? this.lookup(ids) : of(null);
     return forkJoin([search, exact]).pipe(
-      map(([page, lookup]): PageResult => {
+      map(([result, lookup]): PageResult => {
         const leading = lookup?.found ?? [];
+        const page = Array.isArray(result) ? result : null;
+        const refused = Array.isArray(result) ? undefined : result.refused;
         return {
           ...request,
           options: appendPage(leading, page ?? []),
           pageLength: page?.length ?? 0,
-          failed: page === null && !leading.length,
+          failed: page === null && !refused && !leading.length,
+          refused,
         };
       }),
     );
@@ -146,7 +185,7 @@ export class GenesetSearchSource {
       return;
     }
     if (lastVisible >= this.suggestions.length - PREFETCH_ROWS) {
-      this.fetch(this.suggestions.length);
+      this.fetch(this.searchOffset);
     }
   }
 
@@ -156,6 +195,8 @@ export class GenesetSearchSource {
     this.suggestions = [];
     this.loading = false;
     this.exhausted = true;
+    this.searchOffset = 0;
+    this.refused = undefined;
   }
 
   destroy(): void {
@@ -163,6 +204,8 @@ export class GenesetSearchSource {
   }
 
   private restart(): void {
+    this.searchOffset = 0;
+    this.refused = undefined;
     // Filters the API would refuse are not sent; the filter panel says what is wrong.
     if (!this.query || filterProblem(this.filters)) {
       this.suggestions = [];
@@ -185,8 +228,10 @@ export class GenesetSearchSource {
     }
     this.loading = false;
     this.failed = !!result.failed;
+    this.refused = result.refused;
     result.options.forEach((option) => this.known.set(option.id, option));
     this.suggestions = result.offset === 0 ? result.options : appendPage(this.suggestions, result.options);
-    this.exhausted = !!result.failed || result.pageLength < PAGE_SIZE;
+    this.searchOffset = result.offset + result.pageLength;
+    this.exhausted = !!result.failed || !!result.refused || result.pageLength < PAGE_SIZE;
   }
 }

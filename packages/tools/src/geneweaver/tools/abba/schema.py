@@ -24,7 +24,12 @@ class ABBAInput(ThresholdOptions):
     """
 
     genes: list[str] = Field(
-        default_factory=list, description="Seed gene symbols, matched case-insensitively."
+        default_factory=list,
+        max_length=20_000,
+        description=(
+            "Seed gene symbols, matched case-insensitively; at most 20,000, the API's cap "
+            "once seed gene sets are expanded."
+        ),
     )
     include_homology: bool = Field(
         default=True,

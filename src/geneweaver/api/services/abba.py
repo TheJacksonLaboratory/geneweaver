@@ -24,6 +24,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Any
 
+from geneweaver.db.abba import ABBADeadlineExceeded
 from geneweaver.db.query import abba as abba_queries
 from geneweaver.db.query.membership import Thresholds
 from geneweaver.tools.abba import TOOL_NAME, ABBAInput
@@ -54,6 +55,16 @@ class ABBABusy(Exception):
     """Too many in-process searches are running; the caller should retry (503)."""
 
 
+class ABBATimedOut(Exception):
+    """An in-process search ran out of `ABBA_REQUEST_TIMEOUT_SECONDS` (504)."""
+
+
+#: The most seed genes a search takes once seed gene sets are expanded. The largest gene set
+#: on dev holds 17,370 genes, so one still fits; more is a request to search much of the
+#: corpus, which ABBA cannot answer usefully, and it nears AsyncTask's payload limit.
+MAX_SEED_GENES = 20_000
+
+
 @dataclass
 class PreparedABBA:
     """A search with the caller's database reads done: gate, seed expansion, identity."""
@@ -69,7 +80,10 @@ def seed_genes(cursor: Cursor, request: ABBARequest) -> list[str]:
 
     The gene sets must already have been gated. Read on a tuple-row cursor because the
     query is the pipeline's own, which reads by position. A seed gene set contributes its
-    genes as the run's threshold choice keeps them, as the search itself counts.
+    genes -- one preferred symbol each -- as the run's threshold choice keeps them, as the
+    search itself counts.
+
+    :raises ToolRequestError: If the seed comes to more than `MAX_SEED_GENES` genes.
     """
     genes = list(request.genes)
     if request.geneset_ids:
@@ -80,6 +94,12 @@ def seed_genes(cursor: Cursor, request: ABBARequest) -> list[str]:
                 )
             )
             genes.extend(str(row[0]) for row in rows.fetchall())
+    distinct = {gene.strip().lower() for gene in genes if gene.strip()}
+    if len(distinct) > MAX_SEED_GENES:
+        raise ToolRequestError(
+            f"The seed comes to {len(distinct):,} genes with its gene sets; ABBA takes at most "
+            f"{MAX_SEED_GENES:,}. Use fewer or smaller gene sets, or a threshold."
+        )
     return genes
 
 
@@ -115,11 +135,17 @@ def prepare_abba(cursor: Cursor, request: ABBARequest, user: User | None) -> Pre
 
 
 def envelope_for(prepared: PreparedABBA) -> dict[str, Any]:
-    """The AsyncTask request: the input, and beside it who the search is for, signed."""
+    """The AsyncTask request: the input, and beside it who the search is for, signed.
+
+    The signature is for this input and expires (`geneweaver.tools.abba.identity`), keyed by
+    `ABBA_IDENTITY_SECRET` where set, else the database password, as the worker reads them.
+    """
+    tool_input = prepared.tool_input.model_dump(mode="json")
+    secret = settings.ABBA_IDENTITY_SECRET or settings.DB_PASSWORD
     return {
         "tool": TOOL_NAME,
-        "input": prepared.tool_input.model_dump(mode="json"),
-        "identity": sign(prepared.user_id, settings.DB_PASSWORD),
+        "input": tool_input,
+        "identity": sign(prepared.user_id, secret, tool_input),
     }
 
 
@@ -137,6 +163,7 @@ def run_abba(
     :raises ToolRunPending: If the AsyncTask run outlasts the wait; poll it by run id.
     :raises ToolRunFailed: If the AsyncTask run fails.
     :raises ABBABusy: If, in-process, `ABBA_MAX_CONCURRENT` searches are already running.
+    :raises ABBATimedOut: If, in-process, the search outlasts `ABBA_REQUEST_TIMEOUT_SECONDS`.
     """
     # Before the cursor: an anonymous request is refused without leasing a connection.
     _require_user(user)
@@ -166,7 +193,13 @@ def run_abba(
                 prepared.tool_input,
                 prepared.user_id,
                 statement_timeout_seconds=settings.ABBA_STATEMENT_TIMEOUT_SECONDS,
+                deadline_seconds=settings.ABBA_REQUEST_TIMEOUT_SECONDS,
             )
+    except ABBADeadlineExceeded as error:
+        raise ABBATimedOut(
+            f"The ABBA search took longer than {settings.ABBA_REQUEST_TIMEOUT_SECONDS} s and "
+            "was stopped. Try fewer seed genes, fewer tiers, or a species restriction."
+        ) from error
     finally:
         _running.release()
     return {
