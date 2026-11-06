@@ -1,0 +1,158 @@
+name: AON — Release (SQA → Stage → Prod)
+
+# Promotes the AON ortholog/homolog mapping service (aon/) through
+# sqa → stage → prod, mirroring the standalone geneweaver-aon repo's release
+# pipeline and the monorepo's legacy-release.yml.
+#
+# TRIGGER: pushing an AON version tag, e.g.
+#   git tag aon-v0.3.1 && git push origin aon-v0.3.1
+# The tag is the release decision; merging a version bump to main does not
+# release. Tags are namespaced `aon-v*` so they never collide with the legacy
+# app's `v*.*.*` tags or the packages' `tools-v*` tags.
+#
+# The tag must match the version in aon/pyproject.toml; the version job fails
+# the run if they disagree, so a release can never ship an image whose version
+# does not match the code it was built from.
+#
+# A pre-release version (contains a letter, e.g. 0.3.1a0) deploys to SQA only; a
+# full version (e.g. 0.3.1) promotes through Stage + Prod and drafts a GitHub
+# release.
+#
+# Builds ONE image (to the prod registry, the _skaffold-build default) and
+# deploys that same artifact to each environment. Each deploy is gated by its
+# GitHub environment's required-reviewer protection.
+
+on:
+  push:
+    tags:
+      - 'aon-v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    name: "Verify Tag Matches Version"
+    # A push event is also delivered when a tag is deleted (deleted: true), and
+    # the run's SHA then reverts to the default branch. Without this guard,
+    # deleting a tag could start a real SQA -> Stage -> Prod release. Every other
+    # job needs this one, so skipping it skips the whole pipeline.
+    if: ${{ !github.event.deleted }}
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.version_check.outputs.should_release }}
+      prerelease: ${{ steps.version_check.outputs.prerelease }}
+      version: ${{ steps.version_check.outputs.version }}
+      schedule_prod_release: ${{ steps.version_check.outputs.schedule_prod_release }}
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify tag matches aon/pyproject.toml
+        id: version_check
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          tag_version="${tag#aon-v}"
+          code_version=$(python -c "import tomllib; print(tomllib.load(open('aon/pyproject.toml', 'rb'))['tool']['poetry']['version'])")
+
+          echo "Tag           : $tag  (version $tag_version)"
+          echo "pyproject.toml: $code_version"
+
+          if [[ "$tag_version" != "$code_version" ]]; then
+            echo "::error::Tag $tag implies version $tag_version but aon/pyproject.toml is $code_version. \
+          Bump aon/pyproject.toml and re-tag, or tag the commit that carries the matching version."
+            exit 1
+          fi
+
+          echo "version=$code_version" >> "$GITHUB_OUTPUT"
+
+          # Pushing the tag IS the intent to release; nothing else to detect.
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+
+          if [[ $code_version =~ [a-zA-Z] ]]; then
+            echo "Pre-release version -- SQA only"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "schedule_prod_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Full release version -- SQA, then Stage + Prod"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "schedule_prod_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          cat "$GITHUB_OUTPUT"
+
+  test:
+    name: "AON Tests"
+    needs: [ version ]
+    if: ${{ needs.version.outputs.should_release == 'true' }}
+    uses: ./.github/workflows/_aon-tests.yml
+
+  build:
+    name: "AON image build: Release"
+    needs: [ version, test ]
+    if: ${{ needs.version.outputs.should_release == 'true' }}
+    uses: ./.github/workflows/_skaffold-build-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: aon
+      artifact_name: aon-build
+      # default_image_repo omitted → prod registry (us-docker.pkg.dev/.../docker/geneweaver)
+
+  deploy_sqa:
+    name: "AON Deploy: SQA"
+    needs: [ build, version ]
+    if: ${{ needs.version.outputs.should_release == 'true' }}
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: aon
+      artifact_name: aon-build
+      environment: "jax-cluster-dev-10--sqa"
+
+  deploy_stage:
+    name: "AON Deploy: Stage"
+    needs: [ build, version, deploy_sqa ]
+    if: ${{ needs.version.outputs.schedule_prod_release == 'true' }}
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: aon
+      artifact_name: aon-build
+      environment: "jax-cluster-prod-10--stage"
+
+  deploy_prod:
+    name: "AON Deploy: Prod"
+    needs: [ build, version, deploy_stage ]
+    if: ${{ needs.version.outputs.schedule_prod_release == 'true' }}
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: aon
+      artifact_name: aon-build
+      environment: "jax-cluster-prod-10--prod"
+
+  release:
+    name: "Create GitHub Release Draft"
+    runs-on: ubuntu-latest
+    needs: [ deploy_prod, version ]
+    if: ${{ needs.version.outputs.schedule_prod_release == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AON v${{ needs.version.outputs.version }}
+          draft: true
+          prerelease: ${{ needs.version.outputs.prerelease }}
+          body: |
+            GeneWeaver AON release v${{ needs.version.outputs.version }}
+
+            Built from ${{ github.ref_name }} (${{ github.sha }}).

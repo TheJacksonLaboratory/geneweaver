@@ -70,3 +70,19 @@ This workflow will:
       environment).
       - It will wait for approval from SQA before running this step
     - It will then create a draft GitHub release
+
+## Component workflows
+
+The monorepo also builds and deploys components that keep their own build
+(their own `Dockerfile`, `skaffold.yaml` and k8s overlays in a subdirectory).
+These workflows are path-filtered to that component and reuse the skaffold
+actions above with `working_directory` set to the component's directory.
+
+| Component | Pull request (→ dev) | Release (→ sqa → stage → prod) | Release trigger |
+|---|---|---|---|
+| Legacy web app (`legacy/`) | `legacy-pull_requests.yml` | `legacy-release.yml` | tag `v*.*.*` matching `legacy/pyproject.toml` |
+| AON ortholog/homolog mapping (`aon/`) | `aon-pull_requests.yml` | `aon-release.yml` | tag `aon-v*.*.*` matching `aon/pyproject.toml` |
+| UI (`ui/`) | `ui-pull_requests.yml` (→ dev + sqa) | `ui-release.yml` | push to `main` touching `ui/` |
+
+AON is tested by `_aon-tests.yml` (ruff, black and pytest in its own Poetry
+environment), since it is not a member of the root uv workspace.
