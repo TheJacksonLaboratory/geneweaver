@@ -44,7 +44,7 @@ def map_gene_orthologs(
         gene_ref_ids,
         to_species=to_species,
         algorithm_id=algorithm_id,
-        **paging_params
+        **paging_params,
     )
 
 

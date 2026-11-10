@@ -205,11 +205,14 @@ def gw(schema_id: int) -> bool:
         progress.update(gw_load, description=gw_load_msg + "Getting Homology")
 
         # Homologs
-        with psycopg.connect(
-            config.GW_DB.URI.replace("postgresql+psycopg", "postgresql")
-        ) as gw_conn, psycopg.connect(
-            config.DB.URI.replace("postgresql+psycopg", "postgresql")
-        ) as aon_conn:
+        with (
+            psycopg.connect(
+                config.GW_DB.URI.replace("postgresql+psycopg", "postgresql")
+            ) as gw_conn,
+            psycopg.connect(
+                config.DB.URI.replace("postgresql+psycopg", "postgresql")
+            ) as aon_conn,
+        ):
             with gw_conn.cursor() as gw_cursor, aon_conn.cursor() as aon_cursor:
                 homologs = geneweaver.homologs.get_homolog_information(
                     aon_cursor, gw_cursor, aon_schema_name=schema_name
