@@ -39,14 +39,29 @@ async def lifespan(app: FastAPI) -> None:
         default_version_id = (
             None if default_schema_version is None else default_schema_version.id
         )
-        logger.info(
-            f"Using latest schema version as default: {default_schema_version.id}."
-        )
+        if default_version_id is None:
+            # A new database: `gwaon setup version-table` (the init container) makes
+            # the version table, but nothing is loaded until an AGR load completes.
+            # Start anyway, so the worker and /versions are reachable; data endpoints
+            # fail until a load completes and the API is restarted to pick it up.
+            logger.warning(
+                "No completed AON data load found; no default schema version. "
+                "Run an AGR load, then restart the API."
+            )
+        else:
+            logger.info(
+                f"Using latest schema version as default: {default_version_id}."
+            )
     else:
         default_version_id = next(
             (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA),
             None,
         )
+        if default_version_id is None:
+            raise RuntimeError(
+                f"DEFAULT_SCHEMA {config.DEFAULT_SCHEMA!r} is not a completed AON "
+                "data load."
+            )
 
     app.default_schema_version_id = default_version_id
     app.session = app.session_managers[default_version_id]
