@@ -13,3 +13,11 @@ spec:
       name: direct
       port: 80
       targetPort: 8000
+    # The ingresses (AON's own and legacy's /aon/api route) select port 8000. Only
+    # ingress-nginx also matches a backend port against targetPort, which is why
+    # port 80 alone has worked; exposing 8000 makes the reference valid for any
+    # controller. Port 80 stays for anything calling the Service directly.
+    - protocol: TCP
+      name: http
+      port: 8000
+      targetPort: 8000
