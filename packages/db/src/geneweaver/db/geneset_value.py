@@ -183,6 +183,11 @@ def by_geneset_id_and_identifier(
     2. otherwise the gene's preferred identifier of that type (``ode_pref``);
     3. otherwise the lowest ``ode_ref_id``.
 
+    Gene symbols are the exception: the preferred (official) symbol always comes first,
+    as the gene set page has always shown it, so an alias in the upload does not replace
+    it. Rules 1 and 3 still apply to a gene with no preferred symbol. Before, that gene
+    was filtered out and vanished from the gene set's values.
+
     The same request then returns the same identifiers on every call and across data
     reloads. Before, the choice was whichever row Postgres met first: GS412566's gene
     uploaded as ENSMUSG00000089945 came back as ENSMUSG00000038729, which the Strain
@@ -231,16 +236,12 @@ def by_geneset_id_and_identifier(
                              WHERE g2.ode_gene_id = gsv.ode_gene_id AND
                                    g2.gdb_id = 7
                              LIMIT 1)
-                        )) AND
-
-                        --
-                        -- When viewing symbols, always pick the preferred gene symbol
-                        --
-                        CASE
-                            WHEN g.gdb_id = 7 THEN g.ode_pref = 't'
-                            ELSE true
-                        END
+                        ))
                 ORDER BY g.ode_gene_id, g.gdb_id,
+                        -- 0. symbols: the official (preferred) symbol ahead of any
+                        --    alias the uploader typed. An ORDER BY rather than a
+                        --    filter, so a gene with no preferred symbol keeps a row.
+                        CASE WHEN g.gdb_id = 7 AND g.ode_pref THEN 0 ELSE 1 END,
                         -- 1. the identifier the uploader used
                         EXISTS (
                             SELECT 1 FROM unnest(gsv.gsv_source_list) AS uploaded(id)

@@ -205,7 +205,8 @@ def get_geneset_values(
     One row per gene. With ``gene_id_type``, each gene is shown by one identifier of that
     type, chosen by a fixed rule so repeated calls agree (G3-836): the identifier the
     uploader used, if it is of that type; otherwise the gene's preferred identifier of that
-    type; otherwise the lowest one. Across species (a mouse gene set in human IDs), each gene
+    type; otherwise the lowest one. Gene symbols always show the official symbol, not an
+    alias from the upload. Across species (a mouse gene set in human IDs), each gene
     is shown by one homolog: its preferred identifier, otherwise the lowest.
     """
     response = geneset_service.get_geneset_gene_values(
