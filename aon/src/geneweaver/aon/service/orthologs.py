@@ -94,7 +94,7 @@ def get_orthologs(
 
     if to_gene_id:
         logger.debug(f"Filtering get_orthologs by to gene id: {to_gene_id}")
-        query = query.filter(Ortholog.to_gene.id == to_gene_id)
+        query = query.filter(Ortholog.to_gene == to_gene_id)
 
     if best is not None:
         logger.debug(f"Filtering get_orthologs by best: {best}")

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from geneweaver.aon import dependencies as deps
 from geneweaver.aon.enum import ReferenceGeneIDType
 from geneweaver.aon.service import convert as convert_service
@@ -33,7 +33,7 @@ def get_gene_prefixes(db: deps.Session = Depends(deps.session)):
 @router.post("/ortholog/mapping")
 def map_gene_orthologs(
     db: deps.Session = Depends(deps.session),
-    gene_ref_ids: list[str] = None,
+    gene_ref_ids: list[str] = Body(...),
     to_species: Optional[int] = None,
     algorithm_id: Optional[int] = None,
     paging_params: dict = Depends(deps.paging_parameters),
@@ -51,7 +51,7 @@ def map_gene_orthologs(
 @router.post("/homolog/mapping")
 def map_gene_homologs(
     db: deps.Session = Depends(deps.session),
-    gene_ref_ids: list[str] = None,
+    gene_ref_ids: list[str] = Body(...),
     to_species: Optional[int] = None,
     paging_params: dict = Depends(deps.paging_parameters),
 ) -> list:

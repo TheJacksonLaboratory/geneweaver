@@ -16,6 +16,7 @@ def get_orthologs(
     from_gene_id: Optional[int] = None,
     to_gene_id: Optional[int] = None,
     algorithm_id: Optional[int] = None,
+    possible_match_algorithms: Optional[int] = None,
     best: Optional[bool] = None,
     revised: Optional[bool] = None,
     paging_params: dict = Depends(deps.paging_parameters),
@@ -29,6 +30,7 @@ def get_orthologs(
         from_gene_id=from_gene_id,
         to_gene_id=to_gene_id,
         algorithm_id=algorithm_id,
+        possible_match_algorithms=possible_match_algorithms,
         best=best,
         revised=revised,
         **paging_params,
@@ -38,9 +40,6 @@ def get_orthologs(
 @router.get("/{ortholog_id}")
 def get_orthologs_by_id(
     ortholog_id: int,
-    source_name: Optional[str] = None,
-    species_id: Optional[int] = None,
-    gene_id: Optional[int] = None,
     db: deps.Session = Depends(deps.session),
 ):
     """Get ortholog by id."""

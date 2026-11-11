@@ -4,7 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional, Union
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.schema_version import (
     get_latest_schema_version,
@@ -119,8 +119,13 @@ def session(request: Request) -> sessionmaker:
 
 
 async def paging_parameters(
-    start: Annotated[Optional[int], "The item to start at (the offset)."] = None,
-    limit: Annotated[int, "The number of records per page."] = 100,
+    # Non-negative: Postgres rejects a negative OFFSET/LIMIT, which surfaced as a 500.
+    start: Annotated[
+        Optional[int], Query(ge=0, description="The item to start at (the offset).")
+    ] = None,
+    limit: Annotated[
+        int, Query(ge=0, description="The number of records per page.")
+    ] = 100,
 ) -> dict[str, Union[int, str]]:
     """Get the paging parameters.
 

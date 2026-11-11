@@ -20,7 +20,6 @@ app = FastAPI(
     redoc_url=f"{config.API_PREFIX}/redoc",
     openapi_url=f"{config.API_PREFIX}/openapi.json",
     lifespan=deps.lifespan,
-    prefix=config.API_PREFIX,
 )
 
 app.include_router(versions.router, prefix=config.API_PREFIX, tags=["versions"])
