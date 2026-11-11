@@ -156,3 +156,41 @@ def test_ode_ref_to_agr_skips_rows_without_a_gdb_id() -> None:
 
     db.query.return_value.filter.return_value.first.return_value = (14,)
     assert ode_ref_to_agr(db, "FBgn0000744") == "FB:FBgn0000744"
+
+
+def _ids(rows: list) -> dict:
+    return {row.sp_name: row.sp_id for row in rows}
+
+
+def test_xenopus_ids_are_the_same_on_every_load() -> None:
+    """Set order numbered them: prod has tropicalis 12, dev's 9.2.0 load 13."""
+    pairs = [("Xenopus Laevis", 8355), ("Xenopus Tropicalis", 8364)]
+    for order in (pairs, pairs[::-1]):
+        assert _ids(agr_load.agr_only_species(set(order))) == {
+            "Xenopus Tropicalis": 12,
+            "Xenopus Laevis": 13,
+        }
+
+
+def test_a_new_agr_species_is_numbered_after_the_pinned_ones() -> None:
+    """A species AGR adds later gets the next free id, in taxon id order."""
+    rows = agr_load.agr_only_species(
+        {("Xenopus Laevis", 8355), ("Zeta", 20), ("Alpha", 10)}
+    )
+    assert _ids(rows) == {"Xenopus Laevis": 13, "Alpha": 14, "Zeta": 15}
+
+
+def test_the_species_sequence_starts_after_every_id_used(tmp_path) -> None:
+    """The sequence restarted at 12 before the pinned 12 and 13 were written."""
+    header = "#\n" * 16
+    rows = [
+        "HGNC:1\tA\tNCBITaxon:9606\tHomo sapiens\tx\n",
+        "XB-GENE:1\tB\tNCBITaxon:8355\tXenopus laevis\tx\n",
+        "XB-GENE:2\tC\tNCBITaxon:8364\tXenopus tropicalis\tx\n",
+    ]
+    ortho = tmp_path / "orthology.tsv"
+    ortho.write_text(header + "".join(rows))
+    db = MagicMock()
+    agr_load.init_species(db, str(ortho), "v1")
+    restart = [str(c.args[0]) for c in db.execute.call_args_list]
+    assert any("RESTART WITH 14" in sql for sql in restart), restart

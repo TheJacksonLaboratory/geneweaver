@@ -32,6 +32,14 @@ for _name, _taxon_id in (("XENOPUS_TROPICALIS", 8364), ("XENOPUS_LAEVIS", 8355))
     if hasattr(enum.Species, _name):
         TAXON_ID_MAP[getattr(enum.Species, _name)] = _taxon_id
 
+# sp_id of each species that is in AGR's file but not in the locked geneweaver-core,
+# keyed by NCBI taxon id. They were numbered in set iteration order, which differs per
+# process: prod (AGR 6.0.0) has Xenopus tropicalis 12 and laevis 13, dev's 9.2.0 load
+# the reverse, so `to_species=12` named a different frog per load. These match prod
+# and geneweaver-core's SpeciesInt. Any species not listed is numbered after them, in
+# taxon id order.
+AGR_ONLY_SPECIES_IDS = {8364: 12, 8355: 13}
+
 
 def read_file_by_line(file) -> str:
     """Read a file line by line.
@@ -135,15 +143,6 @@ def init_species(db: Session, ortho_file: str, schema_name: str) -> None:
                 sp_taxon_id=TAXON_ID_MAP[species],
             )
             db.add(sp)
-
-    max_id = max([int(species) for species in enum.Species])
-    db.execute(
-        text(
-            f'ALTER SEQUENCE "{checked_schema_name(schema_name)}"'
-            ".sp_species_sp_id_seq "
-            f"RESTART WITH {max_id + 1}"
-        )
-    )
     db.commit()
 
     heading_size = 15
@@ -166,13 +165,40 @@ def init_species(db: Session, ortho_file: str, schema_name: str) -> None:
                 except ValueError:
                     non_gw_species.add((name, int(taxon_id)))
 
-        db.bulk_save_objects(
-            [
-                Species(sp_name=name, sp_taxon_id=taxon_id)
-                for name, taxon_id in non_gw_species
-            ]
+    rows = agr_only_species(non_gw_species)
+    db.bulk_save_objects(rows)
+    # sp_ids are set explicitly above; start the sequence after all of them.
+    next_id = max([_first_free_species_id() - 1] + [row.sp_id for row in rows]) + 1
+    db.execute(
+        text(
+            f'ALTER SEQUENCE "{checked_schema_name(schema_name)}"'
+            ".sp_species_sp_id_seq "
+            f"RESTART WITH {next_id}"
         )
-        db.commit()
+    )
+    db.commit()
+
+
+def _first_free_species_id() -> int:
+    """Return the first sp_id after GeneWeaver's species and the pinned AGR ones."""
+    used = [int(species) for species in enum.Species]
+    return max(used + list(AGR_ONLY_SPECIES_IDS.values())) + 1
+
+
+def agr_only_species(names_and_taxon_ids: set) -> list:
+    """Give the species found only in AGR's file the same sp_ids on every load.
+
+    :param names_and_taxon_ids: (name, NCBI taxon id) pairs
+    :return: Species rows with fixed sp_ids
+    """
+    next_id = _first_free_species_id()
+    rows = []
+    for name, taxon_id in sorted(names_and_taxon_ids, key=lambda pair: pair[1]):
+        sp_id = AGR_ONLY_SPECIES_IDS.get(taxon_id)
+        if sp_id is None:
+            sp_id, next_id = next_id, next_id + 1
+        rows.append(Species(sp_id=sp_id, sp_name=name, sp_taxon_id=taxon_id))
+    return rows
 
 
 def add_genes(db: Session, ortho_file: str) -> None:
