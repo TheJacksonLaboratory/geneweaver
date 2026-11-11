@@ -87,7 +87,7 @@ def _agr_gene_id(db: Session, ode_gene_id: int, sp_id: int) -> Optional[int]:
     )
     if not gw_gene_ref:
         return None
-    agr_ref = ode_ref_to_agr(db, gw_gene_ref.ode_ref_id)
+    agr_ref = ode_ref_to_agr(db, gw_gene_ref.ode_ref_id, gw_gene_ref.gdb_id)
     if not agr_ref:
         return None
     agr_gene = db.query(Gene).filter(Gene.gn_ref_id == agr_ref).first()

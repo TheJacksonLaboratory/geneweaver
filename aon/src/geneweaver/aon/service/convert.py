@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 #    gdb_id and are used more broadly.
 
 
-def ode_ref_to_agr(db: Session, ode_ref: str) -> str:
+def ode_ref_to_agr(db: Session, ode_ref: str, gdb_id: Optional[int] = None) -> str:
     """Convert a gene reference ID from Geneweaver to AGR format.
 
     AGR only contains data from some gene data sources Geneweaver has and the format is
@@ -24,19 +24,32 @@ def ode_ref_to_agr(db: Session, ode_ref: str) -> str:
 
     :param db: The database session.
     :param ode_ref: The gene reference ID from Geneweaver.
-    :return: The gene reference ID in AGR format.
+    :param gdb_id: The ID's GeneWeaver gene database, when the caller has it.
+        Otherwise it is looked up by ``ode_ref``, skipping rows with no gdb_id: dev's
+        extsrc.gene has 34,377 species-0 rows with a NULL gdb_id whose ids repeat
+        real ones (FBgn0000744), and landing on one raised TypeError, a 500 from
+        /genes/by-ref-id and an aborted AGR load (G3-837).
+    :return: The gene reference ID in AGR format; unchanged when its type is unknown.
     """
     ref = ode_ref
 
-    gdb_id = (
-        db.query(GeneweaverGene.gdb_id)
-        .filter(GeneweaverGene.ode_ref_id == ode_ref)
-        .first()
-    )
-    if gdb_id:
-        gdb_id = gdb_id[0]
+    if gdb_id is None:
+        row = (
+            db.query(GeneweaverGene.gdb_id)
+            .filter(
+                GeneweaverGene.ode_ref_id == ode_ref,
+                GeneweaverGene.gdb_id.isnot(None),
+            )
+            .first()
+        )
+        gdb_id = row[0] if row else None
+    if gdb_id is None:
+        return ref
 
-    gene_id_type = GeneIdentifier(gdb_id)
+    try:
+        gene_id_type = GeneIdentifier(gdb_id)
+    except (TypeError, ValueError):
+        return ref
 
     if gene_id_type == GeneIdentifier.WORMBASE:
         ref = "WB:" + ode_ref

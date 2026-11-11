@@ -129,3 +129,30 @@ def test_every_geneweaver_species_has_a_taxon_id() -> None:
         if s != enum.Species.ALL and s not in agr_load.TAXON_ID_MAP
     ]
     assert missing == []
+
+
+def test_ode_ref_to_agr_uses_the_gdb_id_it_is_given() -> None:
+    """The loader passes the row's gdb_id, so no second lookup can go wrong."""
+    from geneweaver.aon.service.convert import ode_ref_to_agr
+
+    db = MagicMock()
+    assert ode_ref_to_agr(db, "FBgn0000744", 14) == "FB:FBgn0000744"
+    db.query.assert_not_called()
+
+
+def test_ode_ref_to_agr_skips_rows_without_a_gdb_id() -> None:
+    """The lookup filters out NULL gdb_id rows, and an unknown type is not fatal.
+
+    Dev's extsrc.gene has 34,377 species-0 rows with no gdb_id that repeat real ids;
+    landing on one raised TypeError (a 500 from /genes/by-ref-id?ref_id_type=gw).
+    """
+    from geneweaver.aon.service.convert import ode_ref_to_agr
+
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = None
+    assert ode_ref_to_agr(db, "FBgn0000744") == "FBgn0000744"
+    criteria = db.query.return_value.filter.call_args.args
+    assert any("IS NOT NULL" in str(c) for c in criteria)
+
+    db.query.return_value.filter.return_value.first.return_value = (14,)
+    assert ode_ref_to_agr(db, "FBgn0000744") == "FB:FBgn0000744"
