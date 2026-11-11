@@ -12,6 +12,8 @@ from temporalio.client import (
     Schedule,
     ScheduleActionStartWorkflow,
     ScheduleIntervalSpec,
+    ScheduleOverlapPolicy,
+    SchedulePolicy,
     ScheduleSpec,
 )
 from temporalio.service import RPCError
@@ -58,6 +60,9 @@ async def _schedule_load(hour_frequency: int = 24) -> None:
             spec=ScheduleSpec(
                 intervals=[ScheduleIntervalSpec(every=timedelta(hours=hour_frequency))]
             ),
+            # Temporal's default, stated: a load can take longer than the interval,
+            # and two loads of one release must not run at once (G3-837).
+            policy=SchedulePolicy(overlap=ScheduleOverlapPolicy.SKIP),
         ),
     )
 

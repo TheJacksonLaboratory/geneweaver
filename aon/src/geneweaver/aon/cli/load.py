@@ -66,9 +66,27 @@ def get_data(release: Optional[str] = None) -> Tuple[str, str]:
 
 @cli.command()
 def agr_release_exists(release: str) -> bool:
-    """Check if the Alliance of Genome Resources release exists."""
+    """Check if the Alliance of Genome Resources release is already loaded.
+
+    Only a completed load counts. A load that failed leaves its Version row with
+    load_complete=False; counting it made every later run of that release return
+    early, so a release that failed once was never loaded (dev has six such rows,
+    6.0.0a2 to a7). A retry now loads it into a new schema; the failed schema is left
+    in place, unused, since only completed versions are served (G3-837).
+
+    Two runs of one release cannot overlap through Temporal: start-load uses a fixed
+    workflow id, which Temporal will not start twice, and the schedule skips a run
+    while the previous one is still going.
+    """
     db = SessionLocal()
-    version = db.query(Version).filter(Version.agr_version == release).first()
+    version = (
+        db.query(Version)
+        .filter(
+            Version.agr_version == release,
+            Version.load_complete == True,  # noqa: E712
+        )
+        .first()
+    )
     db.close()
     if version:
         print(f"Release {release} exists in the database.")
@@ -92,6 +110,11 @@ def create_schema(release: str) -> Tuple[str, int]:
         # plain identifier before it reaches alembic's CREATE SCHEMA.
         schema_name = checked_schema_name(f"v{schema_version}__{timestamp}")
 
+        # Check before creating anything: this ran after the migrations, so a run for
+        # a loaded release still made an empty schema before stopping.
+        if agr_release_exists(release):
+            raise typer.Exit("Release already exists")
+
         script_location = (Path(__file__).parent.parent / "alembic").resolve()
         alembic_cfg = Config(
             file_=str(script_location / "alembic.ini"),
@@ -100,9 +123,6 @@ def create_schema(release: str) -> Tuple[str, int]:
         alembic_cfg.set_main_option("script_location", str(script_location))
         alembic_cfg.set_main_option("sqlalchemy.url", config.DB.URI)
         command.upgrade(alembic_cfg, "head")
-
-        if agr_release_exists(release):
-            raise typer.Exit("Release already exists")
 
         db = SessionLocal()
         version = Version(

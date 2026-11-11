@@ -2,8 +2,24 @@
 
 from geneweaver.aon.models import Gene, Species
 from geneweaver.core.enum import GeneIdentifier
+from geneweaver.core.enum import Species as GWSpecies
 from psycopg import Cursor
 from sqlalchemy.orm import Session
+
+# The species GeneWeaver has and AGR does not: their genes and orthologs come from
+# GeneWeaver's own tables. AON's sp_id is GeneWeaver's (see agr.load.init_species).
+GW_ONLY_SPECIES = (
+    int(GWSpecies.MACACA_MULATTA),  # 6
+    int(GWSpecies.GALLUS_GALLUS),  # 10
+    int(GWSpecies.CANIS_FAMILIARIS),  # 11
+)
+
+# The GeneWeaver identifier types those species' genes are loaded under.
+GW_ONLY_GDB_IDS = (
+    int(GeneIdentifier.ENTREZ),  # 1
+    int(GeneIdentifier.ENSEMBLE_GENE),  # 2
+    int(GeneIdentifier.CGNC),  # 20, chicken
+)
 
 PREFIX_MAPPING = {
     GeneIdentifier.ENTREZ: "entrez",
@@ -68,9 +84,10 @@ def add_missing_genes(db: Session, geneweaver_cursor: Cursor) -> None:
     print("querying")
     geneweaver_cursor.execute(
         """
-    SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene WHERE sp_id IN (6,10,11)
-    AND gdb_id in (1,2,20);
-    """
+    SELECT ode_ref_id, gdb_id, sp_id FROM extsrc.gene
+    WHERE sp_id = ANY(%(species)s) AND gdb_id = ANY(%(gdb_ids)s);
+    """,
+        {"species": list(GW_ONLY_SPECIES), "gdb_ids": list(GW_ONLY_GDB_IDS)},
     )
     gw_genes = geneweaver_cursor.fetchall()
     print("converting")

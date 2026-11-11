@@ -23,6 +23,15 @@ TAXON_ID_MAP = {
     enum.Species.MACACA_MULATTA: 9544,
 }
 
+# Species newer geneweaver-core releases add (the workspace's packages/core has both
+# Xenopus). Mapped by name so this module works with the locked 0.9.0a4, which has
+# neither, and does not raise KeyError in init_species once AON moves to a core that
+# has them (G3-837). With the locked core, AGR's Xenopus rows are added as
+# non-GeneWeaver species from the file, as before.
+for _name, _taxon_id in (("XENOPUS_TROPICALIS", 8364), ("XENOPUS_LAEVIS", 8355)):
+    if hasattr(enum.Species, _name):
+        TAXON_ID_MAP[getattr(enum.Species, _name)] = _taxon_id
+
 
 def read_file_by_line(file) -> str:
     """Read a file line by line.
@@ -115,6 +124,11 @@ def init_species(db: Session, ortho_file: str, schema_name: str) -> None:
     # Add geneweaver species
     for species in enum.Species:
         if species != enum.Species.ALL:
+            if species not in TAXON_ID_MAP:
+                raise KeyError(
+                    f"No NCBI taxon id for GeneWeaver species {species!r}: "
+                    "add it to TAXON_ID_MAP."
+                )
             sp = Species(
                 sp_id=int(species),
                 sp_name=str(species).title(),
@@ -340,15 +354,21 @@ def add_homology(db: Session) -> None:
     for o in orthos:
         # check if either gene is already a member of a cluster and if true, add
         #    the corresponding gene to that cluster
+        #    The gene joins *that* cluster (hom_id). This used to key it to
+        #    curr_hom_id, the newest cluster, so later orthologs of it piled into
+        #    whatever cluster was made last: on dev's v8 load one cluster held 141,102
+        #    genes and 138,576 genes sat in more than one (G3-837).
+        #    A gene can still belong to two clusters when an ortholog links genes of
+        #    two existing clusters; clusters are not merged.
         if o.from_gene in existing_cluster_key.keys():
             hom_id = existing_cluster_key[o.from_gene]
             homologs[hom_id].append(o.to_gene)
-            existing_cluster_key[o.to_gene] = curr_hom_id
+            existing_cluster_key[o.to_gene] = hom_id
             source_key[o.to_gene] = o.ort_source_name
         if o.to_gene in existing_cluster_key.keys():
             hom_id = existing_cluster_key[o.to_gene]
             homologs[hom_id].append(o.from_gene)
-            existing_cluster_key[o.from_gene] = curr_hom_id
+            existing_cluster_key[o.from_gene] = hom_id
             source_key[o.from_gene] = o.ort_source_name
 
         # check if neither gene belongs to a cluster and if true, create a new cluster
