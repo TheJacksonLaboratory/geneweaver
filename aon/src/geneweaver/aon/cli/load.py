@@ -2,7 +2,6 @@
 
 from argparse import Namespace
 from datetime import datetime
-from gzip import BadGzipFile
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -35,27 +34,15 @@ def get_data(release: Optional[str] = None) -> Tuple[str, str]:
             release = agr.sources.latest_agr_release()
 
         progress.update(download, description=download_msg + f"Release: {release}")
-        data_increment = 28
-        still_downloading = True
-        while still_downloading:
-            try:
-                url = agr.sources.format_agr_orthology_download_url(
-                    release, data_increment
-                )
+        # AGR's file service gives the file's real path: a release reuses files
+        # uploaded under earlier releases, so guessing the name found nothing.
+        url, md5_sum = agr.sources.agr_orthology_file(release)
 
-                progress.update(download, description=download_msg + "Downloading Data")
+        progress.update(download, description=download_msg + "Downloading Data")
+        zipped_file = agr.sources.download_agr_orthology_data(url)
 
-                zipped_file = agr.sources.download_agr_orthology_data(url)
-                progress.update(download, description=download_msg + "Unzipping Data")
-
-                orthology_file = agr.sources.unzip_file(zipped_file)
-            except BadGzipFile as e:
-                progress.update(download, description=download_msg + f"Error: {e}")
-                data_increment = data_increment - 1
-                if data_increment < 0:
-                    raise e
-                continue
-            still_downloading = False
+        progress.update(download, description=download_msg + "Unzipping Data")
+        orthology_file = agr.sources.unzip_file(zipped_file, md5_sum=md5_sum)
         progress.update(download, completed=True, description=download_msg + "Complete")
 
     orthology_file = Path(orthology_file).resolve()
