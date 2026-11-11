@@ -50,7 +50,7 @@ def get_species_to_taxon_id_map(db: Session) -> dict:
     :return: species to taxon id map
     """
     species = db.query(Species).all()
-    return {s.name: s.sp_id for s in species}
+    return {s.sp_name: s.sp_id for s in species}
 
 
 def add_missing_genes(db: Session, geneweaver_cursor: Cursor) -> None:

@@ -149,10 +149,11 @@ def add_missing_orthologs(db: Session, homologs: tuple) -> None:
                     )
                     .first()
                 )
-                t_agr_ref = ode_ref_to_agr(db, t_gene_ref.ode_ref_id)
-
                 # check that to gene is in agr and geneweaver database
-                if not t_gene_ref or not t_agr_ref:
+                if not t_gene_ref:
+                    continue
+                t_agr_ref = ode_ref_to_agr(db, t_gene_ref.ode_ref_id)
+                if not t_agr_ref:
                     continue
                 agr_to_gene = db.query(Gene).filter(Gene.gn_ref_id == t_agr_ref).first()
                 if not agr_to_gene:

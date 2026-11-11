@@ -1,6 +1,7 @@
 """Utilities for getting and setting up schema version db connections."""
 
 import logging
+import re
 from typing import List, Optional, Tuple
 
 from geneweaver.aon.core.config import config
@@ -10,6 +11,26 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 logger = logging.getLogger("uvicorn.error")
+
+# A Postgres identifier of letters, digits and underscores, at most 63 characters.
+_SCHEMA_NAME = re.compile(r"[A-Za-z0-9_]{1,63}")
+
+
+def checked_schema_name(name: str) -> str:
+    """Return ``name`` if it is safe to place in SQL as a quoted schema identifier.
+
+    Schema names are built from the AGR release (``v<release>__<timestamp>``) and end up
+    in DDL (``CREATE SCHEMA``, ``SET search_path``, ``ALTER SEQUENCE``), which cannot
+    take bound parameters. A name with anything else in it is refused rather than
+    interpolated.
+
+    :param name: The schema name.
+    :return: The same name.
+    :raises ValueError: If the name is not a plain identifier.
+    """
+    if not isinstance(name, str) or not _SCHEMA_NAME.fullmatch(name):
+        raise ValueError(f"Invalid AON schema name: {name!r}")
+    return name
 
 
 def get_latest_schema_version() -> Optional[Version]:

@@ -2,6 +2,7 @@
 
 # ruff: noqa: ERA001, ANN201
 
+import re
 from logging.config import fileConfig
 
 from alembic import context
@@ -65,6 +66,15 @@ def run_migrations_online():
     x_arguments = context.get_x_argument(as_dictionary=True)
 
     current_tenant = x_arguments.get("tenant")
+    # The tenant (schema name) goes into CREATE SCHEMA / SET search_path, which take no
+    # bound parameters: allow only a plain identifier. Kept in step with
+    # geneweaver.aon.core.schema_version.checked_schema_name, which this script does
+    # not import (it would load the app config). No tenant is allowed and unchanged:
+    # `gwaon setup version-table` (the deploy's init container) runs without one.
+    if current_tenant is not None and not re.fullmatch(
+        r"[A-Za-z0-9_]{1,63}", current_tenant
+    ):
+        raise ValueError(f"Invalid tenant (schema name): {current_tenant!r}")
     dburi = x_arguments.get("dburi")
     if dburi:
         _config_section["sqlalchemy.url"] = dburi

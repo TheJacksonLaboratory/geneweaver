@@ -4,6 +4,7 @@
 
 from itertools import chain, islice
 
+from geneweaver.aon.core.schema_version import checked_schema_name
 from geneweaver.aon.models import Algorithm, Gene, Homology, Ortholog, Species
 from geneweaver.core import enum
 from sqlalchemy.orm import Session
@@ -124,7 +125,8 @@ def init_species(db: Session, ortho_file: str, schema_name: str) -> None:
     max_id = max([int(species) for species in enum.Species])
     db.execute(
         text(
-            f"ALTER SEQUENCE {schema_name}.sp_species_sp_id_seq "
+            f'ALTER SEQUENCE "{checked_schema_name(schema_name)}"'
+            ".sp_species_sp_id_seq "
             f"RESTART WITH {max_id + 1}"
         )
     )

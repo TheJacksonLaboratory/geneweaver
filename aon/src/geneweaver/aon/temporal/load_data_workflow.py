@@ -28,13 +28,14 @@ class GeneWeaverAonDataLoad:
         orthology_file, release = await workflow.execute_activity(
             get_data_activity,
             release,
-            schedule_to_close_timeout=timedelta(seconds=15),
+            # Downloads and unzips the full AGR orthology file.
+            schedule_to_close_timeout=timedelta(hours=1),
         )
 
         release_exists = await workflow.execute_activity(
             release_exists_activity,
             release,
-            schedule_to_close_timeout=timedelta(seconds=15),
+            schedule_to_close_timeout=timedelta(seconds=60),
         )
         if release_exists is True:
             return False
@@ -44,7 +45,8 @@ class GeneWeaverAonDataLoad:
             schema_name, schema_id = await workflow.execute_activity(
                 create_schema_activity,
                 release,
-                schedule_to_close_timeout=timedelta(seconds=15),
+                # Runs every alembic migration into a new schema.
+                schedule_to_close_timeout=timedelta(minutes=10),
             )
 
             agr_load_success = await workflow.execute_activity(

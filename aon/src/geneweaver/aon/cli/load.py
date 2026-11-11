@@ -13,6 +13,7 @@ from alembic.config import Config
 from geneweaver.aon.core.config import config
 from geneweaver.aon.core.database import SessionLocal
 from geneweaver.aon.core.schema_version import (
+    checked_schema_name,
     get_schema_version,
     mark_schema_version_load_complete,
     set_up_sessionmanager,
@@ -87,7 +88,9 @@ def create_schema(release: str) -> Tuple[str, int]:
         schema_version = release.replace(".", "_")
         timestamp = datetime.now().strftime("%H_%M_%S_%d_%m_%Y")
 
-        schema_name = f"v{schema_version}__{timestamp}"
+        # The release comes from AGR or the caller; refuse anything that is not a
+        # plain identifier before it reaches alembic's CREATE SCHEMA.
+        schema_name = checked_schema_name(f"v{schema_version}__{timestamp}")
 
         script_location = (Path(__file__).parent.parent / "alembic").resolve()
         alembic_cfg = Config(
