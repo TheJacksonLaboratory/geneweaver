@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 from geneweaver.aon import dependencies as deps
 
 
@@ -63,3 +64,60 @@ def test_startup_with_an_unknown_default_schema_fails_clearly() -> None:
     """DEFAULT_SCHEMA naming no completed load is a configuration error, said so."""
     with pytest.raises(RuntimeError, match="not a completed AON data load"):
         _start(versions=[_version(8, "v8")], latest=None, default_schema="nope")
+
+
+def _request(app: SimpleNamespace, version_id: Optional[int] = None) -> SimpleNamespace:
+    state = SimpleNamespace()
+    if version_id is not None:
+        state.schema_version_id = version_id
+    return SimpleNamespace(app=app, state=state)
+
+
+def _app_with(*ids: int) -> SimpleNamespace:
+    managers = {i: MagicMock(name=f"sm{i}") for i in ids}
+    return SimpleNamespace(
+        session_managers=managers, engines={}, session=managers[ids[0]]
+    )
+
+
+def test_a_versioned_url_uses_that_version() -> None:
+    """``/aon/api/1/...`` reads version 1, not the default (8).
+
+    The version was logged as ``schema_version.id`` on an int; the AttributeError fell
+    into the default branch, so every versioned URL served the default version.
+    """
+    app = _app_with(8, 1)
+    session = next(deps.session(_request(app, 1)))
+    assert session is app.session_managers[1].return_value
+    app.session_managers[8].assert_not_called()
+
+
+def test_an_unknown_version_is_404() -> None:
+    """``/aon/api/999/...`` is not found, instead of silently serving the default."""
+    app = _app_with(8)
+    with patch.object(deps, "get_schema_version", return_value=None):
+        with pytest.raises(HTTPException) as exc:
+            next(deps.session(_request(app, 999)))
+    assert exc.value.status_code == 404
+
+
+def test_a_version_still_loading_is_404() -> None:
+    """A version whose load has not completed is not served."""
+    app = _app_with(8)
+    with (
+        patch.object(
+            deps, "get_schema_version", return_value=_version(9, complete=False)
+        ),
+        patch.object(deps, "set_up_sessionmanager") as set_up,
+    ):
+        with pytest.raises(HTTPException) as exc:
+            next(deps.session(_request(app, 9)))
+    assert exc.value.status_code == 404
+    set_up.assert_not_called()
+
+
+def test_no_version_in_the_url_uses_the_default() -> None:
+    """Unversioned URLs keep using the default session."""
+    app = _app_with(8)
+    session = next(deps.session(_request(app)))
+    assert session is app.session.return_value

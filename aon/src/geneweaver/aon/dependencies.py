@@ -86,13 +86,20 @@ def session(request: Request) -> sessionmaker:
     """Get a session from the connection pool."""
     try:
         schema_version = request.state.schema_version_id
-        logger.info(f"Using schema version {schema_version.id}.")
+        # schema_version is the int from the /{version_id} path. This line used to read
+        # schema_version.id, whose AttributeError fell into the default-version branch
+        # below, so every versioned URL (even an unknown version) served the default.
+        logger.info(f"Using schema version {schema_version}.")
 
         try:
             _session = request.app.session_managers[schema_version]()
         except KeyError as e:
             version = get_schema_version(schema_version)
-            if version is not None and version.id not in request.app.session_managers:
+            if (
+                version is not None
+                and version.load_complete
+                and version.id not in request.app.session_managers
+            ):
                 (
                     request.app.session_managers[version.id],
                     request.app.engines[version.id],
