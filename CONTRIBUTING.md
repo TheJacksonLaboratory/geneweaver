@@ -12,4 +12,4 @@ out to us as cssc@jax.org.
 Other Geneweaver packages are community developed and can be found at on GitHub:
 - [Geneweaver Testing](https://github.com/bergsalex/geneweaver-testing)
 - [Geneweaver Tools](https://github.com/bergsalex/geneweaver-tools)
-- [Geneweaver AON](https://github.com/bergsalex/geneweaver-aon)
+- Geneweaver AON now lives in this repository under [`aon/`](aon/)

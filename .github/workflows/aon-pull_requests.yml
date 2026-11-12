@@ -1,0 +1,46 @@
+name: AON — Build & Deploy
+
+# Builds and deploys the AON ortholog/homolog mapping service (aon/) to dev on
+# PRs that touch aon/. Mirrors the standalone geneweaver-aon repo's
+# pull-requests pipeline, wired through the monorepo's reusable skaffold actions
+# via working_directory (the same way legacy-pull_requests.yml does for legacy/).
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'aon/**'
+      - '.github/workflows/aon-pull_requests.yml'
+      - '.github/workflows/_aon-tests.yml'
+
+jobs:
+  test:
+    name: "AON Tests"
+    strategy:
+      matrix:
+        # 3.9 is the runtime the image ships (aon/Dockerfile); 3.11 matches the
+        # newest version the standalone repo tested against.
+        python-version: [ '3.9', '3.11' ]
+    uses: ./.github/workflows/_aon-tests.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+
+  build:
+    name: "AON image build: Dev"
+    needs: [ test ]
+    uses: ./.github/workflows/_skaffold-build-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: aon
+      artifact_name: aon-build
+      default_image_repo: "us-east1-docker.pkg.dev/jax-cs-registry/docker-test/geneweaver"
+
+  deploy:
+    name: "AON Deploy: Dev"
+    needs: [ build ]
+    uses: ./.github/workflows/_skaffold-deploy-k8s.yml
+    secrets: inherit
+    with:
+      working_directory: aon
+      artifact_name: aon-build
+      environment: "jax-cluster-dev-10--dev"
