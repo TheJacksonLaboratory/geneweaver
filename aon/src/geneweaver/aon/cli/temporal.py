@@ -1,21 +1,19 @@
 """Commands for working with temporal jobs."""
 
 from asyncio import run as aiorun
-from datetime import timedelta
+from typing import Optional
 
 import typer
 from geneweaver.aon.core.config import config
 from geneweaver.aon.temporal import worker
 from geneweaver.aon.temporal.load_data_workflow import GeneWeaverAonDataLoad
-from temporalio.client import (
-    Client,
-    Schedule,
-    ScheduleActionStartWorkflow,
-    ScheduleIntervalSpec,
-    ScheduleOverlapPolicy,
-    SchedulePolicy,
-    ScheduleSpec,
+from geneweaver.aon.temporal.schedule import (
+    SCHEDULE_ID,
+    WORKFLOW_ID,
+    load_schedule,
+    set_load_schedule,
 )
+from temporalio.client import Client
 from temporalio.service import RPCError
 
 cli = typer.Typer(no_args_is_help=True, rich_markup_mode="rich")
@@ -28,7 +26,7 @@ async def _clear_schedules() -> None:
             config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
         )
         handle = client.get_schedule_handle(
-            "geneweaver-aon-agr-load-schedule",
+            SCHEDULE_ID,
         )
 
         await handle.delete()
@@ -43,34 +41,31 @@ def clear_schedules() -> None:
     aiorun(_clear_schedules())
 
 
-async def _schedule_load(hour_frequency: int = 24) -> None:
+async def _schedule_load(
+    cron: Optional[str] = None, hour_frequency: Optional[int] = None
+) -> None:
     """Schedule a load job."""
-    await _clear_schedules()
     client = await Client.connect(
         config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
     )
-    await client.create_schedule(
-        "geneweaver-aon-agr-load-schedule",
-        Schedule(
-            action=ScheduleActionStartWorkflow(
-                GeneWeaverAonDataLoad.run,
-                id="geneweaver-aon-agr-load-workflow",
-                task_queue=config.TEMPORAL_TASK_QUEUE,
-            ),
-            spec=ScheduleSpec(
-                intervals=[ScheduleIntervalSpec(every=timedelta(hours=hour_frequency))]
-            ),
-            # Temporal's default, stated: a load can take longer than the interval,
-            # and two loads of one release must not run at once (G3-837).
-            policy=SchedulePolicy(overlap=ScheduleOverlapPolicy.SKIP),
+    await set_load_schedule(
+        client,
+        load_schedule(
+            cron=cron or config.LOAD_SCHEDULE_CRON, hour_frequency=hour_frequency
         ),
     )
 
 
 @cli.command()
-def schedule_load(hour_frequency: int = 24) -> None:
-    """Schedule a load job."""
-    aiorun(_schedule_load(hour_frequency))
+def schedule_load(
+    cron: Optional[str] = None, hour_frequency: Optional[int] = None
+) -> None:
+    """Schedule the AGR load: by cron (UTC; default LOAD_SCHEDULE_CRON, monthly).
+
+    Pass --hour-frequency to run every N hours instead. The worker also sets the
+    schedule from LOAD_SCHEDULE_CRON each time it starts.
+    """
+    aiorun(_schedule_load(cron, hour_frequency))
 
 
 async def _start_load() -> None:
@@ -80,7 +75,7 @@ async def _start_load() -> None:
     )
     await client.start_workflow(
         GeneWeaverAonDataLoad.run,
-        id="geneweaver-aon-agr-load-workflow",
+        id=WORKFLOW_ID,
         task_queue=config.TEMPORAL_TASK_QUEUE,
     )
 
@@ -96,7 +91,7 @@ async def _cancel_load() -> None:
     client = await Client.connect(
         config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
     )
-    await client.get_workflow_handle("geneweaver-aon-agr-load-workflow").cancel()
+    await client.get_workflow_handle(WORKFLOW_ID).cancel()
 
 
 @cli.command()
@@ -110,7 +105,7 @@ async def _terminate_load() -> None:
     client = await Client.connect(
         config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
     )
-    await client.get_workflow_handle("geneweaver-aon-agr-load-workflow").terminate()
+    await client.get_workflow_handle(WORKFLOW_ID).terminate()
 
 
 @cli.command()

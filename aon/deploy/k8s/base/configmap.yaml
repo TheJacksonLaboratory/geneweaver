@@ -5,3 +5,6 @@ metadata:
 data:
   AUTH_CLIENT_ID: "T7bj6wlmtVcAN2O6kzDRwPVFyIj4UQNs"
   TEMPORAL_URI: "temporal-frontend.temporal.svc.cluster.local:7233"
+  # The worker schedules the AGR load with this cron expression (UTC) when it starts:
+  # 06:00 on the 1st of each month, in every environment. Empty leaves it as is.
+  LOAD_SCHEDULE_CRON: "0 6 1 * *"

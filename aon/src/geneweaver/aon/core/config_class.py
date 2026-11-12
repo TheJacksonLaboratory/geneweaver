@@ -24,6 +24,9 @@ class Config(BaseSettings):
     TEMPORAL_NAMESPACE: str = "agr-load-data"
     TEMPORAL_TASK_QUEUE: str = "geneweaver-aon-tasks"
     TEMPORAL_URI: str = "localhost:7233"
+    # Cron expression (UTC) for the AGR load the worker schedules when it starts:
+    # 06:00 on the 1st of each month. Empty leaves the schedule as it is (G3-837).
+    LOAD_SCHEDULE_CRON: str = "0 6 1 * *"
 
     DB_HOST: Optional[str] = None
     DB_USERNAME: str = ""

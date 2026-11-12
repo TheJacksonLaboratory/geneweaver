@@ -13,15 +13,17 @@ from geneweaver.aon.temporal.activities.download_source import (
     release_exists_activity,
 )
 from geneweaver.aon.temporal.load_data_workflow import GeneWeaverAonDataLoad
+from geneweaver.aon.temporal.schedule import ensure_load_schedule
 from temporalio.client import Client
 from temporalio.worker import Worker
 
 
 async def main() -> None:
-    """Run the worker."""
+    """Set the AGR load schedule, then run the worker."""
     client = await Client.connect(
         config.TEMPORAL_URI, namespace=config.TEMPORAL_NAMESPACE
     )
+    await ensure_load_schedule(client)
 
     worker = Worker(
         client,

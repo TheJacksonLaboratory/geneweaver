@@ -54,8 +54,23 @@ poetry run gwaon create-schema
 #### Load the ortholog data
 The ortholog data can be loaded by running the following command:
 ```bash
-poetry run gwaon load agr
+poetry run gwaon load complete
 ```
+
+#### Scheduled loads
+In each environment the Temporal worker schedules the load when it starts, from
+`LOAD_SCHEDULE_CRON` in the AON configmap: 06:00 UTC on the 1st of each month. A run
+for an AGR release that is already loaded stops before writing anything. Set it to an
+empty string to leave the schedule as it is.
+
+```bash
+poetry run gwaon temporal schedule-load               # LOAD_SCHEDULE_CRON (monthly)
+poetry run gwaon temporal schedule-load --cron "0 6 * * 1"
+poetry run gwaon temporal start-load                  # run one now
+```
+
+The AON API picks its default version when it starts, so restart it after a load
+(`kubectl rollout restart deploy/geneweaver-aon-api`) to serve the new release.
 
 ## Geneweaver Ortholog Normalizer Management
 
