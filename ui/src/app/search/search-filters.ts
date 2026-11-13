@@ -1,7 +1,8 @@
 /**
  * Gene set search filters, shared by the /next search page and the analyze page's gene set
- * picker: multi-criteria filters and sorting (G3-777), and a gene's score cutoffs per score
- * type (G3-764). Pure, so the mapping to the API and to the URL is tested without a DOM.
+ * picker: multi-criteria filters and sorting (G3-777), genes with score cutoffs per score
+ * type (G3-764), several at once (G3-832), and their homologs (G3-834). Pure, so the mapping
+ * to the API and to the URL is tested without a DOM.
  *
  * The API is `GET /genesets/search` (`GenesetSearch` in `api/schemas/search.py`).
  */
@@ -21,8 +22,13 @@ export interface SearchFilters {
   scoreTypes: number[];
   sizeMin: number | null;
   sizeMax: number | null;
-  /** A gene, by any identifier; only gene sets holding it. */
+  /**
+   * Genes as typed, by any identifier: "Drd2", "Drd2, Tp53", "Drd2 AND Tp53" (gene sets holding
+   * all) or "Drd2 OR Th" (holding any). `parseGenes` reads it.
+   */
   gene: string;
+  /** Also match each gene's homologs in other species (G3-834). On by default. */
+  homology: boolean;
   pValue: number | null;
   qValue: number | null;
   correlationLow: number | null;
@@ -95,6 +101,7 @@ export function emptyFilters(): SearchFilters {
     sizeMin: null,
     sizeMax: null,
     gene: '',
+    homology: true,
     pValue: null,
     qValue: null,
     correlationLow: null,
@@ -103,6 +110,83 @@ export function emptyFilters(): SearchFilters {
     effectHigh: null,
     thresholdMode: 'only',
   };
+}
+
+/** Genes one search takes: each adds a lookup per gene set (`MAX_GENES` in the API). */
+export const MAX_GENES = 5;
+
+/**
+ * What each filter does, for the info icon beside it. The tier wording follows
+ * `odestatic.curation_levels`; the cutoffs follow `gene_threshold_filter` in the API's search
+ * query: a score type's cutoff applies only to gene sets of that type, to each searched gene.
+ */
+export const FILTER_HELP = {
+  species: 'Only gene sets from these species. Pick several to include any of them; leave it empty for every species.',
+  tier:
+    'How far a gene set has been curated. Tier I: imported from public resources such as GO, MP and KEGG, and ' +
+    'updated regularly. Tier II: uploaded by GeneWeaver curators. Tier III: checked by a curator against the ' +
+    'annotation standards. Tier IV: shared publicly but not yet checked (provisional). Tier V: private or ' +
+    'group gene sets, not curated. Leave it empty for every tier.',
+  scoreType:
+    'The kind of score a gene set gives its genes: p-value, q-value, correlation, effect, or binary (in the ' +
+    'set or not, with no score). Each gene set has one. Leave it empty for every type.',
+  sizeMin: 'Only gene sets with at least this many genes.',
+  sizeMax: 'Only gene sets with at most this many genes.',
+  gene:
+    'Only gene sets that contain these genes, by any identifier: symbol, Entrez, Ensembl, MGI and others, ' +
+    `ignoring case. Up to ${MAX_GENES} genes. Separated by spaces, commas or AND, a gene set must contain ` +
+    'every one; with OR in capitals, any one of them.',
+  homology:
+    "Also match each gene's homologs in other species, so Drd2 also finds zebrafish gene sets holding drd2a " +
+    'and worm gene sets holding dop-3. Clear it to match only the genes as typed.',
+  cutoffs:
+    'Keep or rank gene sets by the scores the searched genes have in them. Each cutoff applies only to gene ' +
+    "sets of its score type, and to each gene's own score: with AND every gene must pass, with OR one is " +
+    'enough. A gene set whose type has no cutoff never passes; binary gene sets have no score to cut.',
+  pValue: 'For p-value gene sets: a gene passes when its p-value is at or below this.',
+  qValue: 'For q-value gene sets: a gene passes when its q-value is at or below this.',
+  correlation:
+    'For correlation gene sets: a gene passes when its correlation is within this range, ends included. ' +
+    'Leave either end empty to leave it open.',
+  effect:
+    'For effect gene sets: a gene passes when its effect size is within this range, ends included. ' +
+    'Leave either end empty to leave it open.',
+  modeOnly: 'Return only the gene sets that pass the cutoffs.',
+  modeFirst:
+    'Return every gene set holding the genes, with those that pass first. With several genes, those where ' +
+    'the most genes pass come first.',
+} as const;
+
+/** The genes typed in the gene field, and whether a gene set must hold all or any of them. */
+export interface GeneQuery {
+  genes: string[];
+  match: 'all' | 'any';
+  /** Why the field cannot be searched as typed. */
+  error?: string;
+}
+
+/**
+ * Read the gene field the way the text search reads words (G3-832): genes separated by spaces
+ * or commas must all be held, as with AND; OR in capitals means any. Each gene counts once,
+ * ignoring case, as matching does. AND and OR together are refused, not grouped.
+ */
+export function parseGenes(text: string): GeneQuery {
+  const tokens = text.split(/[\s,;]+/).filter(Boolean);
+  const hasAnd = tokens.includes('AND');
+  const hasOr = tokens.includes('OR');
+  const seen = new Set<string>();
+  const genes = tokens.filter(
+    (token) => token !== 'AND' && token !== 'OR' && !seen.has(token.toLowerCase()) && !!seen.add(token.toLowerCase()),
+  );
+  const query: GeneQuery = { genes, match: hasOr ? 'any' : 'all' };
+  if (hasAnd && hasOr) {
+    query.error = 'Use AND or OR between genes, not both: gene sets holding all, or any.';
+  } else if (genes.length > MAX_GENES) {
+    query.error = `At most ${MAX_GENES} genes per search; this has ${genes.length}.`;
+  } else if (genes.some((gene) => gene.length > 100)) {
+    query.error = 'A gene identifier is at most 100 characters.';
+  }
+  return query;
 }
 
 const CUTOFFS = ['pValue', 'qValue', 'correlationLow', 'correlationHigh', 'effectLow', 'effectHigh'] as const;
@@ -145,7 +229,7 @@ export function filterProblem(filters: SearchFilters): string | undefined {
   if (!filters.gene.trim() && hasCutoffs(filters)) {
     return 'Score cutoffs apply to a gene: enter one, or clear the cutoffs.';
   }
-  return undefined;
+  return parseGenes(filters.gene).error;
 }
 
 const nameFor = (options: Option[], id: number) => options.find((option) => option.id === id)?.api;
@@ -182,9 +266,17 @@ export function searchParams(
   if (filters.sizeMax !== null) {
     params = params.set('lte_count', filters.sizeMax);
   }
-  const gene = filters.gene.trim();
-  if (gene) {
-    params = params.set('gene', gene);
+  const { genes, match } = parseGenes(filters.gene);
+  if (genes.length) {
+    for (const gene of genes) {
+      params = params.append('gene', gene);
+    }
+    if (genes.length > 1) {
+      params = params.set('gene_match', match);
+    }
+    if (!filters.homology) {
+      params = params.set('homology', 'false');
+    }
     for (const [key, value] of [
       ['p_value', filters.pValue],
       ['q_value', filters.qValue],
@@ -233,6 +325,7 @@ export function toQueryParams(filters: SearchFilters, sort: Sort): Record<string
     params[name] = value === null ? null : String(value);
   }
   params['gene'] = filters.gene.trim() || null;
+  params['homology'] = filters.homology ? null : 'off';
   params['mode'] = filters.thresholdMode === 'first' ? 'first' : null;
   params['sort'] = sort.by;
   params['order'] = sort.by && sort.order === 'desc' ? 'desc' : null;
@@ -254,6 +347,7 @@ export function fromQueryParams(params: Record<string, string | undefined>): { f
     filters[key as keyof typeof NUMBER_KEYS] = Number.isFinite(value) ? value : null;
   }
   filters.gene = params['gene'] ?? '';
+  filters.homology = params['homology'] !== 'off';
   filters.thresholdMode = params['mode'] === 'first' ? 'first' : 'only';
   const by = SORT_OPTIONS.some((option) => option.value === params['sort']) ? (params['sort'] as SortKey) : null;
   return { filters, sort: { by, order: params['order'] === 'desc' ? 'desc' : 'asc' } };
@@ -284,18 +378,43 @@ export function describeSearch(text: string, filters: SearchFilters): string {
   if (text.trim()) {
     reasons.push(`whose name, description, publication, ontology terms or genes match "${text.trim()}"`);
   }
-  const gene = filters.gene.trim();
-  if (gene) {
+  const { genes, match } = parseGenes(filters.gene);
+  if (genes.length) {
+    const several = genes.length > 1;
+    const named = several
+      ? `${genes.slice(0, -1).join(', ')} ${match === 'any' ? 'or' : 'and'} ${genes[genes.length - 1]}`
+      : genes[0];
+    const homologs = filters.homology ? (several ? ' (or their homologs)' : ' (or a homolog)') : '';
     const cutoffs = describeCutoffs(filters);
     if (!cutoffs) {
-      reasons.push(`that contain ${gene}`);
+      reasons.push(`that contain ${named}${homologs}`);
     } else if (filters.thresholdMode === 'first') {
-      reasons.push(`that contain ${gene}, those where its ${cutoffs} first`);
+      const where = several ? 'the most of them have' : 'its';
+      reasons.push(`that contain ${named}${homologs}, those where ${where} ${cutoffs} first`);
     } else {
-      reasons.push(`that contain ${gene} with ${cutoffs}`);
+      reasons.push(`that contain ${named}${homologs} with ${several ? "each gene's " : ''}${cutoffs}`);
     }
   }
   return reasons.length ? `Gene sets ${reasons.join(', and ')}` : '';
+}
+
+/** Which of a gene set's genes matched a searched gene (`matched_genes`, G3-834). */
+export interface MatchedGene {
+  /** The gene as searched. */
+  query: string;
+  /** The gene set's gene that matched, by its symbol. */
+  gene: string;
+  /** A homolog of the searched gene, not the gene itself. */
+  homolog: boolean;
+  /** Its score in the gene set. */
+  value?: number | null;
+}
+
+/** "Trp53 (homolog of TP53), Drd2": why a gene set matched a gene search. */
+export function describeMatches(matched: MatchedGene[] | null | undefined): string {
+  return (matched ?? [])
+    .map((match) => (match.homolog ? `${match.gene} (homolog of ${match.query})` : match.gene))
+    .join(', ');
 }
 
 /** "Mus musculus", or the id when it is not one we name. */

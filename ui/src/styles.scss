@@ -32,3 +32,15 @@ a:hover {
   outline: 2px solid #0090D9;
   outline-offset: 1px;
 }
+/*
+ * Tooltips from the info icons beside the search filters (InfoTipComponent). Global because
+ * PrimeNG appends the tooltip to <body>, outside the component's styles; wider than PrimeNG's
+ * 12.5rem so the curation tier explanation is not a narrow column.
+ */
+.p-tooltip.info-tip-tooltip {
+  max-width: 22rem;
+}
+.p-tooltip.info-tip-tooltip .p-tooltip-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}

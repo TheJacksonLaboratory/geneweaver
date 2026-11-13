@@ -1,7 +1,9 @@
 """Full general search of Geneweaver Database."""
 
+from collections.abc import Sequence
 from datetime import date
 
+from geneweaver.db.query.geneset.const import GENESET_FIELDS
 from geneweaver.db.query.geneset.utils import (
     format_select_query,
     restrict_score_type,
@@ -34,10 +36,40 @@ SORT_COLUMNS: dict[str, SQL] = {
 
 SORT_ORDERS = {"asc": SQL("ASC"), "desc": SQL("DESC")}
 
-#: Every identifier recorded for the searched gene (symbols, Ensembl, MGI, ...), any species.
-_GENE_IDS = SQL(
-    "SELECT g.ode_gene_id FROM extsrc.gene g WHERE lower(g.ode_ref_id) = lower(%(gene)s)"
-)
+#: How many genes one search takes (G3-832): each adds a lookup on ``geneset_value``.
+MAX_GENES = 5
+
+#: Identifier source of gene symbols, the name a matched gene is shown by.
+_GENE_SYMBOL_GDB_ID = 7
+
+
+def _gene_ids(key: str) -> Composed:
+    """Every gene recorded under the searched identifier (symbol, Ensembl, MGI, ...).
+
+    Matched ignoring case and species, so "Drd2" finds mouse Drd2 and human DRD2. ``key``
+    names the bound parameter holding the identifier.
+    """
+    return SQL(
+        "SELECT g.ode_gene_id FROM extsrc.gene g WHERE lower(g.ode_ref_id) = lower(%({key})s)"
+    ).format(key=SQL(key))
+
+
+def _gene_and_homolog_ids(key: str) -> Composed:
+    """`_gene_ids`, plus every gene sharing a homology group with them (G3-834).
+
+    As ABBA widens its input genes: the genes' ``hom_id``s, then every gene in those groups,
+    any species. A gene with no homology row is only itself.
+    """
+    return SQL(
+        "{direct} UNION SELECT h2.ode_gene_id FROM extsrc.homology h1 "
+        "JOIN extsrc.homology h2 ON h2.hom_id = h1.hom_id "
+        "WHERE h1.ode_gene_id IN ({direct})"
+    ).format(direct=_gene_ids(key))
+
+
+def _searched_ids(key: str, homology: bool) -> Composed:
+    """The genes a gene set may hold to match the identifier under ``key``."""
+    return _gene_and_homolog_ids(key) if homology else _gene_ids(key)
 
 
 def gene_threshold_filter(
@@ -86,15 +118,81 @@ def gene_threshold_filter(
     return SQL("(") + SQL(" OR ").join(clauses) + SQL(")"), params
 
 
-def _holds_gene(predicate: Composed | None = None) -> Composed:
-    """The gene set holds the searched gene (and its score passes ``predicate``, if given)."""
+def _holds_gene(key: str, homology: bool, predicate: Composed | None = None) -> Composed:
+    """The gene set holds the gene under ``key``, or with ``homology`` one of its homologs.
+
+    And that gene's score passes ``predicate``, if given.
+    """
     query = SQL(
         "EXISTS (SELECT 1 FROM extsrc.geneset_value gsv WHERE gsv.gs_id = geneset.gs_id "
         "AND gsv.ode_gene_id IN ({gene_ids})"
-    ).format(gene_ids=_GENE_IDS)
+    ).format(gene_ids=_searched_ids(key, homology))
     if predicate is not None:
         query = SQL(" ").join([query, SQL("AND"), predicate])
     return query + SQL(")")
+
+
+def _gene_keys(gene: str | Sequence[str] | None) -> list[str]:
+    """The searched genes' parameter names.
+
+    ``gene`` for one, as before; else ``gene_0``, ``gene_1``, ...
+    """
+    if gene is None:
+        return []
+    genes = [gene] if isinstance(gene, str) else list(gene)
+    if len(genes) > MAX_GENES:
+        raise ValueError(f"At most {MAX_GENES} genes per search, not {len(genes)}.")
+    return ["gene"] if len(genes) == 1 else [f"gene_{i}" for i in range(len(genes))]
+
+
+def _gene_params(gene: str | Sequence[str]) -> dict:
+    """The genes bound under the names `_gene_keys` gives them."""
+    genes = [gene] if isinstance(gene, str) else list(gene)
+    return dict(zip(_gene_keys(gene), genes, strict=True))
+
+
+def _matched_gene(key: str, homology: bool, predicate: Composed | None) -> Composed:
+    """Which gene of the gene set matched the identifier under ``key``, as a JSON object.
+
+    ``{"query": <as typed>, "gene": <its symbol>, "homolog": <not the typed gene itself>,
+    "value": <its score>}``, or NULL when the gene set does not hold it (an ``any`` search).
+    With several candidates (a gene and its homologs, or two genes under one identifier), the
+    one whose score passes the cutoffs comes first, then the typed gene over a homolog, then
+    the symbol in alphabetical order, so the choice does not change between requests.
+    """
+    ordering = [SQL("(gsv.ode_gene_id IN ({direct})) DESC").format(direct=_gene_ids(key))]
+    if predicate is not None:
+        ordering.insert(0, SQL("({predicate}) DESC").format(predicate=predicate))
+    ordering.append(SQL("sym.ode_ref_id"))
+    return SQL(
+        "(SELECT jsonb_build_object("
+        "'query', %({key})s::text, "
+        "'gene', coalesce(sym.ode_ref_id, %({key})s::text), "
+        "'homolog', gsv.ode_gene_id NOT IN ({direct}), "
+        "'value', gsv.gsv_value) "
+        "FROM extsrc.geneset_value gsv "
+        "LEFT JOIN extsrc.gene sym ON sym.ode_gene_id = gsv.ode_gene_id "
+        "AND sym.gdb_id = {symbol} AND sym.ode_pref "
+        "WHERE gsv.gs_id = geneset.gs_id AND gsv.ode_gene_id IN ({gene_ids}) "
+        "ORDER BY {ordering} LIMIT 1)"
+    ).format(
+        key=SQL(key),
+        direct=_gene_ids(key),
+        symbol=_GENE_SYMBOL_GDB_ID,
+        gene_ids=_searched_ids(key, homology),
+        ordering=SQL(", ").join(ordering),
+    )
+
+
+def _matched_genes(keys: list[str], homology: bool, predicate: Composed | None) -> Composed:
+    """The ``matched_genes`` result column: `_matched_gene` for each searched gene it holds."""
+    candidates = SQL(", ").join(
+        SQL("({matched})").format(matched=_matched_gene(key, homology, predicate)) for key in keys
+    )
+    return SQL(
+        "(SELECT coalesce(jsonb_agg(m), '[]'::jsonb) FROM (VALUES {candidates}) AS v(m) "
+        "WHERE m IS NOT NULL) AS matched_genes"
+    ).format(candidates=candidates)
 
 
 def _readable(filters: list, params: dict, user_id: int | None) -> None:
@@ -156,7 +254,9 @@ def genesets(
     _status: str | None = "normal",
     sort_by: str | None = None,
     sort_order: str = "asc",
-    gene: str | None = None,
+    gene: str | Sequence[str] | None = None,
+    gene_match: str = "all",
+    homology: bool = False,
     p_value: float | None = None,
     q_value: float | None = None,
     correlation_low: float | None = None,
@@ -186,7 +286,12 @@ def genesets(
     :param _status: Show only results with this status. Default is "normal".
     :param sort_by: A key of `SORT_COLUMNS`; unsorted when None (G3-777).
     :param sort_order: "asc" or "desc".
-    :param gene: Show only gene sets holding this gene, by any of its identifiers (G3-764).
+    :param gene: Show only gene sets holding this gene, by any of its identifiers (G3-764),
+        or these genes, at most `MAX_GENES` (G3-832). Each result then says which of its
+        genes matched (``matched_genes``).
+    :param gene_match: With several genes: "all" keeps gene sets holding every one, "any"
+        those holding at least one.
+    :param homology: Also match each gene's homologs, in any species (G3-834).
     :param p_value: With ``gene``: keep p-value gene sets where its value is at most this.
     :param q_value: As ``p_value``, for q-value gene sets.
     :param correlation_low: With ``gene``: keep correlation gene sets where its value is at
@@ -195,7 +300,8 @@ def genesets(
     :param effect_low: As ``correlation_low``, for effect gene sets.
     :param effect_high: As ``correlation_high``, for effect gene sets.
     :param threshold_mode: "only" returns just the gene sets whose score passes; "first"
-        returns every gene set holding the gene, those that pass first.
+        returns every gene set holding the gene, those that pass first. With several genes,
+        "first" orders by how many of them pass, so gene sets where all pass lead.
     :param gs_id: Only this gene set: how a typed id is looked up, under the search's rule.
     """
     matches, ordering, params = _matches(
@@ -214,6 +320,8 @@ def genesets(
         updated_after=updated_after,
         _status=_status,
         gene=gene,
+        gene_match=gene_match,
+        homology=homology,
         p_value=p_value,
         q_value=q_value,
         correlation_low=correlation_low,
@@ -223,7 +331,18 @@ def genesets(
         threshold_mode=threshold_mode,
         gs_id=gs_id,
     )
-    query = format_select_query() + matches
+    if gene is None:
+        query = format_select_query() + matches
+    else:
+        passes, _ = gene_threshold_filter(
+            p_value, q_value, correlation_low, correlation_high, effect_low, effect_high
+        )
+        query = (
+            SQL("SELECT")
+            + SQL(",").join([*GENESET_FIELDS, _matched_genes(_gene_keys(gene), homology, passes)])
+            + SQL("FROM geneset")
+            + matches
+        )
 
     if sort_by is not None:
         ordering.append(
@@ -275,7 +394,9 @@ def _matches(
     updated_before: date | None = None,
     updated_after: date | None = None,
     _status: str | None = "normal",
-    gene: str | None = None,
+    gene: str | Sequence[str] | None = None,
+    gene_match: str = "all",
+    homology: bool = False,
     p_value: float | None = None,
     q_value: float | None = None,
     correlation_low: float | None = None,
@@ -291,6 +412,8 @@ def _matches(
     implies (``threshold_mode="first"`` puts passing gene sets first), which only
     `genesets` uses. Arguments as `genesets` documents them.
     """
+    if gene_match not in ("all", "any"):
+        raise ValueError(f"gene_match must be 'all' or 'any', not {gene_match!r}.")
     params = {}
     filtering = []
 
@@ -343,17 +466,29 @@ def _matches(
 
     ordering: list[Composed] = []
     if gene is not None:
-        params["gene"] = gene
+        keys = _gene_keys(gene)
+        params.update(_gene_params(gene))
         passes, threshold_params = gene_threshold_filter(
             p_value, q_value, correlation_low, correlation_high, effect_low, effect_high
         )
         params.update(threshold_params)
-        if passes is None or threshold_mode == "first":
-            filtering.append(_holds_gene())
-        else:
-            filtering.append(_holds_gene(passes))
+        joiner = SQL(" OR ") if gene_match == "any" else SQL(" AND ")
+        held = passes if passes is not None and threshold_mode != "first" else None
+        filtering.append(
+            SQL("(") + joiner.join(_holds_gene(key, homology, held) for key in keys) + SQL(")")
+        )
         if passes is not None and threshold_mode == "first":
-            ordering.append(SQL(" ").join([_holds_gene(passes), SQL("DESC")]))
+            if len(keys) == 1:
+                ordering.append(
+                    SQL(" ").join([_holds_gene(keys[0], homology, passes), SQL("DESC")])
+                )
+            else:
+                # How many of the genes pass: gene sets where every one does lead.
+                passing = SQL(" + ").join(
+                    SQL("({holds})::int").format(holds=_holds_gene(key, homology, passes))
+                    for key in keys
+                )
+                ordering.append(SQL("({passing}) DESC").format(passing=passing))
 
     if len(filtering) > 0:
         query += SQL("WHERE") + SQL("AND").join(filtering)

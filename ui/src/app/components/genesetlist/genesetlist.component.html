@@ -33,6 +33,10 @@
                           (onClick)="onGeneSetClick(geneset)"
                           styleClass="p-button-text p-button-plain text-left p-0 font-semibold ml-4">
                 </p-button>
+                <small *ngIf="describeMatches(geneset.matched_genes) as matched"
+                       class="block ml-4 text-color-secondary matched-genes">
+                    Matched: {{ matched }}
+                </small>
             </td>
             <td>
                 <span class="p-column-title">Species</span>

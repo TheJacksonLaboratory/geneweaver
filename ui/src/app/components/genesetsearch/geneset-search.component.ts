@@ -94,8 +94,8 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
       Results are always gene sets. Keywords find gene sets whose name, description, publication
       (title, abstract, authors), ontology terms or genes mention them; every keyword must match, and
       <strong>OR</strong> in capitals matches either (<em>alcohol OR cocaine</em>). To find the gene
-      sets that contain a gene, optionally only where its score is in a range, use
-      <strong>Filters</strong> &rsaquo; <em>Gene</em>.
+      sets that contain one or more genes or their homologs, optionally only where their scores
+      are in a range, use <strong>Filters</strong> &rsaquo; <em>Genes</em>.
     </small>
     <app-search-filters
       *ngIf="showFilters"

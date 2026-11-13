@@ -1,21 +1,26 @@
 """Schema for search API."""
 
 from datetime import date
-from typing import Literal
+from typing import Annotated, Literal
 
 from geneweaver.core.enum import GenesetTier, ScoreType, Species
-from pydantic import BaseModel, Field, model_validator
+from geneweaver.db.query.search.search import MAX_GENES
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 #: Result columns the search can sort by (G3-777); see `geneweaver.db.query.search.search`.
 SortKey = Literal["id", "name", "size", "species", "tier", "score_type", "created", "updated"]
+
+#: One searched gene, by any of its identifiers.
+GeneIdentifierText = Annotated[str, StringConstraints(min_length=1, max_length=100)]
 
 
 class GenesetSearch(BaseModel):
     """Schema for geneset search.
 
-    Text, a gene, a gene set id, or any of them together: text matches a gene set's name and
-    other metadata; a gene keeps the gene sets holding it (G3-764); an id looks one gene set
-    up. Every other filter combines with them (G3-777). Results are the gene sets the caller
+    Text, genes, a gene set id, or any of them together: text matches a gene set's name and
+    other metadata; genes keep the gene sets holding them (G3-764), all of them or any
+    (G3-832), and by default their homologs in other species too (G3-834); an id looks one
+    gene set up. Every other filter combines with them (G3-777). Results are the gene sets the caller
     may read (``geneset_is_readable2``): admins and curators see private gene sets too.
     """
 
@@ -40,37 +45,72 @@ class GenesetSearch(BaseModel):
         None, description="Sort the results by this column; unsorted when omitted."
     )
     sort_order: Literal["asc", "desc"] = "asc"
-    gene: str | None = Field(
+    gene: list[GeneIdentifierText] | None = Field(
         None,
-        min_length=1,
-        max_length=100,
-        description="Only gene sets holding this gene, by any of its identifiers.",
+        max_length=MAX_GENES,
+        description=(
+            f"Only gene sets holding these genes (at most {MAX_GENES}), each by any of its "
+            "identifiers. Repeat the parameter for several: gene=Drd2&gene=Tp53. Each result "
+            "then lists, in matched_genes, which of its genes matched."
+        ),
+    )
+    gene_match: Literal["all", "any"] = Field(
+        "all",
+        description="With several genes: 'all' needs every one in a gene set, 'any' one.",
+    )
+    homology: bool = Field(
+        True,
+        description=(
+            "Also match each gene's homologs in any species (TP53 finds mouse Trp53), as the "
+            "analysis tools do. false matches the identifier's own genes only."
+        ),
     )
     p_value: float | None = Field(
-        None, ge=0, le=1, description="With gene: p-value gene sets where its value is <= this."
+        None,
+        ge=0,
+        le=1,
+        description="With genes: p-value gene sets where each gene's value is <= this.",
     )
     q_value: float | None = Field(
-        None, ge=0, le=1, description="With gene: q-value gene sets where its value is <= this."
+        None,
+        ge=0,
+        le=1,
+        description="With genes: q-value gene sets where each gene's value is <= this.",
     )
     correlation_low: float | None = Field(
-        None, description="With gene: correlation gene sets where its value is >= this."
+        None, description="With genes: correlation gene sets where each one's value is >= this."
     )
     correlation_high: float | None = Field(
-        None, description="With gene: correlation gene sets where its value is <= this."
+        None, description="With genes: correlation gene sets where each one's value is <= this."
     )
     effect_low: float | None = Field(
-        None, description="With gene: effect gene sets where its value is >= this."
+        None, description="With genes: effect gene sets where each one's value is >= this."
     )
     effect_high: float | None = Field(
-        None, description="With gene: effect gene sets where its value is <= this."
+        None, description="With genes: effect gene sets where each one's value is <= this."
     )
     threshold_mode: Literal["only", "first"] = Field(
         "only",
         description=(
-            "With gene and cutoffs: 'only' returns the gene sets whose score for the gene "
-            "passes; 'first' returns every gene set holding it, those that pass first."
+            "With genes and cutoffs: 'only' returns the gene sets whose scores for the genes "
+            "pass; 'first' returns every gene set holding them, those where the most genes "
+            "pass first."
         ),
     )
+
+    @field_validator("gene", mode="after")
+    @classmethod
+    def _distinct_genes(cls, genes: list[str] | None) -> list[str] | None:
+        """Trimmed, blanks dropped, and each gene once (ignoring case, as matching does)."""
+        if genes is None:
+            return None
+        seen: set[str] = set()
+        distinct = []
+        for gene in (gene.strip() for gene in genes):
+            if gene and gene.lower() not in seen:
+                seen.add(gene.lower())
+                distinct.append(gene)
+        return distinct or None
 
     @model_validator(mode="after")
     def _check_search(self) -> "GenesetSearch":
