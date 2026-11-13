@@ -115,6 +115,48 @@ export function emptyFilters(): SearchFilters {
 /** Genes one search takes: each adds a lookup per gene set (`MAX_GENES` in the API). */
 export const MAX_GENES = 5;
 
+/**
+ * What each filter does, for the info icon beside it. The tier wording follows
+ * `odestatic.curation_levels`; the cutoffs follow `gene_threshold_filter` in the API's search
+ * query: a score type's cutoff applies only to gene sets of that type, to each searched gene.
+ */
+export const FILTER_HELP = {
+  species: 'Only gene sets from these species. Pick several to include any of them; leave it empty for every species.',
+  tier:
+    'How far a gene set has been curated. Tier I: imported from public resources such as GO, MP and KEGG, and ' +
+    'updated regularly. Tier II: uploaded by GeneWeaver curators. Tier III: checked by a curator against the ' +
+    'annotation standards. Tier IV: shared publicly but not yet checked (provisional). Tier V: private or ' +
+    'group gene sets, not curated. Leave it empty for every tier.',
+  scoreType:
+    'The kind of score a gene set gives its genes: p-value, q-value, correlation, effect, or binary (in the ' +
+    'set or not, with no score). Each gene set has one. Leave it empty for every type.',
+  sizeMin: 'Only gene sets with at least this many genes.',
+  sizeMax: 'Only gene sets with at most this many genes.',
+  gene:
+    'Only gene sets that contain these genes, by any identifier: symbol, Entrez, Ensembl, MGI and others, ' +
+    `ignoring case. Up to ${MAX_GENES} genes. Separated by spaces, commas or AND, a gene set must contain ` +
+    'every one; with OR in capitals, any one of them.',
+  homology:
+    "Also match each gene's homologs in other species, so Drd2 also finds zebrafish gene sets holding drd2a " +
+    'and worm gene sets holding dop-3. Clear it to match only the genes as typed.',
+  cutoffs:
+    'Keep or rank gene sets by the scores the searched genes have in them. Each cutoff applies only to gene ' +
+    "sets of its score type, and to each gene's own score: with AND every gene must pass, with OR one is " +
+    'enough. A gene set whose type has no cutoff never passes; binary gene sets have no score to cut.',
+  pValue: 'For p-value gene sets: a gene passes when its p-value is at or below this.',
+  qValue: 'For q-value gene sets: a gene passes when its q-value is at or below this.',
+  correlation:
+    'For correlation gene sets: a gene passes when its correlation is within this range, ends included. ' +
+    'Leave either end empty to leave it open.',
+  effect:
+    'For effect gene sets: a gene passes when its effect size is within this range, ends included. ' +
+    'Leave either end empty to leave it open.',
+  modeOnly: 'Return only the gene sets that pass the cutoffs.',
+  modeFirst:
+    'Return every gene set holding the genes, with those that pass first. With several genes, those where ' +
+    'the most genes pass come first.',
+} as const;
+
 /** The genes typed in the gene field, and whether a gene set must hold all or any of them. */
 export interface GeneQuery {
   genes: string[];

@@ -6,8 +6,11 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
 
+import { InfoTipComponent } from '../infotip/info-tip.component';
+
 import {
   emptyFilters,
+  FILTER_HELP,
   filterProblem,
   MAX_GENES,
   parseGenes,
@@ -23,17 +26,29 @@ import {
  * (G3-832), and by default their homologs in other species (G3-834).
  *
  * Emits a new `SearchFilters` object on every change, so a holder can compare by reference.
- * Used by the /next search page and the analyze page's gene set picker.
+ * Used by the /next search page and the analyze page's gene set picker. Each filter has an
+ * info icon whose tooltip says what it does (`FILTER_HELP`).
  */
 @Component({
   selector: 'app-search-filters',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, InputNumberModule, InputTextModule, MultiSelectModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ButtonModule,
+    InputNumberModule,
+    InputTextModule,
+    MultiSelectModule,
+    InfoTipComponent,
+  ],
   template: `
     <div class="search-filters text-left" [attr.id]="idPrefix">
       <div class="formgrid grid">
         <div class="field col-12 md:col-4">
-          <label [for]="idPrefix + '-species'" class="block mb-1 text-sm">Species</label>
+          <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-species'" class="text-sm">Species</label>
+            <app-info-tip label="Species" [text]="help.species"></app-info-tip>
+          </div>
           <p-multiSelect
             [inputId]="idPrefix + '-species'"
             [options]="speciesOptions"
@@ -48,7 +63,10 @@ import {
           ></p-multiSelect>
         </div>
         <div class="field col-12 md:col-4">
-          <label [for]="idPrefix + '-tier'" class="block mb-1 text-sm">Curation tier</label>
+          <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-tier'" class="text-sm">Curation tier</label>
+            <app-info-tip label="Curation tier" [text]="help.tier"></app-info-tip>
+          </div>
           <p-multiSelect
             [inputId]="idPrefix + '-tier'"
             [options]="tierOptions"
@@ -64,7 +82,10 @@ import {
           ></p-multiSelect>
         </div>
         <div class="field col-12 md:col-4">
-          <label [for]="idPrefix + '-score'" class="block mb-1 text-sm">Score type</label>
+          <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-score'" class="text-sm">Score type</label>
+            <app-info-tip label="Score type" [text]="help.scoreType"></app-info-tip>
+          </div>
           <p-multiSelect
             [inputId]="idPrefix + '-score'"
             [options]="scoreTypeOptions"
@@ -80,7 +101,10 @@ import {
           ></p-multiSelect>
         </div>
         <div class="field col-6 md:col-2">
-          <label [for]="idPrefix + '-min'" class="block mb-1 text-sm">Gene set size, min</label>
+          <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-min'" class="text-sm">Gene set size, min</label>
+            <app-info-tip label="Gene set size, min" [text]="help.sizeMin"></app-info-tip>
+          </div>
           <p-inputNumber
             [inputId]="idPrefix + '-min'"
             [ngModel]="filters.sizeMin"
@@ -92,7 +116,10 @@ import {
           ></p-inputNumber>
         </div>
         <div class="field col-6 md:col-2">
-          <label [for]="idPrefix + '-max'" class="block mb-1 text-sm">Gene set size, max</label>
+          <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-max'" class="text-sm">Gene set size, max</label>
+            <app-info-tip label="Gene set size, max" [text]="help.sizeMax"></app-info-tip>
+          </div>
           <p-inputNumber
             [inputId]="idPrefix + '-max'"
             [ngModel]="filters.sizeMax"
@@ -104,7 +131,10 @@ import {
           ></p-inputNumber>
         </div>
         <div class="field col-12 md:col-8">
-          <label [for]="idPrefix + '-gene'" class="block mb-1 text-sm">Genes</label>
+          <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-gene'" class="text-sm">Genes</label>
+            <app-info-tip label="Genes" [text]="help.gene"></app-info-tip>
+          </div>
           <input
             pInputText
             [id]="idPrefix + '-gene'"
@@ -130,31 +160,44 @@ import {
               [attr.aria-describedby]="idPrefix + '-homology-help'"
             />
             <label [for]="idPrefix + '-homology'" class="ml-2">Include homologs in other species</label>
+            <app-info-tip label="Include homologs in other species" [text]="help.homology"></app-info-tip>
           </div>
           <small [id]="idPrefix + '-homology-help'" class="block mt-1 text-color-secondary">
-            So TP53 also finds mouse gene sets holding Trp53, as the analysis tools match genes.
-            Clear it to search for the exact gene only.
+            So Drd2 also finds zebrafish gene sets holding drd2a, as the analysis tools match
+            genes. Clear it to search for the exact gene only.
           </small>
         </div>
       </div>
 
       <fieldset *ngIf="filters.gene.trim()" class="border-1 surface-border border-round p-3 mb-2">
-        <legend class="text-sm px-1">Score cutoffs for {{ genesLabel }}</legend>
+        <legend class="text-sm px-1">
+          Score cutoffs for {{ genesLabel }}
+          <app-info-tip label="Score cutoffs" [text]="help.cutoffs"></app-info-tip>
+        </legend>
         <div class="formgrid grid">
           <div class="field col-6 md:col-3">
-            <label [for]="idPrefix + '-p'" class="block mb-1 text-sm">p-value at most</label>
+            <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-p'" class="text-sm">p-value at most</label>
+            <app-info-tip label="p-value at most" [text]="help.pValue"></app-info-tip>
+          </div>
             <p-inputNumber [inputId]="idPrefix + '-p'" [ngModel]="filters.pValue" (ngModelChange)="set('pValue', $event)"
               mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
               styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
           </div>
           <div class="field col-6 md:col-3">
-            <label [for]="idPrefix + '-q'" class="block mb-1 text-sm">q-value at most</label>
+            <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-q'" class="text-sm">q-value at most</label>
+            <app-info-tip label="q-value at most" [text]="help.qValue"></app-info-tip>
+          </div>
             <p-inputNumber [inputId]="idPrefix + '-q'" [ngModel]="filters.qValue" (ngModelChange)="set('qValue', $event)"
               mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
               styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
           </div>
           <div class="field col-6 md:col-3">
-            <label [for]="idPrefix + '-corr-low'" class="block mb-1 text-sm">Correlation from / to</label>
+            <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-corr-low'" class="text-sm">Correlation from / to</label>
+            <app-info-tip label="Correlation from / to" [text]="help.correlation"></app-info-tip>
+          </div>
             <div class="flex gap-1">
               <p-inputNumber [inputId]="idPrefix + '-corr-low'" [ngModel]="filters.correlationLow"
                 (ngModelChange)="set('correlationLow', $event)" mode="decimal" [maxFractionDigits]="6"
@@ -165,7 +208,10 @@ import {
             </div>
           </div>
           <div class="field col-6 md:col-3">
-            <label [for]="idPrefix + '-effect-low'" class="block mb-1 text-sm">Effect from / to</label>
+            <div class="flex align-items-center mb-1">
+            <label [for]="idPrefix + '-effect-low'" class="text-sm">Effect from / to</label>
+            <app-info-tip label="Effect from / to" [text]="help.effect"></app-info-tip>
+          </div>
             <div class="flex gap-1">
               <p-inputNumber [inputId]="idPrefix + '-effect-low'" [ngModel]="filters.effectLow"
                 (ngModelChange)="set('effectLow', $event)" mode="decimal" [maxFractionDigits]="6"
@@ -181,11 +227,13 @@ import {
             <input type="radio" [id]="idPrefix + '-mode-only'" [name]="idPrefix + '-mode'" value="only"
               [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
             <label [for]="idPrefix + '-mode-only'" class="ml-2">{{ onlyLabel }}</label>
+            <app-info-tip [label]="onlyLabel" [text]="help.modeOnly"></app-info-tip>
           </div>
           <div class="flex align-items-center">
             <input type="radio" [id]="idPrefix + '-mode-first'" [name]="idPrefix + '-mode'" value="first"
               [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
             <label [for]="idPrefix + '-mode-first'" class="ml-2">{{ firstLabel }}</label>
+            <app-info-tip [label]="firstLabel" [text]="help.modeFirst"></app-info-tip>
           </div>
         </div>
         <small class="block mt-2 text-color-secondary">
@@ -213,6 +261,8 @@ export class SearchFiltersComponent {
   readonly tierOptions = TIER_OPTIONS;
   readonly scoreTypeOptions = SCORE_TYPE_OPTIONS;
   readonly maxGenes = MAX_GENES;
+  /** The text of each filter's info icon. */
+  readonly help = FILTER_HELP;
 
   /** The genes the cutoffs apply to, as "Drd2, Tp53". */
   get genesLabel(): string {
