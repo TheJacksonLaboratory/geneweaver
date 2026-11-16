@@ -61,8 +61,11 @@ class GenesetSearch(BaseModel):
     homology: bool = Field(
         True,
         description=(
-            "Also match each gene's homologs in any species (TP53 finds mouse Trp53), as the "
-            "analysis tools do. false matches the identifier's own genes only."
+            "Also match each gene's homologs in any species (Drd2 finds worm dop-3). Homologs "
+            "come from the homology group the identifier names in the most species, and from "
+            "the group of a mouse or human gene it officially names, not from another "
+            "species' gene that only shares the name. false matches the identifier's own "
+            "genes only."
         ),
     )
     p_value: float | None = Field(

@@ -39,7 +39,7 @@ export class GeneSetListComponent {
   readonly columns = SORTABLE_COLUMNS;
   readonly speciesName = speciesName;
   readonly scoreTypeName = scoreTypeName;
-  /** Which gene each result matched in a gene search, e.g. "Trp53 (homolog of TP53)". */
+  /** Which gene each result matched in a gene search, e.g. "dop-3 (homolog of Drd2)". */
   readonly describeMatches = describeMatches;
 
   constructor(private router: Router) {

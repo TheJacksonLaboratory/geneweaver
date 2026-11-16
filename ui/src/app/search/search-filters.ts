@@ -410,7 +410,7 @@ export interface MatchedGene {
   value?: number | null;
 }
 
-/** "Trp53 (homolog of TP53), Drd2": why a gene set matched a gene search. */
+/** "Drd2, dop-3 (homolog of Drd2)": why a gene set matched a gene search. */
 export function describeMatches(matched: MatchedGene[] | null | undefined): string {
   return (matched ?? [])
     .map((match) => (match.homolog ? `${match.gene} (homolog of ${match.query})` : match.gene))

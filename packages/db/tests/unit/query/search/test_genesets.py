@@ -26,7 +26,8 @@ def _sql(**kwargs) -> tuple[str, dict]:
 def _where_and_order(sql: str) -> tuple[str, str]:
     """The outer query's WHERE and ORDER BY, past the result columns' own subqueries."""
     body = sql.split(" FROM geneset ", 1)[1]
-    where, order = body.split("WHERE", 1)[1].split("ORDER BY")
+    # The last ORDER BY is the outer query's; a homology group's rank() has its own.
+    where, order = body.split("WHERE", 1)[1].rsplit("ORDER BY", 1)
     return where, order
 
 
@@ -259,17 +260,40 @@ def test_without_homology_only_the_gene_itself_matches() -> None:
     assert "homology" not in sql
 
 
-def test_homology_widens_each_gene_to_its_homology_groups() -> None:
-    """As ABBA: the gene's hom_ids, then every gene sharing them, any species."""
+def test_homology_widens_each_gene_to_the_groups_it_names() -> None:
+    """The typed genes, plus every gene of the homology groups each one names, any species."""
     sql, _ = _sql(gene=["Tp53", "Drd2"], homology=True)
     where, _ = _where_and_order(sql)
     for key in ("gene_0", "gene_1"):
         assert (
             f"lower(g.ode_ref_id) = lower(%({key})s) UNION SELECT h2.ode_gene_id "
-            "FROM extsrc.homology h1 JOIN extsrc.homology h2 ON h2.hom_id = h1.hom_id "
-            f"WHERE h1.ode_gene_id IN (SELECT g.ode_gene_id FROM extsrc.gene g "
-            f"WHERE lower(g.ode_ref_id) = lower(%({key})s))"
+            "FROM extsrc.homology h2 WHERE h2.hom_id IN (SELECT grp.hom_id FROM ("
         ) in where
+        assert f"WHERE lower(g.ode_ref_id) = lower(%({key})s) GROUP BY h.hom_id" in where
+
+
+def test_homology_does_not_widen_from_every_matching_genes_group() -> None:
+    """Th matched fly Trxr1 by an alias and so pulled in Txnrd2: no blanket hom_id join."""
+    sql, _ = _sql(gene="Th", homology=True)
+    assert "JOIN extsrc.homology h2 ON h2.hom_id = h1.hom_id" not in sql
+
+
+def test_the_group_named_in_most_species_wins_ties_kept() -> None:
+    """Ranked by species naming it officially, then species matching it; every rank 1 kept."""
+    groups = " ".join(_render(search._homology_groups("gene")).split())
+    assert (
+        "rank() OVER (ORDER BY count(DISTINCT g.sp_id) FILTER (WHERE "
+        "(g.gdb_id = 7 AND g.ode_pref)) DESC, count(DISTINCT g.sp_id) DESC) AS rank"
+    ) in groups
+    assert groups.endswith(") grp WHERE grp.rank = 1 OR grp.names_mouse_or_human")
+
+
+def test_a_mouse_or_human_genes_own_group_is_always_kept() -> None:
+    """A typed mouse or human official symbol keeps its gene's group, outranked or not."""
+    groups = " ".join(_render(search._homology_groups("gene")).split())
+    assert (
+        "bool_or((g.gdb_id = 7 AND g.ode_pref) AND g.sp_id IN (1, 2)) AS names_mouse_or_human"
+    ) in groups
 
 
 def test_homology_cutoffs_apply_to_the_matching_genes_score() -> None:

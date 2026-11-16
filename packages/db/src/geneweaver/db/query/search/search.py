@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from datetime import date
 
+from geneweaver.core.enum import SpeciesInt
 from geneweaver.db.query.geneset.const import GENESET_FIELDS
 from geneweaver.db.query.geneset.utils import (
     format_select_query,
@@ -54,17 +55,48 @@ def _gene_ids(key: str) -> Composed:
     ).format(key=SQL(key))
 
 
-def _gene_and_homolog_ids(key: str) -> Composed:
-    """`_gene_ids`, plus every gene sharing a homology group with them (G3-834).
+def _homology_groups(key: str) -> Composed:
+    """The homology groups the identifier under ``key`` names (G3-834).
 
-    As ABBA widens its input genes: the genes' ``hom_id``s, then every gene in those groups,
-    any species. A gene with no homology row is only itself.
+    Not every group a matching gene sits in: identifiers collide across species, so widening
+    from all of them pulled in unrelated genes. On dev, ``Th`` matched fly Trxr1 by its alias
+    "TH" and so brought in Txnrd2 (590 gene sets), and ``Comt`` matched fly comatose, whose
+    official symbol is "comt", and so brought in Nsf (1,149 of 4,810 gene sets).
+
+    A group is kept when it is the one the identifier names in the most species: ranked by how
+    many species have it as a gene's official symbol, then by how many match it at all, with
+    ties all kept (mouse and human genes that Homologene splits into two groups). A group
+    holding a mouse or human gene officially named by the identifier is always kept, so a
+    typed mouse or human symbol never loses its own gene's homologs to a group that outranks it.
     """
     return SQL(
-        "{direct} UNION SELECT h2.ode_gene_id FROM extsrc.homology h1 "
-        "JOIN extsrc.homology h2 ON h2.hom_id = h1.hom_id "
-        "WHERE h1.ode_gene_id IN ({direct})"
-    ).format(direct=_gene_ids(key))
+        "SELECT grp.hom_id FROM ("
+        "SELECT h.hom_id, "
+        "rank() OVER (ORDER BY count(DISTINCT g.sp_id) FILTER (WHERE {official}) DESC, "
+        "count(DISTINCT g.sp_id) DESC) AS rank, "
+        "bool_or({official} AND g.sp_id IN ({mouse}, {human})) AS names_mouse_or_human "
+        "FROM extsrc.gene g JOIN extsrc.homology h ON h.ode_gene_id = g.ode_gene_id "
+        "WHERE lower(g.ode_ref_id) = lower(%({key})s) GROUP BY h.hom_id"
+        ") grp WHERE grp.rank = 1 OR grp.names_mouse_or_human"
+    ).format(
+        key=SQL(key),
+        official=SQL("(g.gdb_id = {symbol} AND g.ode_pref)").format(symbol=_GENE_SYMBOL_GDB_ID),
+        mouse=int(SpeciesInt.MUS_MUSCULUS),
+        human=int(SpeciesInt.HOMO_SAPIENS),
+    )
+
+
+def _gene_and_homolog_ids(key: str) -> Composed:
+    """`_gene_ids`, plus every gene in the homology groups the identifier names (G3-834).
+
+    Every species. The groups are `_homology_groups`, not all the groups of every matching
+    gene. The genes matched directly stay as they are, whatever group they sit in, and a gene
+    with no homology row is only itself.
+    """
+    return SQL(
+        "{direct} UNION SELECT h2.ode_gene_id FROM extsrc.homology h2 "
+        "WHERE h2.hom_id IN ({groups})"
+    ).format(direct=_gene_ids(key), groups=_homology_groups(key))
 
 
 def _searched_ids(key: str, homology: bool) -> Composed:
