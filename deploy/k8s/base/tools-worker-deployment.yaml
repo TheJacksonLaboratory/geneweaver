@@ -34,11 +34,15 @@ spec:
           envFrom:
             - configMapRef:
                 name: geneweaver-tools-config
-            # ABBA, the gene-centred search, runs here and is a database query. The
-            # password also keys the signature on a run's identity (geneweaver.tools.abba.
-            # identity), so this must be the same Secret the API reads.
+            # ABBA, the gene-centred search, runs here and is a database query. Without
+            # ABBA_IDENTITY_SECRET the password also keys the signature on a run's identity
+            # (geneweaver.tools.abba.identity), so this must be the same Secret the API reads.
             - secretRef:
                 name: geneweaver-db
+            # ABBA_IDENTITY_SECRET; optional, and the same Secret the API reads.
+            - secretRef:
+                name: geneweaver-abba-identity
+                optional: true
           env:
             # Overrides the image default, so the profile a pod runs is visible here
             # rather than only in the image.

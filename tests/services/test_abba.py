@@ -1,6 +1,7 @@
 """Tests for the ABBA search service: AsyncTask where configured, in-process otherwise."""
 
 import threading
+import time
 from contextlib import contextmanager
 from unittest.mock import MagicMock, Mock, patch
 
@@ -86,10 +87,26 @@ def test_the_caller_is_sent_signed_not_in_the_input() -> None:
         service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
 
     assert "user_id" not in fake.envelope["input"]
-    assert verified_user_id(fake.envelope["identity"], SECRET) == 7
+    tool_input = fake.envelope["input"]
+    assert verified_user_id(fake.envelope["identity"], SECRET, tool_input) == 7
     forged = {**fake.envelope["identity"], "user_id": 8}
     with pytest.raises(ValueError, match="does not verify"):
-        verified_user_id(forged, SECRET)
+        verified_user_id(forged, SECRET, tool_input)
+    # Signed for this search only: it cannot be moved onto another.
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(fake.envelope["identity"], SECRET, {**tool_input, "genes": ["Th"]})
+
+
+def test_a_dedicated_identity_secret_is_used_where_set(monkeypatch) -> None:
+    """`ABBA_IDENTITY_SECRET`, when provisioned, keys the identity instead of the password."""
+    monkeypatch.setattr(service.settings, "ABBA_IDENTITY_SECRET", "own-secret")
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
+    signed, tool_input = fake.envelope["identity"], fake.envelope["input"]
+    assert verified_user_id(signed, "own-secret", tool_input) == 7
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(signed, SECRET, tool_input)
 
 
 def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
@@ -104,7 +121,8 @@ def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
 
     assert gate.call_args.args[2] == [5]
     cursors.cursor.connection.cursor.assert_called_with(row_factory=tuple_row)
-    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5]}
+    # One preferred symbol per gene (gdb_id 7), not every identifier it has.
+    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5], "gdb_id": 7}
     # Repeats are dropped case-insensitively, the typed gene first.
     assert fake.envelope["input"]["genes"] == ["drd2", "Th"]
     assert "geneset_ids" not in fake.envelope["input"]
@@ -121,10 +139,166 @@ def test_custom_cutoffs_seed_and_reach_the_worker() -> None:
             Mock(id=7),
         )
 
-    assert cursors.rows.execute.call_args.args[1] == {"gs_ids": [5], "t_p_value": 0.01}
+    assert cursors.rows.execute.call_args.args[1] == {
+        "gs_ids": [5],
+        "gdb_id": 7,
+        "t_p_value": 0.01,
+    }
     assert fake.envelope["input"]["threshold"] == "custom"
     assert fake.envelope["input"]["p_value"] == 0.01
     assert result["thresholds"] == {"threshold": "custom", "p_value": 0.01}
+
+
+def test_a_seed_too_large_to_search_is_refused_with_its_size(monkeypatch) -> None:
+    """Gene sets expand to more seed genes than ABBA takes: a 422 that says how many."""
+    monkeypatch.setattr(service, "MAX_SEED_GENES", 3)
+    cursors = _Cursors(seed_rows=[("A",), ("B",), ("C",)])
+    fake = _FakeAsyncTask(result={})
+    with (
+        _on_asynctask(fake),
+        patch.object(service, "_gate_geneset_access"),
+        pytest.raises(tool_service.ToolRequestError, match="4 genes"),
+    ):
+        service.run_abba(cursors, ABBARequest(genes=["D"], geneset_ids=[5]), Mock(id=7))
+    assert fake.envelope is None
+
+
+def test_an_in_process_search_out_of_time_is_a_timeout_not_a_hang() -> None:
+    """The whole search has a budget under the ingress timeout; past it, ABBATimedOut."""
+    from geneweaver.db.abba import ABBADeadlineExceeded
+
+    with (
+        _in_process(),
+        patch.object(service, "search", side_effect=ABBADeadlineExceeded("out of time")) as search,
+        pytest.raises(service.ABBATimedOut, match="longer than 270 s"),
+    ):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"]), Mock(id=7))
+    # One instant for the whole request, started before the search itself.
+    assert search.call_args.kwargs["deadline"] == pytest.approx(time.monotonic() + 270, abs=5)
+    assert "deadline_seconds" not in search.call_args.kwargs
+    # The concurrency slot is given back.
+    assert service._running.acquire(blocking=False)
+    service._running.release()
+
+
+# --- One budget from the first query (PR 40 review, finding 2) ------------------------------
+
+_SET_TIMEOUT = "SELECT set_config('statement_timeout', %s, true)"
+
+
+@contextmanager
+def _clock(start: float = 1000.0):
+    """``time.monotonic`` for the service and the deadline helpers, advanced by hand."""
+    now = [start]
+    with (
+        patch("geneweaver.api.services.abba.time.monotonic", lambda: now[0]),
+        patch("geneweaver.db.abba.time.monotonic", lambda: now[0]),
+    ):
+        yield now
+
+
+def _timeouts(cursor) -> list[str]:
+    return [
+        c.args[1][0] for c in cursor.execute.call_args_list if c.args and c.args[0] == _SET_TIMEOUT
+    ]
+
+
+def test_preparation_spends_the_same_budget_as_the_search() -> None:
+    """A slow gate uses the request's time: each check gets what is left, then it stops."""
+    cursors = _Cursors(seed_rows=[("Th",)])
+    with _clock() as now:
+
+        def slow_check(cursor, user_id, geneset_id):
+            now[0] += 200
+            return True
+
+        with (
+            _in_process(),
+            patch.object(tool_service.db_geneset, "is_readable", side_effect=slow_check),
+            patch.object(service, "search") as search,
+            pytest.raises(service.ABBATimedOut, match="longer than 270 s"),
+        ):
+            service.run_abba(cursors, ABBARequest(geneset_ids=[5, 6]), Mock(id=7))
+
+    # The first check is capped per statement (240 s); the second gets the 70 s left.
+    assert _timeouts(cursors.cursor) == ["240000ms", "70000ms"]
+    # Out of time before the seed expansion: it and the search never start.
+    cursors.rows.execute.assert_not_called()
+    search.assert_not_called()
+    assert service._running.acquire(blocking=False)
+    service._running.release()
+
+
+def test_the_seed_expansion_gets_only_what_is_left() -> None:
+    """The expansion query is bounded by the budget left after the gate, not a fresh 240 s."""
+    cursors = _Cursors(seed_rows=[("Th",)])
+    output = Mock(model_dump=Mock(return_value={}))
+    with _clock() as now:
+
+        def slow_check(cursor, user_id, geneset_id):
+            now[0] += 100
+            return True
+
+        with (
+            _in_process(),
+            patch.object(tool_service.db_geneset, "is_readable", side_effect=slow_check),
+            patch.object(service, "search", return_value=output) as search,
+        ):
+            service.run_abba(cursors, ABBARequest(geneset_ids=[5]), Mock(id=7))
+
+    assert _timeouts(cursors.rows) == ["170000ms"]
+    assert search.call_args.kwargs["deadline"] == 1270.0
+
+
+def test_a_gate_query_cancelled_at_the_deadline_is_a_504() -> None:
+    """Postgres cancelling a preparation query at the deadline answers as the budget does."""
+    from psycopg import errors
+
+    with _clock() as now:
+
+        def cancelled(cursor, user_id, geneset_id):
+            now[0] += 270
+            raise errors.QueryCanceled("canceling statement due to statement timeout")
+
+        with (
+            _in_process(),
+            patch.object(tool_service.db_geneset, "is_readable", side_effect=cancelled),
+            pytest.raises(service.ABBATimedOut),
+        ):
+            service.run_abba(_Cursors(), ABBARequest(geneset_ids=[5]), Mock(id=7))
+
+
+def test_on_asynctask_preparation_has_no_request_budget() -> None:
+    """The worker bounds its own queries; the API's gate and expansion run as before."""
+    cursors = _Cursors(seed_rows=[("Th",)])
+    with _on_asynctask(_FakeAsyncTask(result={})):
+        service.run_abba(cursors, ABBARequest(geneset_ids=[5]), Mock(id=7))
+    assert _timeouts(cursors.cursor) == []
+    assert _timeouts(cursors.rows) == []
+
+
+# --- Repeats do not count toward the seed cap (PR 40 review, finding 1) --------------------
+
+
+def test_a_typed_gene_also_in_a_seed_gene_set_counts_once(monkeypatch) -> None:
+    """A seed at the cap plus a typed gene it already holds, or a second spelling, still fits."""
+    monkeypatch.setattr(service, "MAX_SEED_GENES", 3)
+    cursors = _Cursors(seed_rows=[("A",), ("B",), ("b",), ("C",)])
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake):
+        service.run_abba(cursors, ABBARequest(genes=["a"], geneset_ids=[5]), Mock(id=7))
+    assert fake.envelope["input"]["genes"] == ["a", "B", "C"]
+
+
+def test_a_seed_of_exactly_the_cap_with_a_repeat_reaches_the_search() -> None:
+    """At the real cap: 20,000 genes from the gene set, plus one of them typed, is 20,000."""
+    cursors = _Cursors(seed_rows=[(f"G{i}",) for i in range(service.MAX_SEED_GENES)])
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake), patch.object(service, "_check_size"):
+        service.run_abba(cursors, ABBARequest(genes=["g0"], geneset_ids=[5]), Mock(id=7))
+    genes = fake.envelope["input"]["genes"]
+    assert len(genes) == service.MAX_SEED_GENES
+    assert genes[0] == "g0"
 
 
 def test_an_unreadable_seed_gene_set_is_refused_before_submission() -> None:
@@ -253,13 +427,18 @@ def test_the_slot_is_released_when_a_search_fails() -> None:
         {"genes": ["Drd2"], "min_genes": 0},
         {"genes": ["Drd2"], "min_genesets": 0},
         {"genes": ["Drd2"], "species_ids": []},
-        {"genes": ["x"] * 1001},
+        {"genes": [f"g{i}" for i in range(1001)]},  # more than 1,000 distinct genes
     ],
 )
 def test_request_rejects(body) -> None:
     """Requests the search cannot run are refused."""
     with pytest.raises(ValidationError):
         ABBARequest(**body)
+
+
+def test_repeated_genes_do_not_count_toward_the_request_cap() -> None:
+    """The 1,000 typed genes are counted once each: repeats are dropped before the cap."""
+    assert ABBARequest(genes=["x"] * 1001 + ["X"]).genes == ["x"]
 
 
 def test_request_cleans_genes_case_insensitively() -> None:

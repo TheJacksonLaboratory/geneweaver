@@ -85,6 +85,9 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
     <small *ngIf="source.failed" class="block mt-1 text-color-secondary" aria-live="polite">
       The gene set search is not responding. You can still type gene set IDs.
     </small>
+    <small *ngIf="source.refused" class="block mt-1 text-orange-600 search-refused" aria-live="polite">
+      The search was refused: {{ source.refused }}
+    </small>
     <small *ngIf="checking" class="block mt-1 text-color-secondary" aria-live="polite">
       Checking {{ checking }}…
     </small>

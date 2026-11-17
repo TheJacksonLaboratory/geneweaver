@@ -21,6 +21,7 @@ lint.ignore = [
 ]
 
 exclude = [
+    "aon",
     "docs",
     "legacy",
     "deploy",

@@ -78,7 +78,7 @@ def test_the_worker_runs_it_by_name_and_read_only(monkeypatch) -> None:
             {
                 "tool": TOOL_NAME,
                 "input": {"geneset_id": 5},
-                "identity": sign(9, "secret"),
+                "identity": sign(9, "secret", {"geneset_id": 5}),
             }
         )
     assert out == {"genesets": []}
@@ -97,6 +97,6 @@ def test_a_forged_identity_fails_the_run_without_retrying(monkeypatch) -> None:
             {
                 "tool": TOOL_NAME,
                 "input": {"geneset_id": 5},
-                "identity": {"user_id": 1, "signature": "forged"},
+                "identity": {"user_id": 1, "expires": 2**31, "signature": "forged"},
             }
         )
