@@ -7,6 +7,8 @@
  * tool outputs, and the components stay thin.
  */
 
+import { speciesName } from '../../../search/search-filters';
+
 // --- shared --------------------------------------------------------------------------
 
 /** One line of a tooltip: a label and its value. */
@@ -270,18 +272,29 @@ function pairCircles(rowSize: number, colSize: number, shared: number): VennGrid
  * Legacy JaccardSimilarity's main view: an N x N grid with a two-set Venn diagram per pair.
  * Row i is gene set i, column j gene set j; the diagonal is each set against itself.
  *
- * Set sizes are not in the output directly; each comes from any pair it is in (shared +
- * only-in-it), which every pair agrees on.
+ * Each pair's cell is sized from that pair alone (shared + only-in-each). Pairs need not
+ * agree: with pairwise deletion, a cross-platform pair counts only the genes both platforms
+ * measure, so the same gene set can be smaller in one pair than in another. The diagonal is
+ * the gene set's own size, from the run's `geneCounts`; without them, the largest any pair
+ * gives, with a note when pairs disagree.
  */
-export function jaccardVennGrid(output: JaccardSimilarityOutput): VennGridModel {
+export function jaccardVennGrid(
+  output: JaccardSimilarityOutput,
+  geneCounts: Record<string, number> = {},
+): VennGridModel {
   const ids = output.geneset_ids.map(String);
-  const sizes: Record<string, number> = Object.fromEntries(ids.map((id) => [id, 0]));
+  const pairSizes: Record<string, number[]> = Object.fromEntries(ids.map((id) => [id, []]));
   for (const r of output.results) {
     const a = ids[r.i];
     const b = ids[r.j];
-    if (a !== undefined) sizes[a] = r.intersection + r.only_i;
-    if (b !== undefined) sizes[b] = r.intersection + r.only_j;
+    if (a !== undefined) pairSizes[a].push(r.intersection + r.only_i);
+    if (b !== undefined) pairSizes[b].push(r.intersection + r.only_j);
   }
+  const sizes: Record<string, number> = Object.fromEntries(
+    ids.map((id) => [id, geneCounts[id] ?? Math.max(0, ...pairSizes[id])]),
+  );
+  /** Gene sets some pair counts smaller than their own size: pairwise deletion at work. */
+  const trimmed = new Set(ids.filter((id) => pairSizes[id].some((size) => size !== sizes[id])));
   const byPair = new Map<string, JaccardSimilarityOutput['results'][number]>();
   for (const r of output.results) {
     byPair.set(`${r.i},${r.j}`, r);
@@ -308,7 +321,10 @@ export function jaccardVennGrid(output: JaccardSimilarityOutput): VennGridModel 
           tooltip: {
             title: genesetLabel(row),
             rows: [{ label: 'Genes', value: String(size) }],
-            note: 'The same gene set on both axes.',
+            note: trimmed.has(row)
+              ? 'The same gene set on both axes. With pairwise deletion, some pairs count ' +
+                'only the genes both platforms measure, so they show it smaller.'
+              : 'The same gene set on both axes.',
           },
         });
         return;
@@ -319,6 +335,9 @@ export function jaccardVennGrid(output: JaccardSimilarityOutput): VennGridModel 
       }
       // Counts are oriented i -> j in the output; a cell below the diagonal swaps them.
       const [onlyRow, onlyCol] = r.i === i ? [r.only_i, r.only_j] : [r.only_j, r.only_i];
+      // This pair's own sizes, which pairwise deletion can make smaller than the diagonal's.
+      const rowSize = r.intersection + onlyRow;
+      const colSize = r.intersection + onlyCol;
       // As in `jaccardMatrix`: 0 means no null distribution covered the pair, not a tiny p.
       const p = r.p_value !== null && r.p_value > 0 ? r.p_value : null;
       const pText = p === null ? 'none' : formatP(p);
@@ -330,14 +349,14 @@ export function jaccardVennGrid(output: JaccardSimilarityOutput): VennGridModel 
         row,
         col,
         diagonal: false,
-        rowSize: sizes[row],
-        colSize: sizes[col],
+        rowSize,
+        colSize,
         shared: r.intersection,
         onlyRow,
         onlyCol,
         jaccard: r.jaccard,
         p,
-        circles: pairCircles(sizes[row], sizes[col], r.intersection),
+        circles: pairCircles(rowSize, colSize, r.intersection),
         lines,
         tooltip: {
           title: `${genesetLabel(row)} (row) vs ${genesetLabel(col)} (column)`,
@@ -716,21 +735,6 @@ export function booleanModel(output: BooleanAlgebraOutput): BooleanModel {
   };
 }
 
-/** Species by GeneWeaver species id; the same list as the species tag component. */
-export const SPECIES_NAMES: Record<number, string> = {
-  1: 'Mouse',
-  2: 'Human',
-  3: 'Rat',
-  4: 'Zebrafish',
-  5: 'Fruit fly',
-  6: 'Macaque',
-  7: 'Nematode',
-  8: 'Yeast',
-  9: 'Chicken',
-  10: 'Western clawed frog',
-  11: 'African clawed frog',
-};
-
 export interface SpeciesSummaryRow {
   species: number;
   name: string;
@@ -760,7 +764,8 @@ export function speciesSummary(output: BooleanAlgebraOutput): SpeciesSummaryRow[
     const shared = keys.filter((set) => set.size > 1).length;
     return {
       species,
-      name: SPECIES_NAMES[species] ?? `Species ${species}`,
+      // By id from the shared table: ids skip 7, so a positional list mislabels 8 onwards.
+      name: speciesName(species),
       specific: keys.length - shared,
       shared,
       total: keys.length,

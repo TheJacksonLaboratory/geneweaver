@@ -196,9 +196,12 @@ def test_input_rejects(body) -> None:
 # --- Identity -------------------------------------------------------------------------
 
 
+SEARCH = {"genes": ["Drd2"], "tiers": [1, 2, 3]}
+
+
 def test_a_signed_identity_verifies() -> None:
-    """The API signs; the worker, with the same secret, recovers the user."""
-    assert identity.verified_user_id(identity.sign(7, "s3cret"), "s3cret") == 7
+    """The API signs; the worker, with the same secret and input, recovers the user."""
+    assert identity.verified_user_id(identity.sign(7, "s3cret", SEARCH), "s3cret", SEARCH) == 7
 
 
 @pytest.mark.parametrize(
@@ -206,31 +209,133 @@ def test_a_signed_identity_verifies() -> None:
     [
         lambda signed: {**signed, "user_id": 8},  # someone else's id
         lambda signed: {**signed, "signature": "0" * 64},
-        lambda signed: identity.sign(signed["user_id"], "other-secret"),
+        lambda signed: {**signed, "expires": signed["expires"] + 3600},  # extended
+        lambda signed: identity.sign(signed["user_id"], "other-secret", SEARCH),
     ],
 )
 def test_a_forged_identity_is_refused(tampered) -> None:
     """Submitting to AsyncTask directly must not let a user search as someone else."""
     with pytest.raises(ValueError, match="does not verify"):
-        identity.verified_user_id(tampered(identity.sign(7, "s3cret")), "s3cret")
+        identity.verified_user_id(tampered(identity.sign(7, "s3cret", SEARCH)), "s3cret", SEARCH)
 
 
-@pytest.mark.parametrize("malformed", ["7", {"user_id": "7", "signature": "x"}, {"user_id": 7}])
+def test_an_identity_copied_onto_another_search_is_refused() -> None:
+    """Read from one run's stored values, a signed identity cannot run a different search."""
+    signed = identity.sign(7, "s3cret", SEARCH)
+    other = {**SEARCH, "genes": ["Th"]}
+    with pytest.raises(ValueError, match="does not verify for this search"):
+        identity.verified_user_id(signed, "s3cret", other)
+
+
+def test_an_identity_expires() -> None:
+    """Replayed later, even for the same search, it is refused."""
+    signed = identity.sign(7, "s3cret", SEARCH, now=1_000_000)
+    assert identity.verified_user_id(signed, "s3cret", SEARCH, now=1_000_000 + 60) == 7
+    with pytest.raises(ValueError, match="expired"):
+        identity.verified_user_id(
+            signed, "s3cret", SEARCH, now=1_000_000 + identity.TTL_SECONDS + 1
+        )
+
+
+def test_the_input_digest_ignores_key_order_and_spacing() -> None:
+    """JSON through AsyncTask may come back reordered; the digest must not care."""
+    assert identity.input_digest({"b": 1, "a": [1, 2]}) == identity.input_digest(
+        {"a": [1, 2], "b": 1}
+    )
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        "7",
+        {"user_id": "7", "expires": 1, "signature": "x"},
+        {"user_id": 7, "signature": "x"},
+        {"user_id": 7, "expires": True, "signature": "x"},
+    ],
+)
 def test_a_malformed_identity_is_refused(malformed) -> None:
-    """Only an integer user id with a signature is an identity."""
+    """Only an integer user id and expiry with a signature is an identity."""
     with pytest.raises(ValueError):
-        identity.verified_user_id(malformed, "s3cret")
+        identity.verified_user_id(malformed, "s3cret", SEARCH)
 
 
 def test_no_identity_searches_public_gene_sets_only() -> None:
     """Without an identity there is no one whose private gene sets to include."""
-    assert identity.verified_user_id(None, "s3cret") == identity.PUBLIC_USER_ID == 0
+    assert identity.verified_user_id(None, "s3cret", SEARCH) == identity.PUBLIC_USER_ID == 0
 
 
 def test_an_identity_without_a_key_to_check_it_is_refused() -> None:
     """A worker without the secret cannot verify, so it refuses rather than trusting."""
-    with pytest.raises(ValueError, match="DB_PASSWORD"):
-        identity.verified_user_id(identity.sign(7, "s3cret"), None)
+    with pytest.raises(ValueError, match="ABBA_IDENTITY_SECRET or DB_PASSWORD"):
+        identity.verified_user_id(identity.sign(7, "s3cret", SEARCH), None, SEARCH)
+
+
+def test_a_dedicated_secret_is_preferred_over_the_database_password() -> None:
+    """`ABBA_IDENTITY_SECRET` where provisioned; the shared password until then."""
+    assert identity.signing_secret({"ABBA_IDENTITY_SECRET": "own", "DB_PASSWORD": "db"}) == "own"
+    assert identity.signing_secret({"DB_PASSWORD": "db"}) == "db"
+    assert identity.signing_secret({}) is None
+
+
+def test_seeds_are_capped() -> None:
+    """At most 20,000 seed genes reach the search, however the run was submitted."""
+    ABBAInput(genes=[f"g{i}" for i in range(20_000)])
+    with pytest.raises(ValidationError):
+        ABBAInput(genes=[f"g{i}" for i in range(20_001)])
+
+
+def test_repeats_do_not_count_toward_the_seed_cap() -> None:
+    """Cleaned before the cap is checked: 20,000 genes plus repeats and blanks is 20,000."""
+    genes = [f"g{i}" for i in range(20_000)]
+    seeded = ABBAInput(genes=["G0", " g1 ", "", *genes])
+    assert len(seeded.genes) == 20_000
+    assert seeded.genes[:3] == ["G0", "g1", "g2"]
+
+
+def test_a_seed_gene_that_is_not_text_is_still_refused() -> None:
+    """Cleaning before validation passes anything else on, to be refused as before."""
+    with pytest.raises(ValidationError):
+        ABBAInput(genes=["Drd2", 5])
+
+
+# --- The name lookups spend the search's budget too (PR 40 review, finding 2) ------------
+
+
+def test_the_name_lookups_are_bounded_by_the_deadline() -> None:
+    """Slow metadata reads use up the budget: the third is never sent, the pipeline never runs."""
+    from geneweaver.db.abba import ABBADeadlineExceeded
+
+    connection, rows = _connection()
+    now = [0.0]
+
+    def execute(query, params=None):
+        if "FROM odestatic" in query:
+            now[0] += 150
+
+    rows.execute.side_effect = execute
+    with (
+        patch("geneweaver.db.abba.time.monotonic", lambda: now[0]),
+        patch("geneweaver.db.abba.abba") as pipeline,
+        pytest.raises(ABBADeadlineExceeded),
+    ):
+        abba_search.search(connection, ABBAInput(genes=["Drd2"]), user_id=7, deadline=270.0)
+
+    sent = [c.args for c in rows.execute.call_args_list]
+    timeouts = [args[1][0] for args in sent if "statement_timeout" in args[0]]
+    # The search's own 240 s, then each lookup bounded by what is left: 240 s capped, 120 s.
+    assert timeouts == ["240s", "240000ms", "120000ms"]
+    assert not any("odestatic.attribution" in args[0] for args in sent)
+    pipeline.assert_not_called()
+
+
+def test_without_a_deadline_the_name_lookups_are_unchanged() -> None:
+    """The worker path: one timeout for the transaction, no extra statements."""
+    connection, rows = _connection()
+    with patch("geneweaver.db.abba.abba", return_value=PipelineResult()):
+        abba_search.search(connection, ABBAInput(genes=["Drd2"]), user_id=7)
+    statements = [c.args[0] for c in rows.execute.call_args_list]
+    assert sum("statement_timeout" in sql for sql in statements) == 1
+    assert len(statements) == 4
 
 
 # --- On the worker --------------------------------------------------------------------
@@ -261,7 +366,7 @@ def test_abba_runs_on_the_python_worker_against_the_database(python_worker) -> N
     envelope = {
         "tool": "abba",
         "input": {"genes": ["Drd2"]},
-        "identity": identity.sign(7, "s3cret"),
+        "identity": identity.sign(7, "s3cret", {"genes": ["Drd2"]}),
     }
     with (
         patch(
@@ -287,7 +392,7 @@ def test_abba_runs_on_the_python_worker_against_the_database(python_worker) -> N
         {
             "tool": "abba",
             "input": {"genes": ["Drd2"]},
-            "identity": {"user_id": 7, "signature": "x"},
+            "identity": {"user_id": 7, "expires": 9_999_999_999, "signature": "x"},
         },
     ],
 )

@@ -27,28 +27,48 @@ def search(
     request: ABBAInput,
     user_id: int,
     statement_timeout_seconds: int = DEFAULT_STATEMENT_TIMEOUT_SECONDS,
+    deadline_seconds: float | None = None,
+    deadline: float | None = None,
 ) -> ABBAOutput:
-    """Run the pipeline in its own transaction and shape the result.
+    """Run the pipeline in a transaction of its own and shape the result.
 
-    The transaction scopes both the statement timeout (`set_config(..., true)` is
-    `SET LOCAL`) and the pipeline's `ON COMMIT DROP` temp tables, so the connection is left
-    clean. The pipeline reads rows by position, so it runs on a tuple-row cursor whatever
-    the connection's default row factory.
+    The transaction scopes the statement timeout (`set_config(..., true)` is `SET LOCAL`)
+    and the pipeline's `ON COMMIT DROP` temp tables. On a connection with no transaction open
+    (the worker's) that leaves it clean when this returns. On one already in a transaction
+    (the API's pooled cursor, which `prepare_abba` used first) it is a savepoint instead, and
+    both last until the caller's transaction ends -- harmless, as the caller closes it next.
+    The pipeline reads rows by position, so it runs on a tuple-row cursor whatever the
+    connection's default row factory.
 
     :param user_id: Whose private gene sets may match; 0 for public gene sets only.
+    :param deadline_seconds: A budget for the whole search, every statement together --
+        the name lookups and the pipeline; each statement's timeout shrinks to what is left
+        of it. None: each statement alone is bounded, by ``statement_timeout_seconds``.
+    :param deadline: The same budget as a ``time.monotonic()`` instant, for a caller whose
+        budget started earlier (the API's covers its access checks and seed expansion too).
+        Takes precedence over ``deadline_seconds``.
+    :raises ABBADeadlineExceeded: If the search would run past its budget.
     """
+    import time
+
     from geneweaver.db.abba import abba
     from geneweaver.db.query.membership import Thresholds
     from psycopg.rows import tuple_row
+
+    if deadline is None and deadline_seconds is not None:
+        deadline = time.monotonic() + deadline_seconds
+
+    def names(query: str) -> dict:
+        return _names(rows, query, deadline, statement_timeout_seconds)
 
     with connection.transaction(), connection.cursor(row_factory=tuple_row) as rows:
         rows.execute(
             "SELECT set_config('statement_timeout', %s, true)",
             (f"{statement_timeout_seconds}s",),
         )
-        species = _names(rows, "SELECT sp_id, sp_name FROM odestatic.species ORDER BY sp_id")
-        tiers = _names(rows, "SELECT cur_id, cur_name FROM odestatic.curation_levels")
-        attributions = _names(rows, "SELECT at_id, at_abbrev FROM odestatic.attribution")
+        species = names("SELECT sp_id, sp_name FROM odestatic.species ORDER BY sp_id")
+        tiers = names("SELECT cur_id, cur_name FROM odestatic.curation_levels")
+        attributions = names("SELECT at_id, at_abbrev FROM odestatic.attribution")
         found = abba(
             rows,
             request.genes,
@@ -62,12 +82,22 @@ def search(
             min_genesets=request.min_genesets or 0,
             result_limit=RESULT_LIMIT,
             thresholds=Thresholds(**request.membership_kwargs()),
+            deadline=deadline,
+            statement_timeout_seconds=statement_timeout_seconds,
         )
     return shape(found, request, species, tiers, attributions)
 
 
-def _names(cursor: "Cursor", query: str) -> dict[int, str]:
-    cursor.execute(query)
+def _names(
+    cursor: "Cursor",
+    query: str,
+    deadline: float | None = None,
+    statement_timeout_seconds: float | None = None,
+) -> dict[int, str]:
+    """An id-to-name lookup, inside the search's budget like every other statement."""
+    from geneweaver.db.abba import execute_within
+
+    execute_within(cursor, (query,), deadline, statement_timeout_seconds)
     return dict(cursor.fetchall())
 
 

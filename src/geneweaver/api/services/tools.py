@@ -84,21 +84,29 @@ TOOL_CAVEATS: dict[str, str] = {
 }
 
 
-def _gate_geneset_access(cursor: Cursor, user: User | None, geneset_ids: list[int]) -> None:
+def _gate_geneset_access(
+    cursor: Cursor,
+    user: User | None,
+    geneset_ids: list[int],
+    before_each: Callable[[], None] | None = None,
+) -> None:
     """Refuse the run unless every named gene set is readable by the caller.
 
     Runs are refused for anonymous callers before this is reached (`_require_user`), but
     the gate still treats a missing user as id 0, the public audience, so it fails closed
     if it is ever called without one.
 
+    :param before_each: Called before each gene set's check, e.g. to bound that query by
+        what is left of a request's time budget (ABBA).
     :raises UnauthorizedException: if any gene set is not readable.
     """
     user_id = determine_user_id(user)
-    unreadable = [
-        geneset_id
-        for geneset_id in geneset_ids
-        if not db_geneset.is_readable(cursor, user_id, geneset_id)
-    ]
+    unreadable = []
+    for geneset_id in geneset_ids:
+        if before_each is not None:
+            before_each()
+        if not db_geneset.is_readable(cursor, user_id, geneset_id):
+            unreadable.append(geneset_id)
     if unreadable:
         raise UnauthorizedException(
             detail=(

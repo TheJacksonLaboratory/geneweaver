@@ -145,6 +145,15 @@ export function filterProblem(filters: SearchFilters): string | undefined {
   if (!filters.gene.trim() && hasCutoffs(filters)) {
     return 'Score cutoffs apply to a gene: enter one, or clear the cutoffs.';
   }
+  for (const [name, value] of [
+    ['p-value', filters.pValue],
+    ['q-value', filters.qValue],
+  ] as const) {
+    // The API takes 0 to 1 (`GenesetSearch`), as the analysis page's own cutoffs do.
+    if (value !== null && (value < 0 || value > 1)) {
+      return `A ${name} cutoff must be between 0 and 1.`;
+    }
+  }
   return undefined;
 }
 

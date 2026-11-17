@@ -19,6 +19,19 @@ describe('UpsetPlotComponent', () => {
     expect(svg.querySelectorAll('circle').length).toBe(model.bars.length * model.sets.length);
   });
 
+  it('draws no size bar for gene sets with no genes', () => {
+    // A tight threshold can leave every gene set empty; d3's [0, 0] domain drew half bars.
+    const model = upsetModel([1, 2], { '1': 0, '2': 0 }, []);
+    const fixture = TestBed.createComponent(UpsetPlotComponent);
+    fixture.componentInstance.model = model;
+    fixture.componentInstance.ngOnChanges();
+    const widths = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('g.set rect:first-of-type'),
+    ).map((rect) => Number(rect.getAttribute('width')));
+    expect(widths.length).toBeGreaterThan(0);
+    expect(widths.every((width) => width === 0)).toBe(true);
+  });
+
   it('hovering a column explains it and highlights its sets', () => {
     const { geneset_ids, gene_counts, intersections } = FIXTURES.upset;
     const model = upsetModel(geneset_ids, gene_counts, intersections);

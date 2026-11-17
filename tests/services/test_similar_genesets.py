@@ -70,11 +70,25 @@ def test_a_search_is_submitted_to_asynctask_with_the_caller_signed() -> None:
     assert fake.envelope["input"]["geneset_id"] == 5
     assert fake.envelope["input"]["threshold"] == "uploader"
     assert "user_id" not in fake.envelope["input"]
-    assert verified_user_id(fake.envelope["identity"], SECRET) == 7
+    assert verified_user_id(fake.envelope["identity"], SECRET, fake.envelope["input"]) == 7
     assert fake.name == "similar_genesets: GS5"
     assert result["executed_by"] == "asynctask"
     assert result["thresholds"] == {"threshold": "uploader"}
     assert result["result"] == {"genesets": []}
+
+
+def test_the_identity_is_signed_as_abbas_for_this_input(monkeypatch) -> None:
+    """`ABBA_IDENTITY_SECRET` where set, and only for the search it was made for."""
+    monkeypatch.setattr(service.settings, "ABBA_IDENTITY_SECRET", "own-secret")
+    fake = _FakeAsyncTask(result={"genesets": []})
+    with _on_asynctask(fake):
+        service.run_similar_genesets(_Cursors(), SimilarGenesetsRequest(geneset_id=5), Mock(id=7))
+    signed, tool_input = fake.envelope["identity"], fake.envelope["input"]
+    assert verified_user_id(signed, "own-secret", tool_input) == 7
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(signed, SECRET, tool_input)
+    with pytest.raises(ValueError, match="does not verify"):
+        verified_user_id(signed, "own-secret", {**tool_input, "geneset_id": 6})
 
 
 def test_an_unreadable_gene_set_is_refused_before_submission() -> None:
