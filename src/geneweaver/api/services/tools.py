@@ -25,6 +25,7 @@ from geneweaver.db.query.membership import ALL_GENES, Thresholds
 from geneweaver.tools.mset.schema import MSETInput
 from geneweaver.tools.phenome_map.schema import PhenomeMapInput
 from geneweaver.tools.thresholds import ThresholdOptions
+from geneweaver.tools.triclique import TricliqueInput, tripartite_edges
 from geneweaver.tools.upset import UpSet, UpSetInput
 from geneweaver.tools_plugin.payload import check_payload_size
 from psycopg import Cursor
@@ -367,7 +368,9 @@ HOMOLOGY_TOOLS = frozenset(
     {
         "upset",
         "dbscan",
+        "geneset_graph",
         "hypergeometric",
+        "triclique",
         "jaccard_clustering",
         "jaccard_similarity",
         "phenome_map",
@@ -450,6 +453,64 @@ def _dbscan_input(cursor, geneset_ids, memberships, parameters) -> dict:
         "min_points": int(parameters.get("min_points", 2)),
         "geneset_ids": _as_strings(geneset_ids),
     }
+
+
+def _geneset_graph_input(cursor, geneset_ids, memberships, parameters) -> dict:
+    # Legacy's "Minimum Degree": a number, or "Auto" (any case) for legacy's own pick.
+    min_degree = parameters.get("min_degree", 1)
+    if isinstance(min_degree, str) and min_degree.strip().lower() == "auto":
+        min_degree = "auto"
+    else:
+        min_degree = int(min_degree)
+    emphasis = parameters.get("emphasis_genes") or []
+    if isinstance(emphasis, str):
+        emphasis = [gene for gene in emphasis.replace(",", " ").split() if gene]
+    return {
+        "geneset_ids": _as_strings(geneset_ids),
+        "gene_memberships": memberships,
+        "include_homology": flag(parameters, "include_homology", False),
+        "min_degree": min_degree,
+        # Legacy's "Suppress disconnected", On by default.
+        "suppress_disconnected": flag(parameters, "suppress_disconnected", True),
+        "emphasis_genes": list(emphasis),
+    }
+
+
+def _gene_set_ids(value: Any) -> list[int]:
+    """Gene set ids from a list or a comma/space separated string; "GS" prefixes allowed."""
+    items = value if isinstance(value, list) else str(value or "").replace(",", " ").split()
+    return [
+        int(str(item).strip().upper().removeprefix("GS")) for item in items if str(item).strip()
+    ]
+
+
+def _triclique_input(cursor, geneset_ids, memberships, parameters) -> dict:
+    """Two groups: ``group_b`` names which of the run's gene sets are B; the rest are A.
+
+    Legacy compared two projects; v3 has none, so the request carries the split instead.
+    """
+    group_b = _gene_set_ids(parameters.get("group_b"))
+    stray = sorted(set(group_b) - set(geneset_ids))
+    if stray:
+        raise ToolRequestError(f"group_b names gene sets not in the run: {stray}.")
+    group_a = [gs for gs in geneset_ids if gs not in set(group_b)]
+    if not group_a or not group_b:
+        raise ToolRequestError(
+            "Triclique compares two groups of gene sets: list group B's in group_b, and the "
+            "run's other gene sets are group A. Each group needs at least one."
+        )
+    built = {
+        "group_a": _as_strings(group_a),
+        "group_b": _as_strings(group_b),
+        "gene_memberships": memberships,
+        "include_homology": flag(parameters, "include_homology", False),
+    }
+    # The shared-gene limit, now rather than as a failed run.
+    try:
+        tripartite_edges(TricliqueInput(**built))
+    except ValueError as error:
+        raise ToolRequestError(str(error)) from error
+    return built
 
 
 def _hypergeometric_input(cursor, geneset_ids, memberships, parameters) -> dict:
@@ -535,6 +596,8 @@ def _boolean_algebra_input(cursor, geneset_ids, memberships, parameters) -> dict
 INPUT_BUILDERS: dict[str, Callable[..., dict]] = {
     "upset": _upset_input,
     "dbscan": _dbscan_input,
+    "geneset_graph": _geneset_graph_input,
+    "triclique": _triclique_input,
     "hypergeometric": _hypergeometric_input,
     "jaccard_clustering": _jaccard_clustering_input,
     "jaccard_similarity": _jaccard_similarity_input,

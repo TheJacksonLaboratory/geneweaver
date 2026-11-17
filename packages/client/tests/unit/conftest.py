@@ -17,7 +17,6 @@ from geneweaver.client.gedb import (
     SourceType,
     StrainResult,
 )
-from geneweaver.testing.fixtures import *  # noqa: F403
 from numpy.random import Generator
 from pandas import DataFrame
 from requests.exceptions import HTTPError

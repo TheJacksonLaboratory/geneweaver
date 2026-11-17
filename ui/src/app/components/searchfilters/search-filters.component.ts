@@ -77,7 +77,7 @@ import {
           ></p-multiSelect>
         </div>
         <div class="field col-6 md:col-2">
-          <label [for]="idPrefix + '-min'" class="block mb-1 text-sm">Genes, at least</label>
+          <label [for]="idPrefix + '-min'" class="block mb-1 text-sm">Gene set size, min</label>
           <p-inputNumber
             [inputId]="idPrefix + '-min'"
             [ngModel]="filters.sizeMin"
@@ -89,7 +89,7 @@ import {
           ></p-inputNumber>
         </div>
         <div class="field col-6 md:col-2">
-          <label [for]="idPrefix + '-max'" class="block mb-1 text-sm">Genes, at most</label>
+          <label [for]="idPrefix + '-max'" class="block mb-1 text-sm">Gene set size, max</label>
           <p-inputNumber
             [inputId]="idPrefix + '-max'"
             [ngModel]="filters.sizeMax"
@@ -101,7 +101,7 @@ import {
           ></p-inputNumber>
         </div>
         <div class="field col-12 md:col-8">
-          <label [for]="idPrefix + '-gene'" class="block mb-1 text-sm">Holding the gene</label>
+          <label [for]="idPrefix + '-gene'" class="block mb-1 text-sm">Gene</label>
           <input
             pInputText
             [id]="idPrefix + '-gene'"
@@ -112,8 +112,8 @@ import {
             [attr.aria-describedby]="idPrefix + '-gene-help'"
           />
           <small [id]="idPrefix + '-gene-help'" class="block mt-1 text-color-secondary">
-            Only gene sets holding this gene, by any of its identifiers. Add score cutoffs below
-            to keep those where its score passes.
+            Finds the gene sets that contain this gene, by any of its identifiers. Add score
+            cutoffs below to keep only those where its score is in range, or to list them first.
           </small>
         </div>
       </div>

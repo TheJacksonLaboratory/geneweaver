@@ -1,4 +1,4 @@
-import { JsonPipe, NgIf, NgSwitch, NgSwitchCase, NgSwitchDefault } from '@angular/common';
+import { JsonPipe, NgFor, NgIf, NgSwitch, NgSwitchCase, NgSwitchDefault } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 
 import { AbbaResultComponent } from './abba-result.component';
@@ -6,6 +6,7 @@ import { ClusterPackComponent } from './cluster-pack.component';
 import { CombineTableComponent } from './combine-table.component';
 import { DendrogramComponent } from './dendrogram.component';
 import { GeneNetworkComponent } from './gene-network.component';
+import { GenesetGraphComponent } from './geneset-graph.component';
 import { HeatmapComponent } from './heatmap.component';
 import {
   booleanModel,
@@ -14,6 +15,7 @@ import {
   dbscanModel,
   dendrogramModel,
   DendrogramNode,
+  genesetLabel,
   hypergeometricMatrix,
   jaccardMatrix,
   jaccardVennGrid,
@@ -33,6 +35,7 @@ import { MsetEulerComponent } from './mset-euler.component';
 import { MsetHistogramComponent } from './mset-histogram.component';
 import { PhenomeMapGraphComponent } from './phenome-map-graph.component';
 import { SunburstComponent } from './sunburst.component';
+import { TricliqueComponent } from './triclique.component';
 import { UpsetPlotComponent } from './upset-plot.component';
 import { VennGridComponent } from './venn-grid.component';
 import { VennComponent } from './venn.component';
@@ -52,6 +55,14 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
     { id: 'circles', label: 'Circles' },
     { id: 'network', label: 'Network' },
   ],
+  geneset_graph: [
+    { id: 'graph', label: 'Graph' },
+    { id: 'table', label: 'Genes by degree' },
+  ],
+  triclique: [
+    { id: 'edge', label: 'Most links' },
+    { id: 'vertex', label: 'Most members' },
+  ],
 };
 
 /**
@@ -64,6 +75,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    NgFor,
     NgIf,
     NgSwitch,
     NgSwitchCase,
@@ -74,11 +86,13 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
     CombineTableComponent,
     DendrogramComponent,
     GeneNetworkComponent,
+    GenesetGraphComponent,
     HeatmapComponent,
     MsetEulerComponent,
     MsetHistogramComponent,
     PhenomeMapGraphComponent,
     SunburstComponent,
+    TricliqueComponent,
     UpsetPlotComponent,
     VennComponent,
     VennGridComponent,
@@ -121,6 +135,30 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
           <app-dendrogram *ngIf="view === 'dendrogram'" [model]="tree" [method]="result['method']"></app-dendrogram>
           <app-sunburst *ngIf="view === 'sunburst'" [model]="tree" [method]="result['method']"></app-sunburst>
         </ng-container>
+      </ng-container>
+      <ng-container *ngSwitchCase="'geneset_graph'">
+        <app-geneset-graph *ngIf="view === 'graph'" [result]="$any(result)"></app-geneset-graph>
+        <table *ngIf="view === 'table'" class="degree-table text-sm w-full">
+          <caption class="text-left text-color-secondary mb-2">
+            Genes held by at least {{ result['min_degree'] }} of the gene sets, most shared first.
+          </caption>
+          <thead>
+            <tr><th scope="col">Gene</th><th scope="col">Gene sets</th><th scope="col">Which</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let gene of $any(result)['genes']">
+              <td>{{ gene.symbol }}<span *ngIf="gene.emphasized" class="ml-1" title="Emphasised">★</span></td>
+              <td>{{ gene.degree }}</td>
+              <td>{{ genesetList(gene.genesets) }}</td>
+            </tr>
+            <tr *ngIf="!$any(result)['genes']?.length">
+              <td colspan="3">No gene is in that many of these gene sets.</td>
+            </tr>
+          </tbody>
+        </table>
+      </ng-container>
+      <ng-container *ngSwitchCase="'triclique'">
+        <app-triclique [result]="$any(result)" [maximum]="$any(view)"></app-triclique>
       </ng-container>
       <ng-container *ngSwitchCase="'dbscan'">
         <ng-container *ngIf="pack; else noClusters">
@@ -185,6 +223,11 @@ export class ToolResultComponent implements OnChanges {
   euler?: MsetEuler | null;
   views: { id: string; label: string }[] = [];
   view = '';
+
+  /** "GS1, GS2", for the gene table. */
+  genesetList(ids: string[]): string {
+    return ids.map(genesetLabel).join(', ');
+  }
 
   ngOnChanges(): void {
     const r = this.result;

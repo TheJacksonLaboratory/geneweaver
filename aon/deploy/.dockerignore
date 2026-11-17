@@ -1,0 +1,17 @@
+**/Dockerfile
+**/.dockerignore
+
+.git
+.gitignore
+.tmp
+.tools
+venv*
+
+**/*.sqlite
+**/*.md
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*__pycache__
+
+**/.env

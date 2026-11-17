@@ -24,7 +24,9 @@
         ></p-button>
         <small *ngIf="!isAbba" class="block mt-2 text-color-secondary">
           Search by name, description or ID and pick from the list, or type IDs and press
-          Enter. At least two, at most twenty -- or ten with empty combinations included.
+          Enter. Every search term must match; put OR in capitals for either, as in
+          "alcohol OR cocaine". At least two, at most twenty -- or ten with empty combinations
+          included.
         </small>
         <small *ngIf="isAbba" class="block mt-2 text-color-secondary">
           Optional for ABBA: up to twenty gene sets, whose genes join the seed genes.
@@ -41,7 +43,13 @@
           optionValue="value"
           optionDisabled="disabledReason"
           styleClass="w-full"
-        ></p-dropdown>
+        >
+          <ng-template let-tool pTemplate="item">
+            <span [pTooltip]="tool.description" tooltipPosition="right" appendTo="body">{{
+              tool.label
+            }}</span>
+          </ng-template>
+        </p-dropdown>
       </div>
     </div>
 
@@ -310,6 +318,41 @@
         </ng-container>
       </div>
     </section>
+
+    <!-- Triclique's two groups: legacy compared two projects; v3 splits the run's gene sets. -->
+    <section
+      *ngIf="isTriclique && !selectedToolReason && genesetIds.length"
+      class="tool-options mb-3"
+      aria-labelledby="tricliqueGroupsHeading"
+    >
+      <h3 id="tricliqueGroupsHeading" class="text-base mt-0 mb-2">Groups</h3>
+      <fieldset class="border-none p-0 m-0" aria-describedby="tricliqueGroupsHelp">
+        <legend class="block mb-2">Group B</legend>
+        <div class="flex flex-wrap gap-3">
+          <div *ngFor="let id of genesetIds" class="flex align-items-center">
+            <input
+              type="checkbox"
+              [id]="'group-b-' + id"
+              [checked]="tricliqueGroupB.includes(id)"
+              (change)="toggleGroupB(id)"
+            />
+            <label [for]="'group-b-' + id" class="ml-2">GS{{ id }}</label>
+          </div>
+        </div>
+      </fieldset>
+      <small id="tricliqueGroupsHelp" class="block mt-2 text-color-secondary">
+        Group A: {{ tricliqueGroupA.length ? 'GS' + tricliqueGroupA.join(', GS') : 'none' }}.
+        Triclique finds the largest set of gene sets from both groups that all share the same
+        genes. At most 50 genes may be in both groups.
+      </small>
+    </section>
+
+    <p-message
+      *ngIf="tricliqueProblem && !selectedToolReason"
+      severity="warn"
+      [text]="tricliqueProblem"
+      styleClass="w-full mb-3"
+    ></p-message>
 
     <p-message
       *ngIf="toolsLoading"

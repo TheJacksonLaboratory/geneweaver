@@ -29,6 +29,7 @@ const TOOL_LIST = {
   boolean_algebra: { available: true, reason: null, caveat: null },
   jaccard_clustering: { available: true, reason: null, caveat: null },
   jaccard_similarity: { available: true, reason: null, caveat: 'p-values need distributions' },
+  triclique: { available: true, reason: null, caveat: null },
   mset: { available: false, reason: 'MSET needs the MSETcpp binary', caveat: null },
   phenome_map: { available: false, reason: 'PhenomeMap needs biclique', caveat: null },
 };
@@ -197,7 +198,7 @@ describe('AnalyzeComponent tool list', () => {
 
   it('lists every registered tool, not a hand-picked subset', async () => {
     await build();
-    expect(component.tools).toHaveLength(9);
+    expect(component.tools).toHaveLength(10);
     // The four that used to be missing entirely.
     const names = component.tools.map((tool) => tool.value);
     expect(names).toContain('boolean_algebra');
@@ -211,6 +212,21 @@ describe('AnalyzeComponent tool list', () => {
     const blocked = component.tools.filter((tool) => tool.disabledReason);
     expect(blocked.map((tool) => tool.value).sort()).toEqual(['mset', 'phenome_map']);
     expect(blocked[0].disabledReason).toBeTruthy();
+  });
+
+  it('describes every tool, for the tooltip in the picker', async () => {
+    await build();
+    for (const tool of component.tools) {
+      expect(tool.description).toBeTruthy();
+    }
+  });
+
+  it('names the ported tools as legacy did', async () => {
+    await build();
+    const label = (value: string) => component.tools.find((tool) => tool.value === value)?.label;
+    expect(label('phenome_map')).toBe('HiSim Graph');
+    expect(label('jaccard_clustering')).toBe('GeneSet Clustering');
+    expect(label('triclique')).toBe('TricliqueViewer');
   });
 
   it('puts runnable tools before blocked ones', async () => {
@@ -260,6 +276,23 @@ describe('AnalyzeComponent tool list', () => {
     component.selectedTool = 'dbscan';
     component.run();
     expect(posted.at(-1)?.path).toBe('/tools/dbscan');
+  });
+
+  it('runs Triclique only with a gene set in each group, and sends group B', async () => {
+    await build();
+    component.genesetIdInput = ['1', '2', '3'];
+    component.selectedTool = 'triclique';
+    expect(component.tricliqueProblem).toContain('group B');
+    expect(component.canRun).toBe(false);
+
+    component.toggleGroupB(3);
+    expect(component.tricliqueGroupA).toEqual([1, 2]);
+    expect(component.canRun).toBe(true);
+    component.run();
+    expect(posted.at(-1)?.path).toBe('/tools/triclique');
+    expect((posted.at(-1)?.body as { parameters: Record<string, unknown> }).parameters).toEqual(
+      expect.objectContaining({ group_b: [3], include_homology: true }),
+    );
   });
 });
 
@@ -312,6 +345,8 @@ describe('AnalyzeComponent tool options', () => {
   /** Select a tool, render, and return the page. */
   const choose = async (tool: string): Promise<HTMLElement> => {
     component.selectedTool = tool;
+    // Triclique runs only with two groups; the rest ignore the mark.
+    component.tricliqueMarked = [2];
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

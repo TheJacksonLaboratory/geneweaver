@@ -25,6 +25,7 @@ import { GeneValue } from '../../models/gene-value';
 import { GeneValueDownload } from '../../models/gene-value';
 import { convertModel} from '../../utils/utils';
 import { Router } from '@angular/router';
+import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
 
 @Component({
   selector: 'app-gene-set',
@@ -45,6 +46,7 @@ import { Router } from '@angular/router';
     OntologyAnnotationsComponent,
     MenuModule,
     ButtonModule,
+    SimilarGenesetsComponent,
   ],
   templateUrl: './geneset.component.html',
   styleUrl: './geneset.component.css',

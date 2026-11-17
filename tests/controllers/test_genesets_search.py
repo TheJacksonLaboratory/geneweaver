@@ -87,3 +87,27 @@ def test_a_search_with_nothing_to_search_or_a_bad_option_is_refused(
     assert response.status_code == 422
     assert message in response.text
     search.assert_not_called()
+
+
+COUNT = "geneweaver.api.controller.genesets.db_search.count_genesets"
+
+
+def test_a_full_page_reports_the_total_counted_over_every_page(client) -> None:
+    """The paginator's "25 of n": n is counted with the search's own filters, not paged."""
+    rows = [{"id": i} for i in range(25)]
+    params = {"search_text": "alcohol OR cocaine", "gene": "Drd2", "offset": "25"}
+    with patch(SEARCH, return_value=rows), patch(COUNT, return_value=5751) as count:
+        response = client.get("/api/genesets/search", params=params)
+    assert response.status_code == 200, response.text
+    assert response.json()["paging"]["total_items"] == 5751
+    kwargs = count.call_args.kwargs
+    assert (kwargs["search_text"], kwargs["gene"]) == ("alcohol OR cocaine", "Drd2")
+
+
+def test_a_short_first_page_is_the_whole_result_so_it_is_not_counted_again(client) -> None:
+    """Fewer rows than the limit on the first page is every match."""
+    with patch(SEARCH, return_value=[{"id": 1}, {"id": 2}]), patch(COUNT) as count:
+        response = client.get("/api/genesets/search", params={"search_text": "rare"})
+    assert response.status_code == 200, response.text
+    assert response.json()["paging"]["total_items"] == 2
+    count.assert_not_called()

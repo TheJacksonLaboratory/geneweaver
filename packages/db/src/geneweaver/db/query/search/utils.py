@@ -1,12 +1,17 @@
 """Functions for generating search queries."""
 
+import re
 from enum import Enum
 
 from geneweaver.db.query.utils import (
     ParamDict,
     SQLList,
 )
-from psycopg.sql import SQL, Composed
+from psycopg.sql import SQL, Composed, Placeholder
+
+#: ``OR`` in capitals, between terms, means either. Lower case stays an ordinary (stop) word, so
+#: text such as "alcohol or drug" searches as it always did.
+_OR_OPERATOR = re.compile(r"\s+OR\s+")
 
 
 class SearchConfig(Enum):
@@ -72,9 +77,36 @@ def search(
     :param search_text: The search text to filter by.
     """
     if search_text is not None:
-        search_sql, search_params = search_query(
-            tsvector_col, search_text, query_type=QueryType.PLAINTO
-        )
+        alternatives = [part.strip() for part in _OR_OPERATOR.split(search_text) if part.strip()]
+        if len(alternatives) > 1:
+            search_sql, search_params = _any_of_query(tsvector_col, alternatives)
+        else:
+            search_sql, search_params = search_query(
+                tsvector_col, search_text, query_type=QueryType.PLAINTO
+            )
         existing_filters.append(search_sql)
         existing_params.update(search_params)
     return existing_filters, existing_params
+
+
+def _any_of_query(
+    search_column: Composed,
+    alternatives: list[str],
+    search_config: SearchConfig = SearchConfig.ENGLISH,
+) -> tuple[Composed, dict]:
+    """Match a row holding every word of at least one of the alternatives.
+
+    Each alternative goes through ``plainto_tsquery``, as a single search does, so its words are
+    ANDed and hyphenated terms make no phrase constraint (see ``test_search_uses_plainto``).
+    The alternatives are ORed with tsquery's ``||``, so "alcohol AND RNA-seq OR cocaine" is
+    (alcohol and RNA-seq) or cocaine. ``AND`` needs no handling: it is a stop word.
+    """
+    queries = [
+        SQL("plainto_tsquery({search_config}, {term})").format(
+            search_config=str(search_config), term=Placeholder(f"search_{i}")
+        )
+        for i in range(len(alternatives))
+    ]
+    query = SQL("@@ (") + SQL(" || ").join(queries) + SQL(")")
+    params = {f"search_{i}": text for i, text in enumerate(alternatives)}
+    return search_column + query, params
