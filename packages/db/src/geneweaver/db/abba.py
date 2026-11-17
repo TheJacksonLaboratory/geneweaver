@@ -15,6 +15,8 @@ returned and the UI can shape them.
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -25,6 +27,63 @@ from psycopg import Cursor, errors
 
 class ABBADeadlineExceeded(TimeoutError):
     """The search ran out of its time budget (``deadline``) before it finished."""
+
+
+_SET_STATEMENT_TIMEOUT = "SELECT set_config('statement_timeout', %s, true)"
+
+
+def bound_next_statement(
+    cursor: Cursor, deadline: float, statement_timeout_seconds: float | None = None
+) -> None:
+    """Limit the transaction's next statements to what is left of ``deadline``.
+
+    ``set_config(..., true)`` is ``SET LOCAL``: it lasts until the transaction ends, so call
+    it again before each statement for each to get only what is then left.
+
+    :param deadline: A ``time.monotonic()`` instant.
+    :param statement_timeout_seconds: The most any one statement gets, however much is left.
+    :raises ABBADeadlineExceeded: If nothing is left, so no statement is sent.
+    """
+    left = deadline - time.monotonic()
+    if left <= 0:
+        raise ABBADeadlineExceeded("The ABBA search ran out of time.")
+    cap = left if statement_timeout_seconds is None else min(left, statement_timeout_seconds)
+    cursor.execute(_SET_STATEMENT_TIMEOUT, (f"{max(1, int(cap * 1000))}ms",))
+
+
+@contextmanager
+def deadline_cancellation(deadline: float | None) -> Iterator[None]:
+    """Report Postgres cancelling a statement at the deadline as `ABBADeadlineExceeded`.
+
+    A cancellation well before the deadline is the per-statement cap, and is raised as is.
+    """
+    try:
+        yield
+    except errors.QueryCanceled as error:
+        if deadline is not None and deadline - time.monotonic() <= 1:
+            raise ABBADeadlineExceeded("The ABBA search ran out of time.") from error
+        raise
+
+
+def execute_within(
+    cursor: Cursor,
+    query: tuple,
+    deadline: float | None,
+    statement_timeout_seconds: float | None = None,
+) -> None:
+    """Execute one statement, ``cursor.execute(*query)``, inside what is left of ``deadline``.
+
+    With no deadline it is a plain execute, bounded only by the session's own timeout.
+
+    :raises ABBADeadlineExceeded: If no time is left, or the statement is cancelled at the
+        deadline.
+    """
+    if deadline is None:
+        cursor.execute(*query)
+        return
+    bound_next_statement(cursor, deadline, statement_timeout_seconds)
+    with deadline_cancellation(deadline):
+        cursor.execute(*query)
 
 
 @dataclass
@@ -91,23 +150,7 @@ def abba(
     geneset_ids = geneset_ids or []
 
     def run(query: tuple) -> None:
-        if deadline is not None:
-            left = deadline - time.monotonic()
-            if left <= 0:
-                raise ABBADeadlineExceeded("The ABBA search ran out of time.")
-            cap = (
-                left if statement_timeout_seconds is None else min(left, statement_timeout_seconds)
-            )
-            cursor.execute(
-                "SELECT set_config('statement_timeout', %s, true)",
-                (f"{max(1, int(cap * 1000))}ms",),
-            )
-        try:
-            cursor.execute(*query)
-        except errors.QueryCanceled as error:
-            if deadline is not None and deadline - time.monotonic() <= 1:
-                raise ABBADeadlineExceeded("The ABBA search ran out of time.") from error
-            raise
+        execute_within(cursor, query, deadline, statement_timeout_seconds)
 
     if geneset_ids:
         run(q.ref_ids_for_genesets(geneset_ids, thresholds))

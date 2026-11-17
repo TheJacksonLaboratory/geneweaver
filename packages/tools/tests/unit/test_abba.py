@@ -284,6 +284,60 @@ def test_seeds_are_capped() -> None:
         ABBAInput(genes=[f"g{i}" for i in range(20_001)])
 
 
+def test_repeats_do_not_count_toward_the_seed_cap() -> None:
+    """Cleaned before the cap is checked: 20,000 genes plus repeats and blanks is 20,000."""
+    genes = [f"g{i}" for i in range(20_000)]
+    seeded = ABBAInput(genes=["G0", " g1 ", "", *genes])
+    assert len(seeded.genes) == 20_000
+    assert seeded.genes[:3] == ["G0", "g1", "g2"]
+
+
+def test_a_seed_gene_that_is_not_text_is_still_refused() -> None:
+    """Cleaning before validation passes anything else on, to be refused as before."""
+    with pytest.raises(ValidationError):
+        ABBAInput(genes=["Drd2", 5])
+
+
+# --- The name lookups spend the search's budget too (PR 40 review, finding 2) ------------
+
+
+def test_the_name_lookups_are_bounded_by_the_deadline() -> None:
+    """Slow metadata reads use up the budget: the third is never sent, the pipeline never runs."""
+    from geneweaver.db.abba import ABBADeadlineExceeded
+
+    connection, rows = _connection()
+    now = [0.0]
+
+    def execute(query, params=None):
+        if "FROM odestatic" in query:
+            now[0] += 150
+
+    rows.execute.side_effect = execute
+    with (
+        patch("geneweaver.db.abba.time.monotonic", lambda: now[0]),
+        patch("geneweaver.db.abba.abba") as pipeline,
+        pytest.raises(ABBADeadlineExceeded),
+    ):
+        abba_search.search(connection, ABBAInput(genes=["Drd2"]), user_id=7, deadline=270.0)
+
+    sent = [c.args for c in rows.execute.call_args_list]
+    timeouts = [args[1][0] for args in sent if "statement_timeout" in args[0]]
+    # The search's own 240 s, then each lookup bounded by what is left: 240 s capped, 120 s.
+    assert timeouts == ["240s", "240000ms", "120000ms"]
+    assert not any("odestatic.attribution" in args[0] for args in sent)
+    pipeline.assert_not_called()
+
+
+def test_without_a_deadline_the_name_lookups_are_unchanged() -> None:
+    """The worker path: one timeout for the transaction, no extra statements."""
+    connection, rows = _connection()
+    with patch("geneweaver.db.abba.abba", return_value=PipelineResult()):
+        abba_search.search(connection, ABBAInput(genes=["Drd2"]), user_id=7)
+    statements = [c.args[0] for c in rows.execute.call_args_list]
+    assert sum("statement_timeout" in sql for sql in statements) == 1
+    assert len(statements) == 4
+
+
 # --- On the worker --------------------------------------------------------------------
 
 pytest.importorskip("temporalio")

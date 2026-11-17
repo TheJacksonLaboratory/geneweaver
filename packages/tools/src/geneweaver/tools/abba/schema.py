@@ -11,6 +11,24 @@ from pydantic import BaseModel, Field, field_validator
 ABBA_TIERS = (1, 2, 3, 4, 5)
 
 
+def clean_genes(genes: list) -> list:
+    """Trim, then drop blanks and repeats ignoring case, keeping each first spelling in order.
+
+    What `ABBAInput` keeps of its seed, and what the API counts against its cap. Anything
+    other than a string is passed through, for validation to refuse.
+    """
+    cleaned, seen = [], set()
+    for item in genes:
+        if not isinstance(item, str):
+            cleaned.append(item)
+            continue
+        gene = item.strip()
+        if gene and gene.lower() not in seen:
+            seen.add(gene.lower())
+            cleaned.append(gene)
+    return cleaned
+
+
 class ABBAInput(ThresholdOptions):
     """What the search runs on: seed genes, legacy's options, and the run's thresholds.
 
@@ -56,16 +74,11 @@ class ABBAInput(ThresholdOptions):
         description="Species to restrict the search to; null searches every species.",
     )
 
-    @field_validator("genes")
+    @field_validator("genes", mode="before")
     @classmethod
-    def _clean_genes(cls, value: list[str]) -> list[str]:
-        """Drop blanks and repeats, keeping the caller's order."""
-        genes, seen = [], set()
-        for gene in (item.strip() for item in value):
-            if gene and gene.lower() not in seen:
-                seen.add(gene.lower())
-                genes.append(gene)
-        return genes
+    def _clean_genes(cls, value: object) -> object:
+        """`clean_genes`, before the 20,000 cap is checked, so repeats do not count to it."""
+        return clean_genes(value) if isinstance(value, list) else value
 
     @field_validator("tiers")
     @classmethod
