@@ -137,14 +137,16 @@ def run_similar_genesets(input_data: dict) -> dict:
     :param input_data: ``{"tool": "similar_genesets", "input": {...}, "identity": {...}}``;
         the identity is signed as ABBA's is.
     """
-    from geneweaver.tools.abba.identity import verified_user_id
+    from geneweaver.tools.abba.identity import signing_secret, verified_user_id
     from geneweaver.tools.similar_genesets.schema import SimilarGenesetsInput
     from geneweaver.tools.similar_genesets.search import search
     from geneweaver.tools.temporal.db import connect
 
     try:
         request = SimilarGenesetsInput(**(input_data.get("input") or {}))
-        user_id = verified_user_id(input_data.get("identity"), os.environ.get("DB_PASSWORD"))
+        user_id = verified_user_id(
+            input_data.get("identity"), signing_secret(), input_data.get("input")
+        )
     except ValueError as error:  # pydantic's ValidationError is a ValueError
         raise ApplicationError(
             f"similar_genesets rejected its input: {error}",

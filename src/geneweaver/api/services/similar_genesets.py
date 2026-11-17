@@ -85,11 +85,17 @@ def prepare(cursor: Cursor, request: SimilarGenesetsInput, user: User | None) ->
 
 
 def envelope_for(prepared: PreparedSimilar) -> dict[str, Any]:
-    """The AsyncTask request: the input, and beside it who the search is for, signed."""
+    """The AsyncTask request: the input, and beside it who the search is for, signed.
+
+    Signed as ABBA's is (`geneweaver.tools.abba.identity`): for this input, expiring, keyed by
+    `ABBA_IDENTITY_SECRET` where set, else the database password, as the worker reads them.
+    """
+    tool_input = prepared.tool_input.model_dump(mode="json")
+    secret = settings.ABBA_IDENTITY_SECRET or settings.DB_PASSWORD
     return {
         "tool": TOOL_NAME,
-        "input": prepared.tool_input.model_dump(mode="json"),
-        "identity": sign(prepared.user_id, settings.DB_PASSWORD),
+        "input": tool_input,
+        "identity": sign(prepared.user_id, secret, tool_input),
     }
 
 
