@@ -1,0 +1,266 @@
+"""CLI to load the database."""
+
+from argparse import Namespace
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, Tuple
+
+import psycopg
+import typer
+from alembic import command
+from alembic.config import Config
+from geneweaver.aon.core.config import config
+from geneweaver.aon.core.database import SessionLocal
+from geneweaver.aon.core.schema_version import (
+    checked_schema_name,
+    get_schema_version,
+    mark_schema_version_load_complete,
+    set_up_sessionmanager,
+)
+from geneweaver.aon.load import agr, geneweaver
+from geneweaver.aon.models import Version
+from rich.progress import Progress
+
+cli = typer.Typer(no_args_is_help=True, rich_markup_mode="rich")
+
+
+@cli.command()
+def get_data(release: Optional[str] = None) -> Tuple[str, str]:
+    """Get the latest Alliance of Genome Resources data."""
+    download_msg = "Downloading Alliance of Genome Resources data: "
+    with Progress(transient=True) as progress:
+        download = progress.add_task(download_msg + "Determining version", total=None)
+        if release is None:
+            release = agr.sources.latest_agr_release()
+
+        progress.update(download, description=download_msg + f"Release: {release}")
+        # AGR's file service gives the file's real path: a release reuses files
+        # uploaded under earlier releases, so guessing the name found nothing.
+        url, md5_sum = agr.sources.agr_orthology_file(release)
+
+        progress.update(download, description=download_msg + "Downloading Data")
+        zipped_file = agr.sources.download_agr_orthology_data(url)
+
+        progress.update(download, description=download_msg + "Unzipping Data")
+        orthology_file = agr.sources.unzip_file(zipped_file, md5_sum=md5_sum)
+        progress.update(download, completed=True, description=download_msg + "Complete")
+
+    orthology_file = Path(orthology_file).resolve()
+
+    typer.echo(orthology_file)
+    return str(orthology_file), release
+
+
+@cli.command()
+def agr_release_exists(release: str) -> bool:
+    """Check if the Alliance of Genome Resources release is already loaded.
+
+    Only a completed load counts. A load that failed leaves its Version row with
+    load_complete=False; counting it made every later run of that release return
+    early, so a release that failed once was never loaded (dev has six such rows,
+    6.0.0a2 to a7). A retry now loads it into a new schema; the failed schema is left
+    in place, unused, since only completed versions are served (G3-837).
+
+    Two runs of one release cannot overlap through Temporal: start-load uses a fixed
+    workflow id, which Temporal will not start twice, and the schedule skips a run
+    while the previous one is still going.
+    """
+    db = SessionLocal()
+    version = (
+        db.query(Version)
+        .filter(
+            Version.agr_version == release,
+            Version.load_complete == True,  # noqa: E712
+        )
+        .first()
+    )
+    db.close()
+    if version:
+        print(f"Release {release} exists in the database.")
+        return True
+    else:
+        print(f"Release {release} does not exist in the database.")
+        return False
+
+
+@cli.command()
+def create_schema(release: str) -> Tuple[str, int]:
+    """Create the database schema."""
+    with Progress() as progress:
+        db_creation_msg = "Creating database schema"
+        progress.add_task(db_creation_msg, total=None)
+
+        schema_version = release.replace(".", "_")
+        timestamp = datetime.now().strftime("%H_%M_%S_%d_%m_%Y")
+
+        # The release comes from AGR or the caller; refuse anything that is not a
+        # plain identifier before it reaches alembic's CREATE SCHEMA.
+        schema_name = checked_schema_name(f"v{schema_version}__{timestamp}")
+
+        # Check before creating anything: this ran after the migrations, so a run for
+        # a loaded release still made an empty schema before stopping.
+        if agr_release_exists(release):
+            raise typer.Exit("Release already exists")
+
+        script_location = (Path(__file__).parent.parent / "alembic").resolve()
+        alembic_cfg = Config(
+            file_=str(script_location / "alembic.ini"),
+            cmd_opts=Namespace(x=[f"tenant={schema_name}"]),
+        )
+        alembic_cfg.set_main_option("script_location", str(script_location))
+        alembic_cfg.set_main_option("sqlalchemy.url", config.DB.URI)
+        command.upgrade(alembic_cfg, "head")
+
+        db = SessionLocal()
+        version = Version(
+            schema_name=schema_name,
+            agr_version=release,
+            load_complete=False,
+        )
+        db.add(version)
+        db.commit()
+        schema_id = version.id
+        db.close()
+
+        print("Created schema: ", schema_name)
+
+        return schema_name, schema_id
+
+
+def load_agr(orthology_file: str, schema_id: int) -> bool:
+    """Load the Alliance of Genome Resources data.
+
+    :param orthology_file: The path to the orthology file.
+    :param schema_id: The schema id.
+    """
+    version = get_schema_version(schema_id)
+    schema_name = version.schema_name
+    session, _ = set_up_sessionmanager(version)
+
+    with Progress() as progress:
+        db_load_msg = "Loading AGR data into the database: "
+        db_load = progress.add_task(db_load_msg + "Adding Species", total=1000)
+
+        db = session()
+
+        agr.load.init_species(db, orthology_file, schema_name)
+        progress.update(
+            db_load, advance=5, description=db_load_msg + "Adding Algorithms"
+        )
+
+        agr.load.add_algorithms(db, orthology_file)
+        progress.update(db_load, advance=5, description=db_load_msg + "Adding Genes")
+
+        agr.load.add_genes(db, orthology_file)
+        progress.update(
+            db_load, advance=5, description=db_load_msg + "Adding Orthologs"
+        )
+
+        for batch in agr.load.get_ortholog_batches(orthology_file, 10000):
+            agr.load.add_ortholog_batch(db, batch)
+            progress.update(db_load, advance=10)
+
+        progress.console.print("AGR data loaded.")
+
+        db.close()
+
+    return True
+
+
+@cli.command()
+def complete(
+    release: Optional[str] = None,
+    orthology_file: Optional[Path] = None,
+    schema_id: Optional[int] = None,
+) -> None:
+    """Load the Alliance of Genome Resources data."""
+    if orthology_file is None:
+        orthology_file, release = get_data(release)
+
+    if not schema_id:
+        schema_name, schema_id = create_schema(release)
+
+    load_agr(orthology_file, schema_id)
+
+    gw(schema_id)
+
+    homology(schema_id)
+
+    mark_schema_version_load_complete(schema_id)
+
+
+@cli.command()
+def gw(schema_id: int) -> bool:
+    """Load data from Geneweaver into the AON database."""
+    version = get_schema_version(schema_id)
+    schema_name = version.schema_name
+    session, _ = set_up_sessionmanager(version)
+
+    gw_load_msg = "Loading Geneweaver data: "
+    with Progress() as progress:
+        gw_load = progress.add_task(gw_load_msg + "Connecting", total=None)
+
+        db = session()
+
+        progress.update(gw_load, description=gw_load_msg + "Adding Genes")
+
+        # Genes
+        with psycopg.connect(
+            config.GW_DB.URI.replace("postgresql+psycopg", "postgresql")
+        ) as connection:
+            with connection.cursor() as cursor:
+                # Genes
+                geneweaver.genes.add_missing_genes(db, cursor)
+
+        progress.update(gw_load, description=gw_load_msg + "Getting Homology")
+
+        # Homologs
+        with (
+            psycopg.connect(
+                config.GW_DB.URI.replace("postgresql+psycopg", "postgresql")
+            ) as gw_conn,
+            psycopg.connect(
+                config.DB.URI.replace("postgresql+psycopg", "postgresql")
+            ) as aon_conn,
+        ):
+            with gw_conn.cursor() as gw_cursor, aon_conn.cursor() as aon_cursor:
+                homologs = geneweaver.homologs.get_homolog_information(
+                    aon_cursor, gw_cursor, aon_schema_name=schema_name
+                )
+
+        progress.update(gw_load, description=gw_load_msg + "Adding Orthologs")
+
+        geneweaver.homologs.add_missing_orthologs(db, homologs)
+
+        progress.update(gw_load, completed=True, description=gw_load_msg + "Complete")
+
+    return True
+
+
+@cli.command()
+def homology(schema_id: int) -> bool:
+    """Load homology data into the AON database.
+
+    :param schema_id: The schema id.
+    :return: True if successful.
+    """
+    version = get_schema_version(schema_id)
+    session, _ = set_up_sessionmanager(version)
+
+    with Progress() as progress:
+        db_load_msg = "Loading data into the database: "
+        db_load = progress.add_task(db_load_msg + "Connecting...", total=None)
+
+        db = session()
+
+        progress.update(
+            db_load, completed=True, description=db_load_msg + "Loading Homology"
+        )
+
+        agr.load.add_homology(db)
+
+        progress.update(db_load, completed=True, description=db_load_msg + "Complete")
+
+        db.close()
+
+    return True

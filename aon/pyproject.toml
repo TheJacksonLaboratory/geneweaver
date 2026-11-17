@@ -1,0 +1,53 @@
+[tool.poetry]
+name = "geneweaver-aon"
+version = "0.3.0"
+description = "A service to do Homology and Orthology mapping."
+authors = ["Sophie Kearney <sophie_kearney1@baylor.edu>", "Alexander Berger <alexander.berger@jax.org>"]
+readme = "README.md"
+license = "Apache-2.0"
+homepage = "https://thejacksonlaboratory.github.io/geneweaver-docs/"
+repository = "https://github.com/TheJacksonLaboratory/geneweaver-aon"
+packages = [
+    { from = "src", include = "geneweaver/aon" }
+]
+
+[tool.poetry.scripts]
+gwaon = "geneweaver.aon.cli.main:cli"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+flask = "2.2.2"
+flask-cors = "3.0.10"
+flask-restx = "1.0.5"
+sqlalchemy = "^2.0.0"
+alembic = "1.9.2"
+requests = "2.28.2"
+python-jose = "3.3.0"
+click = "8.1.3"
+environs = "9.5.0"
+werkzeug = "2.2.2"
+psycopg = {extras = ["pool"], version = "^3.1.18"}
+geneweaver-core = "^0.9.0a2"
+geneweaver-db = "0.3.0a6"
+fastapi = {version = "^0.99.1", extras = ["all"]}
+typer = {extras = ["all"], version = "^0.9.0"}
+temporalio = "^1.5.0"
+
+[tool.poetry.group.dev.dependencies]
+geneweaver-testing = "^0.1.1"
+xmlrunner = "1.7.7"
+notebook = "^7.0.7"
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+
+[tool.ruff]
+select = ['F', 'E', 'W', 'A', 'C90', 'N', 'B', 'ANN', 'D', 'I', 'ERA', 'PD', 'NPY', 'PT']
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["ANN001", "ANN201"]
+"src/*" = ["ANN101"]
+"src/geneweaver/aon/controller/*" = ["B008", "ANN201"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

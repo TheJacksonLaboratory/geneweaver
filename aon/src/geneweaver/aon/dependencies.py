@@ -1,0 +1,139 @@
+"""Dependency injection for the AON FastAPI application."""
+
+import logging
+from contextlib import asynccontextmanager
+from typing import Annotated, Optional, Union
+
+from fastapi import FastAPI, HTTPException, Query, Request
+from geneweaver.aon.core.config import config
+from geneweaver.aon.core.schema_version import (
+    get_latest_schema_version,
+    get_schema_version,
+    get_schema_versions,
+    set_up_sessionmanager,
+    set_up_sessionmanager_by_schema,
+)
+from sqlalchemy.orm import Session, sessionmaker
+
+logger = logging.getLogger("uvicorn.error")
+
+DEFAULT_ALGORITHM_ID = config.DEFAULT_ALGORITHM_ID
+
+Session = Session
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> None:
+    """Open and close the DB connection pool.
+
+    :param app: The FastAPI application (dependency injection).
+    """
+    logger.level = logging.getLevelName(config.LOG_LEVEL)
+
+    logger.info("Setting up DB connection pools.")
+    schema_versions = get_schema_versions()
+    app.session_managers, app.engines = set_up_sessionmanager_by_schema(schema_versions)
+
+    if config.DEFAULT_SCHEMA is None:
+        default_schema_version = get_latest_schema_version()
+        default_version_id = (
+            None if default_schema_version is None else default_schema_version.id
+        )
+        if default_version_id is None:
+            # A new database: `gwaon setup version-table` (the init container) makes
+            # the version table, but nothing is loaded until an AGR load completes.
+            # Start anyway, so the worker and /versions are reachable; data endpoints
+            # fail until a load completes and the API is restarted to pick it up.
+            logger.warning(
+                "No completed AON data load found; no default schema version. "
+                "Run an AGR load, then restart the API."
+            )
+        else:
+            logger.info(
+                f"Using latest schema version as default: {default_version_id}."
+            )
+    else:
+        default_version_id = next(
+            (v.id for v in schema_versions if v.schema_name == config.DEFAULT_SCHEMA),
+            None,
+        )
+        if default_version_id is None:
+            raise RuntimeError(
+                f"DEFAULT_SCHEMA {config.DEFAULT_SCHEMA!r} is not a completed AON "
+                "data load."
+            )
+
+    app.default_schema_version_id = default_version_id
+    app.session = app.session_managers[default_version_id]
+
+    yield
+
+    logger.info("Closing DB connection pools.")
+    for session in app.session_managers.values():
+        session.close_all()
+    for engine, gw_engine in app.engines.values():
+        engine.dispose()
+        gw_engine.dispose()
+
+
+def version_id(version_id: int, request: Request) -> None:
+    """Set the schema version ID for a request."""
+    logger.info(f"Setting schema version to {version_id}.")
+    request.state.schema_version_id = version_id
+
+
+def session(request: Request) -> sessionmaker:
+    """Get a session from the connection pool."""
+    try:
+        schema_version = request.state.schema_version_id
+        # schema_version is the int from the /{version_id} path. This line used to read
+        # schema_version.id, whose AttributeError fell into the default-version branch
+        # below, so every versioned URL (even an unknown version) served the default.
+        logger.info(f"Using schema version {schema_version}.")
+
+        try:
+            _session = request.app.session_managers[schema_version]()
+        except KeyError as e:
+            version = get_schema_version(schema_version)
+            if (
+                version is not None
+                and version.load_complete
+                and version.id not in request.app.session_managers
+            ):
+                (
+                    request.app.session_managers[version.id],
+                    request.app.engines[version.id],
+                ) = set_up_sessionmanager(version)
+                _session = request.app.session_managers[version.id]()
+            else:
+                raise HTTPException(
+                    status_code=404, detail="Schema version not found."
+                ) from e
+    except AttributeError:
+        logger.info("Using default schema version.")
+        _session = request.app.session()
+
+    yield _session
+
+    _session.close()
+
+
+async def paging_parameters(
+    # Non-negative: Postgres rejects a negative OFFSET/LIMIT, which surfaced as a 500.
+    start: Annotated[
+        Optional[int], Query(ge=0, description="The item to start at (the offset).")
+    ] = None,
+    limit: Annotated[
+        int, Query(ge=0, description="The number of records per page.")
+    ] = 100,
+) -> dict[str, Union[int, str]]:
+    """Get the paging parameters.
+
+    :param start: The item to start at (the offset).
+    :param limit: The number of records per page.
+    :return: The paging parameters.
+    """
+    return {
+        "start": start,
+        "limit": limit,
+    }
