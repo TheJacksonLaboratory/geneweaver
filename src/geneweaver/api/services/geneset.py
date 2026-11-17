@@ -384,6 +384,12 @@ def map_geneset_homology(
 ) -> Iterable[dict]:
     """Map geneset homology (result identifier species differs from source).
 
+    One homolog per gene, so the gene set keeps one row per gene. When a gene has several
+    (several orthologs, or several IDs of the requested type), the preferred identifier is
+    kept, then the lowest ``ode_ref_id`` (G3-836): the order
+    `geneweaver.db.gene.get_homolog_ids_by_ode_id` returns them in. Before, the last row
+    returned won, in no defined order.
+
     @param cursor: DB cursor
     @param geneset_value: geneset value
     @param gene_id_type: gene identifier type object
@@ -392,7 +398,9 @@ def map_geneset_homology(
     try:
         ode_ids = [gene["ode_gene_id"] for gene in geneset_value]
         gene_homologs = db_gene.get_homolog_ids_by_ode_id(cursor, ode_ids, gene_id_type)
-        homolog_mapping = {gene["ode_gene_id"]: gene["ode_ref_id"] for gene in gene_homologs}
+        homolog_mapping: dict = {}
+        for gene in gene_homologs:
+            homolog_mapping.setdefault(gene["ode_gene_id"], gene["ode_ref_id"])
 
         for gene in geneset_value:
             gene["gdb_id"] = gene_id_type.value

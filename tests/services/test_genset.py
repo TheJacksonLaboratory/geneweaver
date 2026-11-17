@@ -740,3 +740,22 @@ def test_get_geneset_w_gene_id_type_all_null_ode_ref_id(mock_get_gsv, mock_db_ge
 
     assert "geneset_values" in response
     assert response["geneset_values"] == []
+
+
+@patch("geneweaver.api.services.geneset.db_gene")
+def test_map_geneset_homology_keeps_each_genes_first_homolog(mock_db_gene):
+    """Several homologs of one gene: the first in the database's order is kept (G3-836).
+
+    `get_homolog_ids_by_ode_id` returns them preferred first, then by id; before, the last
+    row returned won, in no defined order.
+    """
+    mock_db_gene.get_homolog_ids_by_ode_id.return_value = [
+        {"ode_gene_id": 1, "ode_ref_id": "ABC2", "ode_pref": True},
+        {"ode_gene_id": 1, "ode_ref_id": "ABC1", "ode_pref": False},
+        {"ode_gene_id": 2, "ode_ref_id": "XYZ1", "ode_pref": False},
+        {"ode_gene_id": 2, "ode_ref_id": "XYZ2", "ode_pref": False},
+    ]
+    values = [{"ode_gene_id": 1}, {"ode_gene_id": 2}, {"ode_gene_id": 3}]
+    mapped = geneset.map_geneset_homology(None, values, GeneIdentifier.GENE_SYMBOL)
+    assert [gene["ode_ref_id"] for gene in mapped] == ["ABC2", "XYZ1", None]
+    assert {gene["gdb_id"] for gene in mapped} == {GeneIdentifier.GENE_SYMBOL.value}
