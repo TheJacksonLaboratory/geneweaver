@@ -23,8 +23,8 @@ class _FakeAsyncTask:
         self.envelope = None
         self.name = None
 
-    def submit(self, envelope, name):
-        self.envelope, self.name = envelope, name
+    def submit(self, envelope, name, description=None):
+        self.envelope, self.name, self.description = envelope, name, description
         return RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status="running")
 
     def wait(self, state, timeout, poll_interval):
@@ -109,9 +109,9 @@ def test_the_connection_is_returned_before_waiting_on_asynctask() -> None:
     seen = []
 
     class Recording(_FakeAsyncTask):
-        def submit(self, envelope, name):
+        def submit(self, envelope, name, description=None):
             seen.append(cursors.open)
-            return super().submit(envelope, name)
+            return super().submit(envelope, name, description)
 
     with _on_asynctask(Recording(result={})):
         service.run_similar_genesets(cursors, SimilarGenesetsRequest(geneset_id=5), Mock(id=7))
@@ -161,3 +161,16 @@ def test_without_asynctask_the_search_runs_here_one_at_a_time() -> None:
                 )
         finally:
             service._running.release()
+
+
+def test_a_search_records_its_request_with_the_run() -> None:
+    """Kept as the run's input description (G3-801), for listing, rerun and the read check."""
+    from geneweaver.api.services.run_record import RunRecord
+
+    fake = _FakeAsyncTask(result={"genesets": []})
+    with _on_asynctask(fake):
+        service.run_similar_genesets(_Cursors(), SimilarGenesetsRequest(geneset_id=5), Mock(id=7))
+
+    record = RunRecord.from_description(fake.description)
+    assert (record.tool, record.geneset_ids) == ("similar_genesets", [5])
+    assert record.request["geneset_id"] == 5

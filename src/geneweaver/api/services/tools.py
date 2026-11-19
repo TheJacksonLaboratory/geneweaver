@@ -38,6 +38,7 @@ from geneweaver.api.schemas.tools import UpSetIntersection, UpSetResult
 from geneweaver.api.services import tool_inputs
 from geneweaver.api.services.asynctask import COMPLETED, AsyncTaskClient
 from geneweaver.api.services.geneset import determine_user_id
+from geneweaver.api.services.run_record import RunRecord
 from geneweaver.api.services.tool_runner import InProcessToolRunner, ToolRunner
 
 
@@ -126,6 +127,8 @@ class PreparedUpSet:
     asynctask: AsyncTaskClient | None
     #: The run's threshold choice, echoed with the result.
     thresholds: dict | None = None
+    #: The request, kept with the run in AsyncTask (`run_record`).
+    record: RunRecord | None = None
 
 
 def prepare_upset(
@@ -160,6 +163,19 @@ def prepare_upset(
         # must route the same way or the most-used run would never reach AsyncTask.
         asynctask=asynctask_client_for(user),
         thresholds=thresholds.threshold_choice(),
+        # As the generic endpoint's parameters, so a rerun goes through `prepare_tool_run`.
+        record=RunRecord(
+            tool="upset",
+            geneset_ids=list(geneset_ids),
+            request={
+                "geneset_ids": list(geneset_ids),
+                "parameters": {
+                    "include_zeros": include_zeros,
+                    "include_homology": include_homology,
+                    **thresholds.model_dump(mode="json", exclude_none=True),
+                },
+            },
+        ),
     )
 
 
@@ -183,7 +199,7 @@ def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> 
             "caveat": None,
             "thresholds": prepared.thresholds,
         }
-        ran = _run_on_asynctask(prepared.asynctask, envelope, shaped)
+        ran = _run_on_asynctask(prepared.asynctask, envelope, shaped, record=prepared.record)
         intersections = [
             (item["genesets"], item["size"]) for item in ran["result"]["intersections"]
         ]
@@ -257,7 +273,23 @@ class ToolRequestError(Exception):
     Raised for every input problem -- a parameter the tool's schema rejects, the wrong
     number of gene sets, an oversized payload -- and always *before* anything is submitted,
     so a bad request never becomes an opaque failed run.
+
+    ``errors`` lists each problem as ``{loc, msg, type}``, FastAPI's validation-error shape,
+    with ``loc`` naming the request field so the UI can show it beside that field
+    (``["body", "parameters", "method"]``); a problem with no one field is at ``["body"]``.
     """
+
+    def __init__(self, message: str, errors: list[dict[str, Any]] | None = None) -> None:
+        """Keep the message, and the per-field problems (one at the body if none given)."""
+        super().__init__(message)
+        self.errors = errors or [{"loc": ["body"], "msg": message, "type": "value_error"}]
+
+
+def parameter_error(key: str, message: str) -> ToolRequestError:
+    """A 422 about one parameter, located at it."""
+    return ToolRequestError(
+        message, [{"loc": ["body", "parameters", key], "msg": message, "type": "value_error"}]
+    )
 
 
 class ToolUnavailable(Exception):
@@ -365,7 +397,7 @@ def flag(parameters: dict[str, Any], key: str, default: bool) -> bool:
         return bool(value)
     if isinstance(value, str) and value.strip().lower() in _TRUE | _FALSE:
         return value.strip().lower() in _TRUE
-    raise ToolRequestError(f"{key} must be true or false, not {value!r}.")
+    raise parameter_error(key, f"{key} must be true or false, not {value!r}.")
 
 
 #: Tools whose memberships merge homologous genes when ``include_homology`` is set --
@@ -500,12 +532,13 @@ def _triclique_input(cursor, geneset_ids, memberships, parameters) -> dict:
     group_b = _gene_set_ids(parameters.get("group_b"))
     stray = sorted(set(group_b) - set(geneset_ids))
     if stray:
-        raise ToolRequestError(f"group_b names gene sets not in the run: {stray}.")
+        raise parameter_error("group_b", f"group_b names gene sets not in the run: {stray}.")
     group_a = [gs for gs in geneset_ids if gs not in set(group_b)]
     if not group_a or not group_b:
-        raise ToolRequestError(
+        raise parameter_error(
+            "group_b",
             "Triclique compares two groups of gene sets: list group B's in group_b, and the "
-            "run's other gene sets are group A. Each group needs at least one."
+            "run's other gene sets are group A. Each group needs at least one.",
         )
     built = {
         "group_a": _as_strings(group_a),
@@ -574,12 +607,12 @@ BOOLEAN_RELATIONS = frozenset({"union", "intersection", "intersect", "except"})
 def _boolean_algebra_input(cursor, geneset_ids, memberships, parameters) -> dict:
     relation = str(parameters.get("relation", "union")).lower()
     if relation not in BOOLEAN_RELATIONS:
-        raise ToolRequestError(
-            f"relation must be one of {sorted(BOOLEAN_RELATIONS)}, not {relation!r}."
+        raise parameter_error(
+            "relation", f"relation must be one of {sorted(BOOLEAN_RELATIONS)}, not {relation!r}."
         )
     at_least = int(parameters.get("at_least", 2))
     if at_least < 1:
-        raise ToolRequestError(f"at_least must be 1 or more, not {at_least}.")
+        raise parameter_error("at_least", f"at_least must be 1 or more, not {at_least}.")
     species = db_tool_input.species_by_geneset(cursor, geneset_ids)
     # Distinct species, not one per gene set: the tool groups genes by species to decide
     # what can be identified across them, and a repeated species id would double-count.
@@ -636,8 +669,9 @@ def _mset_envelope(cursor, geneset_ids, memberships, parameters) -> dict:
     would silently select the opposite test.
     """
     if len(geneset_ids) != 2:
+        message = f"MSET compares exactly two gene sets; {len(geneset_ids)} were given."
         raise ToolRequestError(
-            f"MSET compares exactly two gene sets; {len(geneset_ids)} were given."
+            message, [{"loc": ["body", "geneset_ids"], "msg": message, "type": "value_error"}]
         )
     # The worker's resolver refuses a mixed-species universe; refusing here makes that a
     # 422 now instead of a guaranteed failed run.
@@ -731,17 +765,25 @@ def _check_size(envelope: dict) -> None:
 
 
 def _run_on_asynctask(
-    client: AsyncTaskClient, envelope: dict, shaped: dict[str, Any], label: str | None = None
+    client: AsyncTaskClient,
+    envelope: dict,
+    shaped: dict[str, Any],
+    label: str | None = None,
+    record: RunRecord | None = None,
 ) -> dict[str, Any]:
     """Submit, wait a bounded time, and return the output or raise.
 
     :param label: The run's name in AsyncTask; by default the tool and its gene sets.
+    :param record: The request, stored as the run's input description so the run can be
+        listed, rerun and access-checked on read (`run_record`).
     :raises ToolRunPending: If the run is still going at the deadline.
     :raises ToolRunFailed: If it finished without completing.
     """
     tool_name = shaped["tool"]
     label = label or f"{tool_name}: " + ", ".join(map(str, shaped["geneset_ids"]))
-    state = client.submit(envelope, name=label)
+    state = client.submit(
+        envelope, name=label, description=record.to_description() if record else None
+    )
     state = client.wait(
         state,
         timeout=settings.ASYNCTASK_WAIT_SECONDS,
@@ -770,21 +812,58 @@ class PreparedRun:
     envelope: dict[str, Any] | None = None
     tool: Any = None
     tool_input: Any = None
+    #: The request, kept with the run in AsyncTask (`run_record`).
+    record: RunRecord | None = None
 
 
-def _validated(tool_name: str, build: Callable[[], Any]) -> Any:
+def _request_location(field: object, parameters: dict[str, Any]) -> list[Any]:
+    """Where in the request a tool-input field came from, for a 422's ``loc``.
+
+    A parameter the caller sent, or a run threshold option, is at ``parameters.<name>``;
+    the inputs resolved from the gene sets (their ids, memberships, pairs) at
+    ``geneset_ids``; anything else at the body.
+    """
+    if field in parameters or field in ThresholdOptions.model_fields:
+        return ["body", "parameters", field]
+    if isinstance(field, str) and any(
+        part in field for part in ("geneset", "membership", "pairs", "group")
+    ):
+        return ["body", "geneset_ids"]
+    return ["body"]
+
+
+def _validated(
+    tool_name: str,
+    build: Callable[[], Any],
+    parameters: dict[str, Any] | None = None,
+    model_loc: list[Any] | None = None,
+) -> Any:
     """Build a tool's input, turning any rejection of the request into a 422.
 
     Covers pydantic's ValidationError and the builders' own conversions (`int("x")`), both
     ValueErrors, plus the TypeError a null parameter raises -- all of them the caller's to
-    fix, none of them a server conflict.
+    fix, none of them a server conflict. Each pydantic error is located at the request field
+    it came from (`_request_location`); an error about the model as a whole, which pydantic
+    locates nowhere, at ``model_loc`` (the body by default).
     """
     try:
         return build()
     except ToolRequestError:
         raise
     except ValidationError as error:
-        raise ToolRequestError(f"Invalid input for {tool_name}: {error}") from error
+        errors = [
+            {
+                "loc": (
+                    _request_location(item["loc"][0], parameters or {}) + list(item["loc"][1:])
+                    if item["loc"]
+                    else list(model_loc or ["body"])
+                ),
+                "msg": item["msg"],
+                "type": item["type"],
+            }
+            for item in error.errors()
+        ]
+        raise ToolRequestError(f"Invalid input for {tool_name}: {error}", errors) from error
     except (ValueError, TypeError) as error:
         raise ToolRequestError(f"Invalid parameter for {tool_name}: {error}") from error
 
@@ -830,7 +909,12 @@ def prepare_tool_run(
     include_homology = tool_name in HOMOLOGY_TOOLS and _validated(
         tool_name, lambda: flag(parameters, "include_homology", False)
     )
-    thresholds = _validated(tool_name, lambda: run_thresholds(parameters))
+    thresholds = _validated(
+        tool_name,
+        lambda: run_thresholds(parameters),
+        parameters,
+        model_loc=["body", "parameters", "threshold"],
+    )
     memberships = resolve_memberships(
         cursor, geneset_ids, include_homology, membership_of(thresholds)
     )
@@ -841,6 +925,11 @@ def prepare_tool_run(
         "caveat": TOOL_CAVEATS.get(tool_name),
         "thresholds": thresholds.threshold_choice(),
     }
+    record = RunRecord(
+        tool=tool_name,
+        geneset_ids=list(geneset_ids),
+        request={"geneset_ids": list(geneset_ids), "parameters": parameters},
+    )
 
     if tool_name in ASYNCTASK_ONLY_BUILDERS:
         envelope = _validated(
@@ -848,9 +937,10 @@ def prepare_tool_run(
             lambda: ASYNCTASK_ONLY_BUILDERS[tool_name](
                 cursor, geneset_ids, memberships, parameters
             ),
+            parameters,
         )
         _check_size(envelope)
-        return PreparedRun(shaped=shaped, asynctask=asynctask, envelope=envelope)
+        return PreparedRun(shaped=shaped, asynctask=asynctask, envelope=envelope, record=record)
 
     tool = load_tool(tool_name)
     tool_input = _validated(
@@ -858,13 +948,14 @@ def prepare_tool_run(
         lambda: tool.tool_input(
             **INPUT_BUILDERS[tool_name](cursor, geneset_ids, memberships, parameters)
         ),
+        parameters,
     )
     if asynctask is None:
         return PreparedRun(shaped=shaped, asynctask=None, tool=tool, tool_input=tool_input)
     # JSON mode so database types (Decimal, tuples) cross the wire as the schema expects.
     envelope = {"tool": tool_name, "input": tool_input.model_dump(mode="json")}
     _check_size(envelope)
-    return PreparedRun(shaped=shaped, asynctask=asynctask, envelope=envelope)
+    return PreparedRun(shaped=shaped, asynctask=asynctask, envelope=envelope, record=record)
 
 
 def execute_tool_run(prepared: PreparedRun, runner: ToolRunner | None = None) -> dict[str, Any]:
@@ -885,7 +976,9 @@ def execute_tool_run(prepared: PreparedRun, runner: ToolRunner | None = None) ->
     return {
         **prepared.shaped,
         "executed_by": "asynctask",
-        **_run_on_asynctask(prepared.asynctask, prepared.envelope, prepared.shaped),
+        **_run_on_asynctask(
+            prepared.asynctask, prepared.envelope, prepared.shaped, record=prepared.record
+        ),
     }
 
 
@@ -913,26 +1006,3 @@ def run_tool(
     """
     prepared = prepare_tool_run(cursor, tool_name, geneset_ids, user=user, parameters=parameters)
     return execute_tool_run(prepared, runner)
-
-
-def get_tool_run(run_id: int, user: User | None) -> dict[str, Any]:
-    """A tool run's status, and its output once complete.
-
-    Ownership is AsyncTask's check, made as this user: another user's run comes back 403
-    from AsyncTask and is passed through as such.
-
-    :raises SignInRequired: If the caller is anonymous.
-    :raises ToolUnavailable: If this environment does not use AsyncTask.
-    """
-    if not asynctask_configured():
-        raise ToolUnavailable("Tool runs are not sent to AsyncTask in this environment.")
-    client = asynctask_client_for(user)
-    if client is None:
-        raise SignInRequired("Reading a tool run requires signing in.")
-    state = client.get(run_id)
-    return {
-        "run_id": state.run_id,
-        "status": state.status,
-        "workflow_id": state.workflow_id,
-        "result": state.result,
-    }
