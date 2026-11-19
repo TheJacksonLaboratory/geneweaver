@@ -48,6 +48,7 @@ from geneweaver.api.schemas.auth import User
 from geneweaver.api.schemas.tools import ABBARequest
 from geneweaver.api.services.asynctask import AsyncTaskClient
 from geneweaver.api.services.geneset import determine_user_id
+from geneweaver.api.services.run_record import RunRecord
 from geneweaver.api.services.tools import (
     ToolRequestError,
     _check_size,
@@ -210,7 +211,17 @@ def run_abba(
         return {
             **prepared.shaped,
             "executed_by": "asynctask",
-            **_run_on_asynctask(prepared.asynctask, envelope, prepared.shaped, label=label),
+            **_run_on_asynctask(
+                prepared.asynctask,
+                envelope,
+                prepared.shaped,
+                label=label,
+                record=RunRecord(
+                    tool=TOOL_NAME,
+                    geneset_ids=list(request.geneset_ids),
+                    request=request.model_dump(mode="json"),
+                ),
+            ),
         }
 
     if not _running.acquire(blocking=False):

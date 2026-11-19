@@ -160,14 +160,20 @@ def test_in_process_runner_runs_the_real_tool() -> None:
     assert sizes == {("1", "2"): 1, ("1",): 1}
 
 
+CATALOGUE_ROWS = "geneweaver.api.services.tool_catalog.db_tool.get_tools"
+
+
 def test_list_tools_reports_every_registered_tool(client) -> None:
     """The Analyze page builds its picker from this, so it must be complete."""
-    response = client.get("/api/tools")
+    with patch(CATALOGUE_ROWS, return_value=[]):
+        response = client.get("/api/tools")
 
     assert response.status_code == 200
     tools = response.json()["object"]["tools"]
-    # The eleven registered tools, plus ABBA's search.
+    # The eleven registered tools, plus ABBA's search. Not Similar gene sets: the Analyze
+    # page offers every listed tool, and that one runs from a gene set's page.
     assert len(tools) == 12
+    assert "similar_genesets" not in tools
     for missing_before in (
         "boolean_algebra",
         "combine",
@@ -305,7 +311,7 @@ def test_run_tool_maps_asynctask_outcomes(client, raised, expected) -> None:
 def test_get_tool_run_returns_the_run(client) -> None:
     """Get tool run returns the run."""
     run = {"run_id": 11, "status": "completed", "workflow_id": "w", "result": {"nodes": []}}
-    with patch("geneweaver.api.services.tools.get_tool_run", return_value=run):
+    with patch("geneweaver.api.services.tool_runs.read_run", return_value=run):
         response = client.get("/api/tools/runs/11")
 
     assert response.status_code == 200
@@ -317,7 +323,7 @@ def test_get_tool_run_passes_through_an_ownership_refusal(client) -> None:
     from geneweaver.api.services.asynctask import AsyncTaskError
 
     with patch(
-        "geneweaver.api.services.tools.get_tool_run",
+        "geneweaver.api.services.tool_runs.read_run",
         side_effect=AsyncTaskError("Unauthorized.", status_code=403),
     ):
         response = client.get("/api/tools/runs/11")
@@ -633,5 +639,189 @@ def test_abba_endpoint_answers_busy_with_retry_after(client) -> None:
 
 def test_tool_list_offers_abba(client) -> None:
     """The page builds its picker from GET /tools, so ABBA must be listed."""
-    tools = client.get("/api/tools").json()["object"]["tools"]
+    with patch(CATALOGUE_ROWS, return_value=[]):
+        tools = client.get("/api/tools").json()["object"]["tools"]
     assert tools["abba"]["available"] is True
+
+
+def test_a_tool_is_described_for_its_form(client) -> None:
+    """`GET /tools/{tool}`: fields from `tool_param`, not mistaken for a run route."""
+    rows = [
+        {
+            "tool_classname": "DBSCAN",
+            "tp_name": "DBSCAN_minPts",
+            "tp_description": "minPts",
+            "tp_default": "1",
+            "tp_options": '["1"]',
+            "tp_seltype": "select",
+            "tp_visible": True,
+        }
+    ]
+    with (
+        patch(CATALOGUE_ROWS, return_value=[]),
+        patch("geneweaver.api.services.tool_catalog.db_tool.get_tool_params", return_value=rows),
+    ):
+        response = client.get("/api/tools/dbscan")
+
+    assert response.status_code == 200
+    (field,) = response.json()["object"]["parameters"]
+    assert (field["key"], field["default"]) == ("min_points", 1)
+    with patch(CATALOGUE_ROWS, return_value=[]):
+        assert client.get("/api/tools/nope").status_code == 404
+
+
+# --- field-level request errors (G3-801) ---------------------------------------------------
+
+
+def test_a_request_error_names_the_field_as_well_as_the_reason(client) -> None:
+    """`detail` stays the message the page shows; `errors` locates each problem."""
+    from geneweaver.api.services import tools as tool_service
+
+    error = tool_service.parameter_error("method", "method must be one of ward, average.")
+    with (
+        patch("geneweaver.api.services.tools.prepare_tool_run", side_effect=error),
+        patch("geneweaver.api.services.tools.precheck_run"),
+    ):
+        response = client.post("/api/tools/jaccard_clustering", json={"geneset_ids": [1, 2]})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["detail"] == "method must be one of ward, average."
+    assert body["errors"] == [
+        {
+            "loc": ["body", "parameters", "method"],
+            "msg": "method must be one of ward, average.",
+            "type": "value_error",
+        }
+    ]
+
+
+# --- run management (G3-801) ---------------------------------------------------------------
+
+RUNS = "geneweaver.api.services.tool_runs"
+
+
+def test_runs_are_listed_a_page_at_a_time(client) -> None:
+    """Limit and offset reach the service; the listing is returned as is."""
+    listing = {"runs": [], "total": 0, "expired": 0, "retention_days": 90}
+    with patch(f"{RUNS}.list_runs", return_value=listing) as list_runs:
+        response = client.get("/api/tools/runs?limit=10&offset=20")
+
+    assert response.status_code == 200
+    assert response.json()["object"] == listing
+    assert list_runs.call_args.kwargs == {"limit": 10, "offset": 20}
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
+def test_a_page_out_of_bounds_is_refused(client, query) -> None:
+    """At most 100 runs a page."""
+    assert client.get(f"/api/tools/runs?{query}").status_code == 422
+
+
+def test_runs_are_404_where_runs_are_not_stored(client) -> None:
+    """No AsyncTask, no stored runs: every run route answers 404."""
+    with patch(f"{RUNS}.asynctask_configured", return_value=False):
+        assert client.get("/api/tools/runs").status_code == 404
+        assert client.delete("/api/tools/runs/5").status_code == 404
+        assert client.post("/api/tools/runs/5/rerun").status_code == 404
+
+
+def test_a_run_is_deleted(client) -> None:
+    """The run id is echoed back."""
+    with patch(f"{RUNS}.delete_run") as delete:
+        response = client.delete("/api/tools/runs/5")
+
+    assert response.status_code == 200
+    assert response.json()["object"] == {"deleted": 5}
+    assert delete.call_args.args[1] == 5
+
+
+def test_old_runs_are_deleted_in_bulk(client) -> None:
+    """How many were deleted; the age is required and at least a day."""
+    with patch(f"{RUNS}.delete_runs_older_than", return_value=3) as delete:
+        response = client.delete("/api/tools/runs?older_than_days=30")
+
+    assert response.json()["object"] == {"deleted": 3}
+    assert delete.call_args.args[1] == 30
+    assert client.delete("/api/tools/runs").status_code == 422
+    assert client.delete("/api/tools/runs?older_than_days=0").status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("raised", "expected"),
+    [
+        ("not_found", 404),
+        ("not_readable", 409),
+        ("unauthorized", 403),
+        ("asynctask_403", 403),
+        ("sign_in", 401),
+    ],
+)
+def test_reading_a_run_maps_each_refusal(client, raised, expected) -> None:
+    """Another plugin's run, an unverifiable result, lost access, AsyncTask's owner check."""
+    from geneweaver.api.core.exceptions import UnauthorizedException
+    from geneweaver.api.services import tool_runs as run_service
+    from geneweaver.api.services import tools as tool_service
+    from geneweaver.api.services.asynctask import AsyncTaskError
+
+    errors = {
+        "not_found": run_service.RunNotFound("not ours"),
+        "not_readable": run_service.RunNotReadable("cannot check"),
+        "unauthorized": UnauthorizedException(detail="Not authorized to read gene set(s): 5"),
+        "asynctask_403": AsyncTaskError("Unauthorized.", status_code=403),
+        "sign_in": tool_service.SignInRequired("sign in"),
+    }
+    with patch(f"{RUNS}.read_run", side_effect=errors[raised]):
+        assert client.get("/api/tools/runs/5").status_code == expected
+
+
+@pytest.mark.parametrize(
+    ("raised", "expected"),
+    [("pending", 202), ("not_rerunnable", 409), ("not_found", 404), ("bad_request", 422)],
+)
+def test_a_rerun_answers_as_a_run_does(client, raised, expected) -> None:
+    """202 with the new run id while it runs; 409 for a run with no recorded request."""
+    from geneweaver.api.services import tool_runs as run_service
+    from geneweaver.api.services import tools as tool_service
+
+    pending = tool_service.ToolRunPending(PENDING_SHAPE, 12, "running")
+    pending.body["rerun_of"] = 5
+    errors = {
+        "pending": pending,
+        "not_rerunnable": run_service.RunNotRerunnable("no record"),
+        "not_found": run_service.RunNotFound("not ours"),
+        "bad_request": tool_service.ToolRequestError("no longer validates"),
+    }
+    with patch(f"{RUNS}.rerun", side_effect=errors[raised]):
+        response = client.post("/api/tools/runs/5/rerun")
+
+    assert response.status_code == expected
+    if raised == "pending":
+        assert response.json()["object"]["rerun_of"] == 5
+        assert response.json()["object"]["run_id"] == 12
+
+
+def test_a_completed_run_downloads_as_an_attachment(client) -> None:
+    """Read through the same checks as `GET /tools/runs/{id}`, then rendered."""
+    run = {"status": "completed", "tool": "upset", "result": {"intersections": []}}
+    with patch(f"{RUNS}.read_run", return_value=run):
+        response = client.get("/api/tools/runs/5/download?format=csv")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert 'filename="upset-run5-intersections.csv"' in response.headers["content-disposition"]
+    assert response.text == "genesets,size\n"
+
+
+@pytest.mark.parametrize(
+    ("run", "query", "expected"),
+    [
+        ({"status": "running", "tool": "upset", "result": None}, "format=json", 409),
+        ({"status": "completed", "tool": "upset", "result": {}}, "format=newick", 422),
+        ({"status": "completed", "tool": "upset", "result": {}}, "format=pdf", 422),
+    ],
+)
+def test_a_download_that_cannot_be_given_is_refused(client, run, query, expected) -> None:
+    """Not finished yet, or a format the tool does not offer."""
+    with patch(f"{RUNS}.read_run", return_value=run):
+        assert client.get(f"/api/tools/runs/5/download?{query}").status_code == expected

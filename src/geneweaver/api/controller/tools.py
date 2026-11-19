@@ -26,6 +26,17 @@ in-process and synchronously.
 The user is resolved through `optional_full_user_released`, and the gene-set access gate
 lives in the service layer so it cannot be skipped by a future endpoint.
 
+**Run management** (G3-801): `GET /tools/runs` lists the caller's runs, `DELETE` removes one
+or all older than N days, `POST /tools/runs/{id}/rerun` submits one again, and
+`GET /tools/runs/{id}/download` gives its result as a file -- all on AsyncTask, as the user, with
+the run's gene sets access-checked again on read (`services/tool_runs.py`). `GET /tools/{tool}`
+describes a tool's form fields from `odestatic.tool_param`.
+
+**The legacy `/api/tool/get/{file,link,status}` routes are not served here.** They take the
+legacy API key in the URL (or no credential, for status) and point at public result files; v3
+runs live in AsyncTask behind the user's Auth0 token and produce data, not files. Legacy keeps
+serving them for legacy runs (docs/v3/V3_ROADMAP_AND_GAP.md, A4).
+
 **No database connection is held across a run.** Each run endpoint does its database work
 (user lookup, access gate, input resolution) on short-lived cursors from
 `deps.cursor_factory`, returns them to the pool, and only then executes -- which may mean
@@ -34,11 +45,12 @@ that wait would let eight concurrent runs exhaust the pool for every other reque
 """
 
 from collections.abc import Callable
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Security, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Security, status
 from fastapi import Response as HTTPResponse
-from jax.apiutils import Response
+from fastapi.responses import JSONResponse
+from jax.apiutils import Response, StreamingResponse
 
 from geneweaver.api import dependencies as deps
 from geneweaver.api.schemas.auth import UserInternal
@@ -50,6 +62,9 @@ from geneweaver.api.schemas.tools import (
 )
 from geneweaver.api.services import abba as abba_service
 from geneweaver.api.services import similar_genesets as similar_service
+from geneweaver.api.services import tool_catalog
+from geneweaver.api.services import tool_downloads as download_service
+from geneweaver.api.services import tool_runs as run_service
 from geneweaver.api.services import tools as tool_service
 from geneweaver.api.services.asynctask import AsyncTaskError
 
@@ -164,19 +179,17 @@ def run_similar_genesets(
 
 
 @router.get("")
-def list_tools() -> Response:
-    """List every registered tool and whether it can be run through this API.
+def list_tools(cursor: deps.Cursor = Depends(deps.cursor)) -> Response:
+    """List every tool the API runs, whether it can run here, and what it is.
 
     Served from the registry rather than a hand-maintained list so the front end cannot
     drift from what is actually installed -- the Analyze page previously offered five of
-    the nine tools, which understated the port.
+    the nine tools, which understated the port. Each entry adds the tool's name,
+    description and order from `odestatic.tool`, as legacy's tool list showed them;
+    `GET /tools/{tool}` gives its form fields. ABBA and Similar gene sets are database
+    searches with their own endpoints, not registered tools, and are listed too.
     """
-    tools = tool_service.tool_availability()
-    # ABBA is a database search with its own endpoint (`POST /tools/abba`), not a registered
-    # tool, so the registry does not list it; it is added here so the page offers it. It runs
-    # wherever the API can reach the database, so it is always available.
-    tools["abba"] = {"available": True, "reason": None, "caveat": None}
-    return Response(object={"tools": tools})
+    return Response(object={"tools": tool_catalog.catalogue(cursor)})
 
 
 def _asynctask_http_error(error: AsyncTaskError) -> HTTPException:
@@ -189,6 +202,18 @@ def _asynctask_http_error(error: AsyncTaskError) -> HTTPException:
     if error.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND):
         return HTTPException(status_code=error.status_code, detail=str(error))
     return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error))
+
+
+def _request_error(error: "tool_service.ToolRequestError") -> JSONResponse:
+    """A 422 the UI can both show and attach to fields.
+
+    ``detail`` stays the whole message, as the Analyze page reads it; ``errors`` adds one
+    ``{loc, msg, type}`` per problem, in FastAPI's own validation-error shape, with ``loc``
+    naming the request field -- e.g. ``["body", "parameters", "method"]``.
+    """
+    # A literal: Starlette renamed the 422 constant, and the old name now warns while the new
+    # one is missing from releases `fastapi>=0.115.5` still allows.
+    return JSONResponse(status_code=422, content={"detail": str(error), "errors": error.errors})
 
 
 def _run_and_map(http_response: HTTPResponse, run: Callable[[], Any]) -> Response:
@@ -204,9 +229,11 @@ def _run_and_map(http_response: HTTPResponse, run: Callable[[], Any]) -> Respons
     except tool_service.SignInRequired as error:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
     except tool_service.ToolRequestError as error:
-        # A literal: Starlette renamed the 422 constant, and the old name now warns while
-        # the new one is missing from releases `fastapi>=0.115.5` still allows.
-        raise HTTPException(status_code=422, detail=str(error)) from error
+        return _request_error(error)
+    except run_service.RunNotFound as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except run_service.RunNotRerunnable as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
     except tool_service.ToolRunPending as pending:
         http_response.status_code = status.HTTP_202_ACCEPTED
         return Response(object=pending.body)
@@ -221,24 +248,164 @@ def _run_and_map(http_response: HTTPResponse, run: Callable[[], Any]) -> Respons
         raise _asynctask_http_error(error) from error
 
 
+def _map_run_errors(read: Callable[[], Any]) -> Any:
+    """Run a run-management call and translate how it can fail into its HTTP status."""
+    try:
+        return read()
+    except tool_service.SignInRequired as error:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
+    except run_service.RunNotFound as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (run_service.RunNotReadable, run_service.RunNotRerunnable) as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+    except AsyncTaskError as error:
+        raise _asynctask_http_error(error) from error
+
+
+RunId = Annotated[int, Path(description="A run id returned by POST /tools/{tool}.")]
+
+
+@router.get("/runs")
+def list_tool_runs(
+    limit: Annotated[int, Query(ge=1, le=100, description="Runs per page.")] = 25,
+    offset: Annotated[int, Query(ge=0, description="Runs to skip, newest first.")] = 0,
+    user: UserInternal = Security(deps.optional_full_user_released),
+) -> Response:
+    """List the caller's analysis runs, newest first.
+
+    Each run gives its tool, gene sets and name, its status, whether it has `stalled` (still
+    running past `TOOL_RUN_STALLED_AFTER_MINUTES`, which a run never recovers from) and what
+    is known of a `problem`, and whether it `can_rerun`. Runs older than
+    `TOOL_RUN_RETENTION_DAYS` are deleted first; `expired` says how many. Responds 401 if the
+    caller is not signed in, 404 where runs are not sent to AsyncTask.
+    """
+    return Response(
+        object=_map_run_errors(lambda: run_service.list_runs(user, limit=limit, offset=offset))
+    )
+
+
+@router.delete("/runs")
+def delete_old_tool_runs(
+    older_than_days: Annotated[
+        int,
+        Query(ge=1, description="Delete the caller's runs started more than this many days ago."),
+    ],
+    user: UserInternal = Security(deps.optional_full_user_released),
+) -> Response:
+    """Delete every run of the caller's older than `older_than_days`, running ones included.
+
+    Returns how many were deleted.
+    """
+    deleted = _map_run_errors(lambda: run_service.delete_runs_older_than(user, older_than_days))
+    return Response(object={"deleted": deleted})
+
+
 @router.get("/runs/{run_id}")
 def get_tool_run(
-    run_id: Annotated[int, Path(description="A run id returned by POST /tools/{tool}.")],
+    run_id: RunId,
     user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
 ) -> Response:
     """Poll a tool run submitted to AsyncTask.
 
-    `status` is one of running, completed, failed, cancelled, terminated or timed_out;
-    `result` is the tool's output once completed. Only the run's owner may read it.
+    `status` is one of running, completed, failed, cancelled, terminated or timed_out, with
+    `stalled` and `problem` as in `GET /tools/runs`; `result` is the tool's output once
+    completed. Only the run's owner may read it (AsyncTask's check, 403), and only while they
+    can still read its gene sets (403): an ABBA or Similar gene sets result leaves out gene
+    sets they can no longer read, counted in `withheld_genesets`. Responds 404 for a run that
+    is not a GeneWeaver tool run, and 409 for a completed run from before runs recorded their
+    gene sets, whose access cannot be checked.
+    """
+    return Response(
+        object=_map_run_errors(lambda: run_service.read_run(open_cursor, user, run_id))
+    )
+
+
+@router.get("/runs/{run_id}/download")
+def download_tool_run(
+    run_id: RunId,
+    format: Annotated[
+        Literal["json", "csv", "tsv", "odemat", "newick"],
+        Query(description="json for every tool; csv/tsv for tables; odemat (Combine); newick."),
+    ] = "json",
+    table: Annotated[
+        str | None,
+        Query(description="For csv/tsv: which of the tool's tables; its first if unset."),
+    ] = None,
+    user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
+) -> StreamingResponse:
+    """Download a completed run's result as a file.
+
+    JSON for every tool. CSV or TSV for each tool's tables -- e.g. Jaccard Similarity's pairs,
+    Similar gene sets' list, PhenomeMap's nodes, ABBA's `genesets` and `genes` -- with
+    `table` choosing one. Combine's gene x gene-set matrix also as legacy's `odemat`, and
+    the clustering tree as `newick`. Charts download as SVG from the page itself, as legacy's
+    figures did from the browser. The same checks as reading the run apply; 409 if it has
+    not completed, 422 for a format or table the tool does not have.
+    """
+    run = _map_run_errors(lambda: run_service.read_run(open_cursor, user, run_id))
+    if run["status"] != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Run {run_id} is {run['status']}; only a completed run has a result.",
+        )
+    try:
+        download = download_service.render(run["tool"], run["result"], format, table, run_id)
+    except download_service.DownloadError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    return StreamingResponse(
+        iter([download.content]),
+        media_type=download.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{download.filename}"'},
+    )
+
+
+@router.delete("/runs/{run_id}")
+def delete_tool_run(
+    run_id: RunId,
+    user: UserInternal = Security(deps.optional_full_user_released),
+) -> Response:
+    """Delete one of the caller's runs and its result, cancelling it first if it is running."""
+    _map_run_errors(lambda: run_service.delete_run(user, run_id))
+    return Response(object={"deleted": run_id})
+
+
+@router.post("/runs/{run_id}/rerun")
+def rerun_tool_run(
+    run_id: RunId,
+    http_response: HTTPResponse,
+    user: UserInternal = Security(deps.optional_full_user_released),
+    open_cursor: deps.CursorFactory = Depends(deps.cursor_factory),
+) -> Response:
+    """Run a past run's request again, as a new run.
+
+    The gene sets go through the access gate and are resolved again, and the run is signed
+    afresh. Answers as `POST /tools/{tool}` does, with `rerun_of` naming the original; 409 if
+    the run is from before runs recorded their request.
+    """
+    return _run_and_map(http_response, lambda: run_service.rerun(open_cursor, user, run_id))
+
+
+@router.get("/{tool}")
+def describe_tool(
+    tool: Annotated[str, Path(description="Tool name, as listed by GET /tools.")],
+    cursor: deps.Cursor = Depends(deps.cursor),
+) -> Response:
+    """One tool and the form fields it takes, from `odestatic.tool` and `tool_param`.
+
+    `parameters` are its options under the names and types `POST /tools/{tool}` takes --
+    each with a label, description, default, choices, widget and the legacy option it came
+    from -- so a page can build the form from data. `unsupported_legacy_parameters` lists
+    the legacy options v3 does not offer, with why. `thresholds` is the JSON Schema of the
+    run threshold options every tool accepts in `parameters`. 404 for an unknown tool.
+
+    Declared after the `/runs` routes, which `{tool}` would otherwise take.
     """
     try:
-        return Response(object=tool_service.get_tool_run(run_id, user))
-    except tool_service.SignInRequired as error:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
-    except tool_service.ToolUnavailable as error:
+        return Response(object=tool_catalog.describe(cursor, tool))
+    except tool_service.UnknownToolError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
-    except AsyncTaskError as error:
-        raise _asynctask_http_error(error) from error
 
 
 @router.post("/{tool}")

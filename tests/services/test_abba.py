@@ -27,8 +27,8 @@ class _FakeAsyncTask:
         self.envelope = None
         self.name = None
 
-    def submit(self, envelope, name):
-        self.envelope, self.name = envelope, name
+    def submit(self, envelope, name, description=None):
+        self.envelope, self.name, self.description = envelope, name, description
         return RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status="running")
 
     def wait(self, state, timeout, poll_interval):
@@ -319,9 +319,9 @@ def test_the_connection_is_returned_before_waiting_on_asynctask() -> None:
     seen = []
 
     class Recording(_FakeAsyncTask):
-        def submit(self, envelope, name):
+        def submit(self, envelope, name, description=None):
             seen.append(cursors.open)
-            return super().submit(envelope, name)
+            return super().submit(envelope, name, description)
 
     with _on_asynctask(Recording(result={})):
         service.run_abba(cursors, ABBARequest(genes=["Drd2"]), Mock(id=7))
@@ -451,3 +451,20 @@ def test_request_cleans_genes_case_insensitively() -> None:
 def test_request_accepts_gene_sets_alone() -> None:
     """A gene set alone is a valid seed."""
     assert ABBARequest(geneset_ids=[167180]).genes == []
+
+
+def test_a_search_records_its_request_with_the_run() -> None:
+    """Kept as the run's input description (G3-801): seed gene sets and the request itself."""
+    from geneweaver.api.services.run_record import RunRecord
+
+    cursors = _Cursors(seed_rows=[("Th",)])
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake):
+        service.run_abba(cursors, ABBARequest(genes=["Drd2"], geneset_ids=[5]), Mock(id=7))
+
+    record = RunRecord.from_description(fake.description)
+    assert (record.tool, record.geneset_ids) == ("abba", [5])
+    assert record.request["genes"] == ["Drd2"]
+    assert record.request["geneset_ids"] == [5]
+    # The request, not the signed envelope: a rerun is signed again.
+    assert "identity" not in record.request

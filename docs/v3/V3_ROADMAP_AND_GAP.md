@@ -588,6 +588,24 @@ non-idempotent publish twice; a crashing tool yields a failed job with a diagnos
 than a hung "running" row; unauthorized users cannot poll or fetch another user's run; a
 legacy-shaped status poll against a v3 run returns the documented compatibility contract.
 
+**Decided 2026-11-19 (G3-801): v3 does not serve `/api/tool/get/{file,link,status}`.** Read from
+the code, the contract cannot be carried over, and serving a look-alike would mislead:
+
+- `file` and `link` authenticate with the legacy API key as a **path segment** and compare it to
+  `production.result.usr_id`; `status` takes no credential at all and reads Celery state. v3 runs
+  live in AsyncTask, which only accepts the user's Auth0 bearer token and checks its own owner, so
+  an API key cannot act on a v3 run.
+- They redirect to, or return, a path under the public `/results/` directory. v3 runs produce data,
+  not files, and nothing is written to a results directory.
+- Legacy keeps serving them for legacy runs. v3 runs are read with `GET /api/tools/runs/{id}` and
+  downloaded with `GET /api/tools/runs/{id}/download` (JSON for every tool, CSV/TSV tables, Combine's
+  `.odemat`, the clustering tree as Newick), both owner- and access-checked.
+
+So the `res_runhash` mapping, `production.result` back-fill and per-run result files described in
+A4 above are not built. Retention is applied per user (`TOOL_RUN_RETENTION_DAYS`, on listing), since
+AsyncTask keeps runs forever and only their owner may delete one; failure reasons and a workflow
+timeout need AsyncTask itself (see G3-801).
+
 ### A5. Tool run endpoints — G3-801
 
 `POST /api/tools/{tool}`, `GET /api/tools/runs/{id}`, run listing/cancel/delete/rerun, result

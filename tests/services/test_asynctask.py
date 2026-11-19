@@ -237,3 +237,122 @@ def test_a_submission_that_times_out_is_still_an_error() -> None:
 
     with pytest.raises(AsyncTaskError, match="timed out"):
         client.submit({"tool": "upset", "input": {}}, name="x")
+
+
+# --- run management calls (G3-801) ---------------------------------------------------------
+
+
+def _collection(status_code: int, data) -> Mock:
+    response = Mock(status_code=status_code, text="")
+    response.json.return_value = {"data": data, "paging": None, "info": None, "errors": None}
+    return response
+
+
+def _confirmed(status_code: int = 200, value=True) -> Mock:
+    response = Mock(status_code=status_code, text="")
+    response.json.return_value = {"object": value, "info": None, "errors": None}
+    return response
+
+
+def test_submit_keeps_the_request_as_the_inputs_description() -> None:
+    """AsyncTask stores `description` with the input and returns it from GET /inputs."""
+    client, session = _client(_response(200, {"id": 7, "workflow_id": "w", "status": 1}))
+
+    client.submit({"tool": "upset", "input": {}}, name="upset: 1, 2", description="{...}")
+
+    assert session.request.call_args.kwargs["json"]["description"] == "{...}"
+
+
+def test_runs_and_inputs_are_read_from_collection_envelopes() -> None:
+    """The list endpoints answer `{data: [...]}`, not `{object: ...}`."""
+    client, session = _client(
+        _collection(200, [{"id": 1, "workflow_id": "ats:GeneWeaverTools:x", "status": 2}]),
+        _collection(200, [{"id": 4, "name": "n", "description": None}]),
+    )
+
+    assert client.list_runs()[0]["id"] == 1
+    assert client.list_inputs()[0]["id"] == 4
+    assert [call.args[1] for call in session.request.call_args_list] == [
+        "http://ats/asynctask/api/runs",
+        "http://ats/asynctask/api/inputs",
+    ]
+
+
+@pytest.mark.parametrize("body", [{"data": None}, {"data": [1]}, ["x"], {"object": {}}])
+def test_a_malformed_collection_is_an_asynctask_error(body) -> None:
+    """Anything but a list of objects under `data` is outside the contract."""
+    response = Mock(status_code=200, text="")
+    response.json.return_value = body
+    client, _ = _client(response)
+
+    with pytest.raises(AsyncTaskError, match="collection"):
+        client.list_runs()
+
+
+def test_the_owner_unchecked_workflow_id_filter_is_never_used() -> None:
+    """At 5f2acea, GET /runs?workflow_id= returns a run without checking its owner."""
+    client, session = _client(_collection(200, []))
+
+    client.list_runs()
+
+    assert "workflow_id" not in session.request.call_args.args[1]
+    assert "params" not in session.request.call_args.kwargs
+
+
+def test_a_runs_result_id_is_none_when_it_has_no_result() -> None:
+    """AsyncTask answers 404 for a run with no stored result."""
+    client, _ = _client(
+        _response(200, {"id": 31, "run_id": 7, "values": {}}),
+        _response(404, text='{"detail":"Result not found."}'),
+    )
+
+    assert client.result_id(7) == 31
+    assert client.result_id(8) is None
+
+
+def test_deletes_and_cancel_use_asynctasks_routes() -> None:
+    """Cancel answers the run; deletes answer `object: true`."""
+    client, session = _client(
+        _response(200, {"id": 7, "workflow_id": "w", "status": 4}),
+        _confirmed(),
+        _confirmed(),
+    )
+
+    assert client.cancel(7).status == "cancelled"
+    client.delete_result(31)
+    client.delete_run(7)
+
+    assert [call.args for call in session.request.call_args_list] == [
+        ("POST", "http://ats/asynctask/api/runs/7/cancel"),
+        ("DELETE", "http://ats/asynctask/api/results/31"),
+        ("DELETE", "http://ats/asynctask/api/runs/7"),
+    ]
+
+
+@pytest.mark.parametrize("value", [False, None, {"ok": True}])
+def test_a_delete_not_confirmed_is_an_asynctask_error(value) -> None:
+    """Only `object: true` is a delete done."""
+    client, _ = _client(_confirmed(value=value))
+
+    with pytest.raises(AsyncTaskError, match="did not confirm"):
+        client.delete_run(7)
+
+
+def test_a_refused_delete_keeps_asynctasks_status() -> None:
+    """E.g. 400 for a run that still has its result, so the caller can tell."""
+    client, _ = _client(_response(400, text='{"detail":"it has associated results"}'))
+
+    with pytest.raises(AsyncTaskError) as raised:
+        client.delete_run(7)
+    assert raised.value.status_code == 400
+
+
+def test_a_runs_start_time_is_kept() -> None:
+    """`init_time` dates a run for stall detection and retention."""
+    client, _ = _client(
+        _response(
+            200, {"id": 7, "workflow_id": "w", "status": 1, "init_time": "2026-11-19T10:00:00"}
+        )
+    )
+
+    assert client.get_status(7).init_time == "2026-11-19T10:00:00"

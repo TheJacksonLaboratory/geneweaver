@@ -314,10 +314,11 @@ class _FakeAsyncTask:
         self.final.result = result
         self.envelope = None
 
-    def submit(self, envelope, name):
+    def submit(self, envelope, name, description=None):
         from geneweaver.api.services.asynctask import RunState
 
         self.envelope = envelope
+        self.description = description
         return RunState(run_id=11, workflow_id="ats:GeneWeaverTools:x", status="running")
 
     def wait(self, state, timeout, poll_interval):
@@ -586,37 +587,6 @@ class TestNativeTools:
         assert off["upset"]["available"] and on["upset"]["available"]
 
 
-class TestGetToolRun:
-    """Polling a run by id."""
-
-    def test_requires_asynctask(self):
-        """Requires AsyncTask to be configured."""
-        with (
-            patch("geneweaver.api.services.tools.asynctask_configured", return_value=False),
-            pytest.raises(tool_service.ToolUnavailable),
-        ):
-            tool_service.get_tool_run(11, user=Mock())
-
-    def test_requires_sign_in(self):
-        """Requires sign in."""
-        configured, client = _on_asynctask(None)
-        with configured, client, pytest.raises(tool_service.SignInRequired):
-            tool_service.get_tool_run(11, user=None)
-
-    def test_returns_status_and_result(self):
-        """Returns status and result."""
-        configured, client = _on_asynctask(_FakeAsyncTask(result={"nodes": []}))
-        with configured, client:
-            run = tool_service.get_tool_run(11, user=Mock())
-
-        assert run == {
-            "run_id": 11,
-            "status": "completed",
-            "workflow_id": "ats:GeneWeaverTools:x",
-            "result": {"nodes": []},
-        }
-
-
 class TestAsyncTaskClientFor:
     """Whether a request gets an AsyncTask client, and as whom."""
 
@@ -652,6 +622,43 @@ class TestRunUpsetRouting:
         assert [(i.geneset_ids, i.size) for i in result.intersections] == [(["1", "2"], 1)]
         assert fake.envelope["tool"] == "upset"
         assert fake.envelope["input"]["geneset_ids"] == ["1", "2"]
+
+    def test_an_upset_run_records_its_request_as_the_generic_endpoints(
+        self, mock_cursor, readable_memberships
+    ):
+        """Kept with the run (G3-801), in the shape `prepare_tool_run` takes for a rerun."""
+        from geneweaver.api.services.run_record import RunRecord
+
+        fake = _FakeAsyncTask(result={"intersections": []})
+        configured, client = _on_asynctask(fake)
+        with configured, client:
+            tool_service.run_upset(
+                mock_cursor, [1, 2], user=Mock(), include_zeros=True, include_homology=False
+            )
+
+        record = RunRecord.from_description(fake.description)
+        assert record.tool == "upset"
+        assert record.geneset_ids == [1, 2]
+        assert record.request["geneset_ids"] == [1, 2]
+        assert record.request["parameters"]["include_zeros"] is True
+        assert record.request["parameters"]["threshold"] == "none"
+
+    def test_a_generic_run_records_its_tool_gene_sets_and_parameters(
+        self, mock_cursor, readable_memberships
+    ):
+        """The request as sent, not the resolved envelope: a rerun resolves it again."""
+        from geneweaver.api.services.run_record import RunRecord
+
+        fake = _FakeAsyncTask(result={"intersections": []})
+        configured, client = _on_asynctask(fake)
+        with configured, client:
+            tool_service.run_tool(
+                mock_cursor, "upset", [1, 2], user=Mock(), parameters={"include_zeros": "yes"}
+            )
+
+        record = RunRecord.from_description(fake.description)
+        assert (record.tool, record.geneset_ids) == ("upset", [1, 2])
+        assert record.request == {"geneset_ids": [1, 2], "parameters": {"include_zeros": "yes"}}
 
     def test_anonymous_upset_is_refused(self, mock_cursor, readable_memberships):
         """No user means no analysis, on either path."""
@@ -1157,3 +1164,60 @@ class TestOptions:
                 mock_cursor, [1, 2], MEMBERSHIPS, {"pairwise_deletion": False}
             )
         platforms.assert_not_called()
+
+
+class TestFieldLocatedErrors:
+    """A 422's problems point at the request field they came from (G3-801)."""
+
+    def test_a_rejected_parameter_is_located_at_it(self):
+        """pydantic's error on a tool input field the caller sent."""
+        from geneweaver.tools.jaccard_clustering.schema import JaccardClusteringInput
+
+        with pytest.raises(tool_service.ToolRequestError) as raised:
+            tool_service._validated(
+                "jaccard_clustering",
+                lambda: JaccardClusteringInput(method="nope"),
+                {"method": "nope"},
+            )
+
+        (error,) = raised.value.errors
+        assert error["loc"] == ["body", "parameters", "method"]
+        assert error["type"] == "literal_error"
+
+    def test_a_threshold_choice_refused_as_a_whole_is_at_threshold(self):
+        """A "custom" choice with no cutoff fails the model, which pydantic locates nowhere."""
+        with pytest.raises(tool_service.ToolRequestError) as raised:
+            tool_service._validated(
+                "upset",
+                lambda: tool_service.run_thresholds({"threshold": "custom"}),
+                {"threshold": "custom"},
+                model_loc=["body", "parameters", "threshold"],
+            )
+
+        assert raised.value.errors[0]["loc"] == ["body", "parameters", "threshold"]
+
+    def test_a_threshold_cutoff_out_of_range_is_at_that_cutoff(self):
+        """A field of the threshold options, whether or not the caller sent it by name."""
+        with pytest.raises(tool_service.ToolRequestError) as raised:
+            tool_service._validated(
+                "upset",
+                lambda: tool_service.run_thresholds({"threshold": "custom", "p_value": 2}),
+                {"threshold": "custom", "p_value": 2},
+            )
+
+        assert raised.value.errors[0]["loc"] == ["body", "parameters", "p_value"]
+
+    def test_a_flag_names_its_parameter(self):
+        """`flag` refuses a value it cannot read as yes or no, at that parameter."""
+        with pytest.raises(tool_service.ToolRequestError) as raised:
+            tool_service.flag({"include_homology": "maybe"}, "include_homology", False)
+
+        assert raised.value.errors[0]["loc"] == ["body", "parameters", "include_homology"]
+
+    def test_a_problem_with_no_one_field_is_at_the_body(self):
+        """The default: still a list, so the UI handles one shape."""
+        error = tool_service.ToolRequestError("payload too large")
+
+        assert error.errors == [
+            {"loc": ["body"], "msg": "payload too large", "type": "value_error"}
+        ]

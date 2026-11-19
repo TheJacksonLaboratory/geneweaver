@@ -34,6 +34,7 @@ from geneweaver.api.core.config import settings
 from geneweaver.api.schemas.auth import User
 from geneweaver.api.services.asynctask import AsyncTaskClient
 from geneweaver.api.services.geneset import determine_user_id
+from geneweaver.api.services.run_record import RunRecord
 from geneweaver.api.services.tools import (
     _check_size,
     _gate_geneset_access,
@@ -129,6 +130,11 @@ def run_similar_genesets(
                 envelope,
                 prepared.shaped,
                 label=f"{TOOL_NAME}: GS{request.geneset_id}",
+                record=RunRecord(
+                    tool=TOOL_NAME,
+                    geneset_ids=[request.geneset_id],
+                    request=request.model_dump(mode="json"),
+                ),
             ),
         }
 
