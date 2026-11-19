@@ -91,6 +91,7 @@ class GeneweaverAPIConfig(BaseSettings):
     # A user's tool runs older than this are deleted, as that user, when they list their runs
     # (G3-801). AsyncTask keeps runs forever and only their owner may delete one, so this is
     # per user: runs of a user who never lists again stay until AsyncTask expires them itself.
+    # 0 or less turns expiry off.
     TOOL_RUN_RETENTION_DAYS: int = 90
     # A run still running after this is reported as stalled. The tool activity is bounded at
     # 30 min (plus 1 min to be picked up), but a run whose workflow never starts -- AsyncTask's

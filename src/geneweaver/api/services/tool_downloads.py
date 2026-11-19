@@ -110,7 +110,12 @@ def _boolean_algebra(result: dict) -> dict[str, Table]:
     """
     groups = result.get("bool_results") or {}
     relation = str(result.get("relation", "")).lower()
-    nested = {"intersection": "intersect_results", "except": "bool_except"}.get(relation)
+    # "intersect" is the API's other spelling of intersection (`BOOLEAN_RELATIONS`).
+    nested = {
+        "intersection": "intersect_results",
+        "intersect": "intersect_results",
+        "except": "bool_except",
+    }.get(relation)
     if nested:
         keys = {
             str(key) for by_species in (result.get(nested) or {}).values() for key in by_species

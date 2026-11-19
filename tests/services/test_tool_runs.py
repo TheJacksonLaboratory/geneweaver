@@ -31,6 +31,11 @@ def _record(tool="upset", geneset_ids=(1, 2), **request) -> str:
     return RunRecord(tool=tool, geneset_ids=list(geneset_ids), request=request).to_description()
 
 
+def _record_tool(description: str | None) -> str:
+    record = RunRecord.from_description(description)
+    return record.tool if record else "upset"
+
+
 class _FakeAsyncTask:
     """AsyncTask's run API for one user, in memory."""
 
@@ -63,7 +68,8 @@ class _FakeAsyncTask:
             "id": 100 + run_id,
             "name": f"run {run_id}",
             "description": description,
-            "values": values or {"tool": "upset", "input": {}},
+            # As submitted: the envelope names the record's tool, as the API writes them.
+            "values": values or {"tool": _record_tool(description), "input": {}},
         }
         if status == "completed":
             self.results[run_id] = {"id": 900 + run_id, "values": result or {"ok": run_id}}
@@ -464,3 +470,76 @@ def test_a_recorded_request_that_no_longer_validates_is_a_request_error(fake) ->
 
     with pytest.raises(ToolRequestError):
         service.rerun(_open_cursor, Mock(), 1)
+
+
+# --- the record is the owner's to edit; the envelope is not (PR 43 review) ------------------
+
+
+def test_a_record_rewritten_to_another_tool_is_ignored(fake) -> None:
+    """Patched to claim UpSet with no gene sets, a Similar gene sets run is still gated."""
+    forged = RunRecord("upset", [], {"geneset_ids": [], "parameters": {}}).to_description()
+    fake.add(
+        1,
+        description=forged,
+        values={"tool": "similar_genesets", "input": {"geneset_id": 5}},
+        result={"genesets": [{"gs_id": 10}]},
+    )
+    with (
+        patch.object(service, "_gate_geneset_access") as gate,
+        patch.object(service.db_geneset, "readable_ids", return_value=set()),
+    ):
+        run = service.read_run(_open_cursor, Mock(), 1, now=NOW)
+
+    assert gate.call_args.args[2] == [5]
+    assert (run["tool"], run["can_rerun"]) == ("similar_genesets", False)
+    assert run["result"]["genesets"] == []
+    with pytest.raises(service.RunNotRerunnable):
+        service.rerun(_open_cursor, Mock(), 1)
+
+
+def test_the_envelopes_gene_sets_are_checked_whatever_the_record_says(fake) -> None:
+    """A record that leaves gene sets out does not narrow the check."""
+    fake.add(
+        1,
+        description=RunRecord("upset", [5], {}).to_description(),
+        values={"tool": "upset", "input": {"geneset_ids": ["5", "6"]}},
+    )
+    with patch.object(service, "_gate_geneset_access") as gate:
+        service.read_run(_open_cursor, Mock(), 1, now=NOW)
+
+    assert gate.call_args.args[2] == [5, 6]
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        ({"tool": "mset", "input": {}, "universe": {"geneset_ids": [5, 6]}}, [5, 6]),
+        ({"tool": "phenome_map", "input": {"gene_sets": {"7": ["a"], "5": ["b"]}}}, [5, 7]),
+        ({"tool": "triclique", "input": {"group_a": ["5"], "group_b": ["6", "7"]}}, [5, 6, 7]),
+        ({"tool": "similar_genesets", "input": {"geneset_id": 9}}, [9]),
+        ({"tool": "abba", "input": {"genes": ["Drd2"]}}, []),
+        ({"tool": "upset", "input": {}}, None),
+    ],
+)
+def test_each_tools_envelope_shows_its_gene_sets(values, expected) -> None:
+    """Runs from before records, still being polled, read by their envelope."""
+    assert service._from_envelope({"values": values})[1] == expected
+
+
+def test_a_rerun_gets_the_endpoints_own_request_checks(fake) -> None:
+    """One gene set, or a repeat, is refused as `POST /tools/{tool}` would refuse it."""
+    record = RunRecord("upset", [5], {"geneset_ids": [5, 5], "parameters": {}})
+    fake.add(1, description=record.to_description())
+
+    with pytest.raises(ToolRequestError):
+        service.rerun(_open_cursor, Mock(), 1)
+
+
+def test_retention_of_zero_days_expires_nothing(fake) -> None:
+    """Off, not "delete everything" on every listing."""
+    fake.add(1, started=_at(days=400))
+    with patch.object(service.settings, "TOOL_RUN_RETENTION_DAYS", 0):
+        listed = service.list_runs(Mock(), now=NOW)
+
+    assert [run["run_id"] for run in listed["runs"]] == [1]
+    assert listed["expired"] == 0

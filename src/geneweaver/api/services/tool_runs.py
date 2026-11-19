@@ -239,8 +239,10 @@ def list_runs(
     now = now or datetime.now(timezone.utc)
     client = client_for(user)
     runs = _our_runs(client)
-    cutoff = now - timedelta(days=settings.TOOL_RUN_RETENTION_DAYS)
-    expired = _delete_all(client, _older_than(runs, cutoff), strict=False)
+    expired: set[int] = set()
+    if settings.TOOL_RUN_RETENTION_DAYS > 0:
+        cutoff = now - timedelta(days=settings.TOOL_RUN_RETENTION_DAYS)
+        expired = _delete_all(client, _older_than(runs, cutoff), strict=False)
     runs = [run for run in runs if run["id"] not in expired]
     inputs = {
         item["id"]: item
@@ -299,21 +301,43 @@ def _unwrap(values: object) -> dict[str, Any]:
 
 
 def _from_envelope(values: object) -> tuple[str | None, list[int] | None]:
-    """For a run with no record: its tool and gene sets, as far as its envelope shows them.
+    """The tool and gene sets a run's envelope shows -- the input as submitted.
 
-    Registered tools carry ``input.geneset_ids`` (as strings); Similar gene sets carries
-    ``input.geneset_id``; ABBA reads no gene sets as input once its seeds are expanded.
+    Unlike the record, which is the input's *description* and so editable by its owner
+    (AsyncTask's ``PATCH /inputs/{id}``), the envelope cannot be changed after submission,
+    so it is what the tool and, where it carries them, the gene sets are taken from. Where
+    each tool keeps its gene sets: ``input.geneset_ids`` (most, as strings), ``group_a`` and
+    ``group_b`` (Triclique), the keys of ``gene_sets`` (PhenomeMap), ``universe.geneset_ids``
+    (MSET), ``input.geneset_id`` (Similar gene sets). ABBA's seed gene sets are expanded to
+    genes before submission, so it shows none.
+
+    :return: ``(tool, gene sets)``; gene sets None where the envelope shows none to check.
     """
     envelope = _unwrap(values)
     tool = envelope.get("tool") if isinstance(envelope.get("tool"), str) else None
     tool_input = envelope.get("input") if isinstance(envelope.get("input"), dict) else {}
-    if tool == "abba":
-        return tool, []
-    ids = tool_input.get("geneset_ids")
-    if ids is None and isinstance(tool_input.get("geneset_id"), int):
-        ids = [tool_input["geneset_id"]]
+    universe = envelope.get("universe") if isinstance(envelope.get("universe"), dict) else {}
+    found: list[Any] = []
+    shown = False
+    for value in (
+        tool_input.get("geneset_ids"),
+        tool_input.get("group_a"),
+        tool_input.get("group_b"),
+        universe.get("geneset_ids"),
+    ):
+        if isinstance(value, list):
+            found += value
+            shown = True
+    if isinstance(tool_input.get("gene_sets"), dict):
+        found += list(tool_input["gene_sets"])
+        shown = True
+    if isinstance(tool_input.get("geneset_id"), int):
+        found.append(tool_input["geneset_id"])
+        shown = True
+    if not shown:
+        return tool, [] if tool == "abba" else None
     try:
-        return tool, [int(i) for i in ids] if isinstance(ids, list) and ids else None
+        return tool, sorted({int(value) for value in found})
     except (TypeError, ValueError):
         return tool, None
 
@@ -339,6 +363,19 @@ def _withhold_unreadable(
     return {**result, "genesets": kept}, len(rows) - len(kept)
 
 
+def _consistent_record(run_input: dict[str, Any]) -> RunRecord | None:
+    """The run's record, unless its tool disagrees with the envelope's.
+
+    The record is an editable description; one claiming another tool than the run's own
+    envelope (an edited one) is ignored rather than trusted.
+    """
+    record = RunRecord.from_description(run_input.get("description"))
+    tool, _ = _from_envelope(run_input.get("values"))
+    if record is not None and tool is not None and record.tool != tool:
+        return None
+    return record
+
+
 def read_run(
     open_cursor: OpenCursor, user: User | None, run_id: int, now: datetime | None = None
 ) -> dict[str, Any]:
@@ -352,11 +389,15 @@ def read_run(
     client = client_for(user)
     state = _our_run(client, run_id)
     run_input = client.get_run_input(run_id)
-    record = RunRecord.from_description(run_input.get("description"))
-    if record is not None:
-        tool, geneset_ids = record.tool, record.geneset_ids
+    record = _consistent_record(run_input)
+    tool, shown = _from_envelope(run_input.get("values"))
+    tool = tool or (record.tool if record else None)
+    # Every gene set either names: the envelope's cannot be edited, the record's (ABBA's seed
+    # gene sets, which its envelope no longer shows) can, but only by the run's owner.
+    if shown is None and record is None:
+        geneset_ids = None
     else:
-        tool, geneset_ids = _from_envelope(run_input.get("values"))
+        geneset_ids = sorted(set(shown or []) | set(record.geneset_ids if record else []))
     stalled, problem = run_problem(state.status, state.init_time, now)
     body: dict[str, Any] = {
         "run_id": state.run_id,
@@ -396,14 +437,17 @@ def rerun(open_cursor: OpenCursor, user: User | None, run_id: int) -> dict[str, 
     :raises RunNotFound: If it is not a GeneWeaver tool run.
     :raises RunNotRerunnable: If the run kept no record of its request.
     :raises ToolRequestError: If the recorded request no longer validates.
+
+    A registered tool's rerun answers in the generic shape, as ``POST /tools/{tool}`` does,
+    UpSet's included (not ``POST /tools/upset``'s typed `UpSetResult`).
     """
-    from geneweaver.api.schemas.tools import ABBARequest, SimilarGenesetsRequest
+    from geneweaver.api.schemas.tools import ABBARequest, SimilarGenesetsRequest, ToolRunRequest
     from geneweaver.api.services import abba as abba_service
     from geneweaver.api.services import similar_genesets as similar_service
 
     client = client_for(user)
     _our_run(client, run_id)
-    record = RunRecord.from_description(client.get_run_input(run_id).get("description"))
+    record = _consistent_record(client.get_run_input(run_id))
     if record is None:
         raise RunNotRerunnable(
             f"Run {run_id} was submitted before runs recorded their request, so it cannot be "
@@ -419,14 +463,16 @@ def rerun(open_cursor: OpenCursor, user: User | None, run_id: int) -> dict[str, 
                 open_cursor, SimilarGenesetsRequest.model_validate(record.request), user
             )
         else:
+            # The endpoint's own request checks (2 to 20 distinct gene sets), as a new run gets.
+            request = ToolRunRequest.model_validate(record.request)
             precheck_run(record.tool, user)
             with open_cursor() as cursor:
                 prepared = prepare_tool_run(
                     cursor,
                     tool_name=record.tool,
-                    geneset_ids=list(record.request.get("geneset_ids") or record.geneset_ids),
+                    geneset_ids=list(request.geneset_ids),
                     user=user,
-                    parameters=dict(record.request.get("parameters") or {}),
+                    parameters=dict(request.parameters),
                 )
             output = execute_tool_run(prepared)
     except ValidationError as error:

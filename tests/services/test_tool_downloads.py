@@ -210,3 +210,24 @@ def test_every_tool_downloads_as_json() -> None:
     assert downloads.formats_for(None) == ["json"]
     assert downloads.formats_for("combine") == ["json", "csv", "tsv", "odemat"]
     assert downloads.formats_for("jaccard_clustering") == ["json", "newick"]
+
+
+def test_intersect_is_read_as_intersection() -> None:
+    """The API's other spelling: the tool titles it "Intersect", not "Intersection"."""
+    homologs = [
+        [None, 1, "Drd2", 1, 5, "A"],
+        [None, 1, "Drd2", 1, 6, "B"],
+        [None, 2, "Th", 1, 5, "A"],
+    ]
+    tool_input = BooleanAlgebraInput(
+        relation="intersect",
+        at_least=2,
+        geneset_ids=[5, 6],
+        species_ids=[1],
+        homolog_data=homologs,
+    )
+    result = _stored(BooleanAlgebra(), tool_input)
+
+    rows = _rows(downloads.render("boolean_algebra", result, "csv", None, 1))
+
+    assert [row[1] for row in rows[1:]] == ["Drd2"]
