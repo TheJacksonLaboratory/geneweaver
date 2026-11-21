@@ -2,9 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 import { arc, schemeTableau10 } from 'd3';
 
@@ -33,31 +33,32 @@ const CLUSTER = '#CBD5E1';
   `,
 })
 export class SunburstComponent implements OnChanges {
-  @Input({ required: true }) model!: DendrogramNode;
-  @Input() method = '';
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<DendrogramNode>();
+  readonly method = input('');
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
 
   ngOnChanges(): void {
     this.draw();
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'jaccard-clustering-sunburst.svg');
+    downloadSvg(this.chart().nativeElement, 'jaccard-clustering-sunburst.svg');
   }
 
   private draw(): void {
-    const arcs = sunburstArcs(this.model);
-    const host = this.chart.nativeElement;
+    const arcs = sunburstArcs(this.model());
+    const host = this.chart().nativeElement;
     const size = 560;
     const outer = 190;
     const hole = 48;
     const rings = Math.max(1, ...arcs.map((a) => a.depth));
     const ring = (outer - hole) / rings;
+    const method = this.method();
     const svg = freshSvg(
       host,
       size,
       size,
-      `Sunburst of the gene set clustering${this.method ? ` (${this.method} linkage)` : ''}`,
+      `Sunburst of the gene set clustering${method ? ` (${method} linkage)` : ''}`,
     );
     const tooltip = new ChartTooltip(host);
     const g = svg.append('g').attr('transform', `translate(${size / 2},${size / 2})`);
@@ -99,7 +100,7 @@ export class SunburstComponent implements OnChanges {
 
     // At rest the centre stands for the root, which has no ring of its own: where all join.
     const restTitle = 'All join at similarity';
-    const restValue = (1 - this.model.height).toFixed(3);
+    const restValue = (1 - this.model().height).toFixed(3);
     const centreTitle = g
       .append('text')
       .attr('text-anchor', 'middle')

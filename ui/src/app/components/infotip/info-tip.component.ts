@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { TooltipModule } from 'primeng/tooltip';
 
 /**
@@ -14,8 +14,8 @@ import { TooltipModule } from 'primeng/tooltip';
       class="info-tip pi pi-info-circle"
       tabindex="0"
       role="img"
-      [attr.aria-label]="label ? label + ': ' + text : text"
-      [pTooltip]="text"
+      [attr.aria-label]="label() ? label() + ': ' + text() : text()"
+      [pTooltip]="text()"
       tooltipEvent="both"
       tooltipPosition="top"
       tooltipStyleClass="info-tip-tooltip"
@@ -47,7 +47,7 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class InfoTipComponent {
   /** What the tooltip says. */
-  @Input({ required: true }) text = '';
+  readonly text = input.required<string>();
   /** The control it explains, so a screen reader announces "Species: Only gene sets ...". */
-  @Input() label = '';
+  readonly label = input('');
 }

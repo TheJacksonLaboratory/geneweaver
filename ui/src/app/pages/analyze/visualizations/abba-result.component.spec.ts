@@ -13,7 +13,7 @@ describe('AbbaResultComponent', () => {
 
   function build(result: AbbaResult = ABBA_FIXTURE) {
     const fixture = TestBed.createComponent(AbbaResultComponent);
-    fixture.componentInstance.result = result;
+    fixture.componentRef.setInput('result', result);
     fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     return fixture;

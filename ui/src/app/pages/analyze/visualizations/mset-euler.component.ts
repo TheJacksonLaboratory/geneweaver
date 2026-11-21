@@ -3,9 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 
 import { ChartTooltip, downloadSvg, freshSvg, interactive, MUTED, percent } from './chart-utils';
@@ -40,8 +40,8 @@ interface Disc {
     <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
-    <h4 class="mb-2">Shared genes ({{ genes.length }})</h4>
-    @if (genes.length) {
+    <h4 class="mb-2">Shared genes ({{ genes().length }})</h4>
+    @if (genes().length) {
       <label class="block text-sm mb-1" for="mset-gene-filter">Filter shared genes</label>
       <input pInputText
         id="mset-gene-filter"
@@ -51,7 +51,7 @@ interface Disc {
         (input)="filter = $any($event.target).value"
         />
       <p class="text-sm text-color-secondary m-0 mb-1" aria-live="polite">
-        {{ shown.length === genes.length ? genes.length + ' genes' : shown.length + ' of ' + genes.length + ' genes' }}
+        {{ shown.length === genes().length ? genes().length + ' genes' : shown.length + ' of ' + genes().length + ' genes' }}
       </p>
       <ul class="genes list-none p-2 m-0 surface-50 border-round text-sm">
         @for (gene of shown; track gene) {
@@ -65,14 +65,14 @@ interface Disc {
   ],
 })
 export class MsetEulerComponent implements OnChanges {
-  @Input({ required: true }) model!: MsetEuler;
-  @Input() genes: string[] = [];
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<MsetEuler>();
+  readonly genes = input<string[]>([]);
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
   filter = '';
 
   get shown(): string[] {
     const term = this.filter.trim().toLowerCase();
-    return term ? this.genes.filter((gene) => gene.toLowerCase().includes(term)) : this.genes;
+    return term ? this.genes().filter((gene) => gene.toLowerCase().includes(term)) : this.genes();
   }
 
   ngOnChanges(): void {
@@ -80,12 +80,12 @@ export class MsetEulerComponent implements OnChanges {
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'mset-size-comparison.svg');
+    downloadSvg(this.chart().nativeElement, 'mset-size-comparison.svg');
   }
 
   private draw(): void {
-    const m = this.model;
-    const host = this.chart.nativeElement;
+    const m = this.model();
+    const host = this.chart().nativeElement;
     const width = 620;
     const height = 300;
     const universeR = 120;

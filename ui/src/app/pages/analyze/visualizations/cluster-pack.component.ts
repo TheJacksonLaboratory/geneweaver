@@ -4,10 +4,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
   inject,
+  input,
+  viewChild
 } from '@angular/core';
 import { hierarchy, HierarchyCircularNode, pack, schemeTableau10, select } from 'd3';
 
@@ -52,8 +52,8 @@ import { ButtonModule } from 'primeng/button';
 export class ClusterPackComponent implements OnChanges {
   private changes = inject(ChangeDetectorRef);
 
-  @Input({ required: true }) model!: PackNode;
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<PackNode>();
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
   /** Whether a cluster is zoomed into; shows the keyboard-reachable way back out. */
   zoomed = false;
   private zoom: (target: HierarchyCircularNode<PackNode> | null) => void = () => undefined;
@@ -67,18 +67,18 @@ export class ClusterPackComponent implements OnChanges {
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'dbscan-clusters.svg');
+    downloadSvg(this.chart().nativeElement, 'dbscan-clusters.svg');
   }
 
   private draw(): void {
-    const host = this.chart.nativeElement;
+    const host = this.chart().nativeElement;
     const size = 560;
     const svg = freshSvg(host, size, size, 'DBSCAN gene clusters');
     const tooltip = new ChartTooltip(host);
     const root = pack<PackNode>()
       .size([size - 4, size - 4])
       .padding((node) => (node.depth === 0 ? 10 : 2))(
-      hierarchy(this.model).sum((node) => node.value ?? 0),
+      hierarchy(this.model()).sum((node) => node.value ?? 0),
     );
     const colour = (index: number) => schemeTableau10[index % schemeTableau10.length];
     const clusters = root.children ?? [];

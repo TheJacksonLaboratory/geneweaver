@@ -1,5 +1,5 @@
 import { JsonPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnChanges, input } from '@angular/core';
 
 import { AbbaResultComponent } from './abba-result.component';
 import { ClusterPackComponent } from './cluster-pack.component';
@@ -100,7 +100,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
         label="Result view"
       ></app-view-switch>
     }
-    @switch (tool) {
+    @switch (tool()) {
       @case ('upset') {
         @if (upset) {
           <app-upset-plot [model]="upset"></app-upset-plot>
@@ -135,10 +135,10 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
       @case ('jaccard_clustering') {
         @if (tree) {
           @if (view === 'dendrogram') {
-            <app-dendrogram [model]="tree" [method]="result['method']"></app-dendrogram>
+            <app-dendrogram [model]="tree" [method]="result()['method']"></app-dendrogram>
           }
           @if (view === 'sunburst') {
-            <app-sunburst [model]="tree" [method]="result['method']"></app-sunburst>
+            <app-sunburst [model]="tree" [method]="result()['method']"></app-sunburst>
           }
         } @else {
           <p>Nothing to draw for this result.</p>
@@ -146,18 +146,18 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
       }
       @case ('geneset_graph') {
         @if (view === 'graph') {
-          <app-geneset-graph [result]="$any(result)"></app-geneset-graph>
+          <app-geneset-graph [result]="$any(result())"></app-geneset-graph>
         }
         @if (view === 'table') {
           <table class="degree-table text-sm w-full">
             <caption class="text-left text-color-secondary mb-2">
-              Genes held by at least {{ result['min_degree'] }} of the gene sets, most shared first.
+              Genes held by at least {{ result()['min_degree'] }} of the gene sets, most shared first.
             </caption>
             <thead>
               <tr><th scope="col">Gene</th><th scope="col">Gene sets</th><th scope="col">Which</th></tr>
             </thead>
             <tbody>
-              @for (gene of $any(result)['genes']; track gene) {
+              @for (gene of $any(result())['genes']; track gene) {
                 <tr>
                   <td>{{ gene.symbol }}@if (gene.emphasized) {
                     <span class="ml-1" title="Emphasised">★</span>
@@ -166,7 +166,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
                   <td>{{ genesetList(gene.genesets) }}</td>
                 </tr>
               }
-              @if (!$any(result)['genes']?.length) {
+              @if (!$any(result())['genes']?.length) {
                 <tr>
                   <td colspan="3">No gene is in that many of these gene sets.</td>
                 </tr>
@@ -176,7 +176,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
         }
       }
       @case ('triclique') {
-        <app-triclique [result]="$any(result)" [maximum]="$any(view)"></app-triclique>
+        <app-triclique [result]="$any(result())" [maximum]="$any(view)"></app-triclique>
       }
       @case ('dbscan') {
         @if (pack) {
@@ -184,11 +184,11 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
             <app-cluster-pack [model]="pack"></app-cluster-pack>
           }
           @if (view === 'network') {
-            <app-gene-network [result]="$any(result)"></app-gene-network>
+            <app-gene-network [result]="$any(result())"></app-gene-network>
           }
         } @else {
           <p>
-            DBSCAN did not cluster these genes{{ result['ran'] === false ? ': the parameters are too
+            DBSCAN did not cluster these genes{{ result()['ran'] === false ? ': the parameters are too
             large for this many genes. Try a smaller epsilon or minimum points.' : '.' }}
           </p>
         }
@@ -203,7 +203,7 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
         @if (euler) {
           <app-mset-euler
             [model]="euler"
-            [genes]="result['intersect_genes'] ?? []"
+            [genes]="result()['intersect_genes'] ?? []"
           ></app-mset-euler>
         }
         <h4>Random overlaps</h4>
@@ -212,13 +212,13 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
         }
       }
       @case ('phenome_map') {
-        <app-phenome-map-graph [result]="$any(result)"></app-phenome-map-graph>
+        <app-phenome-map-graph [result]="$any(result())"></app-phenome-map-graph>
       }
       @case ('combine') {
-        <app-combine-table [result]="$any(result)"></app-combine-table>
+        <app-combine-table [result]="$any(result())"></app-combine-table>
       }
       @case ('abba') {
-        <app-abba-result [result]="$any(result)"></app-abba-result>
+        <app-abba-result [result]="$any(result())"></app-abba-result>
       }
       @default {
         <p class="text-sm text-color-secondary">
@@ -229,15 +229,15 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
     
     <details class="mt-3">
       <summary class="cursor-pointer text-sm">Raw result (JSON)</summary>
-      <pre class="overflow-auto p-3 surface-100 border-round raw">{{ result | json }}</pre>
+      <pre class="overflow-auto p-3 surface-100 border-round raw">{{ result() | json }}</pre>
     </details>
     `,
   styles: ['.raw { max-height: 28rem; }'],
 })
 export class ToolResultComponent implements OnChanges {
-  @Input({ required: true }) tool!: string;
-  @Input({ required: true }) result!: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-  @Input() geneCounts: Record<string, number> = {};
+  readonly tool = input.required<string>();
+  readonly result = input.required<Record<string, any>>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+  readonly geneCounts = input<Record<string, number>>({});
 
   upset?: UpSetModel;
   matrix?: MatrixModel;
@@ -257,36 +257,37 @@ export class ToolResultComponent implements OnChanges {
   }
 
   ngOnChanges(): void {
-    const r = this.result;
-    this.views = VIEWS[this.tool] ?? [];
+    const r = this.result();
+    this.views = VIEWS[this.tool()] ?? [];
     this.view = this.views[0]?.id ?? '';
-    this.upset = this.tool === 'upset'
+    this.upset = this.tool() === 'upset'
       ? upsetModel(
           r['geneset_ids'] ?? [],
-          this.geneCounts,
+          this.geneCounts(),
           (r['intersections'] ?? []).map((i: { genesets: string[]; size: number }) => ({
             geneset_ids: i.genesets,
             size: i.size,
           })),
         )
       : undefined;
+    const tool = this.tool();
     this.matrix =
-      this.tool === 'hypergeometric'
+      tool === 'hypergeometric'
         ? hypergeometricMatrix(r as Parameters<typeof hypergeometricMatrix>[0])
-        : this.tool === 'jaccard_similarity'
+        : tool === 'jaccard_similarity'
           ? jaccardMatrix(r as Parameters<typeof jaccardMatrix>[0])
           : undefined;
     this.vennGrid =
-      this.tool === 'jaccard_similarity'
-        ? jaccardVennGrid(r as Parameters<typeof jaccardVennGrid>[0], this.geneCounts)
+      this.tool() === 'jaccard_similarity'
+        ? jaccardVennGrid(r as Parameters<typeof jaccardVennGrid>[0], this.geneCounts())
         : undefined;
-    this.tree = this.tool === 'jaccard_clustering' ? dendrogramModel(r['tree']) : undefined;
-    this.pack = this.tool === 'dbscan' ? dbscanModel(r as Parameters<typeof dbscanModel>[0]) : undefined;
+    this.tree = this.tool() === 'jaccard_clustering' ? dendrogramModel(r['tree']) : undefined;
+    this.pack = this.tool() === 'dbscan' ? dbscanModel(r as Parameters<typeof dbscanModel>[0]) : undefined;
     this.boolean =
-      this.tool === 'boolean_algebra' ? booleanModel(r as BooleanAlgebraOutput) : undefined;
+      this.tool() === 'boolean_algebra' ? booleanModel(r as BooleanAlgebraOutput) : undefined;
     this.species =
-      this.tool === 'boolean_algebra' ? speciesSummary(r as BooleanAlgebraOutput) : null;
-    this.mset = this.tool === 'mset' ? msetModel(r as Parameters<typeof msetModel>[0]) : undefined;
-    this.euler = this.tool === 'mset' ? msetEuler(r as Parameters<typeof msetEuler>[0]) : undefined;
+      this.tool() === 'boolean_algebra' ? speciesSummary(r as BooleanAlgebraOutput) : null;
+    this.mset = this.tool() === 'mset' ? msetModel(r as Parameters<typeof msetModel>[0]) : undefined;
+    this.euler = this.tool() === 'mset' ? msetEuler(r as Parameters<typeof msetEuler>[0]) : undefined;
   }
 }

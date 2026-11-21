@@ -3,11 +3,11 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Input,
   OnChanges,
   OnDestroy,
-  ViewChild,
   inject,
+  input,
+  viewChild
 } from '@angular/core';
 import { schemeTableau10 } from 'd3';
 import type { Core, ElementDefinition } from 'cytoscape';
@@ -90,8 +90,8 @@ const clusterColour = (cluster: number | null) =>
 export class GeneNetworkComponent implements OnChanges, OnDestroy {
   private changes = inject(ChangeDetectorRef);
 
-  @Input({ required: true }) result!: Parameters<typeof dbscanNetwork>[0];
-  @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
+  readonly result = input.required<Parameters<typeof dbscanNetwork>[0]>();
+  readonly graph = viewChild.required<ElementRef<HTMLElement>>('graph');
 
   network: GeneNetwork = dbscanNetwork({ ran: false, clusters: [] });
   legend: { colour: string; label: string }[] = [];
@@ -109,7 +109,7 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
 
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;
-    this.network = dbscanNetwork(this.result);
+    this.network = dbscanNetwork(this.result());
     this.selectedId = undefined;
     this.selectedText = '';
     const noise = this.network.nodes.some((node) => node.cluster === null);
@@ -144,7 +144,7 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.cy = cytoscape({
-      container: this.graph.nativeElement,
+      container: this.graph().nativeElement,
       elements,
       wheelSensitivity: 0.2,
       style: [
@@ -167,7 +167,8 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
       layout: { name: 'cose', animate: !reduceMotion, padding: 20 },
     });
     // One tooltip per component, not per result: the host keeps it across redraws.
-    this.tooltip ??= new ChartTooltip(this.graph.nativeElement.parentElement ?? this.graph.nativeElement);
+    const graph = this.graph();
+    this.tooltip ??= new ChartTooltip(graph.nativeElement.parentElement ?? graph.nativeElement);
     this.cy.on('mouseover', 'node', (event) => {
       const original = event.originalEvent as MouseEvent | undefined;
       if (original) {

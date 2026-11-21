@@ -25,13 +25,13 @@ describe('SpeciesTagComponent', () => {
     [9, 'Saccharomyces cerevisiae', 'Yeast'],
     [13, 'Xenopus laevis', 'African clawed frog'],
   ])('names species %i by its id, not by position', (id, name, common) => {
-    component.species_id = id;
+    fixture.componentRef.setInput('species_id', id);
     expect(component.getSpeciesName()).toBe(name);
     expect(component.getSpeciesCommonName()).toBe(common);
   });
 
   it('shows the id for a species it does not know', () => {
-    component.species_id = 7;
+    fixture.componentRef.setInput('species_id', 7);
     expect(component.getSpeciesName()).toBe('Species 7');
     expect(component.getSpeciesColor()).toBe('gray');
   });

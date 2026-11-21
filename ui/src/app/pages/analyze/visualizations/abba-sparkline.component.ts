@@ -3,9 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 import { select } from 'd3';
 
@@ -31,10 +31,10 @@ const ZERO_HEIGHT = 1.5;
   template: `<div #host class="inline-block"></div>`,
 })
 export class AbbaSparklineComponent implements AfterViewInit, OnChanges {
-  @Input({ required: true }) bars!: SparkBar[];
+  readonly bars = input.required<SparkBar[]>();
   /** What the bars count, e.g. "Gene sets by curation tier" -- the tooltip's title. */
-  @Input({ required: true }) title!: string;
-  @ViewChild('host', { static: true }) host!: ElementRef<HTMLDivElement>;
+  readonly title = input.required<string>();
+  readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
 
   private ready = false;
 
@@ -50,11 +50,11 @@ export class AbbaSparklineComponent implements AfterViewInit, OnChanges {
   }
 
   private draw(): void {
-    const host = this.host.nativeElement;
+    const host = this.host().nativeElement;
     select(host).selectAll('*').remove();
     const tooltip = new ChartTooltip(host);
-    const summary = sparklineSummary(this.title, this.bars);
-    const step = WIDTH / Math.max(this.bars.length, 1);
+    const summary = sparklineSummary(this.title(), this.bars());
+    const step = WIDTH / Math.max(this.bars().length, 1);
     const barWidth = Math.max(2, step * 0.7);
 
     const svg = select(host)
@@ -74,7 +74,7 @@ export class AbbaSparklineComponent implements AfterViewInit, OnChanges {
 
     svg
       .selectAll('rect')
-      .data(this.bars)
+      .data(this.bars())
       .join('rect')
       .attr('class', 'spark-bar')
       .attr('x', (_bar, index) => index * step + (step - barWidth) / 2)

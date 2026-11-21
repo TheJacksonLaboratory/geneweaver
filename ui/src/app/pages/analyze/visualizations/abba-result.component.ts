@@ -3,11 +3,10 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  EventEmitter,
-  Input,
   OnChanges,
-  Output,
   inject,
+  input,
+  output
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
@@ -76,13 +75,13 @@ interface GeneRow {
     </details>
     
     <details class="abba-section" open>
-      <summary><h4>Seed genes ({{ result.seed_genes.length }})</h4></summary>
+      <summary><h4>Seed genes ({{ result().seed_genes.length }})</h4></summary>
       <p class="text-sm text-color-secondary mt-0">
-        The genes searched for{{ result.parameters.include_homology ? ', with their homologs' : '' }},
+        The genes searched for{{ result().parameters.include_homology ? ', with their homologs' : '' }},
         coloured by species.
       </p>
       <ul class="tiles species-tiles" aria-label="Species in the seed">
-        @for (species of result.input_species; track species) {
+        @for (species of result().input_species; track species) {
           <li
             class="tile"
             [style.background]="speciesTile(species).background"
@@ -105,13 +104,13 @@ interface GeneRow {
           </li>
         }
       </ul>
-      @if (result.seed_genes.length > seedPreview) {
+      @if (result().seed_genes.length > seedPreview) {
         <button pButton
           type="button"
           class="p-button p-button-sm p-button-text"
           (click)="showAllSeeds = !showAllSeeds"
           >
-          {{ showAllSeeds ? 'Show fewer' : 'Show all ' + result.seed_genes.length + ' seed genes' }}
+          {{ showAllSeeds ? 'Show fewer' : 'Show all ' + result().seed_genes.length + ' seed genes' }}
         </button>
       }
     </details>
@@ -120,7 +119,7 @@ interface GeneRow {
       <summary><h4>Highly connected gene sets</h4></summary>
       <div class="flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
         <p class="text-sm text-color-secondary m-0">
-          Top {{ result.genesets.length }} gene sets of interest: those holding the most seed genes
+          Top {{ result().genesets.length }} gene sets of interest: those holding the most seed genes
           ("matches").
         </p>
         <div>
@@ -231,7 +230,7 @@ interface GeneRow {
       <summary><h4>Genes of interest</h4></summary>
       <div class="flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
         <p class="text-sm text-color-secondary m-0">
-          Top {{ result.genes.length }} genes, not in the seed, that occur in the most of those gene
+          Top {{ result().genes.length }} genes, not in the seed, that occur in the most of those gene
           sets.
         </p>
         <div class="flex gap-2">
@@ -286,7 +285,7 @@ interface GeneRow {
                     class="meter"
                     role="meter"
                     aria-valuemin="0"
-                    [attr.aria-valuemax]="result.max_occurrences"
+                    [attr.aria-valuemax]="result().max_occurrences"
                     [attr.aria-valuenow]="row.gene.occurrences"
                     [attr.aria-label]="row.gene.symbol + ' is in ' + row.gene.occurrences + ' of the gene sets'"
                     >
@@ -354,11 +353,11 @@ interface GeneRow {
 export class AbbaResultComponent implements OnChanges {
   private changes = inject(ChangeDetectorRef);
 
-  @Input({ required: true }) result!: AbbaResult;
+  readonly result = input.required<AbbaResult>();
   /** When the result arrived; legacy's "Date". */
-  @Input() ranAt?: Date;
+  readonly ranAt = input<Date>();
   /** The gene sets the user chose to hand back to the Analyze form. */
-  @Output() useGenesets = new EventEmitter<number[]>();
+  readonly useGenesets = output<number[]>();
 
   readonly sorts = GENESET_SORTS;
   readonly seedPreview = SEED_PREVIEW;
@@ -377,8 +376,8 @@ export class AbbaResultComponent implements OnChanges {
   status = '';
 
   ngOnChanges(): void {
-    const r = this.result;
-    this.info = abbaRunInfo(r, this.ranAt);
+    const r = this.result();
+    this.info = abbaRunInfo(r, this.ranAt());
     this.sortValue = 'none';
     this.genesets = sortGenesets(r.genesets ?? [], 'none');
     this.geneRows = (r.genes ?? []).map((gene) => ({
@@ -397,20 +396,20 @@ export class AbbaResultComponent implements OnChanges {
   }
 
   get seedTiles() {
-    const seeds = this.result.seed_genes ?? [];
+    const seeds = this.result().seed_genes ?? [];
     return this.showAllSeeds ? seeds : seeds.slice(0, SEED_PREVIEW);
   }
 
   tierLabel(tier: number | null): string {
-    return tierLabel(tier, this.result.tiers);
+    return tierLabel(tier, this.result().tiers);
   }
 
   tierName(tier: number | null): string {
-    return tierName(tier, this.result.tiers);
+    return tierName(tier, this.result().tiers);
   }
 
   speciesName(id: number | null): string {
-    return id === null ? '' : (this.result.species?.[String(id)] ?? `Species ${id}`);
+    return id === null ? '' : (this.result().species?.[String(id)] ?? `Species ${id}`);
   }
 
   sortBy(value: string): void {
@@ -419,7 +418,7 @@ export class AbbaResultComponent implements OnChanges {
       return; // An empty event (e.g. as options render) is not a choice.
     }
     this.sortValue = sort;
-    this.genesets = sortGenesets(this.result.genesets ?? [], sort, this.result.species);
+    this.genesets = sortGenesets(this.result().genesets ?? [], sort, this.result().species);
   }
 
   toggle(gsId: number): void {

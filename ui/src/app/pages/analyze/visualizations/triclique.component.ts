@@ -1,5 +1,5 @@
 
-import { ChangeDetectionStrategy, Component, ElementRef, Input, OnChanges, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnChanges, input, viewChild } from '@angular/core';
 
 import { downloadSvg } from './chart-utils';
 import { genesetLabel, Triclique, TricliqueModel, tricliqueModel, TricliqueOutput } from './models';
@@ -17,9 +17,9 @@ import { ButtonModule } from 'primeng/button';
   imports: [ButtonModule, ],
   template: `
     <p class="text-sm text-color-secondary mt-0">
-      Group A: {{ list(result.group_a) }}. Group B: {{ list(result.group_b) }}.
-      {{ result.shared_genes.length }} gene{{ result.shared_genes.length === 1 ? '' : 's' }} in both
-      groups; {{ result.maximal_tricliques }} maximal triclique{{ result.maximal_tricliques === 1 ? '' : 's' }}.
+      Group A: {{ list(result().group_a) }}. Group B: {{ list(result().group_b) }}.
+      {{ result().shared_genes.length }} gene{{ result().shared_genes.length === 1 ? '' : 's' }} in both
+      groups; {{ result().maximal_tricliques }} maximal triclique{{ result().maximal_tricliques === 1 ? '' : 's' }}.
     </p>
     @if (model) {
       <p class="text-sm mt-0">{{ model.summary }}</p>
@@ -95,16 +95,16 @@ import { ButtonModule } from 'primeng/button';
   ],
 })
 export class TricliqueComponent implements OnChanges {
-  @Input({ required: true }) result!: TricliqueOutput;
+  readonly result = input.required<TricliqueOutput>();
   /** Which kept clique to draw. */
-  @Input() maximum: 'edge' | 'vertex' = 'edge';
-  @ViewChild('chart') chart?: ElementRef<HTMLElement>;
+  readonly maximum = input<'edge' | 'vertex'>('edge');
+  readonly chart = viewChild<ElementRef<HTMLElement>>('chart');
 
   model?: TricliqueModel;
 
   ngOnChanges(): void {
     const clique: Triclique | null =
-      this.maximum === 'edge' ? this.result.edge_maximum : this.result.vertex_maximum;
+      this.maximum() === 'edge' ? this.result().edge_maximum : this.result().vertex_maximum;
     this.model = clique ? tricliqueModel(clique) : undefined;
   }
 
@@ -113,8 +113,9 @@ export class TricliqueComponent implements OnChanges {
   }
 
   download(): void {
-    if (this.chart) {
-      downloadSvg(this.chart.nativeElement, `triclique-${this.maximum}-maximum.svg`);
+    const chart = this.chart();
+    if (chart) {
+      downloadSvg(chart.nativeElement, `triclique-${this.maximum()}-maximum.svg`);
     }
   }
 }

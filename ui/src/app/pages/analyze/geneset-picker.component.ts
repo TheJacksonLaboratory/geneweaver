@@ -1,13 +1,12 @@
 import {
   Component,
-  EventEmitter,
-  Input,
   OnChanges,
   OnDestroy,
-  Output,
   SimpleChanges,
-  ViewChild,
   inject,
+  input,
+  output,
+  viewChild
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -44,7 +43,7 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
   styles: [SUGGESTION_STYLES],
   template: `
     <p-autoComplete
-      [inputId]="inputId"
+      [inputId]="inputId()"
       [(ngModel)]="selected"
       (ngModelChange)="selectionChanged($event)"
       [suggestions]="source.suggestions"
@@ -64,8 +63,8 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
       [emptyMessage]="emptyMessage"
       (onKeyUp)="keyUp($event)"
       (onBlur)="blur($event)"
-      [placeholder]="selected.length ? '' : placeholder"
-      [ariaLabel]="ariaLabel"
+      [placeholder]="selected.length ? '' : placeholder()"
+      [ariaLabel]="ariaLabel()"
       styleClass="w-full"
       inputStyleClass="w-full"
       >
@@ -112,15 +111,15 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
 })
 export class GenesetPickerComponent implements OnChanges, OnDestroy {
   /** The selected gene set ids, as the page holds them. */
-  @Input() ids: string[] = [];
-  @Output() idsChange = new EventEmitter<string[]>();
+  readonly ids = input<string[]>([]);
+  readonly idsChange = output<string[]>();
   /** Narrow the suggestions, as on the search page. */
-  @Input() filters: SearchFilters = emptyFilters();
-  @Input() inputId = 'genesetIds';
-  @Input() ariaLabel = 'Gene sets to analyze';
-  @Input() placeholder = 'Search by name or ID, or type IDs, e.g. 514, 515';
+  readonly filters = input<SearchFilters>(emptyFilters());
+  readonly inputId = input('genesetIds');
+  readonly ariaLabel = input('Gene sets to analyze');
+  readonly placeholder = input('Search by name or ID, or type IDs, e.g. 514, 515');
 
-  @ViewChild(AutoComplete) private autoComplete?: AutoComplete;
+  private readonly autoComplete = viewChild(AutoComplete);
 
   readonly rowHeight = ROW_HEIGHT_PX;
   readonly listHeight = LIST_HEIGHT;
@@ -168,12 +167,13 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['ids']) {
       const current = this.selected.map((option) => String(option.id));
-      if (current.join(',') !== (this.ids ?? []).join(',')) {
-        this.selected = (this.ids ?? []).map((id) => this.optionFor(id));
+      if (current.join(',') !== (this.ids() ?? []).join(',')) {
+        this.selected = (this.ids() ?? []).map((id) => this.optionFor(id));
       }
     }
-    if (changes['filters'] && this.filters) {
-      this.source.setFilters(this.filters);
+    const filters = this.filters();
+    if (changes['filters'] && filters) {
+      this.source.setFilters(filters);
     }
   }
 
@@ -223,10 +223,11 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
     // The keystrokes that typed the ids started a debounced search; it would open the list
     // again for text that is no longer there. PrimeNG's hide() touches the list's scroller,
     // which exists only while the list is open.
-    if (this.autoComplete) {
-      clearTimeout(this.autoComplete.searchTimeout);
-      if (this.autoComplete.overlayVisible) {
-        this.autoComplete.hide();
+    const autoComplete = this.autoComplete();
+    if (autoComplete) {
+      clearTimeout(autoComplete.searchTimeout);
+      if (autoComplete.overlayVisible) {
+        autoComplete.hide();
       }
     }
     if (!typed.length) {

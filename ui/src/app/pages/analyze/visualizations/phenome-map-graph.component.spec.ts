@@ -65,7 +65,7 @@ describe('PhenomeMapGraphComponent', () => {
 
   async function build() {
     const fixture = TestBed.createComponent(PhenomeMapGraphComponent);
-    fixture.componentInstance.result = FIXTURES.phenome_map;
+    fixture.componentRef.setInput('result', FIXTURES.phenome_map);
     await fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     return fixture;
@@ -79,7 +79,7 @@ describe('PhenomeMapGraphComponent', () => {
     // Preset positions from the tool's depths; an inferred layout drew links sideways.
     expect(options['layout'].name).toBe('preset');
     expect(nodes.every((n: { position?: unknown }) => n.position)).toBe(true);
-    expect(options['container']).toBe(fixture.componentInstance.graph.nativeElement);
+    expect(options['container']).toBe(fixture.componentInstance.graph().nativeElement);
     expect(fixture.nativeElement.querySelector('[role="img"]').getAttribute('aria-label')).toBe(
       'PhenomeMap graph of 26 bicliques',
     );
@@ -162,7 +162,7 @@ describe('PhenomeMapGraphComponent', () => {
 
   it('creates nothing if destroyed while Cytoscape is still loading', async () => {
     const fixture = TestBed.createComponent(PhenomeMapGraphComponent);
-    fixture.componentInstance.result = FIXTURES.phenome_map;
+    fixture.componentRef.setInput('result', FIXTURES.phenome_map);
     const pending = fixture.componentInstance.ngOnChanges();
     fixture.destroy();
     await pending;
@@ -171,7 +171,7 @@ describe('PhenomeMapGraphComponent', () => {
 
   it('a newer result supersedes a slower, older one', async () => {
     const fixture = TestBed.createComponent(PhenomeMapGraphComponent);
-    fixture.componentInstance.result = FIXTURES.phenome_map;
+    fixture.componentRef.setInput('result', FIXTURES.phenome_map);
     const older = fixture.componentInstance.ngOnChanges();
     const newer = fixture.componentInstance.ngOnChanges();
     await Promise.all([older, newer]);

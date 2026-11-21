@@ -2,9 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 
 import { axisLeft, max, scaleBand, scaleLinear, select } from 'd3';
@@ -35,9 +35,9 @@ import { ButtonModule } from 'primeng/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    @if (model.hidden) {
+    @if (model().hidden) {
       <p class="text-sm text-color-secondary">
-        Showing the {{ model.bars.length }} largest combinations; {{ model.hidden }} smaller ones
+        Showing the {{ model().bars.length }} largest combinations; {{ model().hidden }} smaller ones
         are in the table below.
       </p>
     }
@@ -48,20 +48,20 @@ import { ButtonModule } from 'primeng/button';
   imports: [ButtonModule, ],
 })
 export class UpsetPlotComponent implements OnChanges {
-  @Input({ required: true }) model!: UpSetModel;
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<UpSetModel>();
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
 
   ngOnChanges(): void {
     this.draw();
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'upset.svg');
+    downloadSvg(this.chart().nativeElement, 'upset.svg');
   }
 
   private draw(): void {
-    const { sets, bars, total } = this.model;
-    const host = this.chart.nativeElement;
+    const { sets, bars, total } = this.model();
+    const host = this.chart().nativeElement;
     const left = 170;
     const top = 170;
     const row = 22;

@@ -2,9 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 import { axisBottom, cluster, hierarchy, HierarchyPointNode, scaleLinear } from 'd3';
 
@@ -31,31 +31,32 @@ import { ButtonModule } from 'primeng/button';
   `,
 })
 export class DendrogramComponent implements OnChanges {
-  @Input({ required: true }) model!: DendrogramNode;
-  @Input() method = '';
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<DendrogramNode>();
+  readonly method = input('');
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
 
   ngOnChanges(): void {
     this.draw();
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'jaccard-clustering.svg');
+    downloadSvg(this.chart().nativeElement, 'jaccard-clustering.svg');
   }
 
   private draw(): void {
-    const host = this.chart.nativeElement;
-    const root = hierarchy(this.model);
+    const host = this.chart().nativeElement;
+    const root = hierarchy(this.model());
     const leaves = root.leaves().length;
     const width = 640;
     const height = Math.max(120, leaves * 32) + 50;
     const left = 20;
     const right = 110;
+    const method = this.method();
     const svg = freshSvg(
       host,
       width,
       height,
-      `Dendrogram of gene sets by Jaccard distance${this.method ? ` (${this.method} linkage)` : ''}`,
+      `Dendrogram of gene sets by Jaccard distance${method ? ` (${method} linkage)` : ''}`,
     );
     const tooltip = new ChartTooltip(host);
 
@@ -117,6 +118,7 @@ export class DendrogramComponent implements OnChanges {
       tooltip,
       (node) => {
         const members = node.leaves().map((leaf) => leaf.data.name);
+        const methodValue = this.method();
         return {
           title: `Cluster of ${members.length} gene sets`,
           rows: [
@@ -124,7 +126,7 @@ export class DendrogramComponent implements OnChanges {
             { label: 'Similarity', value: (1 - node.data.height).toFixed(3) },
             { label: 'Gene sets', value: members.join(', ') },
           ],
-          note: `${this.method ? `${this.method[0].toUpperCase()}${this.method.slice(1)}-linkage` : 'Linkage'} distance between the two clusters it joins.`,
+          note: `${methodValue ? `${methodValue[0].toUpperCase()}${methodValue.slice(1)}-linkage` : 'Linkage'} distance between the two clusters it joins.`,
         };
       },
       (node) => {

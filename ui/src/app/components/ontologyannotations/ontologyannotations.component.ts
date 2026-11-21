@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { OntologyTagComponent } from "../ontologytag/ontologytag.component";
 import { OntologyTerm } from "../../models/ontology-term"
@@ -11,5 +11,5 @@ import {OntologyTagKeyComponent} from "../ontologytagkey/ontologytagkey.componen
   styleUrl: './ontologyannotations.component.css',
 })
 export class OntologyAnnotationsComponent {
-  @Input() ontology_tags: OntologyTerm[] = [];
+  readonly ontology_tags = input<OntologyTerm[]>([]);
 }

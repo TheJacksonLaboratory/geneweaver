@@ -2,9 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 import { scaleBand } from 'd3';
 
@@ -30,21 +30,21 @@ import { ButtonModule } from 'primeng/button';
   `,
 })
 export class HeatmapComponent implements OnChanges {
-  @Input({ required: true }) model!: MatrixModel;
-  @Input() filename = 'matrix.svg';
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<MatrixModel>();
+  readonly filename = input('matrix.svg');
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
 
   ngOnChanges(): void {
     this.draw();
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, this.filename);
+    downloadSvg(this.chart().nativeElement, this.filename());
   }
 
   private draw(): void {
-    const { ids, cells, domain, legend } = this.model;
-    const host = this.chart.nativeElement;
+    const { ids, cells, domain, legend } = this.model();
+    const host = this.chart().nativeElement;
     const cell = Math.max(36, Math.min(64, 480 / Math.max(1, ids.length)));
     const margin = 80;
     const size = cell * ids.length;

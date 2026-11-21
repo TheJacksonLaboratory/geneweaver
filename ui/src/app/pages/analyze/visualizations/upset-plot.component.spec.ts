@@ -9,7 +9,7 @@ describe('UpsetPlotComponent', () => {
     const { geneset_ids, gene_counts, intersections } = FIXTURES.upset;
     const model = upsetModel(geneset_ids, gene_counts, intersections);
     const fixture = TestBed.createComponent(UpsetPlotComponent);
-    fixture.componentInstance.model = model;
+    fixture.componentRef.setInput('model', model);
     fixture.componentInstance.ngOnChanges();
     const svg: SVGSVGElement = fixture.nativeElement.querySelector('svg');
 
@@ -23,7 +23,7 @@ describe('UpsetPlotComponent', () => {
     // A tight threshold can leave every gene set empty; d3's [0, 0] domain drew half bars.
     const model = upsetModel([1, 2], { '1': 0, '2': 0 }, []);
     const fixture = TestBed.createComponent(UpsetPlotComponent);
-    fixture.componentInstance.model = model;
+    fixture.componentRef.setInput('model', model);
     fixture.componentInstance.ngOnChanges();
     const widths = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('g.set rect:first-of-type'),
@@ -36,7 +36,7 @@ describe('UpsetPlotComponent', () => {
     const { geneset_ids, gene_counts, intersections } = FIXTURES.upset;
     const model = upsetModel(geneset_ids, gene_counts, intersections);
     const fixture = TestBed.createComponent(UpsetPlotComponent);
-    fixture.componentInstance.model = model;
+    fixture.componentRef.setInput('model', model);
     fixture.componentInstance.ngOnChanges();
     const host: HTMLElement = fixture.nativeElement;
     const tooltip = host.querySelector('.chart-tooltip') as HTMLElement;
@@ -64,7 +64,7 @@ describe('UpsetPlotComponent', () => {
   it('every interactive mark is reachable by keyboard and labelled', () => {
     const { geneset_ids, gene_counts, intersections } = FIXTURES.upset;
     const fixture = TestBed.createComponent(UpsetPlotComponent);
-    fixture.componentInstance.model = upsetModel(geneset_ids, gene_counts, intersections);
+    fixture.componentRef.setInput('model', upsetModel(geneset_ids, gene_counts, intersections));
     fixture.componentInstance.ngOnChanges();
     const hits = Array.from(fixture.nativeElement.querySelectorAll('rect.hit')) as Element[];
     expect(hits.every((h) => h.getAttribute('tabindex') === '0')).toBe(true);

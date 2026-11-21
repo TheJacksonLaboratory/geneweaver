@@ -1,4 +1,4 @@
-import { Component, ViewChild, inject } from '@angular/core';
+import { Component, inject, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // The previous search bar, kept for reference; replaced by GenesetSearchComponent (G3-777, G3-764).
 // import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
@@ -27,7 +27,7 @@ export class HomeComponent {
   isSpinning = true;
 
   // @ViewChild(SearchBarComponent) searchBarComponent!: SearchBarComponent;
-  @ViewChild(GenesetSearchComponent) searchField!: GenesetSearchComponent;
+  readonly searchField = viewChild.required(GenesetSearchComponent);
 
   constructor() {
     setTimeout(() => {
@@ -45,13 +45,13 @@ export class HomeComponent {
     this.isLoading = false;
   }
 
-  onSearchPaging(paging: Paging) {
-    this.paging = paging;
+  onSearchPaging(paging: Paging | undefined) {
+    this.paging = paging ?? null;
   }
 
   /** Another page from the paginator: fetch it, and bring the top of the results into view. */
   onPageChange(page: PaginatorState) {
-    this.searchField.changePage(page);
+    this.searchField().changePage(page);
     document.getElementById('genesetResults')?.scrollIntoView?.({ block: 'start' });
   }
 
@@ -62,7 +62,7 @@ export class HomeComponent {
     this.geneSets = [];
     this.paging = null;
     // this.searchBarComponent.clearSearch();
-    this.searchField.clear();
+    this.searchField().clear();
     this.isSpinning = true;
 
     setTimeout(() => {

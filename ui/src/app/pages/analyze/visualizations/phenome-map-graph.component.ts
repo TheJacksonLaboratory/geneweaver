@@ -3,11 +3,11 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Input,
   OnChanges,
   OnDestroy,
-  ViewChild,
   inject,
+  input,
+  viewChild
 } from '@angular/core';
 import type { Core, ElementDefinition } from 'cytoscape';
 
@@ -96,8 +96,8 @@ interface SelectedBiclique {
 export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   private changes = inject(ChangeDetectorRef);
 
-  @Input({ required: true }) result!: Parameters<typeof phenomeMapElements>[0];
-  @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
+  readonly result = input.required<Parameters<typeof phenomeMapElements>[0]>();
+  readonly graph = viewChild.required<ElementRef<HTMLElement>>('graph');
 
   selected?: SelectedBiclique;
   selectedId?: string;
@@ -116,10 +116,10 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
 
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;
-    const elements = phenomeMapElements(this.result) as ElementDefinition[];
+    const elements = phenomeMapElements(this.result()) as ElementDefinition[];
     const nodes = elements.filter((e) => e.group === 'nodes');
     this.label = `PhenomeMap graph of ${nodes.length} bicliques`;
-    this.stats = phenomeMapStats(this.result);
+    this.stats = phenomeMapStats(this.result());
     this.selected = undefined;
     this.selectedId = undefined;
     this.query = '';
@@ -156,7 +156,7 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
     }
     this.cy?.destroy();
     this.cy = cytoscape({
-      container: this.graph.nativeElement,
+      container: this.graph().nativeElement,
       elements,
       wheelSensitivity: 0.2,
       style: [
@@ -197,7 +197,7 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   /** Legacy's search box: mark the bicliques holding a match, fade the rest. */
   highlight(query: string): void {
     this.query = query;
-    const ids = phenomeMapMatches(this.result.nodes, query);
+    const ids = phenomeMapMatches(this.result().nodes, query);
     this.matches = new Set([...ids].map((id) => `n${id}`));
     const shown = this.options.length;
     this.matchNote = query.trim()

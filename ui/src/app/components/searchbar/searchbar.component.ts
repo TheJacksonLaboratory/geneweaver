@@ -1,5 +1,5 @@
 /* Angular Imports */
-import { Component, EventEmitter, Output, Input, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, output, model } from '@angular/core';
 
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
@@ -37,11 +37,13 @@ export class SearchBarComponent implements OnInit {
   isSearching = false;
   private gwApi: ApiBaseService;
 
-  @Input() searchValue = '';
-  @Output() searchExecuted = new EventEmitter<string>();
-  @Output() searchCompleted = new EventEmitter<GeneSet[]>();
-  @Output() searchPaging = new EventEmitter<Paging>();
-  @Output() searchCleared = new EventEmitter<boolean>();
+  /** Two-way with the search box; set from the URL's `search` parameter. */
+  readonly searchValue = model('');
+  readonly searchExecuted = output<string>();
+  readonly searchCompleted = output<GeneSet[]>();
+  /** The response's paging; undefined when a response has none. */
+  readonly searchPaging = output<Paging | undefined>();
+  readonly searchCleared = output<boolean>();
 
   constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
@@ -50,8 +52,8 @@ export class SearchBarComponent implements OnInit {
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
       if (params['search']) {
-        this.searchValue = params['search'];
-        this.onSearch(this.searchValue);
+        this.searchValue.set(params['search']);
+        this.onSearch(this.searchValue());
       } else {
         this.clearSearch();
       }
@@ -59,7 +61,7 @@ export class SearchBarComponent implements OnInit {
   }
 
   clearSearch() {
-    this.searchValue = '';
+    this.searchValue.set('');
     this.searchCleared.emit(true);
     this.searchCompleted.emit([]);
   }

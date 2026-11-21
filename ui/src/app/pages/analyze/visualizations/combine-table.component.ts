@@ -1,5 +1,5 @@
 
-import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnChanges, input } from '@angular/core';
 import { TableModule } from 'primeng/table';
 
 import { combineModel, CombineModel } from './models';
@@ -38,10 +38,10 @@ import { combineModel, CombineModel } from './models';
     `,
 })
 export class CombineTableComponent implements OnChanges {
-  @Input({ required: true }) result!: Parameters<typeof combineModel>[0];
+  readonly result = input.required<Parameters<typeof combineModel>[0]>();
   model: CombineModel = { columns: [], rows: [] };
 
   ngOnChanges(): void {
-    this.model = combineModel(this.result);
+    this.model = combineModel(this.result());
   }
 }

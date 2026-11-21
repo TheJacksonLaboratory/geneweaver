@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, Input, OnChanges, OnDestroy, SimpleChanges, inject } from '@angular/core';
+import { Component, OnChanges, OnDestroy, SimpleChanges, inject, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -317,7 +317,7 @@ interface HttpFailure {
 export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
   private session = inject(SessionService);
 
-  @Input({ required: true }) genesetId!: number;
+  readonly genesetId = input.required<number>();
 
   readonly thresholdModes = THRESHOLD_MODES;
   readonly groupChoices = GROUP_BY_CHOICES;
@@ -377,7 +377,7 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
     this.errorMessage = undefined;
     this.gwApi
       .post<RunBody>('/tools/similar_genesets', {
-        geneset_id: this.genesetId,
+        geneset_id: this.genesetId(),
         ...thresholdParams(this.thresholds),
       })
       .subscribe({

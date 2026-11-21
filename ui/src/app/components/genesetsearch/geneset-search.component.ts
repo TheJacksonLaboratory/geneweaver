@@ -1,11 +1,10 @@
 import {
   Component,
-  EventEmitter,
   OnDestroy,
   OnInit,
-  Output,
-  ViewChild,
   inject,
+  output,
+  viewChild
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -128,13 +127,14 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
-  @Output() searchExecuted = new EventEmitter<string>();
+  readonly searchExecuted = output<string>();
   /** The page of results now shown. */
-  @Output() searchCompleted = new EventEmitter<GeneSet[]>();
-  @Output() searchPaging = new EventEmitter<Paging>();
-  @Output() searchCleared = new EventEmitter<boolean>();
+  readonly searchCompleted = output<GeneSet[]>();
+  /** The response's paging; undefined when a response has none. */
+  readonly searchPaging = output<Paging | undefined>();
+  readonly searchCleared = output<boolean>();
 
-  @ViewChild(AutoComplete) private autoComplete?: AutoComplete;
+  private readonly autoComplete = viewChild(AutoComplete);
 
   readonly rowHeight = ROW_HEIGHT_PX;
   readonly listHeight = LIST_HEIGHT;
@@ -231,10 +231,11 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
       return;
     }
     // A pending suggestion search would reopen the list over the results.
-    if (this.autoComplete) {
-      clearTimeout(this.autoComplete.searchTimeout);
-      if (this.autoComplete.overlayVisible) {
-        this.autoComplete.hide();
+    const autoComplete = this.autoComplete();
+    if (autoComplete) {
+      clearTimeout(autoComplete.searchTimeout);
+      if (autoComplete.overlayVisible) {
+        autoComplete.hide();
       }
     }
     this.router.navigate([], {

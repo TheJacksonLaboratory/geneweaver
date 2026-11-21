@@ -1,5 +1,5 @@
 import { Type } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ClusterPackComponent } from './cluster-pack.component';
 import { CombineTableComponent } from './combine-table.component';
@@ -25,10 +25,17 @@ import { ToolResultComponent } from './tool-result.component';
 import { VennGridComponent } from './venn-grid.component';
 import { VennComponent } from './venn.component';
 
+/** Set a component's (signal) inputs, as a parent's template would. */
+function setInputs<T>(fixture: ComponentFixture<T>, inputs: Record<string, unknown>): void {
+  for (const [name, value] of Object.entries(inputs)) {
+    fixture.componentRef.setInput(name, value);
+  }
+}
+
 /** Create a chart component, give it inputs, and draw. */
-function render<T extends object>(type: Type<T>, inputs: Partial<T>) {
+function render<T extends object>(type: Type<T>, inputs: Record<string, unknown>) {
   const fixture = TestBed.createComponent(type);
-  Object.assign(fixture.componentInstance, inputs);
+  setInputs(fixture, inputs);
   (fixture.componentInstance as { ngOnChanges?: () => void }).ngOnChanges?.();
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
@@ -188,7 +195,7 @@ describe('ClusterPackComponent', () => {
   it('zooms from the keyboard: Enter on a cluster, Escape or the button to come back', () => {
     const model = dbscanModel({ ran: true, clusters: [['A', 'B'], ['C', 'D', 'E']] })!;
     const fixture = TestBed.createComponent(ClusterPackComponent);
-    fixture.componentInstance.model = model;
+    fixture.componentRef.setInput('model', model);
     fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     const host: HTMLElement = fixture.nativeElement;
@@ -350,7 +357,7 @@ describe('MsetHistogramComponent', () => {
 describe('VennGridComponent', () => {
   function grid(output = FIXTURES.jaccard_similarity) {
     const fixture = TestBed.createComponent(VennGridComponent);
-    fixture.componentInstance.model = jaccardVennGrid(output);
+    fixture.componentRef.setInput('model', jaccardVennGrid(output));
     fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     return { fixture, host: fixture.nativeElement as HTMLElement };
@@ -450,7 +457,7 @@ describe('MsetEulerComponent', () => {
 
   it('lists the shared genes, filterable', () => {
     const fixture = TestBed.createComponent(MsetEulerComponent);
-    Object.assign(fixture.componentInstance, {
+    setInputs(fixture, {
       model: msetEuler(FIXTURES.mset)!,
       genes: ['Cnr1', 'Cd81', 'Plat'],
     });
@@ -470,7 +477,7 @@ describe('MsetEulerComponent', () => {
 describe('GeneNetworkComponent fallbacks', () => {
   it('explains that an older result has no memberships to draw a network from', async () => {
     const fixture = TestBed.createComponent(GeneNetworkComponent);
-    fixture.componentInstance.result = { ran: true, clusters: [['A', 'B']] };
+    fixture.componentRef.setInput('result', { ran: true, clusters: [['A', 'B']] });
     await fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('needs each gene\'s gene sets');
@@ -479,11 +486,11 @@ describe('GeneNetworkComponent fallbacks', () => {
   it('refuses a network past its link budget, and says why', async () => {
     const genes = Array.from({ length: 90 }, (_, i) => `G${i}`);
     const fixture = TestBed.createComponent(GeneNetworkComponent);
-    fixture.componentInstance.result = {
+    fixture.componentRef.setInput('result', {
       ran: true,
       clusters: [genes],
       gene_genesets: Object.fromEntries(genes.map((g) => [g, ['1']])),
-    };
+    });
     await fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Too many links to draw');
@@ -523,7 +530,7 @@ describe('ToolResultComponent', () => {
   /** Render the tool's result, then press the view button with this text. */
   function switchTo(tool: string, result: Record<string, unknown>, view: string) {
     const fixture = TestBed.createComponent(ToolResultComponent);
-    Object.assign(fixture.componentInstance, { tool, result });
+    setInputs(fixture, { tool, result });
     fixture.componentInstance.ngOnChanges();
     fixture.detectChanges();
     const host: HTMLElement = fixture.nativeElement;

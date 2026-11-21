@@ -3,11 +3,11 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Input,
   OnChanges,
   OnDestroy,
-  ViewChild,
   inject,
+  input,
+  viewChild
 } from '@angular/core';
 import { schemeTableau10 } from 'd3';
 import type { Core, ElementDefinition } from 'cytoscape';
@@ -72,8 +72,8 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
 export class GenesetGraphComponent implements OnChanges, OnDestroy {
   private changes = inject(ChangeDetectorRef);
 
-  @Input({ required: true }) result!: GenesetGraphOutput;
-  @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
+  readonly result = input.required<GenesetGraphOutput>();
+  readonly graph = viewChild.required<ElementRef<HTMLElement>>('graph');
 
   model: GenesetGraphModel = genesetGraphModel({
     geneset_ids: [],
@@ -100,15 +100,15 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
 
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;
-    this.model = genesetGraphModel(this.result);
+    this.model = genesetGraphModel(this.result());
     this.selectedText = '';
-    this.legend = this.result.genesets.map((set, i) => ({
+    this.legend = this.result().genesets.map((set, i) => ({
       colour: setColour(i),
       label: genesetLabel(set.id),
     }));
     this.label =
-      `GeneSet Graph: ${this.result.genesets.length} gene sets and ${this.result.genes.length} ` +
-      `genes held by at least ${this.result.min_degree} of them`;
+      `GeneSet Graph: ${this.result().genesets.length} gene sets and ${this.result().genes.length} ` +
+      `genes held by at least ${this.result().min_degree} of them`;
     this.cy?.destroy();
     this.cy = undefined;
     if (!this.drawable) {
@@ -140,7 +140,7 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
       })),
     ];
     this.cy = cytoscape({
-      container: this.graph.nativeElement,
+      container: this.graph().nativeElement,
       elements,
       wheelSensitivity: 0.2,
       layout: { name: 'preset', padding: 20 },
@@ -171,7 +171,8 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
       ],
     });
     // One tooltip per component, not per result: the host keeps it across redraws.
-    this.tooltip ??= new ChartTooltip(this.graph.nativeElement.parentElement ?? this.graph.nativeElement);
+    const graph = this.graph();
+    this.tooltip ??= new ChartTooltip(graph.nativeElement.parentElement ?? graph.nativeElement);
     this.cy.on('mouseover', 'node', (event) => {
       const original = event.originalEvent as MouseEvent | undefined;
       if (original) {
@@ -189,7 +190,7 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
 
   private details(id: string) {
     if (id.startsWith('gs:')) {
-      const set = this.result.genesets.find((s) => `gs:${s.id}` === id);
+      const set = this.result().genesets.find((s) => `gs:${s.id}` === id);
       return {
         title: genesetLabel(set?.id ?? id.slice(3)),
         rows: [
@@ -198,7 +199,7 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
         ],
       };
     }
-    const gene = this.result.genes.find((g) => `gene:${g.symbol}` === id);
+    const gene = this.result().genes.find((g) => `gene:${g.symbol}` === id);
     return {
       title: gene?.symbol ?? id,
       rows: [
