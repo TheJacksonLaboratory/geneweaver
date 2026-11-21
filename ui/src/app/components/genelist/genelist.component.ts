@@ -1,8 +1,8 @@
-import {Component, Input, OnInit, Output} from '@angular/core';
+import { Component, Input, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GeneValue,  SimpleGeneValue, GeneIdTypes} from '../../models/gene-value';
 import { TableModule } from "primeng/table";
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { ApiBaseService, ApiBaseServiceFactory } from "jax-apiutils";
 import {HttpParams} from "@angular/common/http";
 import { GeneSet } from '../../models/gene-set';
@@ -17,12 +17,13 @@ interface IDType {
 
 @Component({
   selector: 'app-gene-list',
-  standalone: true,
-  imports: [CommonModule, TableModule, DropdownModule, FormsModule],
+  imports: [CommonModule, TableModule, SelectModule, FormsModule],
   templateUrl: './genelist.component.html',
   styleUrl: './genelist.component.css',
 })
 export class GeneListComponent implements OnInit {
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
   private gwApi: ApiBaseService;
   geneset: any;
 
@@ -33,9 +34,7 @@ export class GeneListComponent implements OnInit {
 
   idTypes: IDType[] | undefined;
   selectedIdType: IDType | undefined;
-  constructor(
-      private apiBaseServiceFactory: ApiBaseServiceFactory
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
   }
 

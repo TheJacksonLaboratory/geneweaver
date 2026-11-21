@@ -1,6 +1,6 @@
 /* Angular Imports */
-import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Output, Input, OnInit, inject } from '@angular/core';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
 import { FormsModule } from "@angular/forms";
@@ -23,12 +23,17 @@ import { environment } from "../../../environments/environment";
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, ToastModule, InputTextModule, InputGroupModule, ButtonModule, ProgressBarModule],
+  imports: [FormsModule, ToastModule, InputTextModule, InputGroupModule, ButtonModule, ProgressBarModule],
   providers: [MessageService],
   templateUrl: './searchbar.component.html',
   styleUrl: './searchbar.component.scss',
 })
 export class SearchBarComponent implements OnInit {
+  private messageService = inject(MessageService);
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   isSearching = false;
   private gwApi: ApiBaseService;
 
@@ -38,12 +43,7 @@ export class SearchBarComponent implements OnInit {
   @Output() searchPaging = new EventEmitter<Paging>();
   @Output() searchCleared = new EventEmitter<boolean>();
 
-  constructor(
-      private messageService: MessageService,
-      private apiBaseServiceFactory: ApiBaseServiceFactory,
-      private router: Router,
-      private route: ActivatedRoute
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
   }
 

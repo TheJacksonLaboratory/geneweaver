@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -7,7 +7,7 @@ import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 /* PrimeNG Imports */
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -219,13 +219,12 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
  */
 @Component({
   selector: 'app-analyze',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     ButtonModule,
     CardModule,
-    DropdownModule,
+    SelectModule,
     TooltipModule,
     InputTextModule,
     MessageModule,
@@ -241,6 +240,9 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   templateUrl: './analyze.component.html',
 })
 export class AnalyzeComponent implements OnInit, OnDestroy {
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  session = inject(SessionService);
+
   private gwApi: ApiBaseService;
 
   /** Gene set ids as typed by the user; validated before the call. */
@@ -417,10 +419,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   pendingRunId?: number;
   private poll?: Subscription;
 
-  constructor(
-    private apiBaseServiceFactory: ApiBaseServiceFactory,
-    public session: SessionService,
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
   }
 

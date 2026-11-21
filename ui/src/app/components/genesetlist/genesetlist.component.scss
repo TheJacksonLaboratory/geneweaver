@@ -13,3 +13,13 @@
     opacity: 0.7;
   }
 }
+
+/*
+ * Each cell's .p-column-title stays hidden, as it was. It is markup for PrimeNG 17's
+ * responsiveLayout="stack", which never applied here -- PrimeNG 17 does not stack a
+ * scrollable table, it scrolls it -- and which PrimeNG 18+ no longer implements, so nothing
+ * hides the titles any more.
+ */
+:host ::ng-deep .p-column-title {
+  display: none;
+}

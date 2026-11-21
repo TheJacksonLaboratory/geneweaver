@@ -6,7 +6,7 @@ import {
   OnChanges,
   ViewChild,
 } from '@angular/core';
-import { NgIf } from '@angular/common';
+
 import { axisLeft, max, scaleBand, scaleLinear, select } from 'd3';
 
 import {
@@ -20,6 +20,7 @@ import {
   percent,
 } from './chart-utils';
 import { genesetLabel, UpSetModel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * UpSet plot: one column per exclusive combination of gene sets, its size as a bar above
@@ -31,19 +32,20 @@ import { genesetLabel, UpSetModel } from './models';
  */
 @Component({
   selector: 'app-upset-plot',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    <p *ngIf="model.hidden" class="text-sm text-color-secondary">
-      Showing the {{ model.bars.length }} largest combinations; {{ model.hidden }} smaller ones
-      are in the table below.
-    </p>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    @if (model.hidden) {
+      <p class="text-sm text-color-secondary">
+        Showing the {{ model.bars.length }} largest combinations; {{ model.hidden }} smaller ones
+        are in the table below.
+      </p>
+    }
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
-  `,
-  imports: [NgIf],
+    `,
+  imports: [ButtonModule, ],
 })
 export class UpsetPlotComponent implements OnChanges {
   @Input({ required: true }) model!: UpSetModel;

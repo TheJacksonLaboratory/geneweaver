@@ -8,7 +8,6 @@ import { TooltipModule } from 'primeng/tooltip';
  */
 @Component({
   selector: 'app-info-tip',
-  standalone: true,
   imports: [TooltipModule],
   template: `
     <span

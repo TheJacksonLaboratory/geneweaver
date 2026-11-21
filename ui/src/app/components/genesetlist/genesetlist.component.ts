@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+
 import { Router } from '@angular/router';
 import { TableModule } from "primeng/table";
 import { TagModule } from "primeng/tag";
@@ -7,7 +7,13 @@ import { Button } from "primeng/button";
 import { GeneSet } from "../../models/gene-set";
 import { TierTagComponent } from "../tiertag/tiertag.component";
 import { RippleModule } from 'primeng/ripple';
-import { describeMatches, scoreTypeName, Sort, SortKey, speciesName } from '../../search/search-filters';
+import {
+  describeMatches,
+  scoreTypeName,
+  Sort,
+  SortKey,
+  speciesName,
+} from '../../search/search-filters';
 
 /** The sortable columns, in the table's order (G3-777). */
 export const SORTABLE_COLUMNS: { key: SortKey; label: string }[] = [
@@ -21,12 +27,13 @@ export const SORTABLE_COLUMNS: { key: SortKey; label: string }[] = [
 
 @Component({
   selector: 'app-gene-set-list',
-  standalone: true,
-  imports: [CommonModule, TableModule, TagModule, Button, TierTagComponent, RippleModule],
+  imports: [TableModule, TagModule, Button, TierTagComponent, RippleModule],
   templateUrl: './genesetlist.component.html',
   styleUrl: './genesetlist.component.scss',
 })
 export class GeneSetListComponent {
+  private router = inject(Router);
+
   @Input() geneSets: GeneSet[] = [];
   /** The order the results are in, to mark the sorted column. */
   @Input() sort: Sort = { by: null, order: 'asc' };
@@ -41,9 +48,6 @@ export class GeneSetListComponent {
   readonly scoreTypeName = scoreTypeName;
   /** Which gene each result matched in a gene search, e.g. "dop-3 (homolog of Drd2)". */
   readonly describeMatches = describeMatches;
-
-  constructor(private router: Router) {
-  }
 
   /** The first click sorts ascending, the next descending, the next clears the sort. */
   toggleSort(key: SortKey): void {

@@ -1,5 +1,13 @@
-import { Component, EventEmitter, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  EventEmitter,
+  OnDestroy,
+  OnInit,
+  Output,
+  ViewChild,
+  inject,
+} from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory, Paging } from 'jax-apiutils';
@@ -41,8 +49,7 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
  */
 @Component({
   selector: 'app-geneset-search',
-  standalone: true,
-  imports: [CommonModule, FormsModule, AutoCompleteModule, ButtonModule, ProgressBarModule, SearchFiltersComponent],
+  imports: [FormsModule, AutoCompleteModule, ButtonModule, ProgressBarModule, SearchFiltersComponent],
   styles: [SUGGESTION_STYLES],
   template: `
     <div class="flex gap-2 align-items-start">
@@ -68,14 +75,18 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
           ariaLabel="Search gene sets"
           styleClass="w-full"
           inputStyleClass="w-full"
-        >
+          >
           <ng-template let-option pTemplate="item">
             <div class="geneset-option text-left" [attr.data-gs-id]="option.id">
               <div class="white-space-nowrap overflow-hidden text-overflow-ellipsis font-normal">
                 <strong>GS{{ option.id }}</strong>
-                <span *ngIf="option.abbreviation" class="ml-2">{{ option.abbreviation }}</span>
+                @if (option.abbreviation) {
+                  <span class="ml-2">{{ option.abbreviation }}</span>
+                }
               </div>
-              <small *ngIf="option.detail" class="block text-color-secondary font-normal">{{ option.detail }}</small>
+              @if (option.detail) {
+                <small class="block text-color-secondary font-normal">{{ option.detail }}</small>
+              }
             </div>
           </ng-template>
         </p-autoComplete>
@@ -97,18 +108,26 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
       sets that contain one or more genes or their homologs, optionally only where their scores
       are in a range, use <strong>Filters</strong> &rsaquo; <em>Genes</em>.
     </small>
-    <app-search-filters
-      *ngIf="showFilters"
-      class="block mt-3"
-      idPrefix="search-filters"
-      [filters]="filters"
-      (filtersChange)="filtersChanged($event)"
-    ></app-search-filters>
-    <p-progressBar *ngIf="isSearching" mode="indeterminate" [style]="{ height: '6px' }" styleClass="mt-2"></p-progressBar>
-    <small *ngIf="errorMessage" class="block mt-2 text-orange-600 font-normal">{{ errorMessage }}</small>
-  `,
+    @if (showFilters) {
+      <app-search-filters
+        class="block mt-3"
+        idPrefix="search-filters"
+        [filters]="filters"
+        (filtersChange)="filtersChanged($event)"
+      ></app-search-filters>
+    }
+    @if (isSearching) {
+      <p-progressBar mode="indeterminate" [style]="{ height: '6px' }" styleClass="mt-2"></p-progressBar>
+    }
+    @if (errorMessage) {
+      <small class="block mt-2 text-orange-600 font-normal">{{ errorMessage }}</small>
+    }
+    `,
 })
 export class GenesetSearchComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   @Output() searchExecuted = new EventEmitter<string>();
   /** The page of results now shown. */
   @Output() searchCompleted = new EventEmitter<GeneSet[]>();
@@ -143,11 +162,9 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
   private lastSearch?: Subscription;
   private choosing = false;
 
-  constructor(
-    apiBaseServiceFactory: ApiBaseServiceFactory,
-    private router: Router,
-    private route: ActivatedRoute,
-  ) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.gwApi = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
     this.source = new GenesetSearchSource(this.gwApi);
   }

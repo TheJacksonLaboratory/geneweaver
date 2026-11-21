@@ -28,19 +28,19 @@ export const LIST_HEIGHT = `${VISIBLE_ROWS * ROW_HEIGHT_PX + LIST_PADDING_PX}px`
  */
 export const SUGGESTION_STYLES = `
   :host ::ng-deep .p-autocomplete,
-  :host ::ng-deep .p-autocomplete-multiple-container,
+  :host ::ng-deep .p-autocomplete-input-multiple,
   :host ::ng-deep .p-autocomplete-input {
     width: 100%;
   }
-  :host ::ng-deep .p-autocomplete-panel .p-autocomplete-item {
+  :host ::ng-deep .p-autocomplete-overlay .p-autocomplete-option {
     height: 52px;
     margin: 0;
     overflow: hidden;
   }
-  :host ::ng-deep .p-autocomplete-panel .p-scroller-content {
+  :host ::ng-deep .p-autocomplete-overlay .p-virtualscroller-content {
     width: 100%;
   }
-  :host ::ng-deep .p-autocomplete-token-label {
+  :host ::ng-deep .p-autocomplete-chip .p-chip-label {
     max-width: 18rem;
     overflow: hidden;
     text-overflow: ellipsis;

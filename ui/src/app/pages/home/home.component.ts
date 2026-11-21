@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // The previous search bar, kept for reference; replaced by GenesetSearchComponent (G3-777, G3-764).
 // import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
@@ -12,12 +12,13 @@ import { Router } from "@angular/router";
 
 @Component({
   selector: 'app-home',
-  standalone: true,
   imports: [CommonModule, GenesetSearchComponent, GeneSetListComponent, ButtonModule, PaginatorModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
 export class HomeComponent {
+  private router = inject(Router);
+
   isSearchActive = false;
   isLoading = false;
   geneSets: GeneSet[] = [];
@@ -28,7 +29,7 @@ export class HomeComponent {
   // @ViewChild(SearchBarComponent) searchBarComponent!: SearchBarComponent;
   @ViewChild(GenesetSearchComponent) searchField!: GenesetSearchComponent;
 
-  constructor(private router: Router) {
+  constructor() {
     setTimeout(() => {
       this.isSpinning = false;
     }, 700);

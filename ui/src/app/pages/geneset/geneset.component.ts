@@ -1,5 +1,5 @@
-import {Component, OnInit} from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+
 import { ActivatedRoute } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
 import { SpeciestagComponent } from '../../components/speciestag/speciestag.component';
@@ -12,9 +12,11 @@ import { PanelModule } from 'primeng/panel';
 import { MenubarModule } from 'primeng/menubar';
 import { MenuItem } from 'primeng/api';
 import { TableModule } from 'primeng/table';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
-import { OntologyAnnotationsComponent } from '../../components/ontologyannotations/ontologyannotations.component';
+import {
+  OntologyAnnotationsComponent,
+} from '../../components/ontologyannotations/ontologyannotations.component';
 import { OntologyTerm } from '../../models/ontology-term';
 import { HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -29,9 +31,7 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
 
 @Component({
   selector: 'app-gene-set',
-  standalone: true,
   imports: [
-    CommonModule,
     SpeciestagComponent,
     TierTagComponent,
     GeneListComponent,
@@ -40,18 +40,22 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
     PanelModule,
     MenubarModule,
     TableModule,
-    DropdownModule,
+    SelectModule,
     CheckboxModule,
     MenubarModule,
     OntologyAnnotationsComponent,
     MenuModule,
     ButtonModule,
-    SimilarGenesetsComponent,
-  ],
+    SimilarGenesetsComponent
+],
   templateUrl: './geneset.component.html',
   styleUrl: './geneset.component.css',
 })
 export class GeneSetComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private router = inject(Router);
+
   private gwApi: ApiBaseService;
   pubmedUrl: string = environment.urls.pubmed + '/';
   genesetDetails: any;
@@ -78,7 +82,6 @@ export class GeneSetComponent implements OnInit {
     {
       label: 'Legacy Page',
       icon: 'pi pi-history',
-      styleClass: 'p-button-secondary',
       command: () => this.onLegacyClick(this.geneset),
     },
   ];
@@ -104,11 +107,7 @@ export class GeneSetComponent implements OnInit {
     },
   ];
 
-  constructor(
-    private route: ActivatedRoute,
-    private apiBaseServiceFactory: ApiBaseServiceFactory,
-    private router: Router
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(
       environment.urls.geneWeaverApi
     );

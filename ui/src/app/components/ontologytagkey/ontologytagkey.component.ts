@@ -1,5 +1,5 @@
 import {Component, Input, OnInit} from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { OntologyTerm, ontologyColorMap } from "../../models/ontology-term"
@@ -11,8 +11,7 @@ interface SourceOntology {
 
 @Component({
   selector: 'app-ontology-tag-key',
-  standalone: true,
-  imports: [CommonModule, TagModule, TooltipModule],
+  imports: [TagModule, TooltipModule],
   templateUrl: './ontologytagkey.component.html',
   styleUrl: './ontologytagkey.component.css',
 })

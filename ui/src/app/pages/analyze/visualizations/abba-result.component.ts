@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common';
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -7,6 +7,7 @@ import {
   Input,
   OnChanges,
   Output,
+  inject,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
@@ -34,6 +35,8 @@ import {
 } from './abba-models';
 import { AbbaSparklineComponent } from './abba-sparkline.component';
 import { saveBlob } from './chart-utils';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** Seed tiles shown before "Show all": a gene-set seed can expand to a thousand genes. */
 const SEED_PREVIEW = 120;
@@ -57,20 +60,21 @@ interface GeneRow {
  */
 @Component({
   selector: 'app-abba-result',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgFor, NgIf, RouterLink, AbbaSparklineComponent],
+  imports: [InputTextModule, ButtonModule, RouterLink, AbbaSparklineComponent],
   template: `
     <details class="abba-section" open>
       <summary><h4>Run information</h4></summary>
       <dl class="run-info">
-        <div *ngFor="let row of info">
-          <dt>{{ row.label }}:</dt>
-          <dd>{{ row.value }}</dd>
-        </div>
+        @for (row of info; track row) {
+          <div>
+            <dt>{{ row.label }}:</dt>
+            <dd>{{ row.value }}</dd>
+          </div>
+        }
       </dl>
     </details>
-
+    
     <details class="abba-section" open>
       <summary><h4>Seed genes ({{ result.seed_genes.length }})</h4></summary>
       <p class="text-sm text-color-secondary mt-0">
@@ -78,37 +82,40 @@ interface GeneRow {
         coloured by species.
       </p>
       <ul class="tiles species-tiles" aria-label="Species in the seed">
-        <li
-          *ngFor="let species of result.input_species"
-          class="tile"
-          [style.background]="speciesTile(species).background"
-          [style.border-color]="speciesTile(species).border"
-          [title]="species"
-        >
-          {{ species }}
-        </li>
+        @for (species of result.input_species; track species) {
+          <li
+            class="tile"
+            [style.background]="speciesTile(species).background"
+            [style.border-color]="speciesTile(species).border"
+            [title]="species"
+            >
+            {{ species }}
+          </li>
+        }
       </ul>
       <ul class="tiles gene-tiles" aria-label="Seed genes">
-        <li
-          *ngFor="let gene of seedTiles"
-          class="tile gene-tile"
-          [style.background]="speciesTile(gene.species).background"
-          [style.border-color]="speciesTile(gene.species).border"
-          [title]="gene.symbol + ' (' + (gene.species ?? 'species unknown') + ')'"
-        >
-          {{ gene.symbol }}<span class="sr-only"> ({{ gene.species ?? 'species unknown' }})</span>
-        </li>
+        @for (gene of seedTiles; track gene) {
+          <li
+            class="tile gene-tile"
+            [style.background]="speciesTile(gene.species).background"
+            [style.border-color]="speciesTile(gene.species).border"
+            [title]="gene.symbol + ' (' + (gene.species ?? 'species unknown') + ')'"
+            >
+            {{ gene.symbol }}<span class="sr-only"> ({{ gene.species ?? 'species unknown' }})</span>
+          </li>
+        }
       </ul>
-      <button
-        *ngIf="result.seed_genes.length > seedPreview"
-        type="button"
-        class="p-button p-button-sm p-button-text"
-        (click)="showAllSeeds = !showAllSeeds"
-      >
-        {{ showAllSeeds ? 'Show fewer' : 'Show all ' + result.seed_genes.length + ' seed genes' }}
-      </button>
+      @if (result.seed_genes.length > seedPreview) {
+        <button pButton
+          type="button"
+          class="p-button p-button-sm p-button-text"
+          (click)="showAllSeeds = !showAllSeeds"
+          >
+          {{ showAllSeeds ? 'Show fewer' : 'Show all ' + result.seed_genes.length + ' seed genes' }}
+        </button>
+      }
     </details>
-
+    
     <details class="abba-section" open>
       <summary><h4>Highly connected gene sets</h4></summary>
       <div class="flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
@@ -119,14 +126,16 @@ interface GeneRow {
         <div>
           <label for="abba-sort" class="block text-sm mb-1">Sort results</label>
           <!-- Bound to input, like the options form: see analyze.component.html. -->
-          <select
+          <select pInputText
             id="abba-sort"
             class="p-inputtext p-inputtext-sm"
             (input)="sortBy($any($event.target).value)"
-          >
-            <option *ngFor="let sort of sorts" [value]="sort.value" [selected]="sort.value === sortValue">
-              {{ sort.label }}
-            </option>
+            >
+            @for (sort of sorts; track sort) {
+              <option [value]="sort.value" [selected]="sort.value === sortValue">
+                {{ sort.label }}
+              </option>
+            }
           </select>
         </div>
       </div>
@@ -145,7 +154,7 @@ interface GeneRow {
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let geneset of genesets; trackBy: trackGeneset">
+            @for (geneset of genesets; track trackGeneset($index, geneset)) {
               <tr>
                 <td>
                   <button
@@ -155,22 +164,24 @@ interface GeneRow {
                     [attr.aria-controls]="'abba-gs-' + geneset.gs_id"
                     [attr.aria-label]="'Description of GS' + geneset.gs_id"
                     (click)="toggle(geneset.gs_id)"
-                  >
+                    >
                     {{ expanded.has(geneset.gs_id) ? '−' : '+' }}
                   </button>
                 </td>
                 <td>
                   <span class="badge" [style.background]="tierBadge(geneset.tier).background"
                     [style.border-color]="tierBadge(geneset.tier).border"
-                    [title]="tierName(geneset.tier)">{{ tierLabel(geneset.tier) }}</span>
+                  [title]="tierName(geneset.tier)">{{ tierLabel(geneset.tier) }}</span>
                 </td>
                 <td>
                   <span class="badge" [style.background]="speciesTile(speciesName(geneset.species_id)).background"
                     [style.border-color]="speciesTile(speciesName(geneset.species_id)).border"
-                    [title]="speciesName(geneset.species_id)">{{ speciesCommonName(speciesName(geneset.species_id)) }}</span>
+                  [title]="speciesName(geneset.species_id)">{{ speciesCommonName(speciesName(geneset.species_id)) }}</span>
                 </td>
                 <td>
-                  <span *ngIf="geneset.attribution" class="badge attribution">{{ geneset.attribution }}</span>
+                  @if (geneset.attribution) {
+                    <span class="badge attribution">{{ geneset.attribution }}</span>
+                  }
                 </td>
                 <td><span class="badge size">{{ geneset.gene_count.toLocaleString() }} genes</span></td>
                 <td class="text-right"><strong>{{ geneset.matches }}</strong></td>
@@ -183,33 +194,39 @@ interface GeneRow {
                     [checked]="selectedGenesets.has(geneset.gs_id)"
                     [attr.aria-label]="'Select GS' + geneset.gs_id"
                     (change)="toggleGeneset(geneset.gs_id)"
-                  />
+                    />
                 </td>
               </tr>
-              <tr *ngIf="expanded.has(geneset.gs_id)" [id]="'abba-gs-' + geneset.gs_id" class="description">
-                <td></td>
-                <td colspan="7">
-                  <div *ngIf="geneset.abbreviation"><strong>{{ geneset.abbreviation }}</strong></div>
-                  {{ geneset.description || 'No description.' }}
-                </td>
+              @if (expanded.has(geneset.gs_id)) {
+                <tr [id]="'abba-gs-' + geneset.gs_id" class="description">
+                  <td></td>
+                  <td colspan="7">
+                    @if (geneset.abbreviation) {
+                      <div><strong>{{ geneset.abbreviation }}</strong></div>
+                    }
+                    {{ geneset.description || 'No description.' }}
+                  </td>
+                </tr>
+              }
+            }
+            @if (!genesets.length) {
+              <tr>
+                <td colspan="8">No gene set holds enough of the seed genes. Try fewer minimum genes or more tiers.</td>
               </tr>
-            </ng-container>
-            <tr *ngIf="!genesets.length">
-              <td colspan="8">No gene set holds enough of the seed genes. Try fewer minimum genes or more tiers.</td>
-            </tr>
+            }
           </tbody>
         </table>
       </div>
-      <button
+      <button pButton
         type="button"
         class="p-button p-button-sm p-button-outlined mt-2"
         [disabled]="!selectedGenesets.size"
         (click)="useGenesets.emit(selectedGenesetIds)"
-      >
+        >
         Use {{ selectedGenesets.size || '' }} selected gene set{{ selectedGenesets.size === 1 ? '' : 's' }} in the Analyze form
       </button>
     </details>
-
+    
     <details class="abba-section" open>
       <summary><h4>Genes of interest</h4></summary>
       <div class="flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
@@ -218,16 +235,18 @@ interface GeneRow {
           sets.
         </p>
         <div class="flex gap-2">
-          <button type="button" class="p-button p-button-sm" [disabled]="!selectedGenes.size" (click)="copyGenes()">
+          <button pButton type="button" class="p-button p-button-sm" [disabled]="!selectedGenes.size" (click)="copyGenes()">
             Copy selected genes
           </button>
-          <button type="button" class="p-button p-button-sm p-button-outlined" [disabled]="!selectedGenes.size" (click)="downloadGenes()">
+          <button pButton type="button" class="p-button p-button-sm p-button-outlined" [disabled]="!selectedGenes.size" (click)="downloadGenes()">
             Download CSV
           </button>
         </div>
       </div>
       <p class="sr-only" aria-live="polite">{{ status }}</p>
-      <p *ngIf="status" class="text-sm mt-0" aria-hidden="true">{{ status }}</p>
+      @if (status) {
+        <p class="text-sm mt-0" aria-hidden="true">{{ status }}</p>
+      }
       <div class="overflow-auto">
         <table class="abba-table genes">
           <thead>
@@ -245,52 +264,58 @@ interface GeneRow {
                   [checked]="allGenesSelected"
                   [indeterminate]="selectedGenes.size > 0 && !allGenesSelected"
                   (change)="toggleAllGenes()"
-                />
+                  />
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of geneRows; trackBy: trackGene">
-              <td class="symbols">
-                <strong>{{ row.symbols[0] }}</strong>
-                <span *ngIf="row.symbols.length > 1" class="text-color-secondary"> {{ row.symbols.slice(1).join(' ') }}</span>
-              </td>
-              <td>
-                <span class="badge" [style.background]="row.tile.background" [style.border-color]="row.tile.border"
+            @for (row of geneRows; track trackGene($index, row)) {
+              <tr>
+                <td class="symbols">
+                  <strong>{{ row.symbols[0] }}</strong>
+                  @if (row.symbols.length > 1) {
+                    <span class="text-color-secondary"> {{ row.symbols.slice(1).join(' ') }}</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge" [style.background]="row.tile.background" [style.border-color]="row.tile.border"
                   [title]="row.gene.species">{{ speciesCommonName(row.gene.species) }}</span>
-              </td>
-              <td>
-                <div
-                  class="meter"
-                  role="meter"
-                  aria-valuemin="0"
-                  [attr.aria-valuemax]="result.max_occurrences"
-                  [attr.aria-valuenow]="row.gene.occurrences"
-                  [attr.aria-label]="row.gene.symbol + ' is in ' + row.gene.occurrences + ' of the gene sets'"
-                >
-                  <div class="meter-fill" [style.width.%]="row.fraction * 100"></div>
-                  <span class="meter-text">{{ row.gene.occurrences.toLocaleString() }}</span>
-                </div>
-              </td>
-              <td><app-abba-sparkline [bars]="row.tiers" [title]="row.gene.symbol + ': gene sets by curation tier'"></app-abba-sparkline></td>
-              <td><app-abba-sparkline [bars]="row.species" [title]="row.gene.symbol + ': gene sets by species (log scale)'"></app-abba-sparkline></td>
-              <td>
-                <input
-                  type="checkbox"
-                  [checked]="selectedGenes.has(row.gene.ode_gene_id)"
-                  [attr.aria-label]="'Select ' + row.gene.symbol"
-                  (change)="toggleGene(row.gene.ode_gene_id)"
-                />
-              </td>
-            </tr>
-            <tr *ngIf="!geneRows.length">
-              <td colspan="6">No gene recurs across the matching gene sets.</td>
-            </tr>
+                </td>
+                <td>
+                  <div
+                    class="meter"
+                    role="meter"
+                    aria-valuemin="0"
+                    [attr.aria-valuemax]="result.max_occurrences"
+                    [attr.aria-valuenow]="row.gene.occurrences"
+                    [attr.aria-label]="row.gene.symbol + ' is in ' + row.gene.occurrences + ' of the gene sets'"
+                    >
+                    <div class="meter-fill" [style.width.%]="row.fraction * 100"></div>
+                    <span class="meter-text">{{ row.gene.occurrences.toLocaleString() }}</span>
+                  </div>
+                </td>
+                <td><app-abba-sparkline [bars]="row.tiers" [title]="row.gene.symbol + ': gene sets by curation tier'"></app-abba-sparkline></td>
+                <td><app-abba-sparkline [bars]="row.species" [title]="row.gene.symbol + ': gene sets by species (log scale)'"></app-abba-sparkline></td>
+                <td>
+                  <input
+                    type="checkbox"
+                    [checked]="selectedGenes.has(row.gene.ode_gene_id)"
+                    [attr.aria-label]="'Select ' + row.gene.symbol"
+                    (change)="toggleGene(row.gene.ode_gene_id)"
+                    />
+                </td>
+              </tr>
+            }
+            @if (!geneRows.length) {
+              <tr>
+                <td colspan="6">No gene recurs across the matching gene sets.</td>
+              </tr>
+            }
           </tbody>
         </table>
       </div>
     </details>
-  `,
+    `,
   styles: [
     `
       .abba-section { margin-bottom: 1.25rem; }
@@ -327,6 +352,8 @@ interface GeneRow {
   ],
 })
 export class AbbaResultComponent implements OnChanges {
+  private changes = inject(ChangeDetectorRef);
+
   @Input({ required: true }) result!: AbbaResult;
   /** When the result arrived; legacy's "Date". */
   @Input() ranAt?: Date;
@@ -348,8 +375,6 @@ export class AbbaResultComponent implements OnChanges {
   selectedGenesets = new Set<number>();
   selectedGenes = new Set<number>();
   status = '';
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   ngOnChanges(): void {
     const r = this.result;
