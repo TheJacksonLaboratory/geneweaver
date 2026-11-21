@@ -21,7 +21,6 @@ export const SORTABLE_COLUMNS: { key: SortKey; label: string }[] = [
 
 @Component({
   selector: 'app-gene-set-list',
-  standalone: true,
   imports: [CommonModule, TableModule, TagModule, Button, TierTagComponent, RippleModule],
   templateUrl: './genesetlist.component.html',
   styleUrl: './genesetlist.component.scss',

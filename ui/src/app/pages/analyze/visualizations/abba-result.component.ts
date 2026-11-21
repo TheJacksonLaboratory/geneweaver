@@ -57,7 +57,6 @@ interface GeneRow {
  */
 @Component({
   selector: 'app-abba-result',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgFor, NgIf, RouterLink, AbbaSparklineComponent],
   template: `

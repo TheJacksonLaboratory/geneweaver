@@ -6,7 +6,6 @@ import { environment } from "../environments/environment";
 import { SessionService } from './services/session.service';
 
 @Component({
-  standalone: true,
   imports: [RouterModule, MessagesModule, AsyncPipe, NgIf],
   selector: 'app-root',
   templateUrl: './app.component.html',

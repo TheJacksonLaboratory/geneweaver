@@ -7,7 +7,6 @@ import { combineModel, CombineModel } from './models';
 /** Combine: every gene against every gene set, most widely shared genes first. */
 @Component({
   selector: 'app-combine-table',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgFor, TableModule],
   template: `

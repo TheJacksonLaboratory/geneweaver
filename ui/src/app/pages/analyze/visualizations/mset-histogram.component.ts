@@ -20,7 +20,6 @@ import { MsetModel } from './models';
  */
 @Component({
   selector: 'app-mset-histogram',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgFor],
   template: `

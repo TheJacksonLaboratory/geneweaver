@@ -6,7 +6,6 @@ import {OntologyTagKeyComponent} from "../ontologytagkey/ontologytagkey.componen
 
 @Component({
   selector: 'app-ontology-annotations',
-  standalone: true,
   imports: [CommonModule, OntologyTagComponent, OntologyTagKeyComponent],
   templateUrl: './ontologyannotations.component.html',
   styleUrl: './ontologyannotations.component.css',

@@ -25,7 +25,6 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
  */
 @Component({
   selector: 'app-geneset-graph',
-  standalone: true,
   imports: [NgIf, NgFor],
   template: `
     <p class="text-sm text-color-secondary mt-0">{{ model.summary }}</p>

@@ -41,7 +41,6 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
  */
 @Component({
   selector: 'app-geneset-search',
-  standalone: true,
   imports: [CommonModule, FormsModule, AutoCompleteModule, ButtonModule, ProgressBarModule, SearchFiltersComponent],
   styles: [SUGGESTION_STYLES],
   template: `

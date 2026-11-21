@@ -4,7 +4,6 @@ import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'app-speciestag',
-  standalone: true,
   imports: [TooltipModule, TagModule],
   templateUrl: './speciestag.component.html',
   styleUrl: './speciestag.component.scss'

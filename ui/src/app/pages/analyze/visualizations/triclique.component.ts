@@ -12,7 +12,6 @@ import { genesetLabel, Triclique, TricliqueModel, tricliqueModel, TricliqueOutpu
  */
 @Component({
   selector: 'app-triclique',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIf, NgFor],
   template: `

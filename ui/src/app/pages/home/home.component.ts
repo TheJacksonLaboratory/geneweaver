@@ -12,7 +12,6 @@ import { Router } from "@angular/router";
 
 @Component({
   selector: 'app-home',
-  standalone: true,
   imports: [CommonModule, GenesetSearchComponent, GeneSetListComponent, ButtonModule, PaginatorModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',

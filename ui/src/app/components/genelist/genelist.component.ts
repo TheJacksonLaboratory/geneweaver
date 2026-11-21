@@ -17,7 +17,6 @@ interface IDType {
 
 @Component({
   selector: 'app-gene-list',
-  standalone: true,
   imports: [CommonModule, TableModule, DropdownModule, FormsModule],
   templateUrl: './genelist.component.html',
   styleUrl: './genelist.component.css',

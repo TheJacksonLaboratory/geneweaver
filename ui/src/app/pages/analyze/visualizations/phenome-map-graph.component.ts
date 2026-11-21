@@ -37,7 +37,6 @@ interface SelectedBiclique {
  */
 @Component({
   selector: 'app-phenome-map-graph',
-  standalone: true,
   imports: [NgIf, NgFor],
   template: `
     <dl class="stats flex flex-wrap gap-3 text-sm m-0 mb-2">

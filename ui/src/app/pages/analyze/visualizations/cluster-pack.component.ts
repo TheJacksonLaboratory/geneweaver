@@ -27,7 +27,6 @@ import { PackNode } from './models';
  */
 @Component({
   selector: 'app-cluster-pack',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>

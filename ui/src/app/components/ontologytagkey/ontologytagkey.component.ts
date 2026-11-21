@@ -11,7 +11,6 @@ interface SourceOntology {
 
 @Component({
   selector: 'app-ontology-tag-key',
-  standalone: true,
   imports: [CommonModule, TagModule, TooltipModule],
   templateUrl: './ontologytagkey.component.html',
   styleUrl: './ontologytagkey.component.css',

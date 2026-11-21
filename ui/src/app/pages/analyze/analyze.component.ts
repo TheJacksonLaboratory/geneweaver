@@ -219,7 +219,6 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
  */
 @Component({
   selector: 'app-analyze',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

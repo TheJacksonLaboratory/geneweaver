@@ -72,7 +72,6 @@ const VIEWS: Record<string, { id: string; label: string }[]> = {
  */
 @Component({
   selector: 'app-tool-result',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgFor,

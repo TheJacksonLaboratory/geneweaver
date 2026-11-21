@@ -33,7 +33,6 @@ const GREY = '#CBD5E1';
  */
 @Component({
   selector: 'app-venn-grid',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgFor],
   template: `

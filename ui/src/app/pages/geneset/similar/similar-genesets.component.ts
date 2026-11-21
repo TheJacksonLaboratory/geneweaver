@@ -69,7 +69,6 @@ interface HttpFailure {
  */
 @Component({
   selector: 'app-similar-genesets',
-  standalone: true,
   imports: [NgIf, NgFor, DecimalPipe, FormsModule, RouterLink, ButtonModule, InputNumberModule, ProgressBarModule],
   template: `
     <p class="text-sm text-color-secondary mt-0 text-left">

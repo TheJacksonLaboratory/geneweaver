@@ -6,7 +6,6 @@ import { OntologyTerm, ontologyColorMap } from "../../models/ontology-term"
 
 @Component({
   selector: 'app-ontology-tag',
-  standalone: true,
   imports: [CommonModule, TagModule, TooltipModule],
   templateUrl: './ontologytag.component.html',
   styleUrl: './ontologytag.component.css',

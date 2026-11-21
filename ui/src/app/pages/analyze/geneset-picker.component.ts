@@ -39,7 +39,6 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
  */
 @Component({
   selector: 'app-geneset-picker',
-  standalone: true,
   imports: [CommonModule, FormsModule, AutoCompleteModule],
   styles: [SUGGESTION_STYLES],
   template: `

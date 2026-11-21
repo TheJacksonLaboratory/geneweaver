@@ -25,7 +25,6 @@ const clusterColour = (cluster: number | null) =>
  */
 @Component({
   selector: 'app-gene-network',
-  standalone: true,
   imports: [NgIf, NgFor],
   template: `
     <p *ngIf="!network.available" class="text-sm text-color-secondary">

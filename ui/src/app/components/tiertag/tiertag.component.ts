@@ -4,7 +4,6 @@ import {TagModule} from "primeng/tag";
 
 @Component({
   selector: 'app-tier-tag',
-  standalone: true,
   imports: [CommonModule, TagModule],
   templateUrl: './tiertag.component.html',
   styleUrl: './tiertag.component.scss',

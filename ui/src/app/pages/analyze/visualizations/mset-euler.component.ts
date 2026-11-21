@@ -31,7 +31,6 @@ interface Disc {
  */
 @Component({
   selector: 'app-mset-euler',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIf, NgFor],
   template: `

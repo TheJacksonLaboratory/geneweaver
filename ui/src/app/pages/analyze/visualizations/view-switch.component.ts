@@ -8,7 +8,6 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
  */
 @Component({
   selector: 'app-view-switch',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgFor],
   template: `

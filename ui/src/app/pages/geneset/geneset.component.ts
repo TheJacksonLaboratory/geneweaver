@@ -29,7 +29,6 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
 
 @Component({
   selector: 'app-gene-set',
-  standalone: true,
   imports: [
     CommonModule,
     SpeciestagComponent,

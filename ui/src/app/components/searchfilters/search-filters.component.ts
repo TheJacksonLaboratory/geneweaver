@@ -31,7 +31,6 @@ import {
  */
 @Component({
   selector: 'app-search-filters',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

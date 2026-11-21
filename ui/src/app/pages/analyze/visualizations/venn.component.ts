@@ -21,7 +21,6 @@ import { BooleanModel, genesetLabel, SpeciesSummaryRow, vennLayout } from './mod
  */
 @Component({
   selector: 'app-venn',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIf, NgFor, TableModule],
   template: `

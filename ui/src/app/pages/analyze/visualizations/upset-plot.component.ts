@@ -31,7 +31,6 @@ import { genesetLabel, UpSetModel } from './models';
  */
 @Component({
   selector: 'app-upset-plot',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
