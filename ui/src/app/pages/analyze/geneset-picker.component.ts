@@ -9,7 +9,7 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { Subscription } from 'rxjs';
@@ -40,7 +40,7 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
  */
 @Component({
   selector: 'app-geneset-picker',
-  imports: [CommonModule, FormsModule, AutoCompleteModule],
+  imports: [FormsModule, AutoCompleteModule],
   styles: [SUGGESTION_STYLES],
   template: `
     <p-autoComplete
@@ -68,33 +68,47 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
       [ariaLabel]="ariaLabel"
       styleClass="w-full"
       inputStyleClass="w-full"
-    >
+      >
       <ng-template let-option pTemplate="item">
         <div class="geneset-option" [attr.data-gs-id]="option.id">
           <div class="white-space-nowrap overflow-hidden text-overflow-ellipsis">
             <strong>GS{{ option.id }}</strong>
-            <span *ngIf="option.abbreviation" class="ml-2">{{ option.abbreviation }}</span>
+            @if (option.abbreviation) {
+              <span class="ml-2">{{ option.abbreviation }}</span>
+            }
           </div>
-          <small *ngIf="option.detail" class="block text-color-secondary">{{ option.detail }}</small>
+          @if (option.detail) {
+            <small class="block text-color-secondary">{{ option.detail }}</small>
+          }
         </div>
       </ng-template>
     </p-autoComplete>
-    <small *ngIf="source.loading" class="block mt-1 text-color-secondary" aria-live="polite">
-      Searching gene sets…
-    </small>
-    <small *ngIf="source.failed" class="block mt-1 text-color-secondary" aria-live="polite">
-      The gene set search is not responding. You can still type gene set IDs.
-    </small>
-    <small *ngIf="source.refused" class="block mt-1 text-orange-600 search-refused" aria-live="polite">
-      The search was refused: {{ source.refused }}
-    </small>
-    <small *ngIf="checking" class="block mt-1 text-color-secondary" aria-live="polite">
-      Checking {{ checking }}…
-    </small>
-    <small *ngIf="rejected" class="block mt-1 text-orange-600 rejected-ids" aria-live="polite">
-      {{ rejected }}
-    </small>
-  `,
+    @if (source.loading) {
+      <small class="block mt-1 text-color-secondary" aria-live="polite">
+        Searching gene sets…
+      </small>
+    }
+    @if (source.failed) {
+      <small class="block mt-1 text-color-secondary" aria-live="polite">
+        The gene set search is not responding. You can still type gene set IDs.
+      </small>
+    }
+    @if (source.refused) {
+      <small class="block mt-1 text-orange-600 search-refused" aria-live="polite">
+        The search was refused: {{ source.refused }}
+      </small>
+    }
+    @if (checking) {
+      <small class="block mt-1 text-color-secondary" aria-live="polite">
+        Checking {{ checking }}…
+      </small>
+    }
+    @if (rejected) {
+      <small class="block mt-1 text-orange-600 rejected-ids" aria-live="polite">
+        {{ rejected }}
+      </small>
+    }
+    `,
 })
 export class GenesetPickerComponent implements OnChanges, OnDestroy {
   /** The selected gene set ids, as the page holds them. */

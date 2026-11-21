@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
 import { SpeciestagComponent } from '../../components/speciestag/speciestag.component';
@@ -32,7 +32,6 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
 @Component({
   selector: 'app-gene-set',
   imports: [
-    CommonModule,
     SpeciestagComponent,
     TierTagComponent,
     GeneListComponent,
@@ -47,8 +46,8 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
     OntologyAnnotationsComponent,
     MenuModule,
     ButtonModule,
-    SimilarGenesetsComponent,
-  ],
+    SimilarGenesetsComponent
+],
   templateUrl: './geneset.component.html',
   styleUrl: './geneset.component.css',
 })

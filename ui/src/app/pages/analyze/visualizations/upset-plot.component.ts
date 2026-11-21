@@ -6,7 +6,7 @@ import {
   OnChanges,
   ViewChild,
 } from '@angular/core';
-import { NgIf } from '@angular/common';
+
 import { axisLeft, max, scaleBand, scaleLinear, select } from 'd3';
 
 import {
@@ -34,15 +34,17 @@ import { genesetLabel, UpSetModel } from './models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    <p *ngIf="model.hidden" class="text-sm text-color-secondary">
-      Showing the {{ model.bars.length }} largest combinations; {{ model.hidden }} smaller ones
-      are in the table below.
-    </p>
+    @if (model.hidden) {
+      <p class="text-sm text-color-secondary">
+        Showing the {{ model.bars.length }} largest combinations; {{ model.hidden }} smaller ones
+        are in the table below.
+      </p>
+    }
     <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
-  `,
-  imports: [NgIf],
+    `,
+  imports: [],
 })
 export class UpsetPlotComponent implements OnChanges {
   @Input({ required: true }) model!: UpSetModel;

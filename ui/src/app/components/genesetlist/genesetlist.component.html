@@ -1,77 +1,83 @@
 <p-table
-        selectionMode="single"
-        responsiveLayout="stack"
-        [scrollable]="true"
-        [breakpoint]="'960px'"
-        [value]="geneSets"
-        dataKey="id"
->
-    <ng-template pTemplate="header">
-        <tr>
-            <!-- Sorted by the search, not in the table: results arrive a page at a time (G3-777). -->
-            <th *ngFor="let column of columns" [attr.aria-sort]="ariaSort(column.key)">
-                <button type="button" class="sort-header" (click)="toggleSort(column.key)"
-                        [attr.aria-label]="'Sort by ' + column.label">
-                    {{ column.label }} <i [class]="sortIcon(column.key)" aria-hidden="true"></i>
-                </button>
-            </th>
-            <th class="w-2rem"></th>
-        </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-geneset let-columns="columns" let-expanded="expanded">
-        <tr>
-            <td>
-                <span class="p-column-title">ID</span>
-                <p-tag [value]="'GS' + geneset.id"
-                       severity="success"
-                       styleClass="text-xs text-light font-monospace gw-green carrois-gothic-regular">
-                </p-tag>
-            </td>
-            <td>
-                <span class="p-column-title">Name</span>
-                <p-button [label]="geneset.name"
-                          (onClick)="onGeneSetClick(geneset)"
-                          styleClass="p-button-text p-button-plain text-left p-0 font-semibold ml-4">
-                </p-button>
-                <small *ngIf="describeMatches(geneset.matched_genes) as matched"
-                       class="block ml-4 text-color-secondary matched-genes">
-                    Matched: {{ matched }}
-                </small>
-            </td>
-            <td>
-                <span class="p-column-title">Species</span>
-                <em>{{ speciesName(geneset.species_id) }}</em>
-            </td>
-            <td>
-                <span class="p-column-title">Size</span>
-                {{ geneset.count }}
-            </td>
-            <td>
-                <span class="p-column-title">Tier</span>
-                <app-tier-tag [tier]="geneset.curation_id"></app-tier-tag>
-            </td>
-            <td>
-                <span class="p-column-title">Score</span>
-                {{ scoreTypeName(geneset.score_type) }}
-                <small *ngIf="geneset.threshold && geneset.score_type !== 3" class="block text-color-secondary">
-                    threshold {{ geneset.threshold }}
-                </small>
-            </td>
-            <td>
-                <span class="p-column-title">Details</span>
-                <div class="flex gap-1">
-                    <p-button type="button" pRipple [pRowToggler]="geneset" [text]="true" [rounded]="true" [plain]="true" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" />
-                </div>
-            </td>
-        </tr>
-    </ng-template>
-    <ng-template pTemplate="rowexpansion" let-geneset>
-        <tr>
-            <td colspan="7">
-                <div class="px-8 pb-4">
-                    {{ geneset.description }}
-                </div>
-            </td>
-        </tr>
-    </ng-template>
+  selectionMode="single"
+  responsiveLayout="stack"
+  [scrollable]="true"
+  [breakpoint]="'960px'"
+  [value]="geneSets"
+  dataKey="id"
+  >
+  <ng-template pTemplate="header">
+    <tr>
+      <!-- Sorted by the search, not in the table: results arrive a page at a time (G3-777). -->
+      @for (column of columns; track column) {
+        <th [attr.aria-sort]="ariaSort(column.key)">
+          <button type="button" class="sort-header" (click)="toggleSort(column.key)"
+            [attr.aria-label]="'Sort by ' + column.label">
+            {{ column.label }} <i [class]="sortIcon(column.key)" aria-hidden="true"></i>
+          </button>
+        </th>
+      }
+      <th class="w-2rem"></th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-geneset let-columns="columns" let-expanded="expanded">
+    <tr>
+      <td>
+        <span class="p-column-title">ID</span>
+        <p-tag [value]="'GS' + geneset.id"
+          severity="success"
+          styleClass="text-xs text-light font-monospace gw-green carrois-gothic-regular">
+        </p-tag>
+      </td>
+      <td>
+        <span class="p-column-title">Name</span>
+        <p-button [label]="geneset.name"
+          (onClick)="onGeneSetClick(geneset)"
+          styleClass="p-button-text p-button-plain text-left p-0 font-semibold ml-4">
+        </p-button>
+        @if (describeMatches(geneset.matched_genes); as matched) {
+          <small
+            class="block ml-4 text-color-secondary matched-genes">
+            Matched: {{ matched }}
+          </small>
+        }
+      </td>
+      <td>
+        <span class="p-column-title">Species</span>
+        <em>{{ speciesName(geneset.species_id) }}</em>
+      </td>
+      <td>
+        <span class="p-column-title">Size</span>
+        {{ geneset.count }}
+      </td>
+      <td>
+        <span class="p-column-title">Tier</span>
+        <app-tier-tag [tier]="geneset.curation_id"></app-tier-tag>
+      </td>
+      <td>
+        <span class="p-column-title">Score</span>
+        {{ scoreTypeName(geneset.score_type) }}
+        @if (geneset.threshold && geneset.score_type !== 3) {
+          <small class="block text-color-secondary">
+            threshold {{ geneset.threshold }}
+          </small>
+        }
+      </td>
+      <td>
+        <span class="p-column-title">Details</span>
+        <div class="flex gap-1">
+          <p-button type="button" pRipple [pRowToggler]="geneset" [text]="true" [rounded]="true" [plain]="true" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" />
+        </div>
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="rowexpansion" let-geneset>
+    <tr>
+      <td colspan="7">
+        <div class="px-8 pb-4">
+          {{ geneset.description }}
+        </div>
+      </td>
+    </tr>
+  </ng-template>
 </p-table>

@@ -1,6 +1,6 @@
 /* Angular Imports */
 import { Component, EventEmitter, Output, Input, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
 import { FormsModule } from "@angular/forms";
@@ -23,7 +23,7 @@ import { environment } from "../../../environments/environment";
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, ToastModule, InputTextModule, InputGroupModule, ButtonModule, ProgressBarModule],
+  imports: [FormsModule, ToastModule, InputTextModule, InputGroupModule, ButtonModule, ProgressBarModule],
   providers: [MessageService],
   templateUrl: './searchbar.component.html',
   styleUrl: './searchbar.component.scss',

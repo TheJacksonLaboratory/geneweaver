@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common';
+
 import {
   ChangeDetectorRef,
   Component,
@@ -38,11 +38,13 @@ interface SelectedBiclique {
  */
 @Component({
   selector: 'app-phenome-map-graph',
-  imports: [NgIf, NgFor],
+  imports: [],
   template: `
     <dl class="stats flex flex-wrap gap-3 text-sm m-0 mb-2">
-      <div *ngFor="let stat of stats"><dt class="inline font-semibold">{{ stat.label }}:</dt>
+      @for (stat of stats; track stat) {
+        <div><dt class="inline font-semibold">{{ stat.label }}:</dt>
         <dd class="inline m-0 ml-1">{{ stat.value }}</dd></div>
+      }
     </dl>
     <label class="block text-sm mb-1" for="phenome-map-search">Highlight genes or gene sets</label>
     <input
@@ -52,7 +54,7 @@ interface SelectedBiclique {
       placeholder="e.g. Drd2, GS164706"
       [value]="query"
       (input)="highlight($any($event.target).value)"
-    />
+      />
     <p class="text-sm text-color-secondary mt-0 mb-2" aria-live="polite">{{ matchNote }}</p>
     <!-- The canvas is a picture for sighted users; the list below is the accessible way in. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label"></div>
@@ -72,17 +74,21 @@ interface SelectedBiclique {
       class="p-inputtext p-inputtext-sm mb-2 w-full"
       [value]="selectedId ?? ''"
       (change)="select($any($event.target).value)"
-    >
+      >
       <option value="">Choose a biclique…</option>
-      <option *ngFor="let option of options" [value]="option.id">{{ option.label }}</option>
+      @for (option of options; track option) {
+        <option [value]="option.id">{{ option.label }}</option>
+      }
     </select>
-    <div *ngIf="selected" class="p-3 surface-100 border-round text-sm" aria-live="polite">
-      <div><strong>Gene sets ({{ selected.genesets.length }}):</strong>
-        {{ setLabels(selected.genesets) }}</div>
+    @if (selected) {
+      <div class="p-3 surface-100 border-round text-sm" aria-live="polite">
+        <div><strong>Gene sets ({{ selected.genesets.length }}):</strong>
+      {{ setLabels(selected.genesets) }}</div>
       <div class="mt-1"><strong>Genes ({{ selected.genes.length }}):</strong>
-        {{ selected.genes.join(', ') }}</div>
+    {{ selected.genes.join(', ') }}</div>
     </div>
-  `,
+    }
+    `,
   styles: ['.graph { height: 520px; border: 1px solid #E2E8F0; border-radius: 6px; }'],
 })
 export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {

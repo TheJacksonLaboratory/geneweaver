@@ -1,4 +1,4 @@
-import { NgIf } from '@angular/common';
+
 import {
   ChangeDetectorRef,
   ChangeDetectionStrategy,
@@ -35,17 +35,18 @@ import { PackNode } from './models';
       <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
         Download SVG
       </button>
-      <button
-        *ngIf="zoomed"
-        type="button"
-        class="p-button p-button-sm p-button-text"
-        (click)="zoomOut()"
-      >
-        Show all clusters
-      </button>
+      @if (zoomed) {
+        <button
+          type="button"
+          class="p-button p-button-sm p-button-text"
+          (click)="zoomOut()"
+          >
+          Show all clusters
+        </button>
+      }
     </div>
-  `,
-  imports: [NgIf],
+    `,
+  imports: [],
 })
 export class ClusterPackComponent implements OnChanges {
   private changes = inject(ChangeDetectorRef);

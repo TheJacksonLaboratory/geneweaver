@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -32,14 +32,13 @@ import {
 @Component({
   selector: 'app-search-filters',
   imports: [
-    CommonModule,
     FormsModule,
     ButtonModule,
     InputNumberModule,
     InputTextModule,
     MultiSelectModule,
-    InfoTipComponent,
-  ],
+    InfoTipComponent
+],
   template: `
     <div class="search-filters text-left" [attr.id]="idPrefix">
       <div class="formgrid grid">
@@ -142,7 +141,7 @@ import {
             (change)="set('gene', $any($event.target).value)"
             placeholder="e.g. Drd2, or Drd2 AND Tp53, or Drd2 OR Th"
             [attr.aria-describedby]="idPrefix + '-gene-help'"
-          />
+            />
           <small [id]="idPrefix + '-gene-help'" class="block mt-1 text-color-secondary">
             Finds the gene sets that contain a gene, by any of its identifiers (symbol, Ensembl,
             MGI, ...). Up to {{ maxGenes }} genes: separated by spaces, commas or
@@ -157,7 +156,7 @@ import {
               [ngModel]="filters.homology"
               (ngModelChange)="set('homology', $event)"
               [attr.aria-describedby]="idPrefix + '-homology-help'"
-            />
+              />
             <label [for]="idPrefix + '-homology'" class="ml-2">Include homologs in other species</label>
             <app-info-tip label="Include homologs in other species" [text]="help.homology"></app-info-tip>
           </div>
@@ -167,88 +166,92 @@ import {
           </small>
         </div>
       </div>
-
-      <fieldset *ngIf="filters.gene.trim()" class="border-1 surface-border border-round p-3 mb-2">
-        <legend class="text-sm px-1">
-          Score cutoffs for {{ genesLabel }}
-          <app-info-tip label="Score cutoffs" [text]="help.cutoffs"></app-info-tip>
-        </legend>
-        <div class="formgrid grid">
-          <div class="field col-6 md:col-3">
-            <div class="flex align-items-center mb-1">
-            <label [for]="idPrefix + '-p'" class="text-sm">p-value at most</label>
-            <app-info-tip label="p-value at most" [text]="help.pValue"></app-info-tip>
-          </div>
-            <p-inputNumber [inputId]="idPrefix + '-p'" [ngModel]="filters.pValue" (ngModelChange)="set('pValue', $event)"
-              mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
+    
+      @if (filters.gene.trim()) {
+        <fieldset class="border-1 surface-border border-round p-3 mb-2">
+          <legend class="text-sm px-1">
+            Score cutoffs for {{ genesLabel }}
+            <app-info-tip label="Score cutoffs" [text]="help.cutoffs"></app-info-tip>
+          </legend>
+          <div class="formgrid grid">
+            <div class="field col-6 md:col-3">
+              <div class="flex align-items-center mb-1">
+                <label [for]="idPrefix + '-p'" class="text-sm">p-value at most</label>
+                <app-info-tip label="p-value at most" [text]="help.pValue"></app-info-tip>
+              </div>
+              <p-inputNumber [inputId]="idPrefix + '-p'" [ngModel]="filters.pValue" (ngModelChange)="set('pValue', $event)"
+                mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
               styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-          </div>
-          <div class="field col-6 md:col-3">
-            <div class="flex align-items-center mb-1">
-            <label [for]="idPrefix + '-q'" class="text-sm">q-value at most</label>
-            <app-info-tip label="q-value at most" [text]="help.qValue"></app-info-tip>
-          </div>
-            <p-inputNumber [inputId]="idPrefix + '-q'" [ngModel]="filters.qValue" (ngModelChange)="set('qValue', $event)"
-              mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
+            </div>
+            <div class="field col-6 md:col-3">
+              <div class="flex align-items-center mb-1">
+                <label [for]="idPrefix + '-q'" class="text-sm">q-value at most</label>
+                <app-info-tip label="q-value at most" [text]="help.qValue"></app-info-tip>
+              </div>
+              <p-inputNumber [inputId]="idPrefix + '-q'" [ngModel]="filters.qValue" (ngModelChange)="set('qValue', $event)"
+                mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="8" [min]="0" [max]="1" placeholder="e.g. 0.05"
               styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-          </div>
-          <div class="field col-6 md:col-3">
-            <div class="flex align-items-center mb-1">
-            <label [for]="idPrefix + '-corr-low'" class="text-sm">Correlation from / to</label>
-            <app-info-tip label="Correlation from / to" [text]="help.correlation"></app-info-tip>
-          </div>
-            <div class="flex gap-1">
-              <p-inputNumber [inputId]="idPrefix + '-corr-low'" [ngModel]="filters.correlationLow"
-                (ngModelChange)="set('correlationLow', $event)" mode="decimal" [maxFractionDigits]="6"
+            </div>
+            <div class="field col-6 md:col-3">
+              <div class="flex align-items-center mb-1">
+                <label [for]="idPrefix + '-corr-low'" class="text-sm">Correlation from / to</label>
+                <app-info-tip label="Correlation from / to" [text]="help.correlation"></app-info-tip>
+              </div>
+              <div class="flex gap-1">
+                <p-inputNumber [inputId]="idPrefix + '-corr-low'" [ngModel]="filters.correlationLow"
+                  (ngModelChange)="set('correlationLow', $event)" mode="decimal" [maxFractionDigits]="6"
                 placeholder="from" ariaLabel="Correlation from" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-              <p-inputNumber [ngModel]="filters.correlationHigh" (ngModelChange)="set('correlationHigh', $event)"
-                mode="decimal" [maxFractionDigits]="6" placeholder="to" ariaLabel="Correlation to"
+                <p-inputNumber [ngModel]="filters.correlationHigh" (ngModelChange)="set('correlationHigh', $event)"
+                  mode="decimal" [maxFractionDigits]="6" placeholder="to" ariaLabel="Correlation to"
                 styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+              </div>
             </div>
-          </div>
-          <div class="field col-6 md:col-3">
-            <div class="flex align-items-center mb-1">
-            <label [for]="idPrefix + '-effect-low'" class="text-sm">Effect from / to</label>
-            <app-info-tip label="Effect from / to" [text]="help.effect"></app-info-tip>
-          </div>
-            <div class="flex gap-1">
-              <p-inputNumber [inputId]="idPrefix + '-effect-low'" [ngModel]="filters.effectLow"
-                (ngModelChange)="set('effectLow', $event)" mode="decimal" [maxFractionDigits]="6"
+            <div class="field col-6 md:col-3">
+              <div class="flex align-items-center mb-1">
+                <label [for]="idPrefix + '-effect-low'" class="text-sm">Effect from / to</label>
+                <app-info-tip label="Effect from / to" [text]="help.effect"></app-info-tip>
+              </div>
+              <div class="flex gap-1">
+                <p-inputNumber [inputId]="idPrefix + '-effect-low'" [ngModel]="filters.effectLow"
+                  (ngModelChange)="set('effectLow', $event)" mode="decimal" [maxFractionDigits]="6"
                 placeholder="from" ariaLabel="Effect from" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-              <p-inputNumber [ngModel]="filters.effectHigh" (ngModelChange)="set('effectHigh', $event)"
-                mode="decimal" [maxFractionDigits]="6" placeholder="to" ariaLabel="Effect to"
+                <p-inputNumber [ngModel]="filters.effectHigh" (ngModelChange)="set('effectHigh', $event)"
+                  mode="decimal" [maxFractionDigits]="6" placeholder="to" ariaLabel="Effect to"
                 styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="flex flex-wrap gap-3 align-items-center text-sm" role="radiogroup" aria-label="Which gene sets to return">
-          <div class="flex align-items-center">
-            <input type="radio" [id]="idPrefix + '-mode-only'" [name]="idPrefix + '-mode'" value="only"
-              [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
-            <label [for]="idPrefix + '-mode-only'" class="ml-2">{{ onlyLabel }}</label>
-            <app-info-tip [label]="onlyLabel" [text]="help.modeOnly"></app-info-tip>
+          <div class="flex flex-wrap gap-3 align-items-center text-sm" role="radiogroup" aria-label="Which gene sets to return">
+            <div class="flex align-items-center">
+              <input type="radio" [id]="idPrefix + '-mode-only'" [name]="idPrefix + '-mode'" value="only"
+                [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
+              <label [for]="idPrefix + '-mode-only'" class="ml-2">{{ onlyLabel }}</label>
+              <app-info-tip [label]="onlyLabel" [text]="help.modeOnly"></app-info-tip>
+            </div>
+            <div class="flex align-items-center">
+              <input type="radio" [id]="idPrefix + '-mode-first'" [name]="idPrefix + '-mode'" value="first"
+                [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
+              <label [for]="idPrefix + '-mode-first'" class="ml-2">{{ firstLabel }}</label>
+              <app-info-tip [label]="firstLabel" [text]="help.modeFirst"></app-info-tip>
+            </div>
           </div>
-          <div class="flex align-items-center">
-            <input type="radio" [id]="idPrefix + '-mode-first'" [name]="idPrefix + '-mode'" value="first"
-              [ngModel]="filters.thresholdMode" (ngModelChange)="set('thresholdMode', $event)" />
-            <label [for]="idPrefix + '-mode-first'" class="ml-2">{{ firstLabel }}</label>
-            <app-info-tip [label]="firstLabel" [text]="help.modeFirst"></app-info-tip>
-          </div>
-        </div>
-        <small class="block mt-2 text-color-secondary">
-          A gene set has one score type, so each cutoff applies to the gene sets of its type, and
-          a gene set passes if its type's cutoff does. With several genes, the cutoff applies to
-          each gene's score. Leave a type empty to leave its gene sets out; binary gene sets have
-          no score to cut.
-        </small>
-      </fieldset>
-
+          <small class="block mt-2 text-color-secondary">
+            A gene set has one score type, so each cutoff applies to the gene sets of its type, and
+            a gene set passes if its type's cutoff does. With several genes, the cutoff applies to
+            each gene's score. Leave a type empty to leave its gene sets out; binary gene sets have
+            no score to cut.
+          </small>
+        </fieldset>
+      }
+    
       <div class="flex align-items-center gap-3">
-        <small *ngIf="problem" class="search-filters-problem text-orange-600">{{ problem }}</small>
+        @if (problem) {
+          <small class="search-filters-problem text-orange-600">{{ problem }}</small>
+        }
         <p-button label="Clear filters" [text]="true" size="small" icon="pi pi-filter-slash" (onClick)="clear()"></p-button>
       </div>
     </div>
-  `,
+    `,
 })
 export class SearchFiltersComponent {
   @Input() filters: SearchFilters = emptyFilters();

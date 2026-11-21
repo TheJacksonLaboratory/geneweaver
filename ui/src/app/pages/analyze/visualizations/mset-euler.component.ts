@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common';
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,14 +32,14 @@ interface Disc {
 @Component({
   selector: 'app-mset-euler',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgIf, NgFor],
+  imports: [],
   template: `
     <div #chart></div>
     <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
     <h4 class="mb-2">Shared genes ({{ genes.length }})</h4>
-    <ng-container *ngIf="genes.length">
+    @if (genes.length) {
       <label class="block text-sm mb-1" for="mset-gene-filter">Filter shared genes</label>
       <input
         id="mset-gene-filter"
@@ -47,15 +47,17 @@ interface Disc {
         type="search"
         [value]="filter"
         (input)="filter = $any($event.target).value"
-      />
+        />
       <p class="text-sm text-color-secondary m-0 mb-1" aria-live="polite">
         {{ shown.length === genes.length ? genes.length + ' genes' : shown.length + ' of ' + genes.length + ' genes' }}
       </p>
       <ul class="genes list-none p-2 m-0 surface-50 border-round text-sm">
-        <li *ngFor="let gene of shown">{{ gene }}</li>
+        @for (gene of shown; track gene) {
+          <li>{{ gene }}</li>
+        }
       </ul>
-    </ng-container>
-  `,
+    }
+    `,
   styles: [
     '.genes { max-height: 12rem; overflow: auto; columns: 8rem; column-gap: 1rem; }',
   ],

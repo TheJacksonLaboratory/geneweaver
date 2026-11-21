@@ -1,4 +1,4 @@
-import { NgFor } from '@angular/common';
+
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 
 /**
@@ -9,21 +9,22 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 @Component({
   selector: 'app-view-switch',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgFor],
+  imports: [],
   template: `
     <div class="flex gap-1 mb-2" role="group" [attr.aria-label]="label">
-      <button
-        *ngFor="let option of options"
-        type="button"
-        class="p-button p-button-sm"
-        [class.p-button-outlined]="option.id !== value"
-        [attr.aria-pressed]="option.id === value"
-        (click)="choose(option.id)"
-      >
-        {{ option.label }}
-      </button>
+      @for (option of options; track option) {
+        <button
+          type="button"
+          class="p-button p-button-sm"
+          [class.p-button-outlined]="option.id !== value"
+          [attr.aria-pressed]="option.id === value"
+          (click)="choose(option.id)"
+          >
+          {{ option.label }}
+        </button>
+      }
     </div>
-  `,
+    `,
 })
 export class ViewSwitchComponent {
   @Input({ required: true }) options!: { id: string; label: string }[];

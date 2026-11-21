@@ -1,4 +1,4 @@
-import { NgFor } from '@angular/common';
+
 import {
   AfterViewChecked,
   ChangeDetectionStrategy,
@@ -34,7 +34,7 @@ const GREY = '#CBD5E1';
 @Component({
   selector: 'app-venn-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgFor],
+  imports: [],
   template: `
     <div class="flex align-items-center gap-2 mb-2 text-sm">
       <label for="venn-grid-threshold">p-value threshold</label>
@@ -43,10 +43,12 @@ const GREY = '#CBD5E1';
         id="venn-grid-threshold"
         class="p-inputtext p-inputtext-sm"
         (change)="setThreshold($any($event.target).value)"
-      >
-        <option *ngFor="let t of thresholds" [value]="t">
-          {{ t === 1 ? '1.0 (show all)' : t }}
-        </option>
+        >
+        @for (t of thresholds; track t) {
+          <option [value]="t">
+            {{ t === 1 ? '1.0 (show all)' : t }}
+          </option>
+        }
       </select>
       <span class="text-color-secondary" aria-live="polite">{{ greyedNote }}</span>
     </div>
@@ -54,7 +56,7 @@ const GREY = '#CBD5E1';
     <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
-  `,
+    `,
 })
 export class VennGridComponent implements OnChanges, AfterViewChecked {
   @Input({ required: true }) model!: VennGridModel;

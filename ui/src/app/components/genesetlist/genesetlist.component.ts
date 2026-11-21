@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { TableModule } from "primeng/table";
 import { TagModule } from "primeng/tag";
@@ -27,7 +27,7 @@ export const SORTABLE_COLUMNS: { key: SortKey; label: string }[] = [
 
 @Component({
   selector: 'app-gene-set-list',
-  imports: [CommonModule, TableModule, TagModule, Button, TierTagComponent, RippleModule],
+  imports: [TableModule, TagModule, Button, TierTagComponent, RippleModule],
   templateUrl: './genesetlist.component.html',
   styleUrl: './genesetlist.component.scss',
 })

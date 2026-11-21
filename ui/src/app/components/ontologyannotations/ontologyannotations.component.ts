@@ -1,12 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { OntologyTagComponent } from "../ontologytag/ontologytag.component";
 import { OntologyTerm } from "../../models/ontology-term"
 import {OntologyTagKeyComponent} from "../ontologytagkey/ontologytagkey.component";
 
 @Component({
   selector: 'app-ontology-annotations',
-  imports: [CommonModule, OntologyTagComponent, OntologyTagKeyComponent],
+  imports: [OntologyTagComponent, OntologyTagKeyComponent],
   templateUrl: './ontologyannotations.component.html',
   styleUrl: './ontologyannotations.component.css',
 })

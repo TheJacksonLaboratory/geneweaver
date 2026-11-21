@@ -1,12 +1,12 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { OntologyTerm, ontologyColorMap } from "../../models/ontology-term"
 
 @Component({
   selector: 'app-ontology-tag',
-  imports: [CommonModule, TagModule, TooltipModule],
+  imports: [TagModule, TooltipModule],
   templateUrl: './ontologytag.component.html',
   styleUrl: './ontologytag.component.css',
 })

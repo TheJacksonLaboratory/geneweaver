@@ -1,10 +1,10 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {TagModule} from "primeng/tag";
 
 @Component({
   selector: 'app-tier-tag',
-  imports: [CommonModule, TagModule],
+  imports: [TagModule],
   templateUrl: './tiertag.component.html',
   styleUrl: './tiertag.component.scss',
 })
