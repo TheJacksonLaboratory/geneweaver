@@ -7,6 +7,7 @@ import {
   OnChanges,
   OnDestroy,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { schemeTableau10 } from 'd3';
 import type { Core, ElementDefinition } from 'cytoscape';
@@ -62,6 +63,8 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
   ],
 })
 export class GenesetGraphComponent implements OnChanges, OnDestroy {
+  private changes = inject(ChangeDetectorRef);
+
   @Input({ required: true }) result!: GenesetGraphOutput;
   @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
 
@@ -83,8 +86,6 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
   private tooltip?: ChartTooltip;
   private destroyed = false;
   private generation = 0;
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   get drawable(): boolean {
     return !this.model.tooLarge && this.model.nodes.length > 0;

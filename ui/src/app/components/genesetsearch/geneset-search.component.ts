@@ -1,4 +1,12 @@
-import { Component, EventEmitter, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  OnDestroy,
+  OnInit,
+  Output,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -108,6 +116,9 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
   `,
 })
 export class GenesetSearchComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   @Output() searchExecuted = new EventEmitter<string>();
   /** The page of results now shown. */
   @Output() searchCompleted = new EventEmitter<GeneSet[]>();
@@ -142,11 +153,9 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
   private lastSearch?: Subscription;
   private choosing = false;
 
-  constructor(
-    apiBaseServiceFactory: ApiBaseServiceFactory,
-    private router: Router,
-    private route: ActivatedRoute,
-  ) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.gwApi = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
     this.source = new GenesetSearchSource(this.gwApi);
   }

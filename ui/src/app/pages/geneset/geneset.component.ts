@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -14,7 +14,9 @@ import { MenuItem } from 'primeng/api';
 import { TableModule } from 'primeng/table';
 import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
-import { OntologyAnnotationsComponent } from '../../components/ontologyannotations/ontologyannotations.component';
+import {
+  OntologyAnnotationsComponent,
+} from '../../components/ontologyannotations/ontologyannotations.component';
 import { OntologyTerm } from '../../models/ontology-term';
 import { HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -51,6 +53,10 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
   styleUrl: './geneset.component.css',
 })
 export class GeneSetComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private router = inject(Router);
+
   private gwApi: ApiBaseService;
   pubmedUrl: string = environment.urls.pubmed + '/';
   genesetDetails: any;
@@ -103,11 +109,7 @@ export class GeneSetComponent implements OnInit {
     },
   ];
 
-  constructor(
-    private route: ActivatedRoute,
-    private apiBaseServiceFactory: ApiBaseServiceFactory,
-    private router: Router
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(
       environment.urls.geneWeaverApi
     );

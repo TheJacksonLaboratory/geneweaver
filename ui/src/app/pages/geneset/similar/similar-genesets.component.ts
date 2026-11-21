@@ -1,5 +1,5 @@
 import { NgFor, NgIf, DecimalPipe } from '@angular/common';
-import { Component, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, SimpleChanges, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -279,6 +279,8 @@ interface HttpFailure {
   ],
 })
 export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
+  private session = inject(SessionService);
+
   @Input({ required: true }) genesetId!: number;
 
   readonly thresholdModes = THRESHOLD_MODES;
@@ -302,10 +304,9 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
   private gwApi: ApiBaseService;
   private poll?: Subscription;
 
-  constructor(
-    apiBaseServiceFactory: ApiBaseServiceFactory,
-    private session: SessionService,
-  ) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.gwApi = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
   }
 

@@ -7,6 +7,7 @@ import {
   Input,
   OnChanges,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { hierarchy, HierarchyCircularNode, pack, schemeTableau10, select } from 'd3';
 
@@ -47,13 +48,13 @@ import { PackNode } from './models';
   imports: [NgIf],
 })
 export class ClusterPackComponent implements OnChanges {
+  private changes = inject(ChangeDetectorRef);
+
   @Input({ required: true }) model!: PackNode;
   @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
   /** Whether a cluster is zoomed into; shows the keyboard-reachable way back out. */
   zoomed = false;
   private zoom: (target: HierarchyCircularNode<PackNode> | null) => void = () => undefined;
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   zoomOut(): void {
     this.zoom(null);

@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common';
+import { NgIf } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,7 +22,7 @@ import { BooleanModel, genesetLabel, SpeciesSummaryRow, vennLayout } from './mod
 @Component({
   selector: 'app-venn',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgIf, NgFor, TableModule],
+  imports: [NgIf, TableModule],
   template: `
     <div *ngIf="model.missingFromExcept" class="p-3 mb-3 border-round surface-100 text-sm warn">
       {{ model.missingFromExcept }} genes that are in only one gene set are missing from this

@@ -7,6 +7,7 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -118,7 +119,9 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   /** Every lookup runs to the end: typing "1, 2, 3" starts one per comma. */
   private lookups = new Subscription();
 
-  constructor(apiBaseServiceFactory: ApiBaseServiceFactory) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.source = new GenesetSearchSource(apiBaseServiceFactory.create(environment.urls.geneWeaverApi));
   }
 

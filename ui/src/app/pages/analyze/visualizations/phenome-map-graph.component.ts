@@ -7,6 +7,7 @@ import {
   OnChanges,
   OnDestroy,
   ViewChild,
+  inject,
 } from '@angular/core';
 import type { Core, ElementDefinition } from 'cytoscape';
 
@@ -85,6 +86,8 @@ interface SelectedBiclique {
   styles: ['.graph { height: 520px; border: 1px solid #E2E8F0; border-radius: 6px; }'],
 })
 export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
+  private changes = inject(ChangeDetectorRef);
+
   @Input({ required: true }) result!: Parameters<typeof phenomeMapElements>[0];
   @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
 
@@ -102,8 +105,6 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   private destroyed = false;
   /** Bumped per change, so a slow import for an older result does not draw over a newer one. */
   private generation = 0;
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;

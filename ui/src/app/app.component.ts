@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AsyncPipe, NgIf } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MessagesModule } from 'primeng/messages';
@@ -12,8 +12,8 @@ import { SessionService } from './services/session.service';
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
+  session = inject(SessionService);
+
   title = 'Geneweaver';
   version = environment.version;
-
-  constructor(public session: SessionService) {}
 }

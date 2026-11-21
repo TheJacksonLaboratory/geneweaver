@@ -1,5 +1,5 @@
 /* Angular Imports */
-import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output, Input, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
@@ -29,6 +29,11 @@ import { environment } from "../../../environments/environment";
   styleUrl: './searchbar.component.scss',
 })
 export class SearchBarComponent implements OnInit {
+  private messageService = inject(MessageService);
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   isSearching = false;
   private gwApi: ApiBaseService;
 
@@ -38,12 +43,7 @@ export class SearchBarComponent implements OnInit {
   @Output() searchPaging = new EventEmitter<Paging>();
   @Output() searchCleared = new EventEmitter<boolean>();
 
-  constructor(
-      private messageService: MessageService,
-      private apiBaseServiceFactory: ApiBaseServiceFactory,
-      private router: Router,
-      private route: ActivatedRoute
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
   }
 

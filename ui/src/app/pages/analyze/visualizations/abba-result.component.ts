@@ -7,6 +7,7 @@ import {
   Input,
   OnChanges,
   Output,
+  inject,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
@@ -326,6 +327,8 @@ interface GeneRow {
   ],
 })
 export class AbbaResultComponent implements OnChanges {
+  private changes = inject(ChangeDetectorRef);
+
   @Input({ required: true }) result!: AbbaResult;
   /** When the result arrived; legacy's "Date". */
   @Input() ranAt?: Date;
@@ -347,8 +350,6 @@ export class AbbaResultComponent implements OnChanges {
   selectedGenesets = new Set<number>();
   selectedGenes = new Set<number>();
   status = '';
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   ngOnChanges(): void {
     const r = this.result;

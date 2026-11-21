@@ -7,6 +7,7 @@ import {
   OnChanges,
   OnDestroy,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { schemeTableau10 } from 'd3';
 import type { Core, ElementDefinition } from 'cytoscape';
@@ -75,6 +76,8 @@ const clusterColour = (cluster: number | null) =>
   ],
 })
 export class GeneNetworkComponent implements OnChanges, OnDestroy {
+  private changes = inject(ChangeDetectorRef);
+
   @Input({ required: true }) result!: Parameters<typeof dbscanNetwork>[0];
   @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
 
@@ -87,8 +90,6 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
   private tooltip?: ChartTooltip;
   private destroyed = false;
   private generation = 0;
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   get drawable(): boolean {
     return this.network.available && !this.network.tooLarge && this.network.nodes.length > 0;
