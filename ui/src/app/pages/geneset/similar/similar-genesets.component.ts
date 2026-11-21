@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, OnChanges, OnDestroy, SimpleChanges, inject, input } from '@angular/core';
+import { Component, OnChanges, OnDestroy, SimpleChanges, inject, input, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -33,6 +33,7 @@ import {
   tierLabel,
 } from './similar-models';
 import { InputTextModule } from 'primeng/inputtext';
+import { renderAfter } from '../../../utils/render-after';
 
 /** How often a running search is polled. Searches take about two minutes. */
 export const SIMILAR_POLL_INTERVAL_MS = 3000;
@@ -316,6 +317,8 @@ interface HttpFailure {
 })
 export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
   private session = inject(SessionService);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
 
   readonly genesetId = input.required<number>();
 
@@ -380,7 +383,7 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
         geneset_id: this.genesetId(),
         ...thresholdParams(this.thresholds),
       })
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           const body = response.object as RunBody | undefined;
           if (body && typeof body.run_id === 'number' && body.status === 'running' && !body.result) {
@@ -400,7 +403,7 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
         map((response) => response.object as RunBody & { workflow_id?: string }),
         takeWhile((run) => run.status === 'running', true),
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (run) => {
           if (run.status === 'running') {
             return;

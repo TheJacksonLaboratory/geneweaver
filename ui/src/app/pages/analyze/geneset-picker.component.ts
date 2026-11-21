@@ -6,7 +6,8 @@ import {
   inject,
   input,
   output,
-  viewChild
+  viewChild,
+  ChangeDetectorRef,
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -19,6 +20,7 @@ import { GenesetOption, parseIds } from '../../search/geneset-options';
 import { GenesetSearchSource } from '../../search/geneset-search-source';
 import { emptyFilters, SearchFilters } from '../../search/search-filters';
 import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/suggestion-list';
+import { renderAfter } from '../../utils/render-after';
 
 /**
  * The gene sets to analyse: type to search them, or type and paste ids as before.
@@ -132,10 +134,15 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   /** Every lookup runs to the end: typing "1, 2, 3" starts one per comma. */
   private lookups = new Subscription();
 
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
+
   constructor() {
     const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
 
-    this.source = new GenesetSearchSource(apiBaseServiceFactory.create(environment.urls.geneWeaverApi));
+    this.source = new GenesetSearchSource(apiBaseServiceFactory.create(environment.urls.geneWeaverApi), () =>
+      this.changes.markForCheck(),
+    );
   }
 
   /** Typed ids being looked up, e.g. "GS51, GS54". */
@@ -236,7 +243,7 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
     // Only what this user may read becomes a chip, as a run would refuse the rest.
     typed.forEach((id) => this.checkingIds.add(id));
     this.lookups.add(
-      this.source.lookup(typed).subscribe((lookup) => {
+      this.source.lookup(typed).pipe(renderAfter(this.changes)).subscribe((lookup) => {
         typed.forEach((id) => this.checkingIds.delete(id));
         const have = new Set(this.selected.map((option) => option.id));
         const added = lookup.found.filter((option) => !have.has(option.id));

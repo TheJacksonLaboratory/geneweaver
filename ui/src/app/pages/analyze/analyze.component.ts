@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -55,6 +55,7 @@ import {
   minGenesChoices,
   toggled,
 } from './abba-options';
+import { renderAfter } from '../../utils/render-after';
 
 interface UpSetIntersection {
   geneset_ids: string[];
@@ -242,6 +243,8 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 export class AnalyzeComponent implements OnInit, OnDestroy {
   private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
   session = inject(SessionService);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
 
   private gwApi: ApiBaseService;
 
@@ -433,7 +436,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
 
   /** Fetch the registered tools and whether each can run. */
   private loadTools(): void {
-    this.gwApi.get<{ tools: Record<string, ToolAvailability> }>('/tools').subscribe({
+    this.gwApi.get<{ tools: Record<string, ToolAvailability> }>('/tools').pipe(renderAfter(this.changes)).subscribe({
       next: (response) => {
         const tools = response.object?.tools ?? {};
         this.tools = Object.entries(tools)
@@ -632,7 +635,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
           parameters,
         });
 
-    request$.subscribe({
+    request$.pipe(renderAfter(this.changes)).subscribe({
       next: (response) => {
         const body = response.object as AnyToolResult | undefined;
         if (isPendingRun(body)) {
@@ -666,7 +669,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
         '/tools/abba',
         abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions, this.runThresholds),
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           const body = response.object as AnyToolResult | undefined;
           if (isPendingRun(body)) {
@@ -722,7 +725,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
         map((response) => response.object as ToolRunStatus),
         takeWhile((run) => run.status === 'running', true),
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (run) => {
           if (run.status === 'running') {
             return;

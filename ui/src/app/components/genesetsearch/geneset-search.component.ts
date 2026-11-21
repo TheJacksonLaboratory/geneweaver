@@ -4,7 +4,8 @@ import {
   OnInit,
   inject,
   output,
-  viewChild
+  viewChild,
+  ChangeDetectorRef,
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -33,6 +34,7 @@ import {
 } from '../../search/search-filters';
 import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/suggestion-list';
 import { SearchFiltersComponent } from '../searchfilters/search-filters.component';
+import { renderAfter } from '../../utils/render-after';
 
 /**
  * The /next search field: the analyze page's autocomplete, for finding gene sets.
@@ -126,6 +128,8 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
 export class GenesetSearchComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
 
   readonly searchExecuted = output<string>();
   /** The page of results now shown. */
@@ -166,7 +170,7 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
     const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
 
     this.gwApi = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
-    this.source = new GenesetSearchSource(this.gwApi);
+    this.source = new GenesetSearchSource(this.gwApi, () => this.changes.markForCheck());
   }
 
   get query(): string {
@@ -183,7 +187,7 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
 
   /** A search in the URL -- shared, or reloaded -- runs once, as the page opens. */
   ngOnInit(): void {
-    this.route.queryParams.pipe(take(1)).subscribe((params) => {
+    this.route.queryParams.pipe(take(1)).pipe(renderAfter(this.changes)).subscribe((params) => {
       const { filters, sort } = fromQueryParams(params);
       this.text = params['search'] ?? '';
       this.filters = filters;
@@ -193,7 +197,10 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
       if (canSearch(this.query, filters)) {
         // Next tick: the search tells the page it started, and the page restyles itself, which
         // Angular refuses during the check that is creating this field.
-        setTimeout(() => this.run(0));
+        setTimeout(() => {
+          this.run(0);
+          this.changes.markForCheck();
+        });
       }
     });
   }
@@ -294,7 +301,7 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
         '/genesets/search',
         searchParams(this.query, this.filters, { offset, limit: this.rows }, this.sort),
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           this.results = response.data ?? [];
           this.first = offset;

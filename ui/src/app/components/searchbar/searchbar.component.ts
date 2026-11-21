@@ -1,5 +1,5 @@
 /* Angular Imports */
-import { Component, OnInit, inject, output, model } from '@angular/core';
+import { Component, OnInit, inject, output, model, ChangeDetectorRef } from '@angular/core';
 
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
@@ -18,6 +18,7 @@ import { InputGroupModule } from 'primeng/inputgroup';
 /* Local Imports */
 import { GeneSet } from "../../models/gene-set";
 import { environment } from "../../../environments/environment";
+import { renderAfter } from '../../utils/render-after';
 
 
 @Component({
@@ -33,6 +34,8 @@ export class SearchBarComponent implements OnInit {
   private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
 
   isSearching = false;
   private gwApi: ApiBaseService;
@@ -50,7 +53,7 @@ export class SearchBarComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(renderAfter(this.changes)).subscribe(params => {
       if (params['search']) {
         this.searchValue.set(params['search']);
         this.onSearch(this.searchValue());
@@ -76,7 +79,7 @@ export class SearchBarComponent implements OnInit {
       });
       this.gwApi
           .getCollection<GeneSet>('/genesets/search', new HttpParams().set('search_text', searchTerm))
-          .subscribe((geneSets) => {
+          .pipe(renderAfter(this.changes)).subscribe((geneSets) => {
         this.isSearching = false;
         this.searchCompleted.emit(geneSets.data);
         this.searchPaging.emit(geneSets.paging);

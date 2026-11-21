@@ -1,4 +1,4 @@
-import { Component, inject, viewChild } from '@angular/core';
+import { Component, inject, viewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // The previous search bar, kept for reference; replaced by GenesetSearchComponent (G3-777, G3-764).
 // import { SearchBarComponent } from "../../components/searchbar/searchbar.component";
@@ -24,15 +24,13 @@ export class HomeComponent {
   geneSets: GeneSet[] = [];
   searchValue = '';
   paging: Paging | null = null;
-  isSpinning = true;
+  readonly isSpinning = signal(true);
 
   // @ViewChild(SearchBarComponent) searchBarComponent!: SearchBarComponent;
   readonly searchField = viewChild.required(GenesetSearchComponent);
 
   constructor() {
-    setTimeout(() => {
-      this.isSpinning = false;
-    }, 700);
+    setTimeout(() => this.isSpinning.set(false), 700);
   }
 
   onSearchExecuted() {
@@ -63,10 +61,7 @@ export class HomeComponent {
     this.paging = null;
     // this.searchBarComponent.clearSearch();
     this.searchField().clear();
-    this.isSpinning = true;
-
-    setTimeout(() => {
-      this.isSpinning = false; 
-    }, 700);
+    this.isSpinning.set(true);
+    setTimeout(() => this.isSpinning.set(false), 700);
   }
 }
