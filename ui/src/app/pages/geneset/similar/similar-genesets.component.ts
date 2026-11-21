@@ -32,6 +32,7 @@ import {
   speciesLabel,
   tierLabel,
 } from './similar-models';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** How often a running search is polled. Searches take about two minutes. */
 export const SIMILAR_POLL_INTERVAL_MS = 3000;
@@ -69,7 +70,7 @@ interface HttpFailure {
  */
 @Component({
   selector: 'app-similar-genesets',
-  imports: [DecimalPipe, FormsModule, RouterLink, ButtonModule, InputNumberModule, ProgressBarModule],
+  imports: [InputTextModule, DecimalPipe, FormsModule, RouterLink, ButtonModule, InputNumberModule, ProgressBarModule],
   template: `
     <p class="text-sm text-color-secondary mt-0 text-left">
       The gene sets sharing the most genes with this one, by Jaccard: shared genes ÷ all genes of
@@ -250,12 +251,12 @@ interface HttpFailure {
             <label for="similar-group" class="text-sm">Group by</label>
             <!-- (input), not ngModel: the test DOM fires a spurious change as options are
             inserted (as on /next/analyze). Browsers fire input for every choice. -->
-            <select id="similar-group" class="p-inputtext" (input)="setGroupIndex($any($event.target).selectedIndex)">
+            <select pInputText id="similar-group" class="p-inputtext" (input)="setGroupIndex($any($event.target).selectedIndex)">
               @for (choice of groupChoices; track choice) {
                 <option [selected]="choice.value === groupBy">{{ choice.label }}</option>
               }
             </select>
-            <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadCsv()">
+            <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadCsv()">
               Download CSV
             </button>
           </div>
@@ -293,7 +294,7 @@ interface HttpFailure {
             }
           </table>
           @if (!showAll && result.genesets.length > page) {
-            <button
+            <button pButton
               type="button"
               class="p-button p-button-sm p-button-text mt-2"
               (click)="showAll = true; regroup()"

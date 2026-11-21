@@ -14,6 +14,8 @@ import type { Core, ElementDefinition } from 'cytoscape';
 
 import { ChartTooltip, MUTED, saveBlob } from './chart-utils';
 import { dbscanNetwork, GeneNetwork, genesetLabel } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 const clusterColour = (cluster: number | null) =>
   cluster === null ? MUTED : schemeTableau10[cluster % schemeTableau10.length];
@@ -26,7 +28,7 @@ const clusterColour = (cluster: number | null) =>
  */
 @Component({
   selector: 'app-gene-network',
-  imports: [],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
     @if (!network.available) {
       <p class="text-sm text-color-secondary">
@@ -52,8 +54,8 @@ const clusterColour = (cluster: number | null) =>
         }
       </ul>
       <div class="flex gap-2 mt-2">
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
           Download PNG
         </button>
       </div>
@@ -62,7 +64,7 @@ const clusterColour = (cluster: number | null) =>
         zoom.
       </p>
       <label class="block text-sm mb-1" for="network-gene-picker">Gene</label>
-      <select
+      <select pInputText
         id="network-gene-picker"
         class="p-inputtext p-inputtext-sm mb-2 w-full"
         [value]="selectedId ?? ''"

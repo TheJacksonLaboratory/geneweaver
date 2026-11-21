@@ -11,6 +11,7 @@ import { axisBottom, axisLeft, format, max, scaleLinear } from 'd3';
 
 import { ACCENT, ChartTooltip, downloadSvg, freshSvg, HIGHLIGHT, interactive } from './chart-utils';
 import { MsetModel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * MSET: how often each overlap size came up when genes were drawn at random from the
@@ -21,10 +22,10 @@ import { MsetModel } from './models';
 @Component({
   selector: 'app-mset-histogram',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [ButtonModule, ],
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
     <dl class="grid text-sm mt-2">

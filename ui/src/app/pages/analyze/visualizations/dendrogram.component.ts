@@ -10,6 +10,7 @@ import { axisBottom, cluster, hierarchy, HierarchyPointNode, scaleLinear } from 
 
 import { ACCENT, ChartTooltip, DIMMED, downloadSvg, freshSvg, interactive } from './chart-utils';
 import { DendrogramNode } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * JaccardClustering's tree, drawn horizontally: leaves (gene sets) on the right, each merge
@@ -18,12 +19,13 @@ import { DendrogramNode } from './models';
  * shows where it first joins.
  */
 @Component({
+  imports: [ButtonModule],
   selector: 'app-dendrogram',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
   `,

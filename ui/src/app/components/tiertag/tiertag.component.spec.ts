@@ -68,9 +68,9 @@ describe('TierTagComponent', () => {
       expect(component.getTierColor()).toBe('info');
     });
 
-    it('should return warning color for Tier III', () => {
+    it('should return the warn color for Tier III (PrimeNG 18+ name)', () => {
       component.tier = 3;
-      expect(component.getTierColor()).toBe('warning');
+      expect(component.getTierColor()).toBe('warn');
     });
 
     it('should return danger color for Tier IV', () => {
@@ -84,7 +84,7 @@ describe('TierTagComponent', () => {
     });
 
     it('should handle all possible tier values', () => {
-      const expectedColors = ['success', 'info', 'warning', 'danger', 'secondary'];
+      const expectedColors = ['success', 'info', 'warn', 'danger', 'secondary'];
 
       for (let i = 1; i <= 5; i++) {
         component.tier = i;

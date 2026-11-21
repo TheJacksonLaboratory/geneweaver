@@ -1,5 +1,6 @@
 
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * Picks between a tool's views (legacy offered several per tool, e.g. JaccardSimilarity's
@@ -9,11 +10,11 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 @Component({
   selector: 'app-view-switch',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [ButtonModule, ],
   template: `
     <div class="flex gap-1 mb-2" role="group" [attr.aria-label]="label">
       @for (option of options; track option) {
-        <button
+        <button pButton
           type="button"
           class="p-button p-button-sm"
           [class.p-button-outlined]="option.id !== value"

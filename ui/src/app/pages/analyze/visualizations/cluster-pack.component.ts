@@ -20,6 +20,7 @@ import {
   percent,
 } from './chart-utils';
 import { PackNode } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * DBSCAN's clusters as packed circles: one outer circle per cluster, one dot per gene in
@@ -32,11 +33,11 @@ import { PackNode } from './models';
   template: `
     <div #chart></div>
     <div class="flex gap-2">
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
         Download SVG
       </button>
       @if (zoomed) {
-        <button
+        <button pButton
           type="button"
           class="p-button p-button-sm p-button-text"
           (click)="zoomOut()"
@@ -46,7 +47,7 @@ import { PackNode } from './models';
       }
     </div>
     `,
-  imports: [],
+  imports: [ButtonModule, ],
 })
 export class ClusterPackComponent implements OnChanges {
   private changes = inject(ChangeDetectorRef);

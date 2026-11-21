@@ -26,8 +26,6 @@
           }
         ],
         "styles": [
-          "node_modules/primeng/resources/themes/aura-light-green/theme.css",
-          "node_modules/primeng/resources/primeng.min.css",
           "node_modules/primeflex/primeflex.css",
           "./src/styles.scss"
         ],
@@ -165,8 +163,6 @@
       "options": {
         "jestConfig": "jest.config.ts",
         "styles": [
-          "node_modules/primeng/resources/themes/aura-light-green/theme.css",
-          "node_modules/primeng/resources/primeng.min.css",
           "node_modules/primeflex/primeflex.css",
           "src/styles.scss"
         ],

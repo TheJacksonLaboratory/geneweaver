@@ -7,7 +7,7 @@ import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 /* PrimeNG Imports */
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -224,7 +224,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
     FormsModule,
     ButtonModule,
     CardModule,
-    DropdownModule,
+    SelectModule,
     TooltipModule,
     InputTextModule,
     MessageModule,

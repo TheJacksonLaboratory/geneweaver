@@ -10,6 +10,7 @@ import { arc, schemeTableau10 } from 'd3';
 
 import { ChartTooltip, DIMMED, downloadSvg, freshSvg, interactive } from './chart-utils';
 import { DendrogramNode, SunburstArc, sunburstArcs } from './models';
+import { ButtonModule } from 'primeng/button';
 
 const CLUSTER = '#CBD5E1';
 
@@ -20,12 +21,13 @@ const CLUSTER = '#CBD5E1';
  * outside it.
  */
 @Component({
+  imports: [ButtonModule],
   selector: 'app-sunburst',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
   `,

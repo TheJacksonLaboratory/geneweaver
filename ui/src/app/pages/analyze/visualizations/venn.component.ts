@@ -12,6 +12,7 @@ import { TableModule } from 'primeng/table';
 
 import { ChartTooltip, downloadSvg, freshSvg, interactive } from './chart-utils';
 import { BooleanModel, genesetLabel, SpeciesSummaryRow, vennLayout } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * BooleanAlgebra: an area-proportional Venn diagram for two or three gene sets (more
@@ -22,7 +23,7 @@ import { BooleanModel, genesetLabel, SpeciesSummaryRow, vennLayout } from './mod
 @Component({
   selector: 'app-venn',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TableModule],
+  imports: [ButtonModule, TableModule],
   template: `
     @if (model.missingFromExcept) {
       <div class="p-3 mb-3 border-round surface-100 text-sm warn">
@@ -62,7 +63,7 @@ import { BooleanModel, genesetLabel, SpeciesSummaryRow, vennLayout } from './mod
       </p>
     }
     @if (drawn) {
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
         Download SVG
       </button>
     }

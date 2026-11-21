@@ -20,6 +20,7 @@ import {
   percent,
 } from './chart-utils';
 import { genesetLabel, UpSetModel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * UpSet plot: one column per exclusive combination of gene sets, its size as a bar above
@@ -40,11 +41,11 @@ import { genesetLabel, UpSetModel } from './models';
         are in the table below.
       </p>
     }
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
     `,
-  imports: [],
+  imports: [ButtonModule, ],
 })
 export class UpsetPlotComponent implements OnChanges {
   @Input({ required: true }) model!: UpSetModel;

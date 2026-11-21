@@ -1,6 +1,6 @@
 <main class="w-full">
-  <p-messages severity="info" closable="false">
-    <ng-template pTemplate>
+  <p-message severity="info" styleClass="gw-banner my-3">
+    <div class="flex align-items-center w-full">
       <div class="ml-2 text-sm">A new search experiment from GeneWeaver.</div>
       <div class="ml-2 ml-auto text-xs">v{{version}}</div>
       <!-- Sign-in is server-side (the API holds the Auth0 client secret), so these are
@@ -20,7 +20,7 @@
           [href]="session.signInUrl()">Sign in</a>
         }
       }
-    </ng-template>
-  </p-messages>
+    </div>
+  </p-message>
   <router-outlet />
 </main>

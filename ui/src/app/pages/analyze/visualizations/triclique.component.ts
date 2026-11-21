@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, Input, OnChanges, ViewC
 
 import { downloadSvg } from './chart-utils';
 import { genesetLabel, Triclique, TricliqueModel, tricliqueModel, TricliqueOutput } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * Triclique (legacy TricliqueViewer): the largest clique across two groups of gene sets and
@@ -13,7 +14,7 @@ import { genesetLabel, Triclique, TricliqueModel, tricliqueModel, TricliqueOutpu
 @Component({
   selector: 'app-triclique',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [ButtonModule, ],
   template: `
     <p class="text-sm text-color-secondary mt-0">
       Group A: {{ list(result.group_a) }}. Group B: {{ list(result.group_b) }}.
@@ -79,7 +80,7 @@ import { genesetLabel, Triclique, TricliqueModel, tricliqueModel, TricliqueOutpu
         <li><span class="swatch" style="background: #F28E2B"></span>Group B</li>
         <li><span class="swatch round" style="background: #59A14F"></span>Shared gene</li>
       </ul>
-      <button type="button" class="p-button p-button-sm p-button-text mt-2" (click)="download()">
+      <button pButton type="button" class="p-button p-button-sm p-button-text mt-2" (click)="download()">
         Download SVG
       </button>
     } @else {

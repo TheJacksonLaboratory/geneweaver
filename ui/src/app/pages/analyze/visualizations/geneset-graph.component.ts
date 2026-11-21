@@ -14,6 +14,7 @@ import type { Core, ElementDefinition } from 'cytoscape';
 
 import { ChartTooltip, saveBlob } from './chart-utils';
 import { genesetGraphModel, GenesetGraphModel, GenesetGraphOutput, genesetLabel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 const setColour = (index: number) => schemeTableau10[index % schemeTableau10.length];
 
@@ -26,7 +27,7 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
  */
 @Component({
   selector: 'app-geneset-graph',
-  imports: [],
+  imports: [ButtonModule, ],
   template: `
     <p class="text-sm text-color-secondary mt-0">{{ model.summary }}</p>
     @if (model.tooLarge) {
@@ -47,8 +48,8 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
         <li><span class="swatch emphasis"></span>Emphasised gene</li>
       </ul>
       <div class="flex gap-2 mt-2">
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
           Download PNG
         </button>
       </div>

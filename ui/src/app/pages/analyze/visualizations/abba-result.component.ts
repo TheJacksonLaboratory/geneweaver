@@ -35,6 +35,8 @@ import {
 } from './abba-models';
 import { AbbaSparklineComponent } from './abba-sparkline.component';
 import { saveBlob } from './chart-utils';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** Seed tiles shown before "Show all": a gene-set seed can expand to a thousand genes. */
 const SEED_PREVIEW = 120;
@@ -59,7 +61,7 @@ interface GeneRow {
 @Component({
   selector: 'app-abba-result',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, AbbaSparklineComponent],
+  imports: [InputTextModule, ButtonModule, RouterLink, AbbaSparklineComponent],
   template: `
     <details class="abba-section" open>
       <summary><h4>Run information</h4></summary>
@@ -104,7 +106,7 @@ interface GeneRow {
         }
       </ul>
       @if (result.seed_genes.length > seedPreview) {
-        <button
+        <button pButton
           type="button"
           class="p-button p-button-sm p-button-text"
           (click)="showAllSeeds = !showAllSeeds"
@@ -124,7 +126,7 @@ interface GeneRow {
         <div>
           <label for="abba-sort" class="block text-sm mb-1">Sort results</label>
           <!-- Bound to input, like the options form: see analyze.component.html. -->
-          <select
+          <select pInputText
             id="abba-sort"
             class="p-inputtext p-inputtext-sm"
             (input)="sortBy($any($event.target).value)"
@@ -215,7 +217,7 @@ interface GeneRow {
           </tbody>
         </table>
       </div>
-      <button
+      <button pButton
         type="button"
         class="p-button p-button-sm p-button-outlined mt-2"
         [disabled]="!selectedGenesets.size"
@@ -233,10 +235,10 @@ interface GeneRow {
           sets.
         </p>
         <div class="flex gap-2">
-          <button type="button" class="p-button p-button-sm" [disabled]="!selectedGenes.size" (click)="copyGenes()">
+          <button pButton type="button" class="p-button p-button-sm" [disabled]="!selectedGenes.size" (click)="copyGenes()">
             Copy selected genes
           </button>
-          <button type="button" class="p-button p-button-sm p-button-outlined" [disabled]="!selectedGenes.size" (click)="downloadGenes()">
+          <button pButton type="button" class="p-button p-button-sm p-button-outlined" [disabled]="!selectedGenes.size" (click)="downloadGenes()">
             Download CSV
           </button>
         </div>

@@ -19,6 +19,8 @@ import {
   phenomeMapStats,
   TooltipRow,
 } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 interface SelectedBiclique {
   genesets: string[];
@@ -38,7 +40,7 @@ interface SelectedBiclique {
  */
 @Component({
   selector: 'app-phenome-map-graph',
-  imports: [],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
     <dl class="stats flex flex-wrap gap-3 text-sm m-0 mb-2">
       @for (stat of stats; track stat) {
@@ -47,7 +49,7 @@ interface SelectedBiclique {
       }
     </dl>
     <label class="block text-sm mb-1" for="phenome-map-search">Highlight genes or gene sets</label>
-    <input
+    <input pInputText
       id="phenome-map-search"
       class="p-inputtext p-inputtext-sm mb-1 w-full"
       type="search"
@@ -59,8 +61,8 @@ interface SelectedBiclique {
     <!-- The canvas is a picture for sighted users; the list below is the accessible way in. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label"></div>
     <div class="flex gap-2 mt-2">
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
         Download PNG
       </button>
     </div>
@@ -69,7 +71,7 @@ interface SelectedBiclique {
       scroll to zoom.
     </p>
     <label class="block text-sm mb-1" for="biclique-picker">Biclique</label>
-    <select
+    <select pInputText
       id="biclique-picker"
       class="p-inputtext p-inputtext-sm mb-2 w-full"
       [value]="selectedId ?? ''"

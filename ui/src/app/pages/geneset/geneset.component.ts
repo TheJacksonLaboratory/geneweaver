@@ -12,7 +12,7 @@ import { PanelModule } from 'primeng/panel';
 import { MenubarModule } from 'primeng/menubar';
 import { MenuItem } from 'primeng/api';
 import { TableModule } from 'primeng/table';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import {
   OntologyAnnotationsComponent,
@@ -40,7 +40,7 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
     PanelModule,
     MenubarModule,
     TableModule,
-    DropdownModule,
+    SelectModule,
     CheckboxModule,
     MenubarModule,
     OntologyAnnotationsComponent,
@@ -82,7 +82,6 @@ export class GeneSetComponent implements OnInit {
     {
       label: 'Legacy Page',
       icon: 'pi pi-history',
-      styleClass: 'p-button-secondary',
       command: () => this.onLegacyClick(this.geneset),
     },
   ];

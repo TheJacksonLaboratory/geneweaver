@@ -10,6 +10,7 @@ import { scaleBand } from 'd3';
 
 import { ChartTooltip, downloadSvg, freshSvg, interactive, sequential } from './chart-utils';
 import { genesetLabel, MatrixModel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * A gene set x gene set matrix, shaded by the pair's statistic (Jaccard index for
@@ -17,12 +18,13 @@ import { genesetLabel, MatrixModel } from './models';
  * or focusing a cell shows the pair's full statistics and highlights its row and column.
  */
 @Component({
+  imports: [ButtonModule],
   selector: 'app-heatmap',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
   `,

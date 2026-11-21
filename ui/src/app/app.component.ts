@@ -1,12 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MessagesModule } from 'primeng/messages';
+import { MessageModule } from 'primeng/message';
 import { environment } from "../environments/environment";
 import { SessionService } from './services/session.service';
 
 @Component({
-  imports: [RouterModule, MessagesModule, AsyncPipe],
+  imports: [RouterModule, MessageModule, AsyncPipe],
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

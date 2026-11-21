@@ -10,6 +10,8 @@ import {
 
 import { ChartTooltip, downloadSvg, freshSvg, interactive, MUTED, percent } from './chart-utils';
 import { MsetEuler } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** Okabe-Ito, as in the Venn grid: list 1 vermilion, list 2 blue. */
 const LIST1 = '#D55E00';
@@ -32,16 +34,16 @@ interface Disc {
 @Component({
   selector: 'app-mset-euler',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
     <h4 class="mb-2">Shared genes ({{ genes.length }})</h4>
     @if (genes.length) {
       <label class="block text-sm mb-1" for="mset-gene-filter">Filter shared genes</label>
-      <input
+      <input pInputText
         id="mset-gene-filter"
         class="p-inputtext p-inputtext-sm mb-2"
         type="search"

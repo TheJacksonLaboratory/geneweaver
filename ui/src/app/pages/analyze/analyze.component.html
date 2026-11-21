@@ -39,7 +39,7 @@
 
       <div class="field col-12 md:col-4">
         <label for="tool" class="block mb-2">Tool</label>
-        <p-dropdown
+        <p-select
           inputId="tool"
           [options]="toolOptions"
           [(ngModel)]="selectedTool"
@@ -53,7 +53,7 @@
               tool.label
             }}</span>
           </ng-template>
-        </p-dropdown>
+        </p-select>
       </div>
     </div>
 
@@ -147,7 +147,7 @@
         <h3 id="abbaHeading" class="text-base mt-0 mb-2">ABBA gene search</h3>
         <div class="field">
           <label for="abbaGenes" class="block mb-2">Seed genes</label>
-          <textarea
+          <textarea pInputText
             id="abbaGenes"
             rows="4"
             class="p-inputtext w-full"
@@ -173,7 +173,7 @@
           <div class="field col-12 md:col-4">
             <label for="abbaMinGenes" class="block mb-2">Minimum genes</label>
             <!-- Bound to input, not ngModel: see the options block below. -->
-            <select
+            <select pInputText
               id="abbaMinGenes"
               class="p-inputtext w-full"
               aria-describedby="abbaMinGenes-help"
@@ -191,7 +191,7 @@
           </div>
           <div class="field col-12 md:col-4">
             <label for="abbaMinGenesets" class="block mb-2">Minimum gene sets</label>
-            <select
+            <select pInputText
               id="abbaMinGenesets"
               class="p-inputtext w-full"
               aria-describedby="abbaMinGenesets-help"
@@ -295,7 +295,7 @@
                 }
                 @case ('select') {
                   <label [for]="optionId(option)" class="block mb-2">{{ option.label }}</label>
-                  <select
+                  <select pInputText
                     [id]="optionId(option)"
                     class="p-inputtext w-full"
                     (input)="choose(option, $any($event.target).selectedIndex)"
@@ -383,6 +383,7 @@
     @if (tricliqueProblem && !selectedToolReason) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="tricliqueProblem"
         styleClass="w-full mb-3"
       ></p-message>
@@ -391,6 +392,7 @@
     @if (toolsLoading) {
       <p-message
         severity="info"
+        icon="pi pi-info-circle"
         text="Loading the available tools…"
         styleClass="w-full mb-3"
       ></p-message>
@@ -399,6 +401,7 @@
     @if (toolsError) {
       <p-message
         severity="error"
+        icon="pi pi-times-circle"
         [text]="'Could not load the tool list: ' + toolsError"
         styleClass="w-full mb-3"
       ></p-message>
@@ -407,6 +410,7 @@
     @if (selectedToolReason) {
       <p-message
         severity="info"
+        icon="pi pi-info-circle"
         [text]="selectedToolReason"
         styleClass="w-full mb-3"
       ></p-message>
@@ -416,6 +420,7 @@
     @if (selectedToolCaveat && !selectedToolReason) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="selectedToolCaveat"
         styleClass="w-full mb-3"
       ></p-message>
@@ -424,6 +429,7 @@
     @if (optionProblem && !selectedToolReason) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="optionProblem"
         styleClass="w-full mb-3"
       ></p-message>
@@ -432,6 +438,7 @@
     @if (invalidEntries.length) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="'Not valid gene set IDs: ' + invalidEntries.join(', ')"
         styleClass="w-full mb-3"
       ></p-message>
@@ -440,6 +447,7 @@
     @if (limitViolation) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="limitViolation"
         styleClass="w-full mb-3"
       ></p-message>
@@ -448,6 +456,7 @@
     @if (abbaProblem && !selectedToolReason) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="abbaProblem"
         styleClass="w-full mb-3"
       ></p-message>
@@ -503,6 +512,7 @@
   @if (errorMessage) {
     <p-message
       severity="error"
+      icon="pi pi-times-circle"
       [text]="errorMessage"
       styleClass="w-full mt-3"
     ></p-message>
@@ -522,6 +532,7 @@
       @if (emptyGenesets.length) {
         <p-message
           severity="warn"
+          icon="pi pi-exclamation-triangle"
       [text]="
         'These gene sets resolved to no genes: ' +
         emptyGenesets.join(', ') +
@@ -586,6 +597,7 @@ chart for it (G3-803) and keeps the raw output underneath. -->
     @if (genericResult.caveat) {
       <p-message
         severity="warn"
+        icon="pi pi-exclamation-triangle"
         [text]="genericResult.caveat"
         styleClass="w-full mb-3"
       ></p-message>

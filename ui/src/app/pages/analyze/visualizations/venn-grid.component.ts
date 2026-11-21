@@ -18,6 +18,8 @@ import {
   VennGridCell,
   VennGridModel,
 } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** Okabe-Ito colours: told apart with every common colour-vision deficiency. */
 const ROW = '#D55E00';
@@ -34,11 +36,11 @@ const GREY = '#CBD5E1';
 @Component({
   selector: 'app-venn-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
     <div class="flex align-items-center gap-2 mb-2 text-sm">
       <label for="venn-grid-threshold">p-value threshold</label>
-      <select
+      <select pInputText
         #thresholdSelect
         id="venn-grid-threshold"
         class="p-inputtext p-inputtext-sm"
@@ -53,7 +55,7 @@ const GREY = '#CBD5E1';
       <span class="text-color-secondary" aria-live="polite">{{ greyedNote }}</span>
     </div>
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
     `,
