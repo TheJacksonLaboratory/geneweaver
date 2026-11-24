@@ -49,7 +49,7 @@ tools-first argument because the deployed legacy app cannot run it:
 | **BinaryDBSCAN** | exact wrapper around the legacy C++ implementation | **6/6** (encode/gate/decode against the same binary) | Yes |
 | **JaccardSimilarity** | coefficient + empirical p-value; `distribution_generator` treated as a separate data-prep step | **all match** — 45/45 coefficients, 15/15 p-values where intersection > 0, 30/30 correctly skipped at intersection 0 | Yes |
 | **UpSet** | exclusive-intersection sizes | **2/2 modes** (`include_zeros` off = 5 combos, on = 63) — validated against a *transcription* of py-upset semantics, because the legacy implementation uses pandas' removed `DataFrame.ix` and cannot execute | **No** — `'tools.UpSet'` is commented out of `legacy/tools-worker/tools/celeryapp.py`, `upsetblueprint` is never registered, and the code is py2-era |
-| **MSET** | binary wrapper; **fixes** legacy using `group_1_background` for *both* gene lists, and now takes its background as a resolved universe rather than a `*BG.txt` file name (A7) | **all match**, including verification of that bug fix. Monte Carlo stays in `MSETcpp` | Yes, but needs the A2 resolver |
+| **MSET** | binary wrapper; **fixes** legacy using `group_1_background` for *both* gene lists, and now takes its background as a resolved universe rather than a `*BG.txt` file name (A7) | **all match**, including verification of that bug fix. Monte Carlo stays in `MSETcpp`. Whole runs match the legacy worker on dev too (`mset_vs_legacy/`) | Yes |
 
 HyperGeometric is already in Group 1; like UpSet, its worker module is commented out of legacy's
 Celery include list, so the deployed legacy app cannot launch it.
@@ -513,13 +513,21 @@ blocked on data or binaries.
 | 1 | UpSet, HyperGeometric | `validate_upset.py`, `validate_hypergeometric.py` | nothing |
 | 2 | Combine, BooleanAlgebra | `TOOLSET_SQL`, `GET_HOMOLOGS_SQL` (`validate_combine.py`, `validate_boolean_algebra.py`) | nothing |
 | 3 | DBSCAN (in-process), JaccardClustering | gene symbols per set; similarity matrix | `[sklearn]` extra |
-| 4 | JaccardSimilarity | `validate_jaccard_similarity.py` | `extsrc.jaccard_distribution_results` **empty** in current DBs |
-| 5 | MSET | two gene lists + background | **A7** |
+| 4 | JaccardSimilarity | `validate_jaccard_similarity.py` | done; `extsrc.jaccard_distribution_results` holds 2,733 rows on dev, and a size pair with no distribution gets no p-value |
+| 5 | MSET | two gene lists + the species' full gene space (`gene_universe`) | done (A7); the universe rule awaits the A7 sign-off |
 | 6 | PhenomeMap | gene symbols + `gene_rank` | ~~`biclique` **SIGTRAP**~~ fixed (G3-804); `gene_rank` still uniformly **0.0** on local/dev/sqa, so the KS term stays inert |
 
 *Verify:* per-resolver unit tests against a known gene-set fixture, then compare resolver output
 against what the legacy worker receives — **on metrics, not raw `ode_gene_id`s**, because dev's
 internal ids were remapped in the Dec-2025 reload.
+
+**Status (2026-11-24): every resolver is on `main`.** They're in
+`packages/db/src/geneweaver/db/tool_input.py`, each unit-tested in
+`packages/db/tests/unit/test_tool_input.py`. Legacy comparisons are in
+`scripts/validation/validate_*.py`, and MSET's whole runs are in
+`scripts/validation/mset_vs_legacy/`. One input is still missing, and it's data, not code:
+PhenomeMap gets no gene ranks, because `extsrc.gene_info.gene_rank` is 0 in all 527,470
+rows on dev.
 
 ### A3. Vertical slice — G3-799, API half only
 
@@ -687,15 +695,20 @@ Scale of what this retires: **602 tracked `*BG.txt` files** across three TOOLBOX
 **450 of them empty**. The cache was not merely stale — three-quarters of it was never populated,
 which is its own argument against the design.
 
-**What remains is the caller's query**, and it belongs to A2/G3-798: a `packages/db` resolver
-returning the full gene space for an id-type + species from `extsrc.gene`. Note the legacy query
-derived species only through the geneset join
-(`createBackgrounds.py::get_gene_id_by_gdb_type`), so dropping the curated-geneset restriction
-also drops its species filter — the resolver needs species attached to the gene directly, which
-is a schema question to settle before writing it.
+**The caller's half is done too.**
+- `db.tool_input.gene_universe` (A2/G3-798) returns every preferred gene symbol for the
+  species, from `extsrc.gene`. Species now comes from the gene itself, not through a gene
+  set join, which settles the schema question legacy's query left.
+- The API sends MSET a universe *reference*, and the native tools worker expands it at run
+  time (`temporal/resolvers.py`).
 
-*Verify:* GS407805 — 63 of 5,319 genes currently out-of-universe — runs clean. Requires the A2
-resolver plus `MSETcpp`, so it cannot be closed from the tools change alone.
+*Verified on dev, 2026-11-24* (`scripts/validation/mset_vs_legacy/`):
+- GS407805 runs clean on v3, with 0 of its 5,319 genes outside the universe. Legacy still
+  refuses it, over 63 genes.
+- Given legacy's background, v3 reproduces legacy's lists, shared genes and p-values (within
+  Monte Carlo error) on 12 curated pairs.
+
+What's still open is the A7 sign-off below, which isn't code.
 
 ### A8. Parity & benchmark gate
 
