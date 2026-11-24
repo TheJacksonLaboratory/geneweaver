@@ -417,7 +417,7 @@ def gene_universe(
         """,
         {"species_id": species_id, "gene_id_type": gene_id_type},
     )
-    return [_symbol(row) for row in cursor.fetchall()]
+    return [symbol for row in cursor.fetchall() if (symbol := _symbol(row)) is not None]
 
 
 def homolog_annotations(
