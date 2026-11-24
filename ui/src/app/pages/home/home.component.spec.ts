@@ -141,7 +141,7 @@ describe('HomeComponent', () => {
 
   describe('Result counts', () => {
     it('shows the total found above the table and a paginator below it', () => {
-      component.searchField.totalRecords = 1696;
+      component.searchField().totalRecords = 1696;
       component.geneSets = [mockGeneset];
       fixture.detectChanges();
       const total = fixture.debugElement.query(By.css('#resultsTotal'));
@@ -150,7 +150,7 @@ describe('HomeComponent', () => {
     });
 
     it('fetches the page the paginator asks for', () => {
-      const changePage = jest.spyOn(component.searchField, 'changePage').mockImplementation(() => undefined);
+      const changePage = jest.spyOn(component.searchField(), 'changePage').mockImplementation(() => undefined);
       component.onPageChange({ first: 25, rows: 25 });
       expect(changePage).toHaveBeenCalledWith({ first: 25, rows: 25 });
     });

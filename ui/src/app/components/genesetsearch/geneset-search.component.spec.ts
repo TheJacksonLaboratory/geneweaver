@@ -206,14 +206,15 @@ describe('GeneSetListComponent sorting', () => {
       imports: [GeneSetListComponent],
       providers: [{ provide: Router, useValue: { navigate: () => undefined } }],
     }).compileComponents();
-    const list = TestBed.createComponent(GeneSetListComponent).componentInstance;
+    const listFixture = TestBed.createComponent(GeneSetListComponent);
+    const list = listFixture.componentInstance;
     const emitted: unknown[] = [];
     list.sortChange.subscribe((sort) => emitted.push(sort));
 
     list.toggleSort('size');
-    list.sort = { by: 'size', order: 'asc' };
+    listFixture.componentRef.setInput('sort', { by: 'size', order: 'asc' });
     list.toggleSort('size');
-    list.sort = { by: 'size', order: 'desc' };
+    listFixture.componentRef.setInput('sort', { by: 'size', order: 'desc' });
     list.toggleSort('size');
     list.toggleSort('species');
     expect(emitted).toEqual([

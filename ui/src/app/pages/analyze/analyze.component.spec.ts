@@ -39,6 +39,18 @@ const TOOL_LIST = {
  * most 20 gene sets, dropping to 10 when empty combinations are expanded. The page must not
  * enable a run the API is known to reject.
  */
+
+/**
+ * Re-render after a test changed the component's state directly. The app runs without zone.js,
+ * so -- as in the app's own code -- a change made outside a template event marks the component
+ * for checking first; otherwise Angular skips the view and the dev-mode check reports the stale
+ * binding.
+ */
+function refresh(fixture: ComponentFixture<unknown>): void {
+  fixture.componentRef.changeDetectorRef.markForCheck();
+  fixture.detectChanges();
+}
+
 describe('AnalyzeComponent', () => {
   let component: AnalyzeComponent;
   let fixture: ComponentFixture<AnalyzeComponent>;
@@ -73,7 +85,7 @@ describe('AnalyzeComponent', () => {
 
     fixture = TestBed.createComponent(AnalyzeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    refresh(fixture);
   });
 
   it('should create', () => {
@@ -187,7 +199,7 @@ describe('AnalyzeComponent tool list', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    refresh(fixture);
   };
 
   beforeEach(() => {
@@ -338,7 +350,7 @@ describe('AnalyzeComponent tool options', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    refresh(fixture);
     component.genesetIdInput = ['1', '2'];
   });
 
@@ -347,9 +359,9 @@ describe('AnalyzeComponent tool options', () => {
     component.selectedTool = tool;
     // Triclique runs only with two groups; the rest ignore the mark.
     component.tricliqueMarked = [2];
-    fixture.detectChanges();
+    refresh(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    refresh(fixture);
     return fixture.nativeElement as HTMLElement;
   };
 
@@ -428,7 +440,7 @@ describe('AnalyzeComponent tool options', () => {
     ]);
     threshold.selectedIndex = 3;
     threshold.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    refresh(fixture);
 
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
@@ -443,7 +455,7 @@ describe('AnalyzeComponent tool options', () => {
     const excluded = page.querySelector<HTMLInputElement>('#option-include_homology-1')!;
     expect(page.querySelector(`label[for="${excluded.id}"]`)?.textContent).toBe('Excluded');
     excluded.click();
-    fixture.detectChanges();
+    refresh(fixture);
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
       parameters: { include_homology: false, threshold: 'none' },
@@ -463,7 +475,7 @@ describe('AnalyzeComponent tool options', () => {
     ]);
     method.selectedIndex = 4;
     method.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    refresh(fixture);
     expect(runAndRead().body).toMatchObject({ parameters: { method: 'average' } });
   });
 
@@ -472,9 +484,9 @@ describe('AnalyzeComponent tool options', () => {
     expect(page.querySelector('#option-at_least')).toBeNull();
 
     page.querySelector<HTMLInputElement>('#option-relation-1')!.click(); // Intersection
-    fixture.detectChanges();
+    refresh(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    refresh(fixture);
     page = fixture.nativeElement;
     const atLeast = page.querySelector<HTMLInputElement>('#option-at_least');
     expect(atLeast).not.toBeNull();
@@ -494,7 +506,7 @@ describe('AnalyzeComponent tool options', () => {
       'Symmetric difference',
     );
     except.click();
-    fixture.detectChanges();
+    refresh(fixture);
     expect(runAndRead().body).toMatchObject({ parameters: { relation: 'except' } });
   });
 
@@ -503,7 +515,7 @@ describe('AnalyzeComponent tool options', () => {
     const trials = page.querySelector<HTMLSelectElement>('#option-number_of_samples')!;
     trials.selectedIndex = 1;
     trials.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    refresh(fixture);
     expect(runAndRead().body).toEqual({
       geneset_ids: [1, 2],
       parameters: { number_of_samples: 10000, threshold: 'none' },
@@ -532,7 +544,7 @@ describe('AnalyzeComponent tool options', () => {
   it('cannot run with a blank or zero DBSCAN option, and says why', async () => {
     await choose('dbscan');
     component.optionValues['epsilon'] = 0;
-    fixture.detectChanges();
+    refresh(fixture);
     expect(component.canRun).toBe(false);
     expect(fixture.nativeElement.textContent).toContain('Epsilon must be a whole number of at least 1');
 
@@ -567,16 +579,16 @@ describe('AnalyzeComponent tool options', () => {
   it.each(Object.keys(TOOL_LIST))("%s takes the uploader's thresholds in one click", async (tool) => {
     const page = await choose(tool);
     page.querySelector<HTMLInputElement>('#threshold-uploader')!.click();
-    fixture.detectChanges();
+    refresh(fixture);
     expect(sentThresholds(tool)).toEqual({ threshold: 'uploader' });
   });
 
   it('takes custom cutoffs, sending only those given, and refuses an empty or inverted choice', async () => {
     const page = await choose('hypergeometric');
     page.querySelector<HTMLInputElement>('#threshold-custom')!.click();
-    fixture.detectChanges();
+    refresh(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    refresh(fixture);
     expect(page.querySelector('#cutoff-p')).not.toBeNull();
     expect(component.canRun).toBe(false);
     expect(page.querySelector('.threshold-problem')?.textContent).toContain('at least one cutoff');
@@ -653,7 +665,7 @@ describe('AnalyzeComponent pending runs', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    refresh(fixture);
     component.genesetIdInput = ['1', '2'];
     jest.useFakeTimers();
   });
@@ -809,7 +821,7 @@ describe('AnalyzeComponent pending runs', () => {
     component.selectedTool = 'combine';
 
     component.run();
-    fixture.detectChanges();
+    refresh(fixture);
     expect((fixture.nativeElement as HTMLElement).querySelector('.thresholds-used')?.textContent).toContain(text);
   });
 });
@@ -838,7 +850,7 @@ describe('AnalyzeComponent signed out', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    refresh(fixture);
   });
 
   afterEach(() => {
@@ -851,7 +863,7 @@ describe('AnalyzeComponent signed out', () => {
   });
 
   it('says why, with a way to sign in that returns here', () => {
-    fixture.detectChanges();
+    refresh(fixture);
     const notice: HTMLElement = fixture.nativeElement.querySelector('.sign-in-required');
     expect(notice.textContent).toContain('requires signing in');
     expect(notice.querySelector('a')?.getAttribute('href')).toBe(
@@ -905,12 +917,12 @@ describe('AnalyzeComponent ABBA gene search', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    refresh(fixture);
     // Let the tool picker settle on its default before choosing ABBA, or its pending model
     // write lands afterwards and selects UpSet again.
     await fixture.whenStable();
     component.selectedTool = 'abba';
-    fixture.detectChanges();
+    refresh(fixture);
     await fixture.whenStable();
   });
 
@@ -957,7 +969,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
 
   it('drops a minimum the seed genes no longer offer, rather than sending it hidden', () => {
     component.abbaGenesText = 'Drd2 Drd1 Th';
-    fixture.detectChanges();
+    refresh(fixture);
     const el = host();
     const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
     minGenes.selectedIndex = 3;
@@ -975,7 +987,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
 
   it('keeps a minimum the seed genes still offer', () => {
     component.abbaGenesText = 'Drd2 Drd1 Th';
-    fixture.detectChanges();
+    refresh(fixture);
     const el = host();
     const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
     minGenes.selectedIndex = 2;
@@ -989,7 +1001,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
   it('posts the options as changed in the form', () => {
     component.abbaGenesText = 'Drd2 Drd1 Th';
     component.genesetIdInput = ['167180'];
-    fixture.detectChanges();
+    refresh(fixture);
     const el = host();
     el.querySelector<HTMLInputElement>('#abbaHomology')!.click();
     const minGenes = el.querySelector<HTMLSelectElement>('#abbaMinGenes')!;
@@ -1004,7 +1016,7 @@ describe('AnalyzeComponent ABBA gene search', () => {
     el.querySelector<HTMLInputElement>('#abbaTier1')!.click();
     el.querySelector<HTMLInputElement>('#abbaTier4')!.click();
     el.querySelector<HTMLInputElement>('#abbaRestrict')!.click();
-    fixture.detectChanges();
+    refresh(fixture);
     el.querySelector<HTMLInputElement>('#abbaSpecies2')!.click();
     el.querySelector<HTMLInputElement>('#abbaSpecies1')!.click();
     el.querySelector<HTMLInputElement>('#threshold-uploader')!.click();
@@ -1030,10 +1042,10 @@ describe('AnalyzeComponent ABBA gene search', () => {
 
   it('needs a species when restricting to species, and shows the list only then', () => {
     component.abbaGenesText = 'Drd2';
-    fixture.detectChanges();
+    refresh(fixture);
     expect(host().querySelector('#abbaSpecies1')).toBeNull();
     component.abbaOptions.restrictSpecies = true;
-    fixture.detectChanges();
+    refresh(fixture);
     expect(host().querySelector('#abbaSpecies1')).not.toBeNull();
     expect(component.canRun).toBe(false);
     expect(component.abbaProblem).toContain('at least one species');
@@ -1056,10 +1068,10 @@ describe('AnalyzeComponent ABBA gene search', () => {
       };
     });
     component.run();
-    fixture.detectChanges();
+    refresh(fixture);
     expect(host().textContent).toContain('can take up to a minute');
     finish({ object: completed(ABBA_FIXTURE) });
-    fixture.detectChanges();
+    refresh(fixture);
     expect(component.abbaResult).toBe(ABBA_FIXTURE);
     expect(component.abbaRanAt).toBeInstanceOf(Date);
     expect(host().querySelector('app-abba-result')).not.toBeNull();

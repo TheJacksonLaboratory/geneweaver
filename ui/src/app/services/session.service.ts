@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
 import { BehaviorSubject } from 'rxjs';
 
@@ -38,7 +38,9 @@ export class SessionService {
   /** `undefined` until the first answer, so the page can tell "unknown" from "signed out". */
   readonly state$ = new BehaviorSubject<SessionState | undefined>(undefined);
 
-  constructor(apiBaseServiceFactory: ApiBaseServiceFactory) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.api = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
     this.refresh();
   }

@@ -1,16 +1,17 @@
-import { NgFor } from '@angular/common';
+
 import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 import { axisBottom, axisLeft, format, max, scaleLinear } from 'd3';
 
 import { ACCENT, ChartTooltip, downloadSvg, freshSvg, HIGHLIGHT, interactive } from './chart-utils';
 import { MsetModel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * MSET: how often each overlap size came up when genes were drawn at random from the
@@ -20,37 +21,36 @@ import { MsetModel } from './models';
  */
 @Component({
   selector: 'app-mset-histogram',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgFor],
+  imports: [ButtonModule, ],
   template: `
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
     <dl class="grid text-sm mt-2">
-      <ng-container *ngFor="let item of model.summary">
+      @for (item of model().summary; track item) {
         <dt class="col-6 md:col-3 font-semibold">{{ item.label }}</dt>
         <dd class="col-6 md:col-3 m-0">{{ item.value }}</dd>
-      </ng-container>
+      }
     </dl>
-  `,
+    `,
 })
 export class MsetHistogramComponent implements OnChanges {
-  @Input({ required: true }) model!: MsetModel;
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  readonly model = input.required<MsetModel>();
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
 
   ngOnChanges(): void {
     this.draw();
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'mset.svg');
+    downloadSvg(this.chart().nativeElement, 'mset.svg');
   }
 
   private draw(): void {
-    const { bins, observed, pValue, trials, summary } = this.model;
-    const host = this.chart.nativeElement;
+    const { bins, observed, pValue, trials, summary } = this.model();
+    const host = this.chart().nativeElement;
     const width = 620;
     const height = 280;
     const m = { top: 30, right: 20, bottom: 40, left: 50 };

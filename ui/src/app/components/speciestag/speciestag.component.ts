@@ -1,16 +1,15 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'app-speciestag',
-  standalone: true,
   imports: [TooltipModule, TagModule],
   templateUrl: './speciestag.component.html',
   styleUrl: './speciestag.component.scss'
 })
 export class SpeciestagComponent {
-  @Input() species_id = 0;
+  readonly species_id = input(0);
 
   /**
    * By species id (`SpeciesInt` in `geneweaver.core.enum`). These were lists read by
@@ -34,14 +33,14 @@ export class SpeciestagComponent {
   };
 
   getSpeciesName(): string {
-    return this.species[this.species_id]?.name ?? `Species ${this.species_id}`;
+    return this.species[this.species_id()]?.name ?? `Species ${this.species_id()}`;
   }
 
   getSpeciesCommonName(): string {
-    return this.species[this.species_id]?.common ?? `Species ${this.species_id}`;
+    return this.species[this.species_id()]?.common ?? `Species ${this.species_id()}`;
   }
 
   getSpeciesColor(): string {
-    return this.species[this.species_id]?.color ?? 'gray';
+    return this.species[this.species_id()]?.color ?? 'gray';
   }
 }

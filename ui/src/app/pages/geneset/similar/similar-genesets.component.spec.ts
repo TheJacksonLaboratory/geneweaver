@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { of, throwError } from 'rxjs';
@@ -48,13 +48,17 @@ describe('SimilarGenesetsComponent', () => {
     expect(post).toHaveBeenCalledWith('/tools/similar_genesets', { geneset_id: 5, threshold: 'uploader' });
   });
 
-  it('polls a run AsyncTask is still working on, then shows the list and charts', fakeAsync(() => {
+  // Jest's fake timers, not fakeAsync: the app runs without zone.js, which fakeAsync needs.
+  afterEach(() => jest.useRealTimers());
+
+  it('polls a run AsyncTask is still working on, then shows the list and charts', () => {
+    jest.useFakeTimers();
     post.mockReturnValue(of({ object: { run_id: 11, status: 'running' } }));
     get.mockReturnValueOnce(of({ object: { status: 'running' } }));
     get.mockReturnValueOnce(of({ object: { status: 'completed', result: SIMILAR } }));
     component.run();
     expect(component.running).toBe(true);
-    tick(SIMILAR_POLL_INTERVAL_MS * 2);
+    jest.advanceTimersByTime(SIMILAR_POLL_INTERVAL_MS * 2);
     fixture.detectChanges();
     expect(get).toHaveBeenCalledWith('/tools/runs/11');
     expect(component.running).toBe(false);
@@ -62,15 +66,16 @@ describe('SimilarGenesetsComponent', () => {
     expect(page().textContent).toContain('4 of the 15,438 gene sets');
     expect(page().querySelectorAll('rect').length).toBe(4);
     expect(page().querySelectorAll('polygon[stroke-width]').length).toBe(3);
-  }));
+  });
 
-  it('says why a run failed, naming its workflow', fakeAsync(() => {
+  it('says why a run failed, naming its workflow', () => {
+    jest.useFakeTimers();
     post.mockReturnValue(of({ object: { run_id: 11, status: 'running' } }));
     get.mockReturnValue(of({ object: { status: 'failed', workflow_id: 'ats:x' } }));
     component.run();
-    tick(SIMILAR_POLL_INTERVAL_MS);
+    jest.advanceTimersByTime(SIMILAR_POLL_INTERVAL_MS);
     expect(component.errorMessage).toBe('The search ended failed (workflow ats:x).');
-  }));
+  });
 
   it('passes on a refusal from the API', () => {
     post.mockReturnValue(throwError(() => ({ status: 403, error: { detail: 'Not readable' } })));

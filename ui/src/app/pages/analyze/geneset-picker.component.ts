@@ -1,14 +1,15 @@
 import {
   Component,
-  EventEmitter,
-  Input,
   OnChanges,
   OnDestroy,
-  Output,
   SimpleChanges,
-  ViewChild,
+  inject,
+  input,
+  output,
+  viewChild,
+  ChangeDetectorRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ApiBaseServiceFactory } from 'jax-apiutils';
 import { Subscription } from 'rxjs';
@@ -19,6 +20,7 @@ import { GenesetOption, parseIds } from '../../search/geneset-options';
 import { GenesetSearchSource } from '../../search/geneset-search-source';
 import { emptyFilters, SearchFilters } from '../../search/search-filters';
 import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/suggestion-list';
+import { renderAfter } from '../../utils/render-after';
 
 /**
  * The gene sets to analyse: type to search them, or type and paste ids as before.
@@ -39,12 +41,11 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
  */
 @Component({
   selector: 'app-geneset-picker',
-  standalone: true,
-  imports: [CommonModule, FormsModule, AutoCompleteModule],
+  imports: [FormsModule, AutoCompleteModule],
   styles: [SUGGESTION_STYLES],
   template: `
     <p-autoComplete
-      [inputId]="inputId"
+      [inputId]="inputId()"
       [(ngModel)]="selected"
       (ngModelChange)="selectionChanged($event)"
       [suggestions]="source.suggestions"
@@ -64,49 +65,63 @@ import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/sugg
       [emptyMessage]="emptyMessage"
       (onKeyUp)="keyUp($event)"
       (onBlur)="blur($event)"
-      [placeholder]="selected.length ? '' : placeholder"
-      [ariaLabel]="ariaLabel"
+      [placeholder]="selected.length ? '' : placeholder()"
+      [ariaLabel]="ariaLabel()"
       styleClass="w-full"
       inputStyleClass="w-full"
-    >
+      >
       <ng-template let-option pTemplate="item">
         <div class="geneset-option" [attr.data-gs-id]="option.id">
           <div class="white-space-nowrap overflow-hidden text-overflow-ellipsis">
             <strong>GS{{ option.id }}</strong>
-            <span *ngIf="option.abbreviation" class="ml-2">{{ option.abbreviation }}</span>
+            @if (option.abbreviation) {
+              <span class="ml-2">{{ option.abbreviation }}</span>
+            }
           </div>
-          <small *ngIf="option.detail" class="block text-color-secondary">{{ option.detail }}</small>
+          @if (option.detail) {
+            <small class="block text-color-secondary">{{ option.detail }}</small>
+          }
         </div>
       </ng-template>
     </p-autoComplete>
-    <small *ngIf="source.loading" class="block mt-1 text-color-secondary" aria-live="polite">
-      Searching gene sets…
-    </small>
-    <small *ngIf="source.failed" class="block mt-1 text-color-secondary" aria-live="polite">
-      The gene set search is not responding. You can still type gene set IDs.
-    </small>
-    <small *ngIf="source.refused" class="block mt-1 text-orange-600 search-refused" aria-live="polite">
-      The search was refused: {{ source.refused }}
-    </small>
-    <small *ngIf="checking" class="block mt-1 text-color-secondary" aria-live="polite">
-      Checking {{ checking }}…
-    </small>
-    <small *ngIf="rejected" class="block mt-1 text-orange-600 rejected-ids" aria-live="polite">
-      {{ rejected }}
-    </small>
-  `,
+    @if (source.loading) {
+      <small class="block mt-1 text-color-secondary" aria-live="polite">
+        Searching gene sets…
+      </small>
+    }
+    @if (source.failed) {
+      <small class="block mt-1 text-color-secondary" aria-live="polite">
+        The gene set search is not responding. You can still type gene set IDs.
+      </small>
+    }
+    @if (source.refused) {
+      <small class="block mt-1 text-orange-600 search-refused" aria-live="polite">
+        The search was refused: {{ source.refused }}
+      </small>
+    }
+    @if (checking) {
+      <small class="block mt-1 text-color-secondary" aria-live="polite">
+        Checking {{ checking }}…
+      </small>
+    }
+    @if (rejected) {
+      <small class="block mt-1 text-orange-600 rejected-ids" aria-live="polite">
+        {{ rejected }}
+      </small>
+    }
+    `,
 })
 export class GenesetPickerComponent implements OnChanges, OnDestroy {
   /** The selected gene set ids, as the page holds them. */
-  @Input() ids: string[] = [];
-  @Output() idsChange = new EventEmitter<string[]>();
+  readonly ids = input<string[]>([]);
+  readonly idsChange = output<string[]>();
   /** Narrow the suggestions, as on the search page. */
-  @Input() filters: SearchFilters = emptyFilters();
-  @Input() inputId = 'genesetIds';
-  @Input() ariaLabel = 'Gene sets to analyze';
-  @Input() placeholder = 'Search by name or ID, or type IDs, e.g. 514, 515';
+  readonly filters = input<SearchFilters>(emptyFilters());
+  readonly inputId = input('genesetIds');
+  readonly ariaLabel = input('Gene sets to analyze');
+  readonly placeholder = input('Search by name or ID, or type IDs, e.g. 514, 515');
 
-  @ViewChild(AutoComplete) private autoComplete?: AutoComplete;
+  private readonly autoComplete = viewChild(AutoComplete);
 
   readonly rowHeight = ROW_HEIGHT_PX;
   readonly listHeight = LIST_HEIGHT;
@@ -119,8 +134,15 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   /** Every lookup runs to the end: typing "1, 2, 3" starts one per comma. */
   private lookups = new Subscription();
 
-  constructor(apiBaseServiceFactory: ApiBaseServiceFactory) {
-    this.source = new GenesetSearchSource(apiBaseServiceFactory.create(environment.urls.geneWeaverApi));
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
+
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
+    this.source = new GenesetSearchSource(apiBaseServiceFactory.create(environment.urls.geneWeaverApi), () =>
+      this.changes.markForCheck(),
+    );
   }
 
   /** Typed ids being looked up, e.g. "GS51, GS54". */
@@ -152,12 +174,13 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['ids']) {
       const current = this.selected.map((option) => String(option.id));
-      if (current.join(',') !== (this.ids ?? []).join(',')) {
-        this.selected = (this.ids ?? []).map((id) => this.optionFor(id));
+      if (current.join(',') !== (this.ids() ?? []).join(',')) {
+        this.selected = (this.ids() ?? []).map((id) => this.optionFor(id));
       }
     }
-    if (changes['filters'] && this.filters) {
-      this.source.setFilters(this.filters);
+    const filters = this.filters();
+    if (changes['filters'] && filters) {
+      this.source.setFilters(filters);
     }
   }
 
@@ -207,10 +230,11 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
     // The keystrokes that typed the ids started a debounced search; it would open the list
     // again for text that is no longer there. PrimeNG's hide() touches the list's scroller,
     // which exists only while the list is open.
-    if (this.autoComplete) {
-      clearTimeout(this.autoComplete.searchTimeout);
-      if (this.autoComplete.overlayVisible) {
-        this.autoComplete.hide();
+    const autoComplete = this.autoComplete();
+    if (autoComplete) {
+      clearTimeout(autoComplete.searchTimeout);
+      if (autoComplete.overlayVisible) {
+        autoComplete.hide();
       }
     }
     if (!typed.length) {
@@ -219,7 +243,7 @@ export class GenesetPickerComponent implements OnChanges, OnDestroy {
     // Only what this user may read becomes a chip, as a run would refuse the rest.
     typed.forEach((id) => this.checkingIds.add(id));
     this.lookups.add(
-      this.source.lookup(typed).subscribe((lookup) => {
+      this.source.lookup(typed).pipe(renderAfter(this.changes)).subscribe((lookup) => {
         typed.forEach((id) => this.checkingIds.delete(id));
         const have = new Set(this.selected.map((option) => option.id));
         const added = lookup.found.filter((option) => !have.has(option.id));

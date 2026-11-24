@@ -90,7 +90,14 @@ export class GenesetSearchSource {
   private requests = new Subject<PageRequest>();
   private subscription: Subscription;
 
-  constructor(private gwApi: ApiBaseService) {
+  /**
+   * @param changed Called when results arrive, so the owning component can mark itself for
+   *   checking: without zone.js nothing else re-renders it after a response.
+   */
+  constructor(
+    private gwApi: ApiBaseService,
+    private readonly changed: () => void = () => undefined,
+  ) {
     // switchMap: a newer request -- another keystroke, a filter, or the next page -- drops
     // the older one, so results never arrive out of order.
     this.subscription = this.requests
@@ -233,5 +240,6 @@ export class GenesetSearchSource {
     this.suggestions = result.offset === 0 ? result.options : appendPage(this.suggestions, result.options);
     this.searchOffset = result.offset + result.pageLength;
     this.exhausted = !!result.failed || !!result.refused || result.pageLength < PAGE_SIZE;
+    this.changed();
   }
 }

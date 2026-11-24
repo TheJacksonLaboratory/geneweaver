@@ -1,6 +1,6 @@
 /* Angular Imports */
-import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, output, model, ChangeDetectorRef } from '@angular/core';
+
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpParams } from '@angular/common/http';
 import { FormsModule } from "@angular/forms";
@@ -18,40 +18,45 @@ import { InputGroupModule } from 'primeng/inputgroup';
 /* Local Imports */
 import { GeneSet } from "../../models/gene-set";
 import { environment } from "../../../environments/environment";
+import { renderAfter } from '../../utils/render-after';
 
 
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, ToastModule, InputTextModule, InputGroupModule, ButtonModule, ProgressBarModule],
+  imports: [FormsModule, ToastModule, InputTextModule, InputGroupModule, ButtonModule, ProgressBarModule],
   providers: [MessageService],
   templateUrl: './searchbar.component.html',
   styleUrl: './searchbar.component.scss',
 })
 export class SearchBarComponent implements OnInit {
+  private messageService = inject(MessageService);
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
+
   isSearching = false;
   private gwApi: ApiBaseService;
 
-  @Input() searchValue = '';
-  @Output() searchExecuted = new EventEmitter<string>();
-  @Output() searchCompleted = new EventEmitter<GeneSet[]>();
-  @Output() searchPaging = new EventEmitter<Paging>();
-  @Output() searchCleared = new EventEmitter<boolean>();
+  /** Two-way with the search box; set from the URL's `search` parameter. */
+  readonly searchValue = model('');
+  readonly searchExecuted = output<string>();
+  readonly searchCompleted = output<GeneSet[]>();
+  /** The response's paging; undefined when a response has none. */
+  readonly searchPaging = output<Paging | undefined>();
+  readonly searchCleared = output<boolean>();
 
-  constructor(
-      private messageService: MessageService,
-      private apiBaseServiceFactory: ApiBaseServiceFactory,
-      private router: Router,
-      private route: ActivatedRoute
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi)
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(renderAfter(this.changes)).subscribe(params => {
       if (params['search']) {
-        this.searchValue = params['search'];
-        this.onSearch(this.searchValue);
+        this.searchValue.set(params['search']);
+        this.onSearch(this.searchValue());
       } else {
         this.clearSearch();
       }
@@ -59,7 +64,7 @@ export class SearchBarComponent implements OnInit {
   }
 
   clearSearch() {
-    this.searchValue = '';
+    this.searchValue.set('');
     this.searchCleared.emit(true);
     this.searchCompleted.emit([]);
   }
@@ -74,7 +79,7 @@ export class SearchBarComponent implements OnInit {
       });
       this.gwApi
           .getCollection<GeneSet>('/genesets/search', new HttpParams().set('search_text', searchTerm))
-          .subscribe((geneSets) => {
+          .pipe(renderAfter(this.changes)).subscribe((geneSets) => {
         this.isSearching = false;
         this.searchCompleted.emit(geneSets.data);
         this.searchPaging.emit(geneSets.paging);

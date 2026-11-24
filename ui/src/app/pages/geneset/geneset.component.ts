@@ -1,5 +1,5 @@
-import {Component, OnInit} from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+
 import { ActivatedRoute } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
 import { SpeciestagComponent } from '../../components/speciestag/speciestag.component';
@@ -12,9 +12,11 @@ import { PanelModule } from 'primeng/panel';
 import { MenubarModule } from 'primeng/menubar';
 import { MenuItem } from 'primeng/api';
 import { TableModule } from 'primeng/table';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
-import { OntologyAnnotationsComponent } from '../../components/ontologyannotations/ontologyannotations.component';
+import {
+  OntologyAnnotationsComponent,
+} from '../../components/ontologyannotations/ontologyannotations.component';
 import { OntologyTerm } from '../../models/ontology-term';
 import { HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -26,12 +28,11 @@ import { GeneValueDownload } from '../../models/gene-value';
 import { convertModel} from '../../utils/utils';
 import { Router } from '@angular/router';
 import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
+import { renderAfter } from '../../utils/render-after';
 
 @Component({
   selector: 'app-gene-set',
-  standalone: true,
   imports: [
-    CommonModule,
     SpeciestagComponent,
     TierTagComponent,
     GeneListComponent,
@@ -40,18 +41,24 @@ import { SimilarGenesetsComponent } from './similar/similar-genesets.component';
     PanelModule,
     MenubarModule,
     TableModule,
-    DropdownModule,
+    SelectModule,
     CheckboxModule,
     MenubarModule,
     OntologyAnnotationsComponent,
     MenuModule,
     ButtonModule,
-    SimilarGenesetsComponent,
-  ],
+    SimilarGenesetsComponent
+],
   templateUrl: './geneset.component.html',
   styleUrl: './geneset.component.css',
 })
 export class GeneSetComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private router = inject(Router);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
+
   private gwApi: ApiBaseService;
   pubmedUrl: string = environment.urls.pubmed + '/';
   genesetDetails: any;
@@ -78,7 +85,6 @@ export class GeneSetComponent implements OnInit {
     {
       label: 'Legacy Page',
       icon: 'pi pi-history',
-      styleClass: 'p-button-secondary',
       command: () => this.onLegacyClick(this.geneset),
     },
   ];
@@ -104,18 +110,14 @@ export class GeneSetComponent implements OnInit {
     },
   ];
 
-  constructor(
-    private route: ActivatedRoute,
-    private apiBaseServiceFactory: ApiBaseServiceFactory,
-    private router: Router
-  ) {
+  constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(
       environment.urls.geneWeaverApi
     );
   }
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(renderAfter(this.changes)).subscribe((params) => {
       const genesetId = params['id'];
       this.fetchGenesetDetails(genesetId);
       this.fetchPublicationDetails(genesetId);
@@ -142,7 +144,7 @@ export class GeneSetComponent implements OnInit {
   }
 
   private fetchGenesetDetails(genesetId: string) {
-    this.gwApi.get(`/genesets/${genesetId}`).subscribe({
+    this.gwApi.get(`/genesets/${genesetId}`).pipe(renderAfter(this.changes)).subscribe({
       next: (response) => {
         this.genesetDetails = response.object;
         this.geneset = this.genesetDetails.geneset;
@@ -165,7 +167,7 @@ export class GeneSetComponent implements OnInit {
   }
 
   private fetchPublicationDetails(genesetId: string) {
-    this.gwApi.get(`/genesets/${genesetId}/publication`).subscribe({
+    this.gwApi.get(`/genesets/${genesetId}/publication`).pipe(renderAfter(this.changes)).subscribe({
       next: (response) => {
         this.publication = response.object;
         this.has_publication = true;
@@ -189,7 +191,7 @@ export class GeneSetComponent implements OnInit {
         `/genesets/${genesetId}/ontologies`,
         new HttpParams().set('limit', 100)
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           this.ontologies = response.data;
         },
@@ -217,7 +219,7 @@ export class GeneSetComponent implements OnInit {
         `/genesets/${genesetId}/values`,
         new HttpParams().set('in_threshold', true)
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           this.genesInThreshold = response.data;
           if (this.genesInThreshold.length > 0) {

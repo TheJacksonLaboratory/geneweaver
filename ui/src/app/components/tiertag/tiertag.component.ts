@@ -1,21 +1,20 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnChanges, SimpleChanges, input } from '@angular/core';
+
 import {TagModule} from "primeng/tag";
 
 @Component({
   selector: 'app-tier-tag',
-  standalone: true,
-  imports: [CommonModule, TagModule],
+  imports: [TagModule],
   templateUrl: './tiertag.component.html',
   styleUrl: './tiertag.component.scss',
 })
 export class TierTagComponent implements OnChanges {
-  @Input() tier = 5;
+  readonly tier = input(5);
 
   tierLabels = ['Tier I', 'Tier II', 'Tier III', 'Tier IV', 'Tier V'];
-  tierColors = ['success', 'info', 'warning', 'danger', 'secondary'];
+  tierColors = ['success', 'info', 'warn', 'danger', 'secondary'];
 
-  public tierColor: "success" | "secondary" | "info" | "warning" | "danger" | "contrast" = "success";
+  public tierColor: "success" | "secondary" | "info" | "warn" | "danger" | "contrast" = "success";
   public tierLabel = '';
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -26,10 +25,10 @@ export class TierTagComponent implements OnChanges {
   }
 
   getTierLabel(): string {
-    return this.tierLabels[this.tier - 1];
+    return this.tierLabels[this.tier() - 1];
   }
 
-  getTierColor(): "success" | "secondary" | "info" | "warning" | "danger" | "contrast" {
-    return this.tierColors[this.tier - 1] as "success" | "secondary" | "info" | "warning" | "danger" | "contrast";
+  getTierColor(): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" {
+    return this.tierColors[this.tier() - 1] as "success" | "secondary" | "info" | "warn" | "danger" | "contrast";
   }
 }

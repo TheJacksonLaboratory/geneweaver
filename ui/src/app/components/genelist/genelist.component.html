@@ -1,5 +1,5 @@
 <p-table
-        [value]="genes"
+        [value]="genes()"
         [rows]="10"
         [rowsPerPageOptions]="[10, 25, 50]"
         [paginator]="true"
@@ -17,14 +17,14 @@
                             </div>
                         </ng-template>
                         <ng-template pTemplate=filter>
-                            <p-dropdown
+                            <p-select
                                 [options]="idTypes"
                                 [(ngModel)]="selectedIdType"
                                 (onChange)=fetchGeneValues(selectedIdType?.code)
                                 optionLabel="name"
                                 placeholder="Select One"
                             >
-                            </p-dropdown>
+                            </p-select>
                         </ng-template>
                     </p-columnFilter>
                 </div>
