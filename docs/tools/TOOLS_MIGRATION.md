@@ -182,12 +182,17 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    default runners work in production; wire the binary paths via env vars (e.g.
    `GENEWEAVER_BICLIQUE_BINARY`, `GENEWEAVER_BSTRAP_BINARY`, `GENEWEAVER_MSET_BINARY`).
 5. Validate the remaining ported tools against the legacy worker on real gene sets. ABBA,
-   PhenomeMap, HyperGeometric, and DBSCAN done — see §9.
+   PhenomeMap, HyperGeometric, DBSCAN and MSET done — see §9.
 6. **Drop MSET's static background files — resolve the background from the DB.**
-   **Status: the tools half is done** — `MSETInput` now takes resolved gene universes, so nothing
-   reads a background directory and no `*BG.txt` ships in any image. **What remains is the
-   caller's query**: a `packages/db` resolver returning the *full gene space* for an id-type +
-   species (G3-798). Until that exists, callers must supply the universe themselves.
+   **Status: done and verified on dev (2026-11-24).**
+   - `MSETInput` takes resolved gene universes, so nothing reads a background directory and
+     no `*BG.txt` ships in any v3 image.
+   - `db.tool_input.gene_universe` returns the *full gene space* for a species (G3-798).
+   - The native tools worker resolves it at run time from a reference the API sends
+     (`temporal/resolvers.py`), so a gene reload can't make it stale.
+   - GS407805 now runs clean, and v3 reproduces legacy's results when given legacy's
+     universe: §9, "MSET".
+   - Legacy keeps its files and is unchanged: they go when legacy does.
    For scale: the legacy cache is **602 tracked `*BG.txt` files** across three TOOLBOX
    directories, **450 of them empty** — it was not merely stale, most of it was never populated.
    The original reasoning follows. The legacy
@@ -209,8 +214,9 @@ uv sync --all-extras   # installs the [sklearn] extra (scipy + scikit-learn)
    a Tier-IV/V set is absent from the background even when the file is perfectly fresh. A large
    Tier-IV DEG set can then contain real genes (e.g. lncRNAs / antisense unique to that set) that
    are "outside" its own universe, and MSETcpp rejects the whole list with
-   `list_2 not subset of its background` (observed on dev for GS 407805 — 131 of 9,623 genes, all
-   real human genes present in no other geneset). This is **not** staleness and not a monorepo
+   `list_2 not subset of its background` (observed on dev for GS 407805 — 63 of the 5,319 genes
+   MSET receives, after legacy's `gsv_in_threshold` filter, all real human genes present in no
+   other geneset; the often-quoted "131 of 9,623" counts the whole gene set instead). This is **not** staleness and not a monorepo
    regression (the same logic runs in sqa/prod). The correct V3 universe is the **full gene space**
    for the id-type/species (all such genes GeneWeaver knows, from `extsrc.gene`), not "genes that
    happen to appear in curated genesets" — then any real gene is in-universe by construction. Until
@@ -258,6 +264,22 @@ validation covers the port's encode/gate/decode. The bipartite input string is
 **byte-identical** to a verbatim transcription of the legacy encoding; across 6
 (epsilon, min_points) settings on a real 9-gene-set / 70-gene graph, the `ran` gate, gene/
 gene-set counts, and decoded clusters all match (including a not-run case).
+
+**MSET** — run on **dev**, not locally: legacy's half in the legacy tools worker pod (its
+own member query, its background file, its `MSETcpp`), v3's half in the native tools worker
+pod that AsyncTask schedules MSET on. Harness and full results:
+`scripts/validation/mset_vs_legacy/`.
+
+- **The port matches legacy.** Over 12 curated mouse and human pairs at 5,000 trials, v3
+  and legacy agree when v3 is given legacy's background:
+  - list sizes, shared genes and the universe are identical for every pair;
+  - p-values differ by at most 0.020, at p ≈ 0.56. That's about two standard deviations of
+    the difference between two 5,000-trial runs.
+- **The universe rule changes p, in one direction.** With the full gene space (G3-784),
+  p only ever falls. Two of the six mouse pairs cross α = 0.05. The rate is measured in the
+  A7 decision note (`docs/v3/V3_ROADMAP_AND_GAP.md`).
+- **GS407805 runs.** It's the Tier-IV reference case, which legacy refuses over 63
+  out-of-background genes. v3 runs it against every human gene (40,956), with 0 genes outside.
 
 Notes:
 - The recovered `biclique` binary uses POSIX `hsearch` for label storage, which prints empty

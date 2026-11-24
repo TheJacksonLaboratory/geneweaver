@@ -198,3 +198,138 @@ class TestPlatformQueries:
         sql, params = cursor.execute.call_args.args
         assert params == {"platform_id": 71}
         assert "m.pf_id = %(platform_id)s OR m.pf_set = %(platform_id)s" in sql
+
+
+class TestSpeciesByGeneset:
+    """MSET's species: both gene sets must share one, so the caller looks it up first."""
+
+    @pytest.mark.parametrize(
+        "rows",
+        [
+            [(407805, 2), (218676, 2)],
+            [{"gs_id": 407805, "sp_id": 2}, {"gs_id": 218676, "sp_id": 2}],
+        ],
+    )
+    def test_maps_each_found_set_to_its_species(self, rows) -> None:
+        """``{gs_id: sp_id}`` under either row factory, the ids bound as a parameter."""
+        cursor = _cursor(rows)
+        assert tool_input.species_by_geneset(cursor, [407805, 218676, 9]) == {
+            407805: 2,
+            218676: 2,
+        }
+        sql, params = cursor.execute.call_args.args
+        assert params == {"geneset_ids": [407805, 218676, 9]}
+        assert "gs_id = ANY(%(geneset_ids)s)" in sql
+
+    def test_no_genesets_runs_no_query(self) -> None:
+        """Nothing to look up is an empty answer, not a query."""
+        cursor = _cursor()
+        assert tool_input.species_by_geneset(cursor, []) == {}
+        cursor.execute.assert_not_called()
+
+
+class TestGeneUniverse:
+    """MSET's background: the species' full gene space, never the curated subset (G3-784)."""
+
+    @pytest.mark.parametrize(
+        "rows", [[("Drd2",), ("Th",)], [{"ode_ref_id": "Drd2"}, {"ode_ref_id": "Th"}]]
+    )
+    def test_returns_the_symbols_under_either_row_factory(self, rows) -> None:
+        """One identifier per row, in the query's order."""
+        assert tool_input.gene_universe(_cursor(rows), 1) == ["Drd2", "Th"]
+
+    def test_every_preferred_gene_of_the_species_not_only_curated_ones(self) -> None:
+        """Species comes from the gene itself; no gene set or curation tier is consulted.
+
+        Legacy derived the background from genes in Tier I-III gene sets, so a gene unique
+        to a Tier-IV set sat outside its own universe (GWC-51 / G3-783).
+        """
+        cursor = _cursor([("Drd2",)])
+        tool_input.gene_universe(cursor, 2)
+        sql, params = cursor.execute.call_args.args
+        text = " ".join(sql.split())
+        assert params == {"species_id": 2, "gene_id_type": 7}
+        assert "FROM extsrc.gene WHERE sp_id = %(species_id)s" in text
+        assert "gdb_id = %(gene_id_type)s" in text
+        assert "ode_pref = 't'" in text
+        assert "DISTINCT" in text
+        for curated_only in ("geneset", "cur_id", "gs_id"):
+            assert curated_only not in text
+
+    def test_another_identifier_space_when_asked(self) -> None:
+        """The member lists and the universe must share one identifier space."""
+        cursor = _cursor([])
+        tool_input.gene_universe(cursor, 1, gene_id_type=2)
+        assert cursor.execute.call_args.args[1] == {"species_id": 1, "gene_id_type": 2}
+
+    def test_a_null_identifier_is_not_a_gene(self) -> None:
+        """A NULL would otherwise reach MSETcpp's background file as the text "None"."""
+        assert tool_input.gene_universe(_cursor([("Drd2",), (None,)]), 1) == ["Drd2"]
+
+
+class TestGenesetLabels:
+    """Combine's column headers."""
+
+    @pytest.mark.parametrize(
+        "rows",
+        [
+            [(5, "Dopamine set", "DA")],
+            [{"gs_id": 5, "gs_name": "Dopamine set", "gs_abbreviation": "DA"}],
+        ],
+    )
+    def test_id_name_and_abbreviation_per_set(self, rows) -> None:
+        """``[gs_id, gs_name, gs_abbreviation]`` rows, the ids bound as a parameter."""
+        cursor = _cursor(rows)
+        assert tool_input.geneset_labels(cursor, [5]) == [[5, "Dopamine set", "DA"]]
+        assert cursor.execute.call_args.args[1] == {"geneset_ids": [5]}
+
+
+class TestJaccardDistributions:
+    """JaccardSimilarity's null distributions, one per size pair and homology choice."""
+
+    @pytest.mark.parametrize(
+        "rows",
+        [
+            [(10, 20, False, 0.0, 900), (10, 20, False, 0.1, 100), (10, 20, True, 0.0, 5)],
+            [
+                {
+                    "set_size1": 10,
+                    "set_size2": 20,
+                    "homology": False,
+                    "jaccard_coef": 0.0,
+                    "frequency": 900,
+                },
+                {
+                    "set_size1": 10,
+                    "set_size2": 20,
+                    "homology": False,
+                    "jaccard_coef": 0.1,
+                    "frequency": 100,
+                },
+                {
+                    "set_size1": 10,
+                    "set_size2": 20,
+                    "homology": True,
+                    "jaccard_coef": 0.0,
+                    "frequency": 5,
+                },
+            ],
+        ],
+    )
+    def test_rows_group_into_one_distribution_per_key(self, rows) -> None:
+        """Rows for the same ``(set_size1, set_size2, homology)`` form one distribution."""
+        assert tool_input.jaccard_distributions(_cursor(rows)) == [
+            {
+                "set_size1": 10,
+                "set_size2": 20,
+                "homology": False,
+                "frequencies": [(0.0, 900), (0.1, 100)],
+            },
+            {"set_size1": 10, "set_size2": 20, "homology": True, "frequencies": [(0.0, 5)]},
+        ]
+
+    def test_reads_the_extsrc_table(self) -> None:
+        """Schema-qualified: dev also has an ``extsrc_20240918`` copy of this table."""
+        cursor = _cursor([])
+        assert tool_input.jaccard_distributions(cursor) == []
+        assert "FROM extsrc.jaccard_distribution_results" in cursor.execute.call_args.args[0]

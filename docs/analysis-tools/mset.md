@@ -40,6 +40,16 @@ MSET performs enrichment testing using several entities:
 *  **Gene Set 1-U**: Genes in **Gene Set 1** that are also contained in the **The Universe**
 *  **Gene Set 2-U**: Genes in **Gene Set 2** that are also contained in the **The Universe**
 
+!!! note "The background in the new GeneWeaver"
+
+    In the new GeneWeaver (`/next`), both gene sets must be the same species, and the background is
+    **every gene GeneWeaver holds for that species**, read from the database when the analysis runs.
+    The classic site instead uses only the genes that appear in curated (Tier I–III) gene sets,
+    stored as files. That means it refuses a gene set containing a gene no curated gene set has, and
+    its background can fall behind the gene data. A larger background lowers the overlap expected by
+    chance, so the same two gene sets can get a smaller p-value in the new GeneWeaver than on the
+    classic site.
+
 MSET then takes the following steps:
 
 1.  First, the computed inputs are calculated,
