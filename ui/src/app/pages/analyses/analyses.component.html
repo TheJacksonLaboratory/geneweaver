@@ -1,0 +1,144 @@
+<div class="p-3 analyses-page">
+  <p-card header="My analyses">
+    <p class="mt-0 text-color-secondary">
+      The analyses you have run while signed in, newest first.
+      @if (retentionDays) {
+        Each is kept for {{ retentionDays }} days, then deleted.
+      }
+      <a routerLink="/analyze">Run a new analysis</a>.
+    </p>
+
+    @if (expired || expiring) {
+      <p class="text-sm text-color-secondary expiry-note">
+        @if (expired) {
+          {{ expired }} older than {{ retentionDays }} days {{ expired === 1 ? 'was' : 'were' }} just deleted.
+        }
+        @if (expiring) {
+          {{ expiring }} more {{ expiring === 1 ? 'is' : 'are' }} past that and will go over your next visits.
+        }
+      </p>
+    }
+
+    @if (session.current && !session.authenticated) {
+      <p-message severity="info" icon="pi pi-info-circle" styleClass="w-full mb-3">
+        <span>
+          Sign in to see your analyses.
+          @if (session.current.loginAvailable) {
+            <a class="ml-1" [href]="session.signInUrl()">Sign in</a>
+          }
+        </span>
+      </p-message>
+    }
+
+    @if (errorMessage) {
+      <p-message
+        severity="error"
+        icon="pi pi-times-circle"
+        [text]="errorMessage"
+        styleClass="w-full mb-3"
+      ></p-message>
+    }
+
+    <p-table
+      [value]="runs"
+      [lazy]="true"
+      [lazyLoadOnInit]="false"
+      [paginator]="total > rowsPerPage"
+      [rows]="rowsPerPage"
+      [first]="first"
+      [totalRecords]="total"
+      [loading]="loading"
+      (onLazyLoad)="onPage($event)"
+      dataKey="run_id"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 11rem">Started</th>
+          <th>Analysis</th>
+          <th>Gene sets</th>
+          <th style="width: 14rem">Status</th>
+          <th style="width: 26rem">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-run>
+        <tr class="run-row" [attr.data-run-id]="run.run_id">
+          <td>{{ run.created ? (run.created | date: 'yyyy-MM-dd HH:mm') : '—' }}</td>
+          <td>
+            <strong>{{ toolLabel(run.tool) }}</strong>
+            @if (run.name) {
+              <small class="block text-color-secondary">{{ run.name }}</small>
+            }
+          </td>
+          <td>
+            @if (run.geneset_ids?.length) {
+              @for (id of run.geneset_ids; track id; let last = $last) {
+                <a [routerLink]="['/geneset', id]">GS{{ id }}</a>{{ last ? '' : ', ' }}
+              }
+            } @else {
+              <span class="text-color-secondary">—</span>
+            }
+          </td>
+          <td>
+            <p-tag [value]="statusTag(run).value" [severity]="statusTag(run).severity" />
+            @if (run.problem) {
+              <small class="block mt-1 text-color-secondary run-problem">{{ run.problem }}</small>
+            }
+          </td>
+          <td>
+            <div class="flex flex-wrap align-items-center gap-2">
+              @if (run.status === 'completed' || run.status === 'running') {
+                <p-button
+                  [label]="run.status === 'running' ? 'Watch' : 'Open'"
+                  icon="pi pi-external-link"
+                  size="small"
+                  [outlined]="true"
+                  (onClick)="open(run)"
+                />
+              }
+              @if (run.status === 'completed') {
+                <app-run-actions
+                  [runId]="run.run_id"
+                  [tool]="run.tool"
+                  [canRerun]="run.can_rerun"
+                  [showRunId]="false"
+                  [rerunning]="busy.has(run.run_id)"
+                  (rerun)="rerun(run)"
+                />
+              } @else if (run.can_rerun) {
+                <p-button
+                  label="Rerun"
+                  icon="pi pi-refresh"
+                  size="small"
+                  severity="secondary"
+                  [outlined]="true"
+                  [disabled]="busy.has(run.run_id)"
+                  (onClick)="rerun(run)"
+                />
+              }
+              <p-button
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                [text]="true"
+                ariaLabel="Delete this analysis"
+                pTooltip="Delete"
+                [disabled]="busy.has(run.run_id)"
+                (onClick)="remove(run)"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="5">
+            @if (!loading && !errorMessage) {
+              No analyses yet. Runs you start on the Analyze page while signed in show here.
+            }
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
