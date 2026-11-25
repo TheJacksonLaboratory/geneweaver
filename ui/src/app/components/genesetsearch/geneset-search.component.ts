@@ -1,5 +1,13 @@
-import { Component, EventEmitter, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  inject,
+  output,
+  viewChild,
+  ChangeDetectorRef,
+} from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory, Paging } from 'jax-apiutils';
@@ -26,6 +34,7 @@ import {
 } from '../../search/search-filters';
 import { LIST_HEIGHT, ROW_HEIGHT_PX, SUGGESTION_STYLES } from '../../search/suggestion-list';
 import { SearchFiltersComponent } from '../searchfilters/search-filters.component';
+import { renderAfter } from '../../utils/render-after';
 
 /**
  * The /next search field: the analyze page's autocomplete, for finding gene sets.
@@ -41,8 +50,7 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
  */
 @Component({
   selector: 'app-geneset-search',
-  standalone: true,
-  imports: [CommonModule, FormsModule, AutoCompleteModule, ButtonModule, ProgressBarModule, SearchFiltersComponent],
+  imports: [FormsModule, AutoCompleteModule, ButtonModule, ProgressBarModule, SearchFiltersComponent],
   styles: [SUGGESTION_STYLES],
   template: `
     <div class="flex gap-2 align-items-start">
@@ -68,14 +76,18 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
           ariaLabel="Search gene sets"
           styleClass="w-full"
           inputStyleClass="w-full"
-        >
+          >
           <ng-template let-option pTemplate="item">
             <div class="geneset-option text-left" [attr.data-gs-id]="option.id">
               <div class="white-space-nowrap overflow-hidden text-overflow-ellipsis font-normal">
                 <strong>GS{{ option.id }}</strong>
-                <span *ngIf="option.abbreviation" class="ml-2">{{ option.abbreviation }}</span>
+                @if (option.abbreviation) {
+                  <span class="ml-2">{{ option.abbreviation }}</span>
+                }
               </div>
-              <small *ngIf="option.detail" class="block text-color-secondary font-normal">{{ option.detail }}</small>
+              @if (option.detail) {
+                <small class="block text-color-secondary font-normal">{{ option.detail }}</small>
+              }
             </div>
           </ng-template>
         </p-autoComplete>
@@ -97,25 +109,36 @@ import { SearchFiltersComponent } from '../searchfilters/search-filters.componen
       sets that contain one or more genes or their homologs, optionally only where their scores
       are in a range, use <strong>Filters</strong> &rsaquo; <em>Genes</em>.
     </small>
-    <app-search-filters
-      *ngIf="showFilters"
-      class="block mt-3"
-      idPrefix="search-filters"
-      [filters]="filters"
-      (filtersChange)="filtersChanged($event)"
-    ></app-search-filters>
-    <p-progressBar *ngIf="isSearching" mode="indeterminate" [style]="{ height: '6px' }" styleClass="mt-2"></p-progressBar>
-    <small *ngIf="errorMessage" class="block mt-2 text-orange-600 font-normal">{{ errorMessage }}</small>
-  `,
+    @if (showFilters) {
+      <app-search-filters
+        class="block mt-3"
+        idPrefix="search-filters"
+        [filters]="filters"
+        (filtersChange)="filtersChanged($event)"
+      ></app-search-filters>
+    }
+    @if (isSearching) {
+      <p-progressBar mode="indeterminate" [style]="{ height: '6px' }" styleClass="mt-2"></p-progressBar>
+    }
+    @if (errorMessage) {
+      <small class="block mt-2 text-orange-600 font-normal">{{ errorMessage }}</small>
+    }
+    `,
 })
 export class GenesetSearchComponent implements OnInit, OnDestroy {
-  @Output() searchExecuted = new EventEmitter<string>();
-  /** The page of results now shown. */
-  @Output() searchCompleted = new EventEmitter<GeneSet[]>();
-  @Output() searchPaging = new EventEmitter<Paging>();
-  @Output() searchCleared = new EventEmitter<boolean>();
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
 
-  @ViewChild(AutoComplete) private autoComplete?: AutoComplete;
+  readonly searchExecuted = output<string>();
+  /** The page of results now shown. */
+  readonly searchCompleted = output<GeneSet[]>();
+  /** The response's paging; undefined when a response has none. */
+  readonly searchPaging = output<Paging | undefined>();
+  readonly searchCleared = output<boolean>();
+
+  private readonly autoComplete = viewChild(AutoComplete);
 
   readonly rowHeight = ROW_HEIGHT_PX;
   readonly listHeight = LIST_HEIGHT;
@@ -143,13 +166,11 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
   private lastSearch?: Subscription;
   private choosing = false;
 
-  constructor(
-    apiBaseServiceFactory: ApiBaseServiceFactory,
-    private router: Router,
-    private route: ActivatedRoute,
-  ) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.gwApi = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
-    this.source = new GenesetSearchSource(this.gwApi);
+    this.source = new GenesetSearchSource(this.gwApi, () => this.changes.markForCheck());
   }
 
   get query(): string {
@@ -166,7 +187,7 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
 
   /** A search in the URL -- shared, or reloaded -- runs once, as the page opens. */
   ngOnInit(): void {
-    this.route.queryParams.pipe(take(1)).subscribe((params) => {
+    this.route.queryParams.pipe(take(1)).pipe(renderAfter(this.changes)).subscribe((params) => {
       const { filters, sort } = fromQueryParams(params);
       this.text = params['search'] ?? '';
       this.filters = filters;
@@ -176,7 +197,10 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
       if (canSearch(this.query, filters)) {
         // Next tick: the search tells the page it started, and the page restyles itself, which
         // Angular refuses during the check that is creating this field.
-        setTimeout(() => this.run(0));
+        setTimeout(() => {
+          this.run(0);
+          this.changes.markForCheck();
+        });
       }
     });
   }
@@ -214,10 +238,11 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
       return;
     }
     // A pending suggestion search would reopen the list over the results.
-    if (this.autoComplete) {
-      clearTimeout(this.autoComplete.searchTimeout);
-      if (this.autoComplete.overlayVisible) {
-        this.autoComplete.hide();
+    const autoComplete = this.autoComplete();
+    if (autoComplete) {
+      clearTimeout(autoComplete.searchTimeout);
+      if (autoComplete.overlayVisible) {
+        autoComplete.hide();
       }
     }
     this.router.navigate([], {
@@ -276,7 +301,7 @@ export class GenesetSearchComponent implements OnInit, OnDestroy {
         '/genesets/search',
         searchParams(this.query, this.filters, { offset, limit: this.rows }, this.sort),
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           this.results = response.data ?? [];
           this.first = offset;

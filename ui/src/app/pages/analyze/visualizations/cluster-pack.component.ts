@@ -1,12 +1,13 @@
-import { NgIf } from '@angular/common';
+
 import {
   ChangeDetectorRef,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  inject,
+  input,
+  viewChild
 } from '@angular/core';
 import { hierarchy, HierarchyCircularNode, pack, schemeTableau10, select } from 'd3';
 
@@ -19,6 +20,7 @@ import {
   percent,
 } from './chart-utils';
 import { PackNode } from './models';
+import { ButtonModule } from 'primeng/button';
 
 /**
  * DBSCAN's clusters as packed circles: one outer circle per cluster, one dot per gene in
@@ -27,34 +29,34 @@ import { PackNode } from './models';
  */
 @Component({
   selector: 'app-cluster-pack',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div #chart></div>
     <div class="flex gap-2">
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
         Download SVG
       </button>
-      <button
-        *ngIf="zoomed"
-        type="button"
-        class="p-button p-button-sm p-button-text"
-        (click)="zoomOut()"
-      >
-        Show all clusters
-      </button>
+      @if (zoomed) {
+        <button pButton
+          type="button"
+          class="p-button p-button-sm p-button-text"
+          (click)="zoomOut()"
+          >
+          Show all clusters
+        </button>
+      }
     </div>
-  `,
-  imports: [NgIf],
+    `,
+  imports: [ButtonModule, ],
 })
 export class ClusterPackComponent implements OnChanges {
-  @Input({ required: true }) model!: PackNode;
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
+  private changes = inject(ChangeDetectorRef);
+
+  readonly model = input.required<PackNode>();
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
   /** Whether a cluster is zoomed into; shows the keyboard-reachable way back out. */
   zoomed = false;
   private zoom: (target: HierarchyCircularNode<PackNode> | null) => void = () => undefined;
-
-  constructor(private changes: ChangeDetectorRef) {}
 
   zoomOut(): void {
     this.zoom(null);
@@ -65,18 +67,18 @@ export class ClusterPackComponent implements OnChanges {
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'dbscan-clusters.svg');
+    downloadSvg(this.chart().nativeElement, 'dbscan-clusters.svg');
   }
 
   private draw(): void {
-    const host = this.chart.nativeElement;
+    const host = this.chart().nativeElement;
     const size = 560;
     const svg = freshSvg(host, size, size, 'DBSCAN gene clusters');
     const tooltip = new ChartTooltip(host);
     const root = pack<PackNode>()
       .size([size - 4, size - 4])
       .padding((node) => (node.depth === 0 ? 10 : 2))(
-      hierarchy(this.model).sum((node) => node.value ?? 0),
+      hierarchy(this.model()).sum((node) => node.value ?? 0),
     );
     const colour = (index: number) => schemeTableau10[index % schemeTableau10.length];
     const clusters = root.children ?? [];

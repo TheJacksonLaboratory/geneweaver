@@ -1,18 +1,21 @@
-import { NgFor, NgIf } from '@angular/common';
+
 import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Input,
   OnChanges,
   OnDestroy,
-  ViewChild,
+  inject,
+  input,
+  viewChild
 } from '@angular/core';
 import { schemeTableau10 } from 'd3';
 import type { Core, ElementDefinition } from 'cytoscape';
 
 import { ChartTooltip, MUTED, saveBlob } from './chart-utils';
 import { dbscanNetwork, GeneNetwork, genesetLabel } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 const clusterColour = (cluster: number | null) =>
   cluster === null ? MUTED : schemeTableau10[cluster % schemeTableau10.length];
@@ -25,29 +28,34 @@ const clusterColour = (cluster: number | null) =>
  */
 @Component({
   selector: 'app-gene-network',
-  standalone: true,
-  imports: [NgIf, NgFor],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
-    <p *ngIf="!network.available" class="text-sm text-color-secondary">
-      The network view needs each gene's gene sets, which this result does not carry. Results
-      from an updated tools worker include them.
-    </p>
-    <p *ngIf="network.tooLarge" class="text-sm text-color-secondary">
-      Too many links to draw: these gene sets link more than {{ network.budget }} pairs of genes,
-      which would draw as a solid mass. The circles view shows the clusters; a network is
-      drawn for smaller gene sets.
-    </p>
+    @if (!network.available) {
+      <p class="text-sm text-color-secondary">
+        The network view needs each gene's gene sets, which this result does not carry. Results
+        from an updated tools worker include them.
+      </p>
+    }
+    @if (network.tooLarge) {
+      <p class="text-sm text-color-secondary">
+        Too many links to draw: these gene sets link more than {{ network.budget }} pairs of genes,
+        which would draw as a solid mass. The circles view shows the clusters; a network is
+        drawn for smaller gene sets.
+      </p>
+    }
     <!-- Always in the DOM, so Cytoscape has its container as soon as the import lands. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label" [hidden]="!drawable"></div>
-    <ng-container *ngIf="drawable">
+    @if (drawable) {
       <ul class="legend list-none p-0 m-0 mt-2 flex flex-wrap gap-3 text-sm">
-        <li *ngFor="let item of legend">
-          <span class="swatch" [style.background]="item.colour"></span>{{ item.label }}
-        </li>
+        @for (item of legend; track item) {
+          <li>
+            <span class="swatch" [style.background]="item.colour"></span>{{ item.label }}
+          </li>
+        }
       </ul>
       <div class="flex gap-2 mt-2">
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
           Download PNG
         </button>
       </div>
@@ -56,28 +64,34 @@ const clusterColour = (cluster: number | null) =>
         zoom.
       </p>
       <label class="block text-sm mb-1" for="network-gene-picker">Gene</label>
-      <select
+      <select pInputText
         id="network-gene-picker"
         class="p-inputtext p-inputtext-sm mb-2 w-full"
         [value]="selectedId ?? ''"
         (change)="select($any($event.target).value)"
-      >
+        >
         <option value="">Choose a gene…</option>
-        <option *ngFor="let node of network.nodes" [value]="node.id">{{ node.id }}</option>
+        @for (node of network.nodes; track node) {
+          <option [value]="node.id">{{ node.id }}</option>
+        }
       </select>
-      <div *ngIf="selectedText" class="p-3 surface-100 border-round text-sm" aria-live="polite">
-        {{ selectedText }}
-      </div>
-    </ng-container>
-  `,
+      @if (selectedText) {
+        <div class="p-3 surface-100 border-round text-sm" aria-live="polite">
+          {{ selectedText }}
+        </div>
+      }
+    }
+    `,
   styles: [
     '.graph { height: 480px; border: 1px solid #E2E8F0; border-radius: 6px; }',
     '.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }',
   ],
 })
 export class GeneNetworkComponent implements OnChanges, OnDestroy {
-  @Input({ required: true }) result!: Parameters<typeof dbscanNetwork>[0];
-  @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
+  private changes = inject(ChangeDetectorRef);
+
+  readonly result = input.required<Parameters<typeof dbscanNetwork>[0]>();
+  readonly graph = viewChild.required<ElementRef<HTMLElement>>('graph');
 
   network: GeneNetwork = dbscanNetwork({ ran: false, clusters: [] });
   legend: { colour: string; label: string }[] = [];
@@ -89,15 +103,13 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
   private destroyed = false;
   private generation = 0;
 
-  constructor(private changes: ChangeDetectorRef) {}
-
   get drawable(): boolean {
     return this.network.available && !this.network.tooLarge && this.network.nodes.length > 0;
   }
 
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;
-    this.network = dbscanNetwork(this.result);
+    this.network = dbscanNetwork(this.result());
     this.selectedId = undefined;
     this.selectedText = '';
     const noise = this.network.nodes.some((node) => node.cluster === null);
@@ -132,7 +144,7 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.cy = cytoscape({
-      container: this.graph.nativeElement,
+      container: this.graph().nativeElement,
       elements,
       wheelSensitivity: 0.2,
       style: [
@@ -155,7 +167,8 @@ export class GeneNetworkComponent implements OnChanges, OnDestroy {
       layout: { name: 'cose', animate: !reduceMotion, padding: 20 },
     });
     // One tooltip per component, not per result: the host keeps it across redraws.
-    this.tooltip ??= new ChartTooltip(this.graph.nativeElement.parentElement ?? this.graph.nativeElement);
+    const graph = this.graph();
+    this.tooltip ??= new ChartTooltip(graph.nativeElement.parentElement ?? graph.nativeElement);
     this.cy.on('mouseover', 'node', (event) => {
       const original = event.originalEvent as MouseEvent | undefined;
       if (original) {

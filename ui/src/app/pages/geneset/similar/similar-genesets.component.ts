@@ -1,5 +1,5 @@
-import { NgFor, NgIf, DecimalPipe } from '@angular/common';
-import { Component, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { Component, OnChanges, OnDestroy, SimpleChanges, inject, input, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
@@ -32,6 +32,8 @@ import {
   speciesLabel,
   tierLabel,
 } from './similar-models';
+import { InputTextModule } from 'primeng/inputtext';
+import { renderAfter } from '../../../utils/render-after';
 
 /** How often a running search is polled. Searches take about two minutes. */
 export const SIMILAR_POLL_INTERVAL_MS = 3000;
@@ -69,65 +71,71 @@ interface HttpFailure {
  */
 @Component({
   selector: 'app-similar-genesets',
-  standalone: true,
-  imports: [NgIf, NgFor, DecimalPipe, FormsModule, RouterLink, ButtonModule, InputNumberModule, ProgressBarModule],
+  imports: [InputTextModule, DecimalPipe, FormsModule, RouterLink, ButtonModule, InputNumberModule, ProgressBarModule],
   template: `
     <p class="text-sm text-color-secondary mt-0 text-left">
       The gene sets sharing the most genes with this one, by Jaccard: shared genes ÷ all genes of
       the two. Homologs count as one gene, so gene sets of other species are compared too.
     </p>
-
-    <p *ngIf="!signedIn" class="text-left">Sign in to find similar gene sets.</p>
-
-    <ng-container *ngIf="signedIn">
+    
+    @if (!signedIn) {
+      <p class="text-left">Sign in to find similar gene sets.</p>
+    }
+    
+    @if (signedIn) {
       <fieldset class="border-none p-0 mx-0 mb-3 text-left">
         <legend class="mb-2">Gene set thresholds</legend>
         <div class="flex flex-wrap gap-3" role="radiogroup" aria-label="Gene set thresholds">
-          <div *ngFor="let mode of thresholdModes" class="flex align-items-center">
-            <input
-              type="radio"
-              name="similarThreshold"
-              [id]="'similar-threshold-' + mode.value"
-              [value]="mode.value"
-              [(ngModel)]="thresholds.mode"
-              [disabled]="running"
-            />
-            <label [for]="'similar-threshold-' + mode.value" class="ml-2">{{ mode.label }}</label>
-          </div>
+          @for (mode of thresholdModes; track mode) {
+            <div class="flex align-items-center">
+              <input
+                type="radio"
+                name="similarThreshold"
+                [id]="'similar-threshold-' + mode.value"
+                [value]="mode.value"
+                [(ngModel)]="thresholds.mode"
+                [disabled]="running"
+                />
+              <label [for]="'similar-threshold-' + mode.value" class="ml-2">{{ mode.label }}</label>
+            </div>
+          }
         </div>
-        <div *ngIf="thresholds.mode === 'custom'" class="formgrid grid mt-2">
-          <div class="field col-6 md:col-3">
-            <label for="similar-cutoff-p" class="block mb-1 text-sm">p-value at most</label>
-            <p-inputNumber inputId="similar-cutoff-p" [(ngModel)]="thresholds.pValue" mode="decimal"
+        @if (thresholds.mode === 'custom') {
+          <div class="formgrid grid mt-2">
+            <div class="field col-6 md:col-3">
+              <label for="similar-cutoff-p" class="block mb-1 text-sm">p-value at most</label>
+              <p-inputNumber inputId="similar-cutoff-p" [(ngModel)]="thresholds.pValue" mode="decimal"
               [maxFractionDigits]="8" [min]="0" [max]="1" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-          </div>
-          <div class="field col-6 md:col-3">
-            <label for="similar-cutoff-q" class="block mb-1 text-sm">q-value at most</label>
-            <p-inputNumber inputId="similar-cutoff-q" [(ngModel)]="thresholds.qValue" mode="decimal"
+            </div>
+            <div class="field col-6 md:col-3">
+              <label for="similar-cutoff-q" class="block mb-1 text-sm">q-value at most</label>
+              <p-inputNumber inputId="similar-cutoff-q" [(ngModel)]="thresholds.qValue" mode="decimal"
               [maxFractionDigits]="8" [min]="0" [max]="1" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-          </div>
-          <div class="field col-6 md:col-3">
-            <label for="similar-corr-low" class="block mb-1 text-sm">Correlation from / to</label>
-            <div class="flex gap-1">
-              <p-inputNumber inputId="similar-corr-low" [(ngModel)]="thresholds.correlationLow" mode="decimal"
+            </div>
+            <div class="field col-6 md:col-3">
+              <label for="similar-corr-low" class="block mb-1 text-sm">Correlation from / to</label>
+              <div class="flex gap-1">
+                <p-inputNumber inputId="similar-corr-low" [(ngModel)]="thresholds.correlationLow" mode="decimal"
                 [maxFractionDigits]="6" ariaLabel="Correlation from" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-              <p-inputNumber inputId="similar-corr-high" [(ngModel)]="thresholds.correlationHigh" mode="decimal"
+                <p-inputNumber inputId="similar-corr-high" [(ngModel)]="thresholds.correlationHigh" mode="decimal"
                 [maxFractionDigits]="6" ariaLabel="Correlation to" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+              </div>
             </div>
-          </div>
-          <div class="field col-6 md:col-3">
-            <label for="similar-effect-low" class="block mb-1 text-sm">Effect from / to</label>
-            <div class="flex gap-1">
-              <p-inputNumber inputId="similar-effect-low" [(ngModel)]="thresholds.effectLow" mode="decimal"
+            <div class="field col-6 md:col-3">
+              <label for="similar-effect-low" class="block mb-1 text-sm">Effect from / to</label>
+              <div class="flex gap-1">
+                <p-inputNumber inputId="similar-effect-low" [(ngModel)]="thresholds.effectLow" mode="decimal"
                 [maxFractionDigits]="6" ariaLabel="Effect from" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
-              <p-inputNumber inputId="similar-effect-high" [(ngModel)]="thresholds.effectHigh" mode="decimal"
+                <p-inputNumber inputId="similar-effect-high" [(ngModel)]="thresholds.effectHigh" mode="decimal"
                 [maxFractionDigits]="6" ariaLabel="Effect to" styleClass="w-full" inputStyleClass="w-full"></p-inputNumber>
+              </div>
             </div>
           </div>
-        </div>
-        <small *ngIf="problem" class="block text-orange-600 similar-problem">{{ problem }}</small>
+        }
+        @if (problem) {
+          <small class="block text-orange-600 similar-problem">{{ problem }}</small>
+        }
       </fieldset>
-
       <div class="flex align-items-center gap-3 mb-3">
         <p-button
           [label]="result ? 'Find again' : 'Find similar gene sets'"
@@ -135,67 +143,86 @@ interface HttpFailure {
           (onClick)="run()"
           [disabled]="running || !!problem"
         ></p-button>
-        <span *ngIf="running" class="text-sm text-color-secondary">
-          Comparing with every gene set that shares a gene: this takes about two minutes.
-        </span>
+        @if (running) {
+          <span class="text-sm text-color-secondary">
+            Comparing with every gene set that shares a gene: this takes about two minutes.
+          </span>
+        }
       </div>
-      <p-progressBar *ngIf="running" mode="indeterminate" styleClass="mb-3" [style]="{ height: '4px' }"></p-progressBar>
-      <p *ngIf="errorMessage" class="text-red-600 text-left similar-error" role="alert">{{ errorMessage }}</p>
-    </ng-container>
-
-    <ng-container *ngIf="result">
+      @if (running) {
+        <p-progressBar mode="indeterminate" styleClass="mb-3" [style]="{ height: '4px' }"></p-progressBar>
+      }
+      @if (errorMessage) {
+        <p class="text-red-600 text-left similar-error" role="alert">{{ errorMessage }}</p>
+      }
+    }
+    
+    @if (result) {
       <p class="text-sm text-left">
         {{ result.genesets.length }} of the {{ result.compared | number }} gene sets sharing a gene with
         GS{{ result.geneset_id }} ({{ result.genes }} genes). {{ describe(result) }}
       </p>
-
-      <ng-container *ngIf="result.genesets.length; else none">
+      @if (result.genesets.length) {
         <div class="grid">
           <figure class="col-12 md:col-6 m-0">
             <figcaption class="text-sm font-bold text-left mb-2">Average Jaccard by tier and species</figcaption>
-            <svg
-              *ngIf="radar.axes.length >= 3; else fewSpecies"
-              viewBox="-200 -160 400 320"
-              class="w-full"
-              role="img"
-              [attr.aria-label]="radarLabel"
-              style="max-height: 320px; font: 10px sans-serif"
-            >
-              <g fill="none" stroke="#CBD5E1">
-                <polygon *ngFor="let ring of rings" [attr.points]="ring"></polygon>
-                <line *ngFor="let axis of radarAxes" x1="0" y1="0" [attr.x2]="axis.x" [attr.y2]="axis.y"></line>
-              </g>
-              <text
-                *ngFor="let axis of radarAxes"
-                [attr.x]="axis.lx"
-                [attr.y]="axis.ly"
-                [attr.text-anchor]="axis.anchor"
-                dy="0.35em"
-              >{{ axis.label }}</text>
-              <polygon
-                *ngFor="let series of radarSeries"
-                [attr.points]="series.points"
-                [attr.fill]="series.colour"
-                fill-opacity="0.15"
-                [attr.stroke]="series.colour"
-                stroke-width="1.5"
-              ><title>{{ series.label }}</title></polygon>
-            </svg>
-            <ng-template #fewSpecies>
-              <table class="text-sm w-full">
-                <thead><tr><th scope="col" class="text-left">Tier</th><th scope="col" *ngFor="let axis of radar.axes" class="text-left">{{ axis }}</th></tr></thead>
+            @if (radar.axes.length >= 3) {
+              <svg
+                viewBox="-200 -160 400 320"
+                class="w-full"
+                role="img"
+                [attr.aria-label]="radarLabel"
+                style="max-height: 320px; font: 10px sans-serif"
+                >
+                <g fill="none" stroke="#CBD5E1">
+                  @for (ring of rings; track ring) {
+                    <polygon [attr.points]="ring"></polygon>
+                  }
+                  @for (axis of radarAxes; track axis) {
+                    <line x1="0" y1="0" [attr.x2]="axis.x" [attr.y2]="axis.y"></line>
+                  }
+                </g>
+                @for (axis of radarAxes; track axis) {
+                  <text
+                    [attr.x]="axis.lx"
+                    [attr.y]="axis.ly"
+                    [attr.text-anchor]="axis.anchor"
+                    dy="0.35em"
+                  >{{ axis.label }}</text>
+                }
+                @for (series of radarSeries; track series) {
+                  <polygon
+                    [attr.points]="series.points"
+                    [attr.fill]="series.colour"
+                    fill-opacity="0.15"
+                    [attr.stroke]="series.colour"
+                    stroke-width="1.5"
+                    ><title>{{ series.label }}</title></polygon>
+                  }
+                </svg>
+              } @else {
+                <table class="text-sm w-full">
+                  <thead><tr><th scope="col" class="text-left">Tier</th>@for (axis of radar.axes; track axis) {
+                  <th scope="col" class="text-left">{{ axis }}</th>
+                }</tr></thead>
                 <tbody>
-                  <tr *ngFor="let series of radar.series">
-                    <td>{{ series.label }}</td>
-                    <td *ngFor="let value of series.values">{{ value | number: '1.4-4' }}</td>
-                  </tr>
+                  @for (series of radar.series; track series) {
+                    <tr>
+                      <td>{{ series.label }}</td>
+                      @for (value of series.values; track value) {
+                        <td>{{ value | number: '1.4-4' }}</td>
+                      }
+                    </tr>
+                  }
                 </tbody>
               </table>
-            </ng-template>
+            }
             <ul class="list-none p-0 m-0 mt-2 flex flex-wrap gap-3 text-sm">
-              <li *ngFor="let series of radarSeries">
-                <span class="swatch" [style.background]="series.colour"></span>{{ series.label }} ({{ series.count }})
-              </li>
+              @for (series of radarSeries; track series) {
+                <li>
+                  <span class="swatch" [style.background]="series.colour"></span>{{ series.label }} ({{ series.count }})
+                </li>
+              }
             </ul>
           </figure>
           <figure class="col-12 md:col-6 m-0">
@@ -207,71 +234,80 @@ interface HttpFailure {
               role="img"
               [attr.aria-label]="'Jaccard of the ' + result.genesets.length + ' gene sets, most similar first'"
               style="max-height: 220px"
-            >
-              <rect
-                *ngFor="let bar of bars"
-                [attr.x]="bar.x"
-                [attr.y]="200 - bar.height"
-                [attr.width]="bar.width"
-                [attr.height]="bar.height"
-                [attr.fill]="bar.colour"
-              ><title>{{ bar.title }}</title></rect>
-            </svg>
-            <p class="text-xs text-color-secondary m-0 text-left">Coloured by tier (grey: no tier); the tallest is {{ result.genesets[0].jaccard | number: '1.4-4' }}.</p>
-          </figure>
-        </div>
-
-        <div class="flex flex-wrap align-items-center gap-3 my-3">
-          <label for="similar-group" class="text-sm">Group by</label>
-          <!-- (input), not ngModel: the test DOM fires a spurious change as options are
-               inserted (as on /next/analyze). Browsers fire input for every choice. -->
-          <select id="similar-group" class="p-inputtext" (input)="setGroupIndex($any($event.target).selectedIndex)">
-            <option *ngFor="let choice of groupChoices" [selected]="choice.value === groupBy">{{ choice.label }}</option>
-          </select>
-          <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadCsv()">
-            Download CSV
-          </button>
-        </div>
-
-        <table class="similar-table text-sm w-full">
-          <thead>
-            <tr>
-              <th scope="col">Gene set</th>
-              <th scope="col">Name</th>
-              <th scope="col">Species</th>
-              <th scope="col">Tier</th>
-              <th scope="col" class="text-right">Genes</th>
-              <th scope="col" class="text-right">Shared</th>
-              <th scope="col" class="text-right">Jaccard</th>
-            </tr>
-          </thead>
-          <tbody *ngFor="let group of shownGroups">
-            <tr *ngIf="group.label" class="group-row">
-              <th colspan="7" scope="colgroup" class="text-left">{{ group.label }} ({{ group.genesets.length }})</th>
-            </tr>
-            <tr *ngFor="let gs of group.genesets">
-              <td><a [routerLink]="['/geneset', gs.gs_id]">GS{{ gs.gs_id }}</a></td>
-              <td class="text-left">{{ gs.abbreviation || gs.name }}</td>
-              <td>{{ species(gs.species_id) }}</td>
-              <td>{{ tier(gs.tier) }}</td>
-              <td class="text-right">{{ gs.genes }}</td>
-              <td class="text-right">{{ gs.shared }}</td>
-              <td class="text-right">{{ gs.jaccard | number: '1.4-4' }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <button
-          *ngIf="!showAll && result.genesets.length > page"
-          type="button"
-          class="p-button p-button-sm p-button-text mt-2"
-          (click)="showAll = true; regroup()"
-        >
-          Show all {{ result.genesets.length }}
-        </button>
-      </ng-container>
-      <ng-template #none><p class="text-left">No other gene set you can read shares a gene with this one.</p></ng-template>
-    </ng-container>
-  `,
+              >
+              @for (bar of bars; track bar) {
+                <rect
+                  [attr.x]="bar.x"
+                  [attr.y]="200 - bar.height"
+                  [attr.width]="bar.width"
+                  [attr.height]="bar.height"
+                  [attr.fill]="bar.colour"
+                  ><title>{{ bar.title }}</title></rect>
+                }
+              </svg>
+              <p class="text-xs text-color-secondary m-0 text-left">Coloured by tier (grey: no tier); the tallest is {{ result.genesets[0].jaccard | number: '1.4-4' }}.</p>
+            </figure>
+          </div>
+          <div class="flex flex-wrap align-items-center gap-3 my-3">
+            <label for="similar-group" class="text-sm">Group by</label>
+            <!-- (input), not ngModel: the test DOM fires a spurious change as options are
+            inserted (as on /next/analyze). Browsers fire input for every choice. -->
+            <select pInputText id="similar-group" class="p-inputtext" (input)="setGroupIndex($any($event.target).selectedIndex)">
+              @for (choice of groupChoices; track choice) {
+                <option [selected]="choice.value === groupBy">{{ choice.label }}</option>
+              }
+            </select>
+            <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadCsv()">
+              Download CSV
+            </button>
+          </div>
+          <table class="similar-table text-sm w-full">
+            <thead>
+              <tr>
+                <th scope="col">Gene set</th>
+                <th scope="col">Name</th>
+                <th scope="col">Species</th>
+                <th scope="col">Tier</th>
+                <th scope="col" class="text-right">Genes</th>
+                <th scope="col" class="text-right">Shared</th>
+                <th scope="col" class="text-right">Jaccard</th>
+              </tr>
+            </thead>
+            @for (group of shownGroups; track group) {
+              <tbody>
+                @if (group.label) {
+                  <tr class="group-row">
+                    <th colspan="7" scope="colgroup" class="text-left">{{ group.label }} ({{ group.genesets.length }})</th>
+                  </tr>
+                }
+                @for (gs of group.genesets; track gs) {
+                  <tr>
+                    <td><a [routerLink]="['/geneset', gs.gs_id]">GS{{ gs.gs_id }}</a></td>
+                    <td class="text-left">{{ gs.abbreviation || gs.name }}</td>
+                    <td>{{ species(gs.species_id) }}</td>
+                    <td>{{ tier(gs.tier) }}</td>
+                    <td class="text-right">{{ gs.genes }}</td>
+                    <td class="text-right">{{ gs.shared }}</td>
+                    <td class="text-right">{{ gs.jaccard | number: '1.4-4' }}</td>
+                  </tr>
+                }
+              </tbody>
+            }
+          </table>
+          @if (!showAll && result.genesets.length > page) {
+            <button pButton
+              type="button"
+              class="p-button p-button-sm p-button-text mt-2"
+              (click)="showAll = true; regroup()"
+              >
+              Show all {{ result.genesets.length }}
+            </button>
+          }
+        } @else {
+          <p class="text-left">No other gene set you can read shares a gene with this one.</p>
+        }
+      }
+    `,
   styles: [
     '.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }',
     '.similar-table th, .similar-table td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #E2E8F0; text-align: left; }',
@@ -280,7 +316,11 @@ interface HttpFailure {
   ],
 })
 export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
-  @Input({ required: true }) genesetId!: number;
+  private session = inject(SessionService);
+  /** Marks the view for checking after async updates: the app runs without zone.js. */
+  private readonly changes = inject(ChangeDetectorRef);
+
+  readonly genesetId = input.required<number>();
 
   readonly thresholdModes = THRESHOLD_MODES;
   readonly groupChoices = GROUP_BY_CHOICES;
@@ -303,10 +343,9 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
   private gwApi: ApiBaseService;
   private poll?: Subscription;
 
-  constructor(
-    apiBaseServiceFactory: ApiBaseServiceFactory,
-    private session: SessionService,
-  ) {
+  constructor() {
+    const apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+
     this.gwApi = apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
   }
 
@@ -341,10 +380,10 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
     this.errorMessage = undefined;
     this.gwApi
       .post<RunBody>('/tools/similar_genesets', {
-        geneset_id: this.genesetId,
+        geneset_id: this.genesetId(),
         ...thresholdParams(this.thresholds),
       })
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (response) => {
           const body = response.object as RunBody | undefined;
           if (body && typeof body.run_id === 'number' && body.status === 'running' && !body.result) {
@@ -364,7 +403,7 @@ export class SimilarGenesetsComponent implements OnChanges, OnDestroy {
         map((response) => response.object as RunBody & { workflow_id?: string }),
         takeWhile((run) => run.status === 'running', true),
       )
-      .subscribe({
+      .pipe(renderAfter(this.changes)).subscribe({
         next: (run) => {
           if (run.status === 'running') {
             return;

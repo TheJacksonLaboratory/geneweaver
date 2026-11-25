@@ -31,8 +31,10 @@ describe('GeneNetworkComponent', () => {
 
   async function build(result: Record<string, unknown> = FIXTURES.dbscan) {
     const fixture = TestBed.createComponent(GeneNetworkComponent);
-    fixture.componentInstance.result = result as GeneNetworkComponent['result'];
-    await fixture.componentInstance.ngOnChanges();
+    fixture.componentRef.setInput('result', result);
+    // The input change runs ngOnChanges, which draws once Cytoscape has loaded.
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     return fixture;
   }
@@ -75,7 +77,7 @@ describe('GeneNetworkComponent', () => {
 
   it('creates nothing if destroyed while Cytoscape is still loading', async () => {
     const fixture = TestBed.createComponent(GeneNetworkComponent);
-    fixture.componentInstance.result = FIXTURES.dbscan;
+    fixture.componentRef.setInput('result', FIXTURES.dbscan);
     const pending = fixture.componentInstance.ngOnChanges();
     fixture.destroy();
     await pending;

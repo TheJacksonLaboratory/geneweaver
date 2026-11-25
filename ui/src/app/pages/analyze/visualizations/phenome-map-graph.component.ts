@@ -1,12 +1,13 @@
-import { NgFor, NgIf } from '@angular/common';
+
 import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Input,
   OnChanges,
   OnDestroy,
-  ViewChild,
+  inject,
+  input,
+  viewChild
 } from '@angular/core';
 import type { Core, ElementDefinition } from 'cytoscape';
 
@@ -18,6 +19,8 @@ import {
   phenomeMapStats,
   TooltipRow,
 } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 interface SelectedBiclique {
   genesets: string[];
@@ -37,28 +40,29 @@ interface SelectedBiclique {
  */
 @Component({
   selector: 'app-phenome-map-graph',
-  standalone: true,
-  imports: [NgIf, NgFor],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
     <dl class="stats flex flex-wrap gap-3 text-sm m-0 mb-2">
-      <div *ngFor="let stat of stats"><dt class="inline font-semibold">{{ stat.label }}:</dt>
+      @for (stat of stats; track stat) {
+        <div><dt class="inline font-semibold">{{ stat.label }}:</dt>
         <dd class="inline m-0 ml-1">{{ stat.value }}</dd></div>
+      }
     </dl>
     <label class="block text-sm mb-1" for="phenome-map-search">Highlight genes or gene sets</label>
-    <input
+    <input pInputText
       id="phenome-map-search"
       class="p-inputtext p-inputtext-sm mb-1 w-full"
       type="search"
       placeholder="e.g. Drd2, GS164706"
       [value]="query"
       (input)="highlight($any($event.target).value)"
-    />
+      />
     <p class="text-sm text-color-secondary mt-0 mb-2" aria-live="polite">{{ matchNote }}</p>
     <!-- The canvas is a picture for sighted users; the list below is the accessible way in. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label"></div>
     <div class="flex gap-2 mt-2">
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
-      <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
+      <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
         Download PNG
       </button>
     </div>
@@ -67,27 +71,33 @@ interface SelectedBiclique {
       scroll to zoom.
     </p>
     <label class="block text-sm mb-1" for="biclique-picker">Biclique</label>
-    <select
+    <select pInputText
       id="biclique-picker"
       class="p-inputtext p-inputtext-sm mb-2 w-full"
       [value]="selectedId ?? ''"
       (change)="select($any($event.target).value)"
-    >
+      >
       <option value="">Choose a biclique…</option>
-      <option *ngFor="let option of options" [value]="option.id">{{ option.label }}</option>
+      @for (option of options; track option) {
+        <option [value]="option.id">{{ option.label }}</option>
+      }
     </select>
-    <div *ngIf="selected" class="p-3 surface-100 border-round text-sm" aria-live="polite">
-      <div><strong>Gene sets ({{ selected.genesets.length }}):</strong>
-        {{ setLabels(selected.genesets) }}</div>
+    @if (selected) {
+      <div class="p-3 surface-100 border-round text-sm" aria-live="polite">
+        <div><strong>Gene sets ({{ selected.genesets.length }}):</strong>
+      {{ setLabels(selected.genesets) }}</div>
       <div class="mt-1"><strong>Genes ({{ selected.genes.length }}):</strong>
-        {{ selected.genes.join(', ') }}</div>
+    {{ selected.genes.join(', ') }}</div>
     </div>
-  `,
+    }
+    `,
   styles: ['.graph { height: 520px; border: 1px solid #E2E8F0; border-radius: 6px; }'],
 })
 export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
-  @Input({ required: true }) result!: Parameters<typeof phenomeMapElements>[0];
-  @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
+  private changes = inject(ChangeDetectorRef);
+
+  readonly result = input.required<Parameters<typeof phenomeMapElements>[0]>();
+  readonly graph = viewChild.required<ElementRef<HTMLElement>>('graph');
 
   selected?: SelectedBiclique;
   selectedId?: string;
@@ -104,14 +114,12 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   /** Bumped per change, so a slow import for an older result does not draw over a newer one. */
   private generation = 0;
 
-  constructor(private changes: ChangeDetectorRef) {}
-
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;
-    const elements = phenomeMapElements(this.result) as ElementDefinition[];
+    const elements = phenomeMapElements(this.result()) as ElementDefinition[];
     const nodes = elements.filter((e) => e.group === 'nodes');
     this.label = `PhenomeMap graph of ${nodes.length} bicliques`;
-    this.stats = phenomeMapStats(this.result);
+    this.stats = phenomeMapStats(this.result());
     this.selected = undefined;
     this.selectedId = undefined;
     this.query = '';
@@ -148,7 +156,7 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
     }
     this.cy?.destroy();
     this.cy = cytoscape({
-      container: this.graph.nativeElement,
+      container: this.graph().nativeElement,
       elements,
       wheelSensitivity: 0.2,
       style: [
@@ -189,7 +197,7 @@ export class PhenomeMapGraphComponent implements OnChanges, OnDestroy {
   /** Legacy's search box: mark the bicliques holding a match, fade the rest. */
   highlight(query: string): void {
     this.query = query;
-    const ids = phenomeMapMatches(this.result.nodes, query);
+    const ids = phenomeMapMatches(this.result().nodes, query);
     this.matches = new Set([...ids].map((id) => `n${id}`));
     const shown = this.options.length;
     this.matchNote = query.trim()

@@ -1,16 +1,15 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input } from '@angular/core';
+
 import { OntologyTagComponent } from "../ontologytag/ontologytag.component";
 import { OntologyTerm } from "../../models/ontology-term"
 import {OntologyTagKeyComponent} from "../ontologytagkey/ontologytagkey.component";
 
 @Component({
   selector: 'app-ontology-annotations',
-  standalone: true,
-  imports: [CommonModule, OntologyTagComponent, OntologyTagKeyComponent],
+  imports: [OntologyTagComponent, OntologyTagKeyComponent],
   templateUrl: './ontologyannotations.component.html',
   styleUrl: './ontologyannotations.component.css',
 })
 export class OntologyAnnotationsComponent {
-  @Input() ontology_tags: OntologyTerm[] = [];
+  readonly ontology_tags = input<OntologyTerm[]>([]);
 }

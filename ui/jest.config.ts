@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   displayName: 'geneweaver-ui',
   preset: './jest.preset.js',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
@@ -26,5 +26,5 @@ export default {
     '<rootDir>/src/**/__tests__/**/*.[jt]s?(x)',
     '<rootDir>/src/**/*(*.)@(spec|test).[jt]s?(x)',
   ],
-  testEnvironment: "@happy-dom/jest-environment"
+  testEnvironment: '@happy-dom/jest-environment',
 };

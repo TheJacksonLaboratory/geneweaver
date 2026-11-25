@@ -1,7 +1,7 @@
 # New GeneWeaver UI — Gap Analysis & Implementation Plan
 
 > Comparison of the **legacy** GeneWeaver web app (`legacy/` — Flask + Jinja + Celery) against
-> the **new** UI (`ui/` — Angular 18 / Nx, served at `/next`), and the plan to close the gap.
+> the **new** UI (`ui/` — Angular 21 / Nx, served at `/next`), and the plan to close the gap.
 > The new UI is currently an early **read-only search experiment**; most of the legacy product
 > is not yet built. **Last updated:** 2026-09-23
 >
@@ -21,7 +21,7 @@
 
 ## 1. Current state of the new UI
 
-Implemented today (Angular 18 / Nx, PrimeNG + Tailwind):
+Implemented today (Angular 21 / Nx, PrimeNG 21 + PrimeFlex):
 
 | Route | Component | What works |
 |---|---|---|

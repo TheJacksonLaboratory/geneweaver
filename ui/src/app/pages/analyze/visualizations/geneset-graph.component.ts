@@ -1,18 +1,20 @@
-import { NgFor, NgIf } from '@angular/common';
+
 import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Input,
   OnChanges,
   OnDestroy,
-  ViewChild,
+  inject,
+  input,
+  viewChild
 } from '@angular/core';
 import { schemeTableau10 } from 'd3';
 import type { Core, ElementDefinition } from 'cytoscape';
 
 import { ChartTooltip, saveBlob } from './chart-utils';
 import { genesetGraphModel, GenesetGraphModel, GenesetGraphOutput, genesetLabel } from './models';
+import { ButtonModule } from 'primeng/button';
 
 const setColour = (index: number) => schemeTableau10[index % schemeTableau10.length];
 
@@ -25,37 +27,42 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
  */
 @Component({
   selector: 'app-geneset-graph',
-  standalone: true,
-  imports: [NgIf, NgFor],
+  imports: [ButtonModule, ],
   template: `
     <p class="text-sm text-color-secondary mt-0">{{ model.summary }}</p>
-    <p *ngIf="model.tooLarge" class="text-sm text-color-secondary">
-      Too many links to draw: more than {{ model.budget }}. Raise the minimum degree, or use the
-      table, which lists every gene.
-    </p>
+    @if (model.tooLarge) {
+      <p class="text-sm text-color-secondary">
+        Too many links to draw: more than {{ model.budget }}. Raise the minimum degree, or use the
+        table, which lists every gene.
+      </p>
+    }
     <!-- Always in the DOM, so Cytoscape has its container as soon as the import lands. -->
     <div #graph class="graph" role="img" [attr.aria-label]="label" [hidden]="!drawable"></div>
-    <ng-container *ngIf="drawable">
+    @if (drawable) {
       <ul class="legend list-none p-0 m-0 mt-2 flex flex-wrap gap-3 text-sm">
-        <li *ngFor="let item of legend">
-          <span class="swatch" [style.background]="item.colour"></span>{{ item.label }}
-        </li>
+        @for (item of legend; track item) {
+          <li>
+            <span class="swatch" [style.background]="item.colour"></span>{{ item.label }}
+          </li>
+        }
         <li><span class="swatch emphasis"></span>Emphasised gene</li>
       </ul>
       <div class="flex gap-2 mt-2">
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
-        <button type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="fit()">Fit</button>
+        <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="downloadPng()">
           Download PNG
         </button>
       </div>
       <p class="text-sm text-color-secondary mt-1">
         Hover a node for details; click one to light up its links. Drag to pan, scroll to zoom.
       </p>
-      <div *ngIf="selectedText" class="p-3 surface-100 border-round text-sm" aria-live="polite">
-        {{ selectedText }}
-      </div>
-    </ng-container>
-  `,
+      @if (selectedText) {
+        <div class="p-3 surface-100 border-round text-sm" aria-live="polite">
+          {{ selectedText }}
+        </div>
+      }
+    }
+    `,
   styles: [
     '.graph { height: 560px; border: 1px solid #E2E8F0; border-radius: 6px; }',
     '.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }',
@@ -63,8 +70,10 @@ const setColour = (index: number) => schemeTableau10[index % schemeTableau10.len
   ],
 })
 export class GenesetGraphComponent implements OnChanges, OnDestroy {
-  @Input({ required: true }) result!: GenesetGraphOutput;
-  @ViewChild('graph', { static: true }) graph!: ElementRef<HTMLElement>;
+  private changes = inject(ChangeDetectorRef);
+
+  readonly result = input.required<GenesetGraphOutput>();
+  readonly graph = viewChild.required<ElementRef<HTMLElement>>('graph');
 
   model: GenesetGraphModel = genesetGraphModel({
     geneset_ids: [],
@@ -85,23 +94,21 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
   private destroyed = false;
   private generation = 0;
 
-  constructor(private changes: ChangeDetectorRef) {}
-
   get drawable(): boolean {
     return !this.model.tooLarge && this.model.nodes.length > 0;
   }
 
   async ngOnChanges(): Promise<void> {
     const generation = ++this.generation;
-    this.model = genesetGraphModel(this.result);
+    this.model = genesetGraphModel(this.result());
     this.selectedText = '';
-    this.legend = this.result.genesets.map((set, i) => ({
+    this.legend = this.result().genesets.map((set, i) => ({
       colour: setColour(i),
       label: genesetLabel(set.id),
     }));
     this.label =
-      `GeneSet Graph: ${this.result.genesets.length} gene sets and ${this.result.genes.length} ` +
-      `genes held by at least ${this.result.min_degree} of them`;
+      `GeneSet Graph: ${this.result().genesets.length} gene sets and ${this.result().genes.length} ` +
+      `genes held by at least ${this.result().min_degree} of them`;
     this.cy?.destroy();
     this.cy = undefined;
     if (!this.drawable) {
@@ -133,7 +140,7 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
       })),
     ];
     this.cy = cytoscape({
-      container: this.graph.nativeElement,
+      container: this.graph().nativeElement,
       elements,
       wheelSensitivity: 0.2,
       layout: { name: 'preset', padding: 20 },
@@ -164,7 +171,8 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
       ],
     });
     // One tooltip per component, not per result: the host keeps it across redraws.
-    this.tooltip ??= new ChartTooltip(this.graph.nativeElement.parentElement ?? this.graph.nativeElement);
+    const graph = this.graph();
+    this.tooltip ??= new ChartTooltip(graph.nativeElement.parentElement ?? graph.nativeElement);
     this.cy.on('mouseover', 'node', (event) => {
       const original = event.originalEvent as MouseEvent | undefined;
       if (original) {
@@ -182,7 +190,7 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
 
   private details(id: string) {
     if (id.startsWith('gs:')) {
-      const set = this.result.genesets.find((s) => `gs:${s.id}` === id);
+      const set = this.result().genesets.find((s) => `gs:${s.id}` === id);
       return {
         title: genesetLabel(set?.id ?? id.slice(3)),
         rows: [
@@ -191,7 +199,7 @@ export class GenesetGraphComponent implements OnChanges, OnDestroy {
         ],
       };
     }
-    const gene = this.result.genes.find((g) => `gene:${g.symbol}` === id);
+    const gene = this.result().genes.find((g) => `gene:${g.symbol}` === id);
     return {
       title: gene?.symbol ?? id,
       rows: [

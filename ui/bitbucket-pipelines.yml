@@ -19,7 +19,7 @@ definitions:
   steps:
     - step: &code-integrity
         name: Code Integrity
-        image: node:22.6-slim
+        image: node:22-slim
         script:
           - *setup-npm-build
           - npm run lint
@@ -28,7 +28,7 @@ definitions:
           - dist/**
     - step: &build-dev-artifacts
         name: Artifact Dev Build
-        image: node:22.6-slim
+        image: node:22-slim
         script:
           - *setup-npm-build
           - npm run build:jax-cluster-dev-10
@@ -36,7 +36,7 @@ definitions:
           - dist/**
     - step: &build-all-artifacts
         name: Artifact Builds
-        image: node:22.6-slim
+        image: node:22-slim
         script:
           - *setup-npm-build
           - npm run build:jax-cluster-dev-10

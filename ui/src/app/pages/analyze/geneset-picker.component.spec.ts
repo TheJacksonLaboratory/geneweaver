@@ -223,8 +223,8 @@ describe('GenesetPickerComponent', () => {
   it('shows ids the page sets, keeping labels it has already seen', () => {
     picker.search('dopamine');
     picker.selectionChanged([picker.source.suggestions[0]]);
-    picker.ids = ['1', '999'];
-    picker.ngOnChanges({ ids: { currentValue: picker.ids } as never });
+    fixture.componentRef.setInput('ids', ['1', '999']);
+    picker.ngOnChanges({ ids: { currentValue: picker.ids() } as never });
     expect(picker.selected.map((option) => option.chip)).toEqual(['GS1 · Set 1', 'GS999']);
   });
 
@@ -232,8 +232,8 @@ describe('GenesetPickerComponent', () => {
     picker.search('dopamine');
     expect(requests[0].params.getAll('species')).toBeNull();
 
-    picker.filters = { ...emptyFilters(), species: [1, 2], tiers: [3] };
-    picker.ngOnChanges({ filters: { currentValue: picker.filters } as never });
+    fixture.componentRef.setInput('filters', { ...emptyFilters(), species: [1, 2], tiers: [3] });
+    picker.ngOnChanges({ filters: { currentValue: picker.filters() } as never });
     expect(requests).toHaveLength(2);
     expect(requests[1].params.getAll('species')).toEqual(['Mus Musculus', 'Homo Sapiens']);
     expect(requests[1].params.getAll('curation_tier')).toEqual(['Tier III']);
@@ -242,8 +242,8 @@ describe('GenesetPickerComponent', () => {
 
   it('does not send filters the API would refuse', () => {
     picker.search('dopamine');
-    picker.filters = { ...emptyFilters(), pValue: 0.05 }; // a cutoff with no gene
-    picker.ngOnChanges({ filters: { currentValue: picker.filters } as never });
+    fixture.componentRef.setInput('filters', { ...emptyFilters(), pValue: 0.05 }); // a cutoff with no gene
+    picker.ngOnChanges({ filters: { currentValue: picker.filters() } as never });
     expect(requests).toHaveLength(1);
     expect(picker.source.suggestions).toEqual([]);
   });

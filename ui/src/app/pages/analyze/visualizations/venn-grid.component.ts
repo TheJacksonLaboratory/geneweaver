@@ -1,12 +1,12 @@
-import { NgFor } from '@angular/common';
+
 import {
   AfterViewChecked,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Input,
   OnChanges,
-  ViewChild,
+  input,
+  viewChild
 } from '@angular/core';
 import { select, Selection } from 'd3';
 
@@ -18,6 +18,8 @@ import {
   VennGridCell,
   VennGridModel,
 } from './models';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** Okabe-Ito colours: told apart with every common colour-vision deficiency. */
 const ROW = '#D55E00';
@@ -33,34 +35,35 @@ const GREY = '#CBD5E1';
  */
 @Component({
   selector: 'app-venn-grid',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgFor],
+  imports: [InputTextModule, ButtonModule, ],
   template: `
     <div class="flex align-items-center gap-2 mb-2 text-sm">
       <label for="venn-grid-threshold">p-value threshold</label>
-      <select
+      <select pInputText
         #thresholdSelect
         id="venn-grid-threshold"
         class="p-inputtext p-inputtext-sm"
         (change)="setThreshold($any($event.target).value)"
-      >
-        <option *ngFor="let t of thresholds" [value]="t">
-          {{ t === 1 ? '1.0 (show all)' : t }}
-        </option>
+        >
+        @for (t of thresholds; track t) {
+          <option [value]="t">
+            {{ t === 1 ? '1.0 (show all)' : t }}
+          </option>
+        }
       </select>
       <span class="text-color-secondary" aria-live="polite">{{ greyedNote }}</span>
     </div>
     <div #chart></div>
-    <button type="button" class="p-button p-button-sm p-button-text" (click)="download()">
+    <button pButton type="button" class="p-button p-button-sm p-button-text" (click)="download()">
       Download SVG
     </button>
-  `,
+    `,
 })
 export class VennGridComponent implements OnChanges, AfterViewChecked {
-  @Input({ required: true }) model!: VennGridModel;
-  @ViewChild('chart', { static: true }) chart!: ElementRef<HTMLElement>;
-  @ViewChild('thresholdSelect', { static: true }) thresholdSelect!: ElementRef<HTMLSelectElement>;
+  readonly model = input.required<VennGridModel>();
+  readonly chart = viewChild.required<ElementRef<HTMLElement>>('chart');
+  readonly thresholdSelect = viewChild.required<ElementRef<HTMLSelectElement>>('thresholdSelect');
 
   threshold = 1;
   thresholds: number[] = P_THRESHOLDS;
@@ -68,8 +71,8 @@ export class VennGridComponent implements OnChanges, AfterViewChecked {
   private groups?: Selection<SVGGElement, VennGridCell, SVGGElement, unknown>;
 
   ngOnChanges(): void {
-    this.threshold = this.model.threshold;
-    this.thresholds = [...new Set([...P_THRESHOLDS, this.model.threshold])].sort((a, b) => b - a);
+    this.threshold = this.model().threshold;
+    this.thresholds = [...new Set([...P_THRESHOLDS, this.model().threshold])].sort((a, b) => b - a);
     this.draw();
     this.shade();
   }
@@ -80,7 +83,7 @@ export class VennGridComponent implements OnChanges, AfterViewChecked {
    * run's threshold.
    */
   ngAfterViewChecked(): void {
-    const select = this.thresholdSelect.nativeElement;
+    const select = this.thresholdSelect().nativeElement;
     if (select.value !== String(this.threshold)) {
       select.value = String(this.threshold);
     }
@@ -98,7 +101,7 @@ export class VennGridComponent implements OnChanges, AfterViewChecked {
   }
 
   download(): void {
-    downloadSvg(this.chart.nativeElement, 'jaccard-similarity-venn.svg');
+    downloadSvg(this.chart().nativeElement, 'jaccard-similarity-venn.svg');
   }
 
   /** Grey the pairs that do not pass the threshold, without redrawing. */
@@ -108,7 +111,7 @@ export class VennGridComponent implements OnChanges, AfterViewChecked {
       ?.attr('data-greyed', (cell) => (greyed(cell) ? 'true' : null))
       .selectAll<SVGCircleElement, { role: string; cell: VennGridCell }>('circle')
       .attr('fill', (c) => (greyed(c.cell) ? GREY : c.role === 'row' ? ROW : c.role === 'col' ? COL : SAME));
-    const count = this.model.cells.filter(greyed).length / 2;
+    const count = this.model().cells.filter(greyed).length / 2;
     this.greyedNote =
       this.threshold >= 1
         ? 'All pairs shown.'
@@ -116,13 +119,13 @@ export class VennGridComponent implements OnChanges, AfterViewChecked {
   }
 
   private pairs(): number {
-    const n = this.model.ids.length;
+    const n = this.model().ids.length;
     return (n * (n - 1)) / 2;
   }
 
   private draw(): void {
-    const { ids, cells } = this.model;
-    const host = this.chart.nativeElement;
+    const { ids, cells } = this.model();
+    const host = this.chart().nativeElement;
     const cell = Math.max(96, Math.min(150, 760 / Math.max(1, ids.length)));
     const left = 90;
     const top = 40;
