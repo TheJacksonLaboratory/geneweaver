@@ -81,6 +81,8 @@ class RunState:
     workflow_id: str | None
     status: str
     result: dict[str, Any] | None = None
+    #: When Temporal started the run (AsyncTask's ``init_time``, ISO 8601), if it said.
+    init_time: str | None = None
 
     @property
     def finished(self) -> bool:
@@ -115,15 +117,13 @@ class AsyncTaskClient:
         self.session = session or requests.Session()
         self.headers = {"Authorization": f"Bearer {token}"}
 
-    def _call(
-        self, method: str, path: str, timeout: float | None = None, **kwargs: Any
-    ) -> dict[str, Any]:
-        """Make one call and return the ``object`` of AsyncTask's response envelope.
+    def _request(self, method: str, path: str, timeout: float | None = None, **kwargs: Any) -> Any:
+        """Make one call and return its decoded JSON body.
 
-        Everything that is not a well-formed envelope -- a transport failure, an error
-        status, a non-JSON body (an ingress error page served as 200), or a body without a
-        mapping under ``object`` -- is raised as an `AsyncTaskError`, so the endpoint reports
-        an upstream fault (502) rather than crashing with a decoding error (500).
+        Everything that is not a JSON answer -- a transport failure, an error status, a
+        non-JSON body (an ingress error page served as 200) -- is raised as an
+        `AsyncTaskError`, so the endpoint reports an upstream fault (502) rather than
+        crashing with a decoding error (500). The readers below check the envelope's shape.
         """
         url = f"{self.base_url}{path}"
         try:
@@ -145,12 +145,22 @@ class AsyncTaskClient:
                 status_code=response.status_code,
             )
         try:
-            body = response.json()
+            return response.json()
         except ValueError as error:
             raise AsyncTaskError(
                 f"AsyncTask answered {method} {path} with a body that is not JSON: "
                 f"{response.text[:200]!r}"
             ) from error
+
+    def _call(
+        self, method: str, path: str, timeout: float | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Make one call and return the mapping under ``object`` in AsyncTask's envelope.
+
+        A body without one is an `AsyncTaskError`, like any other answer outside the
+        contract.
+        """
+        body = self._request(method, path, timeout=timeout, **kwargs)
         obj = body.get("object") if isinstance(body, dict) else None
         if not isinstance(obj, dict):
             raise AsyncTaskError(
@@ -168,24 +178,108 @@ class AsyncTaskClient:
                 f"AsyncTask answered {method} {path} with a run missing its id or status: "
                 f"{str(run)[:200]}"
             )
+        init_time = run.get("init_time")
         return RunState(
             run_id=run_id,
             workflow_id=run.get("workflow_id"),
             status=status_name(run["status"]),
+            init_time=init_time if isinstance(init_time, str) else None,
         )
 
-    def submit(self, envelope: dict[str, Any], name: str) -> RunState:
+    def submit(
+        self, envelope: dict[str, Any], name: str, description: str | None = None
+    ) -> RunState:
         """Start a run of the `GeneWeaverTools` plugin.
 
         :param envelope: ``{"tool": ..., "input": {...}}``, optionally with ``"universe"``.
         :param name: A label for the run, shown in AsyncTask's own listings.
+        :param description: Stored by AsyncTask on the run's input and returned by
+            ``GET /inputs``; v3 keeps the run's original request here (`run_record`).
         """
-        run = self._call(
-            "POST",
-            "/runs",
-            json={"task_type": TASK_TYPE, "name": name, "values": envelope},
-        )
+        body: dict[str, Any] = {"task_type": TASK_TYPE, "name": name, "values": envelope}
+        if description is not None:
+            body["description"] = description
+        run = self._call("POST", "/runs", json=body)
         return self._run_state(run, "POST", "/runs")
+
+    def _collection(self, path: str) -> list[dict[str, Any]]:
+        """Make one GET and return the ``data`` list of AsyncTask's collection envelope.
+
+        The list endpoints answer with ``CollectionResponse`` (``{data, paging, ...}``), not
+        the ``object`` envelope `_call` reads.
+        """
+        body = self._request("GET", path)
+        data = body.get("data") if isinstance(body, dict) else None
+        if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
+            raise AsyncTaskError(
+                f"AsyncTask answered GET {path} without a list in its collection envelope: "
+                f"{str(body)[:200]}"
+            )
+        return data
+
+    def list_runs(self) -> list[dict[str, Any]]:
+        """Every run of this user's, of every plugin, as AsyncTask stores them.
+
+        AsyncTask refreshes each running one from Temporal first. Its ``?workflow_id=``
+        filter is deliberately never used: at 5f2acea it returns the run without checking
+        its owner.
+        """
+        return self._collection("/runs")
+
+    def list_inputs(self) -> list[dict[str, Any]]:
+        """Every input of this user's: ``{id, name, description}``, without the values."""
+        return self._collection("/inputs")
+
+    def get_run_input(self, run_id: int) -> dict[str, Any]:
+        """The input a run was submitted with: ``{id, name, description, values, ...}``.
+
+        Owner-checked by AsyncTask (403 for another user's run).
+        """
+        return self._call("GET", f"/runs/{run_id}/inputs")
+
+    def get_status(self, run_id: int) -> RunState:
+        """A run's status alone, never fetching its result (unlike `get`)."""
+        path = f"/runs/{run_id}"
+        return self._run_state(self._call("GET", path), "GET", path)
+
+    def cancel(self, run_id: int) -> RunState:
+        """Cancel a running run's workflow. AsyncTask answers 400 if it is not running."""
+        path = f"/runs/{run_id}/cancel"
+        return self._run_state(self._call("POST", path), "POST", path)
+
+    def result_id(self, run_id: int) -> int | None:
+        """The id of a run's stored result, or None if it has none (AsyncTask's 404)."""
+        try:
+            result = self._call("GET", f"/runs/{run_id}/results")
+        except AsyncTaskError as error:
+            if error.status_code == 404:
+                return None
+            raise
+        result_id = result.get("id")
+        if not isinstance(result_id, int) or isinstance(result_id, bool):
+            raise AsyncTaskError(
+                f"AsyncTask answered GET /runs/{run_id}/results with a result missing its id: "
+                f"{str(result)[:200]}"
+            )
+        return result_id
+
+    def delete_result(self, result_id: int) -> None:
+        """Delete a stored result (owner-checked by AsyncTask through its run)."""
+        self._call_bool("DELETE", f"/results/{result_id}")
+
+    def delete_run(self, run_id: int) -> None:
+        """Delete a run. AsyncTask refuses (400) while the run still has a result."""
+        self._call_bool("DELETE", f"/runs/{run_id}")
+
+    def _call_bool(self, method: str, path: str) -> None:
+        """A call AsyncTask answers with ``Response[bool]``: ``object`` is a bare boolean.
+
+        `_call` requires a mapping under ``object``, so these are read separately; anything
+        but ``true`` is an error.
+        """
+        body = self._request(method, path)
+        if not (isinstance(body, dict) and body.get("object") is True):
+            raise AsyncTaskError(f"AsyncTask did not confirm {method} {path}: {str(body)[:200]}")
 
     def get(self, run_id: int, timeout: float | None = None) -> RunState:
         """A run's current status, with its result attached once it has completed.
@@ -197,20 +291,29 @@ class AsyncTaskClient:
         path = f"/runs/{run_id}"
         state = self._run_state(self._call("GET", path, timeout=timeout), "GET", path)
         if state.status == COMPLETED:
-            result_path = f"{path}/results"
             left = None
             if timeout is not None:
                 left = timeout - (time.monotonic() - started)
                 if left <= 0:
-                    raise AsyncTaskTimeout(f"No time left to fetch GET {result_path}.")
-            values = self._call("GET", result_path, timeout=left).get("values")
-            if not isinstance(values, dict):
-                raise AsyncTaskError(
-                    f"AsyncTask answered GET {result_path} without a result object: "
-                    f"{str(values)[:200]}"
-                )
-            state.result = values
+                    raise AsyncTaskTimeout(f"No time left to fetch GET {path}/results.")
+            state.result = self.get_result(run_id, timeout=left)
         return state
+
+    def get_result(self, run_id: int, timeout: float | None = None) -> dict[str, Any]:
+        """A completed run's output: the ``values`` of its stored result.
+
+        AsyncTask stores the result when it first sees the run COMPLETED, which its
+        ``GET /runs/{id}/results`` also checks, so this is safe to call on its own once a
+        status read has said completed.
+        """
+        result_path = f"/runs/{run_id}/results"
+        values = self._call("GET", result_path, timeout=timeout).get("values")
+        if not isinstance(values, dict):
+            raise AsyncTaskError(
+                f"AsyncTask answered GET {result_path} without a result object: "
+                f"{str(values)[:200]}"
+            )
+        return values
 
     def wait(self, state: RunState, timeout: float, poll_interval: float) -> RunState:
         """Poll until the run finishes or `timeout` seconds pass, whichever is first.

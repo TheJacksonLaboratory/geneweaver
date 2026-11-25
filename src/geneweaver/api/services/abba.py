@@ -20,6 +20,8 @@ before its connection is leased to its last statement, so it answers before the 
 up; past that it stops and answers `ABBATimedOut` (504).
 """
 
+import hashlib
+import hmac
 import threading
 import time
 from collections.abc import Callable
@@ -48,6 +50,7 @@ from geneweaver.api.schemas.auth import User
 from geneweaver.api.schemas.tools import ABBARequest
 from geneweaver.api.services.asynctask import AsyncTaskClient
 from geneweaver.api.services.geneset import determine_user_id
+from geneweaver.api.services.run_record import RunRecord
 from geneweaver.api.services.tools import (
     ToolRequestError,
     _check_size,
@@ -68,6 +71,11 @@ class ABBATimedOut(Exception):
     """An in-process search ran out of `ABBA_REQUEST_TIMEOUT_SECONDS` (504)."""
 
 
+#: Envelope key for the seed gene sets a run was gated on (see `seed_provenance`).
+SEED_GENESETS_KEY = "seed_genesets"
+_SEED_LABEL = b"geneweaver-abba-seed-genesets-v1"
+
+
 #: The most seed genes a search takes once seed gene sets are expanded. The largest gene set
 #: on dev holds 17,370 genes, so one still fits; more is a request to search much of the
 #: corpus, which ABBA cannot answer usefully, and it nears AsyncTask's payload limit.
@@ -82,6 +90,8 @@ class PreparedABBA:
     tool_input: ABBAInput
     user_id: int
     asynctask: AsyncTaskClient | None
+    #: The seed gene sets the caller was gated on, before they were expanded to genes.
+    seed_geneset_ids: list[int]
 
 
 def seed_genes(cursor: Cursor, request: ABBARequest, deadline: float | None = None) -> list[str]:
@@ -164,21 +174,77 @@ def prepare_abba(
         tool_input=tool_input,
         user_id=determine_user_id(user),
         asynctask=asynctask_client_for(user),
+        seed_geneset_ids=sorted(set(request.geneset_ids)),
     )
 
 
-def envelope_for(prepared: PreparedABBA) -> dict[str, Any]:
-    """The AsyncTask request: the input, and beside it who the search is for, signed.
+def _secret() -> str:
+    """`ABBA_IDENTITY_SECRET` where set, else the database password, as the worker reads them."""
+    return settings.ABBA_IDENTITY_SECRET or settings.DB_PASSWORD
 
-    The signature is for this input and expires (`geneweaver.tools.abba.identity`), keyed by
+
+def _seed_signature(identity_signature: str, geneset_ids: list[int], secret: str) -> str:
+    key = hmac.new(secret.encode(), _SEED_LABEL, hashlib.sha256).digest()
+    message = f"{identity_signature}|{','.join(str(gs) for gs in geneset_ids)}".encode()
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
+def seed_provenance(identity: dict[str, Any], geneset_ids: list[int], secret: str) -> dict:
+    """The seed gene sets a run was gated on, signed, for its envelope.
+
+    The seed gene sets are expanded to genes before submission, so the input no longer shows
+    them, yet reading the result later must re-check them (G3-736): the seed genes came from
+    them. The run's *description* names them too, but its owner can edit that (AsyncTask's
+    ``PATCH /inputs/{id}``), and clearing it would drop the check. The envelope cannot be
+    edited after submission; and the signature, bound to the identity's -- itself bound to
+    this user, this input and an expiry -- stops a copy of the envelope from being submitted
+    to AsyncTask directly with the gene sets left out.
+    """
+    ids = sorted(set(geneset_ids))
+    return {"geneset_ids": ids, "signature": _seed_signature(identity["signature"], ids, secret)}
+
+
+def verified_seed_genesets(envelope: dict[str, Any]) -> list[int] | None:
+    """The seed gene sets an ABBA envelope was gated on, or None if it does not prove them.
+
+    None -- no provenance, a malformed one, or a signature that does not match -- means
+    *unknown*, never "no seed gene sets": the caller must then refuse to show the result.
+    """
+    provenance = envelope.get(SEED_GENESETS_KEY)
+    identity = envelope.get("identity")
+    if not isinstance(provenance, dict) or not isinstance(identity, dict):
+        return None
+    ids, signature = provenance.get("geneset_ids"), provenance.get("signature")
+    identity_signature = identity.get("signature")
+    if (
+        not isinstance(ids, list)
+        or not all(isinstance(gs, int) and not isinstance(gs, bool) for gs in ids)
+        or not isinstance(signature, str)
+        or not isinstance(identity_signature, str)
+    ):
+        return None
+    expected = _seed_signature(identity_signature, sorted(set(ids)), _secret())
+    if not hmac.compare_digest(signature, expected):
+        return None
+    return sorted(set(ids))
+
+
+def envelope_for(prepared: PreparedABBA) -> dict[str, Any]:
+    """The AsyncTask request: the input, who the search is for, and its seed gene sets.
+
+    The identity is signed for this input and expires (`geneweaver.tools.abba.identity`); the
+    seed gene sets are signed against it (`seed_provenance`). Both are keyed by
     `ABBA_IDENTITY_SECRET` where set, else the database password, as the worker reads them.
+    The worker ignores the seed gene sets: they are for the API, when the result is read.
     """
     tool_input = prepared.tool_input.model_dump(mode="json")
-    secret = settings.ABBA_IDENTITY_SECRET or settings.DB_PASSWORD
+    secret = _secret()
+    identity = sign(prepared.user_id, secret, tool_input)
     return {
         "tool": TOOL_NAME,
         "input": tool_input,
-        "identity": sign(prepared.user_id, secret, tool_input),
+        "identity": identity,
+        SEED_GENESETS_KEY: seed_provenance(identity, prepared.seed_geneset_ids, secret),
     }
 
 
@@ -210,7 +276,17 @@ def run_abba(
         return {
             **prepared.shaped,
             "executed_by": "asynctask",
-            **_run_on_asynctask(prepared.asynctask, envelope, prepared.shaped, label=label),
+            **_run_on_asynctask(
+                prepared.asynctask,
+                envelope,
+                prepared.shaped,
+                label=label,
+                record=RunRecord(
+                    tool=TOOL_NAME,
+                    geneset_ids=list(request.geneset_ids),
+                    request=request.model_dump(mode="json"),
+                ),
+            ),
         }
 
     if not _running.acquire(blocking=False):

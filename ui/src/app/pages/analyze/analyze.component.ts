@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ApiBaseService, ApiBaseServiceFactory } from 'jax-apiutils';
 import { Subscription, map, switchMap, takeWhile, timer } from 'rxjs';
 
@@ -56,6 +57,14 @@ import {
   toggled,
 } from './abba-options';
 import { renderAfter } from '../../utils/render-after';
+import { RunActionsComponent } from '../../runs/run-actions.component';
+import {
+  describeRunError,
+  geneCountsFromIntersections,
+  TOOL_LABELS,
+  ToolRunDetail,
+  toolLabel,
+} from '../../runs/tool-runs';
 
 interface UpSetIntersection {
   geneset_ids: string[];
@@ -69,6 +78,8 @@ interface UpSetResult {
   /** Whether only in-threshold genes were used; absent means they were. */
   thresholds?: ThresholdChoice | null;
   intersections: UpSetIntersection[];
+  /** The AsyncTask run, to download or rerun; absent for an in-process run. */
+  run_id?: number | null;
 }
 
 /**
@@ -102,6 +113,8 @@ interface ToolRunResult {
   caveat?: string | null;
   thresholds?: ThresholdChoice | null;
   result: Record<string, unknown>;
+  /** The AsyncTask run, to download or rerun; absent for an in-process run. */
+  run_id?: number | null;
 }
 
 /**
@@ -118,13 +131,8 @@ interface PendingRun {
   status: string;
 }
 
-/** `GET /tools/runs/{run_id}`. `result` is the tool's own output once completed. */
-interface ToolRunStatus {
-  run_id: number;
-  status: string;
-  workflow_id?: string | null;
-  result?: Record<string, unknown> | null;
-}
+/** `GET /tools/runs/{run_id}`, as the poll reads it. */
+type ToolRunStatus = Pick<ToolRunDetail, 'run_id' | 'status' | 'workflow_id' | 'result' | 'problem'>;
 
 /** Either response shape, so the two request branches unify. */
 type AnyToolResult = UpSetResult | ToolRunResult | PendingRun;
@@ -147,6 +155,31 @@ function isPendingRun(body: AnyToolResult | undefined): body is PendingRun {
   );
 }
 
+/**
+ * UpSet as the page draws it, from either shape: `POST /tools/upset`'s typed result, or the
+ * generic one a rerun, a wait or a stored run gives (the tool's own output, whose
+ * intersections name ``genesets``). A stored run keeps no gene counts, so they are rebuilt
+ * from the intersections.
+ */
+function asUpSetResult(body: UpSetResult | ToolRunResult): UpSetResult {
+  if ('intersections' in body) {
+    return body;
+  }
+  const raw = (body.result?.['intersections'] ?? []) as { genesets: string[]; size: number }[];
+  const intersections = raw.map((item) => ({ geneset_ids: item.genesets, size: item.size }));
+  const counts = Object.keys(body.gene_counts ?? {}).length
+    ? body.gene_counts
+    : geneCountsFromIntersections(body.geneset_ids ?? [], intersections);
+  return {
+    tool: 'UpSet',
+    geneset_ids: body.geneset_ids,
+    gene_counts: counts,
+    thresholds: body.thresholds,
+    intersections,
+    run_id: body.run_id,
+  };
+}
+
 /** The shape `describeError` reads off a failed request. */
 interface HttpFailure {
   status?: number;
@@ -158,27 +191,6 @@ interface ToolAvailability {
   reason?: string | null;
   caveat?: string | null;
 }
-
-/**
- * Display names for the registered tool keys. Unknown keys fall back to the key.
- * phenome_map, jaccard_clustering and triclique carry legacy's names (HiSim Graph, GeneSet
- * Clustering, TricliqueViewer), not the v3 registry keys, so people who know the legacy
- * tools can find them.
- */
-const TOOL_LABELS: Record<string, string> = {
-  upset: 'UpSet',
-  hypergeometric: 'HyperGeometric',
-  dbscan: 'DBSCAN',
-  geneset_graph: 'GeneSet Graph',
-  triclique: 'TricliqueViewer',
-  mset: 'MSET',
-  phenome_map: 'HiSim Graph',
-  boolean_algebra: 'BooleanAlgebra',
-  combine: 'Combine',
-  jaccard_clustering: 'GeneSet Clustering',
-  jaccard_similarity: 'JaccardSimilarity',
-  abba: 'ABBA gene search',
-};
 
 /** One-line descriptions shown as a tooltip on each tool in the picker. */
 const TOOL_DESCRIPTIONS: Record<string, string> = {
@@ -237,11 +249,13 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
     SearchFiltersComponent,
     ToolResultComponent,
     UpsetPlotComponent,
+    RunActionsComponent,
   ],
   templateUrl: './analyze.component.html',
 })
 export class AnalyzeComponent implements OnInit, OnDestroy {
   private apiBaseServiceFactory = inject(ApiBaseServiceFactory);
+  private route = inject(ActivatedRoute);
   session = inject(SessionService);
   /** Marks the view for checking after async updates: the app runs without zone.js. */
   private readonly changes = inject(ChangeDetectorRef);
@@ -422,12 +436,25 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   pendingRunId?: number;
   private poll?: Subscription;
 
+  /** The stored run the result on show came from, to download or rerun it (G3-840). */
+  runId?: number;
+  runTool?: string;
+  /** While a rerun of the result on show is being submitted. */
+  rerunning = false;
+  /** Gene sets left out of an opened run's result because they are no longer readable. */
+  withheldNotice?: string;
+
   constructor() {
     this.gwApi = this.apiBaseServiceFactory.create(environment.urls.geneWeaverApi);
   }
 
   ngOnInit(): void {
     this.loadTools();
+    // `?run=<id>`: a stored run opened from My analyses.
+    const run = Number(this.route.snapshot.queryParamMap.get('run'));
+    if (Number.isInteger(run) && run > 0) {
+      this.openRun(run);
+    }
   }
 
   ngOnDestroy(): void {
@@ -607,10 +634,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
     }
     this.stopPolling();
     this.running = true;
-    this.result = undefined;
-    this.genericResult = undefined;
-    this.abbaResult = undefined;
-    this.errorMessage = undefined;
+    this.resetOutput();
 
     if (this.isAbba) {
       this.runAbba();
@@ -635,22 +659,9 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
           parameters,
         });
 
+    const tool = this.selectedTool;
     request$.pipe(renderAfter(this.changes)).subscribe({
-      next: (response) => {
-        const body = response.object as AnyToolResult | undefined;
-        if (isPendingRun(body)) {
-          // Still running on AsyncTask after the API's wait: poll it rather than
-          // treating the 202 body as a finished, empty result.
-          this.pollUntilFinished(body);
-          return;
-        }
-        if (this.isUpSet) {
-          this.result = body as UpSetResult;
-        } else {
-          this.genericResult = body as ToolRunResult;
-        }
-        this.running = false;
-      },
+      next: (response) => this.show(tool, response.object as AnyToolResult | undefined),
       error: (error: HttpFailure) => {
         this.errorMessage = this.describeError(error);
         this.running = false;
@@ -670,18 +681,113 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
         abbaRequestBody(this.abbaGenes, this.genesetIds, this.abbaOptions, this.runThresholds),
       )
       .pipe(renderAfter(this.changes)).subscribe({
-        next: (response) => {
-          const body = response.object as AnyToolResult | undefined;
-          if (isPendingRun(body)) {
-            this.pollUntilFinished(body);
-            return;
-          }
-          this.showAbba((body as ToolRunResult | undefined)?.result);
-          this.running = false;
-        },
+        next: (response) => this.show('abba', response.object as AnyToolResult | undefined),
         error: (error: HttpFailure) => {
           this.errorMessage = this.describeError(error);
           this.running = false;
+        },
+      });
+  }
+
+  /**
+   * Show what a run answered, whichever way it arrived: a new run, a rerun, a run waited on,
+   * or a stored run opened by id. A run still going is waited on instead. Keeps the run's id
+   * for Download and Rerun.
+   */
+  private show(tool: string, body: AnyToolResult | undefined): void {
+    if (isPendingRun(body)) {
+      // Still running on AsyncTask after the API's wait: poll it rather than treating the
+      // 202 body as a finished, empty result.
+      this.pollUntilFinished(body);
+      return;
+    }
+    this.running = false;
+    if (tool === 'abba') {
+      this.showAbba((body as ToolRunResult | undefined)?.result);
+    } else if (tool === 'upset') {
+      this.result = body ? asUpSetResult(body as UpSetResult | ToolRunResult) : undefined;
+    } else {
+      this.genericResult = body as ToolRunResult | undefined;
+    }
+    const runId = (body as { run_id?: number | null } | undefined)?.run_id;
+    this.runId = typeof runId === 'number' ? runId : undefined;
+    this.runTool = tool;
+  }
+
+  private resetOutput(): void {
+    this.result = undefined;
+    this.genericResult = undefined;
+    this.abbaResult = undefined;
+    this.errorMessage = undefined;
+    this.withheldNotice = undefined;
+    this.runId = undefined;
+  }
+
+  /** Submit the result on show again, as a new run (`POST /tools/runs/{id}/rerun`). */
+  rerunCurrent(): void {
+    const runId = this.runId;
+    const tool = this.runTool;
+    if (runId === undefined || !tool) {
+      return;
+    }
+    this.stopPolling();
+    this.resetOutput();
+    this.running = true;
+    this.rerunning = true;
+    this.gwApi
+      .post<AnyToolResult>(`/tools/runs/${runId}/rerun`, {})
+      .pipe(renderAfter(this.changes))
+      .subscribe({
+        next: (response) => {
+          this.rerunning = false;
+          this.show(tool, response.object as AnyToolResult | undefined);
+        },
+        error: (error: HttpFailure) => {
+          this.rerunning = false;
+          this.running = false;
+          this.errorMessage = describeRunError(error, 'rerun this analysis');
+        },
+      });
+  }
+
+  /** Show a stored run: its result if complete, a wait if running, what is known if not. */
+  openRun(runId: number): void {
+    this.stopPolling();
+    this.resetOutput();
+    this.running = true;
+    this.gwApi
+      .get<ToolRunDetail>(`/tools/runs/${runId}`)
+      .pipe(renderAfter(this.changes))
+      .subscribe({
+        next: (response) => {
+          const run = response.object;
+          const tool = run?.tool ?? '';
+          const body = {
+            tool,
+            geneset_ids: run?.geneset_ids ?? [],
+            gene_counts: {},
+            run_id: run?.run_id ?? runId,
+          };
+          if (run?.status === 'running') {
+            this.pollUntilFinished({ ...body, status: 'running' });
+            return;
+          }
+          if (run?.status !== 'completed' || !run.result) {
+            this.running = false;
+            this.errorMessage =
+              run?.problem ?? `The ${toolLabel(tool)} run ended ${run?.status ?? 'unknown'}.`;
+            return;
+          }
+          this.show(tool, { ...body, result: run.result });
+          if (run.withheld_genesets) {
+            this.withheldNotice =
+              `${run.withheld_genesets} gene set(s) in this result are left out: ` +
+              'you can no longer read them.';
+          }
+        },
+        error: (error: HttpFailure) => {
+          this.running = false;
+          this.errorMessage = describeRunError(error, 'open this run');
         },
       });
   }
@@ -718,7 +824,6 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
    */
   private pollUntilFinished(pending: PendingRun): void {
     this.pendingRunId = pending.run_id;
-    const upset = pending.tool === 'upset';
     this.poll = timer(RUN_POLL_INTERVAL_MS, RUN_POLL_INTERVAL_MS)
       .pipe(
         switchMap(() => this.gwApi.get<ToolRunStatus>(`/tools/runs/${pending.run_id}`)),
@@ -731,34 +836,23 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
             return;
           }
           this.pendingRunId = undefined;
-          this.running = false;
           if (run.status !== 'completed' || !run.result) {
+            this.running = false;
             this.errorMessage =
-              `The ${TOOL_LABELS[pending.tool] ?? pending.tool} run ended ${run.status}` +
-              (run.workflow_id ? ` (workflow ${run.workflow_id}).` : '.');
+              run.problem ??
+              `The ${toolLabel(pending.tool)} run ended ${run.status}` +
+                (run.workflow_id ? ` (workflow ${run.workflow_id}).` : '.');
             return;
           }
-          if (pending.tool === 'abba') {
-            this.showAbba(run.result);
-          } else if (upset) {
-            const raw = run.result['intersections'] as { genesets: string[]; size: number }[];
-            this.result = {
-              tool: 'UpSet',
-              geneset_ids: pending.geneset_ids,
-              gene_counts: pending.gene_counts,
-              thresholds: pending.thresholds,
-              intersections: raw.map((item) => ({ geneset_ids: item.genesets, size: item.size })),
-            };
-          } else {
-            this.genericResult = {
-              tool: pending.tool,
-              geneset_ids: pending.geneset_ids,
-              gene_counts: pending.gene_counts,
-              caveat: pending.caveat,
-              thresholds: pending.thresholds,
-              result: run.result,
-            };
-          }
+          this.show(pending.tool, {
+            tool: pending.tool,
+            geneset_ids: pending.geneset_ids,
+            gene_counts: pending.gene_counts,
+            caveat: pending.caveat,
+            thresholds: pending.thresholds,
+            result: run.result,
+            run_id: pending.run_id,
+          });
         },
         error: (error: HttpFailure) => {
           this.pendingRunId = undefined;
@@ -777,10 +871,7 @@ export class AnalyzeComponent implements OnInit, OnDestroy {
   clear(): void {
     this.stopPolling();
     this.running = false;
-    this.result = undefined;
-    this.genericResult = undefined;
-    this.abbaResult = undefined;
-    this.errorMessage = undefined;
+    this.resetOutput();
   }
 
   /** Whether there is anything for Clear to clear. */

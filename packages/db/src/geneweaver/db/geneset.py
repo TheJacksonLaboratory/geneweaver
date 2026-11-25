@@ -315,6 +315,34 @@ def is_readable(cursor: Cursor, user_id: int, geneset_id: int) -> bool:
 
 
 @temp_override_row_factory(rows.tuple_row)
+def readable_ids(cursor: Cursor, user_id: int, geneset_ids: list[int]) -> set[int]:
+    """Which of these gene sets the user may read, in one query.
+
+    `is_readable` answers for one gene set, through ``production.geneset_is_readable2``;
+    this applies the same rule set-based (`geneweaver.db.query.readable`), for a list such
+    as the gene sets a stored tool result names.
+
+    :param cursor: The database cursor.
+    :param user_id: The user id (internal); 0 for the public audience.
+    :param geneset_ids: The gene sets to check.
+    :return: The readable ones; ids with no gene set are not in it.
+    """
+    from geneweaver.db.query.readable import readable_by
+    from psycopg.sql import SQL
+
+    if not geneset_ids:
+        return set()
+    cursor.execute(
+        SQL(
+            "SELECT geneset.gs_id FROM production.geneset geneset "
+            "WHERE geneset.gs_id = ANY(%(gs_ids)s) AND {readable}"
+        ).format(readable=readable_by("geneset", "user_id")),
+        {"gs_ids": list(geneset_ids), "user_id": user_id},
+    )
+    return {row[0] for row in cursor.fetchall()}
+
+
+@temp_override_row_factory(rows.tuple_row)
 def user_is_owner(cursor: Cursor, user_id: int, geneset_id: int) -> bool:
     """Check if a user is the owner of a geneset.
 

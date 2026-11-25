@@ -518,6 +518,26 @@
     ></p-message>
   }
 
+  <!-- The result on show is a stored run: download it, or run it again (G3-840). -->
+  @if (runId !== undefined && !running && (result || genericResult || abbaResult)) {
+    <div class="mt-3">
+      <app-run-actions
+        [runId]="runId"
+        [tool]="runTool"
+        [rerunning]="rerunning"
+        (rerun)="rerunCurrent()"
+      />
+    </div>
+  }
+  @if (withheldNotice) {
+    <p-message
+      severity="info"
+      icon="pi pi-info-circle"
+      [text]="withheldNotice"
+      styleClass="w-full mt-3 withheld-notice"
+    ></p-message>
+  }
+
   @if (result) {
     <p-card class="block mt-3" [header]="result.tool + ' result'">
       <p class="mt-0 text-sm text-color-secondary thresholds-used">{{ describeThresholds(result.thresholds) }}</p>

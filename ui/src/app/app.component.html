@@ -9,6 +9,7 @@
         <!-- Sign-out is a form POST, not a link: the API only accepts it from this site
         (a GET would let any other site sign the user out). -->
         @if (state.authenticated) {
+          <a class="ml-3 text-xs my-analyses" routerLink="/analyses">My analyses</a>
           <form class="ml-3 text-xs inline" method="post"
             [action]="session.signOutUrl()">
             {{ state.name || state.email }} ·

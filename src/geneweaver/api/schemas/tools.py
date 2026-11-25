@@ -1,5 +1,7 @@
 """Request and response schemas for running analysis tools."""
 
+from typing import Literal
+
 from geneweaver.tools.abba import ABBAInput
 from geneweaver.tools.similar_genesets import SimilarGenesetsInput
 from geneweaver.tools.thresholds import ThresholdOptions
@@ -93,6 +95,16 @@ class UpSetResult(BaseModel):
     )
     intersections: list[UpSetIntersection] = Field(
         ..., description="Exclusive intersection sizes, largest first."
+    )
+    executed_by: Literal["in_process", "asynctask"] = Field(
+        default="in_process", description="Where the run executed, as for every other tool."
+    )
+    run_id: int | None = Field(
+        default=None,
+        description=(
+            "The AsyncTask run, to download, rerun or delete it through `/tools/runs/{run_id}`; "
+            "None for a run that executed in-process."
+        ),
     )
 
 

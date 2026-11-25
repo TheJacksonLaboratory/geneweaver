@@ -88,6 +88,21 @@ class GeneweaverAPIConfig(BaseSettings):
     ASYNCTASK_POLL_SECONDS: float = 1.0
     # Per HTTP call to AsyncTask, not per run.
     ASYNCTASK_REQUEST_TIMEOUT_SECONDS: float = 10.0
+    # A user's tool runs older than this are deleted, as that user, when they list their runs
+    # (G3-801). AsyncTask keeps runs forever and only their owner may delete one, so this is
+    # per user: runs of a user who never lists again stay until AsyncTask expires them itself.
+    # 0 or less turns expiry off.
+    TOOL_RUN_RETENTION_DAYS: int = 90
+    # Expiry runs inside a listing request, so it is bounded: at most this many runs, oldest
+    # first, in at most this many seconds (each run is up to three AsyncTask calls). A larger
+    # backlog is worked off over later listings rather than delaying this one.
+    TOOL_RUN_EXPIRY_BATCH: int = 10
+    TOOL_RUN_EXPIRY_SECONDS: float = 5.0
+    # A run still running after this is reported as stalled. The tool activity is bounded at
+    # 30 min (plus 1 min to be picked up), but a run whose workflow never starts -- AsyncTask's
+    # worker down, or without the GeneWeaverTools plugin -- stays running forever, since
+    # AsyncTask sets no workflow timeout and records no reason.
+    TOOL_RUN_STALLED_AFTER_MINUTES: int = 45
 
     # Where AsyncTask is not configured, ABBA runs in this process, on a pooled connection,
     # for 20-60 s on dev. Cap how many run at once so they cannot take the pool
