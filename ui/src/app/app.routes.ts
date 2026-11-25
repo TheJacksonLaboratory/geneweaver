@@ -20,5 +20,11 @@ export const appRoutes: Routes = [
         loadComponent: () =>
             import('./pages/analyze/analyze.component').then(m => m.AnalyzeComponent)
     },
+    // The signed-in user's tool runs (G3-840); lazy, as only signed-in users get there.
+    {
+        path: 'analyses',
+        loadComponent: () =>
+            import('./pages/analyses/analyses.component').then(m => m.AnalysesComponent)
+    },
     { path: '**', redirectTo: '' }  // Handles undefined routes
 ];

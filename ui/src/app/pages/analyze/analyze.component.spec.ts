@@ -4,7 +4,7 @@ import { Observable, of, throwError } from 'rxjs';
 
 import { AnalyzeComponent, RUN_POLL_INTERVAL_MS } from './analyze.component';
 import { SessionService } from '../../services/session.service';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { ABBA_FIXTURE } from './visualizations/abba-fixture';
 import { FIXTURES } from './visualizations/fixtures';
 
@@ -80,6 +80,7 @@ describe('AnalyzeComponent', () => {
       providers: [
         { provide: ApiBaseServiceFactory, useValue: mockApiBaseServiceFactory },
         sessionProvider,
+        provideRouter([]),
       ],
     }).compileComponents();
 
@@ -195,6 +196,7 @@ describe('AnalyzeComponent tool list', () => {
           useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
         },
         sessionProvider,
+        provideRouter([]),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -346,6 +348,7 @@ describe('AnalyzeComponent tool options', () => {
           useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
         },
         sessionProvider,
+        provideRouter([]),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -661,6 +664,7 @@ describe('AnalyzeComponent pending runs', () => {
           useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
         },
         sessionProvider,
+        provideRouter([]),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -721,7 +725,10 @@ describe('AnalyzeComponent pending runs', () => {
       gene_counts: { '1': 3, '2': 4 },
       caveat: null,
       result: { clusters: [], ran: true },
+      run_id: 42,
     });
+    // Kept for Download and Rerun once the run finishes (G3-840).
+    expect([component.runId, component.runTool]).toEqual([42, 'dbscan']);
 
     // Finished means finished: no further polls.
     jest.advanceTimersByTime(RUN_POLL_INTERVAL_MS * 3);
@@ -747,6 +754,7 @@ describe('AnalyzeComponent pending runs', () => {
       geneset_ids: [1, 2],
       gene_counts: { '1': 3, '2': 4 },
       intersections: [{ geneset_ids: ['1', '2'], size: 2 }],
+      run_id: 42,
     });
   });
 
@@ -846,6 +854,7 @@ describe('AnalyzeComponent signed out', () => {
           useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
         },
         sessionProvider,
+        provideRouter([]),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AnalyzeComponent);
@@ -1097,5 +1106,221 @@ describe('AnalyzeComponent ABBA gene search', () => {
     component.selectedTool = 'upset';
     component.selectedTool = 'abba';
     expect(component.abbaOptions.tiers).toEqual([1, 2, 3]);
+  });
+});
+
+
+describe('AnalyzeComponent stored runs (G3-840)', () => {
+  let component: AnalyzeComponent;
+  let fixture: ComponentFixture<AnalyzeComponent>;
+  let requests: { method: string; path: string }[];
+  let gets: Record<string, () => Observable<unknown>>;
+  let postBody: () => Observable<unknown>;
+
+  const apiStub = {
+    get: (path: string) => {
+      requests.push({ method: 'GET', path });
+      if (path === '/tools') {
+        return of({ object: { tools: TOOL_LIST } });
+      }
+      return gets[path]?.() ?? throwError(() => ({ status: 404 }));
+    },
+    post: (path: string) => {
+      requests.push({ method: 'POST', path });
+      return postBody();
+    },
+  };
+
+  async function create(runParam?: string): Promise<void> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AnalyzeComponent],
+      providers: [
+        {
+          provide: ApiBaseServiceFactory,
+          useValue: { create: () => apiStub } as unknown as ApiBaseServiceFactory,
+        },
+        sessionProvider,
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: convertToParamMap(runParam ? { run: runParam } : {}) } },
+        },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(AnalyzeComponent);
+    component = fixture.componentInstance;
+    refresh(fixture);
+    await fixture.whenStable();
+  }
+
+  const host = () => fixture.nativeElement as HTMLElement;
+
+  beforeEach(() => {
+    requests = [];
+    gets = {};
+    postBody = () => of({ object: undefined });
+  });
+
+  const DBSCAN_DONE = {
+    tool: 'dbscan',
+    geneset_ids: [1, 2],
+    gene_counts: { '1': 3, '2': 4 },
+    caveat: null,
+    result: { clusters: [], ran: true },
+    run_id: 42,
+  };
+
+  it("keeps a finished run's id and offers Download and Rerun beside its result", async () => {
+    postBody = () => of({ object: DBSCAN_DONE });
+    await create();
+    component.genesetIdInput = ['1', '2'];
+    component.selectedTool = 'dbscan';
+
+    component.run();
+    refresh(fixture);
+
+    expect([component.runId, component.runTool]).toEqual([42, 'dbscan']);
+    const actions = host().querySelector('app-run-actions');
+    expect(actions?.textContent).toContain('Download');
+    expect(actions?.textContent).toContain('Rerun');
+    expect(actions?.textContent).toContain('Run 42');
+  });
+
+  it('offers no run actions for a run that executed in-process', async () => {
+    postBody = () => of({ object: { ...DBSCAN_DONE, run_id: null } });
+    await create();
+    component.genesetIdInput = ['1', '2'];
+    component.selectedTool = 'dbscan';
+
+    component.run();
+    refresh(fixture);
+
+    expect(component.runId).toBeUndefined();
+    expect(host().querySelector('app-run-actions')).toBeNull();
+  });
+
+  it("keeps UpSet's run id from its typed result", async () => {
+    postBody = () =>
+      of({
+        object: {
+          tool: 'UpSet',
+          geneset_ids: [1, 2],
+          gene_counts: { '1': 3, '2': 4 },
+          intersections: [{ geneset_ids: ['1', '2'], size: 2 }],
+          run_id: 9,
+        },
+      });
+    await create();
+    component.genesetIdInput = ['1', '2'];
+    component.selectedTool = 'upset';
+
+    component.run();
+
+    expect([component.runId, component.runTool]).toEqual([9, 'upset']);
+  });
+
+  it('reruns the result on show and shows the new run', async () => {
+    await create();
+    component.runId = 42;
+    component.runTool = 'upset';
+    // A rerun answers in the generic shape, UpSet included.
+    postBody = () =>
+      of({
+        object: {
+          tool: 'upset',
+          geneset_ids: [1, 2],
+          gene_counts: {},
+          result: { intersections: [{ genesets: ['1', '2'], size: 2 }, { genesets: ['1'], size: 1 }] },
+          run_id: 43,
+          rerun_of: 42,
+        },
+      });
+
+    component.rerunCurrent();
+
+    expect(requests).toContainEqual({ method: 'POST', path: '/tools/runs/42/rerun' });
+    expect(component.runId).toBe(43);
+    expect(component.running).toBe(false);
+    // Gene counts rebuilt from the exclusive intersections.
+    expect(component.result?.gene_counts).toEqual({ '1': 3, '2': 2 });
+  });
+
+  it('explains a rerun the API refuses', async () => {
+    await create();
+    component.runId = 42;
+    component.runTool = 'dbscan';
+    postBody = () => throwError(() => ({ status: 403, error: { detail: 'Not authorised for GS5.' } }));
+
+    component.rerunCurrent();
+
+    expect(component.running).toBe(false);
+    expect(component.rerunning).toBe(false);
+    expect(component.errorMessage).toContain('Not authorised for GS5.');
+    expect(component.errorMessage).toContain('cannot be shown or rerun');
+  });
+
+  it('opens a stored run from ?run=, drawing its result', async () => {
+    gets['/tools/runs/7'] = () =>
+      of({
+        object: {
+          run_id: 7,
+          tool: 'upset',
+          geneset_ids: [1, 2],
+          status: 'completed',
+          stalled: false,
+          problem: null,
+          created: '2026-11-25T10:00:00',
+          can_rerun: true,
+          withheld_genesets: 0,
+          result: { intersections: [{ genesets: ['2'], size: 5 }] },
+        },
+      });
+
+    await create('7');
+
+    expect(requests).toContainEqual({ method: 'GET', path: '/tools/runs/7' });
+    expect(component.runId).toBe(7);
+    expect(component.result?.gene_counts).toEqual({ '1': 0, '2': 5 });
+    expect(component.running).toBe(false);
+  });
+
+  it('says how many gene sets an opened result leaves out', async () => {
+    gets['/tools/runs/8'] = () =>
+      of({
+        object: {
+          run_id: 8,
+          tool: 'abba',
+          geneset_ids: [5],
+          status: 'completed',
+          withheld_genesets: 2,
+          result: ABBA_FIXTURE,
+        },
+      });
+
+    await create('8');
+
+    expect(component.abbaResult).toBe(ABBA_FIXTURE);
+    expect(component.withheldNotice).toContain('2 gene set(s)');
+  });
+
+  it("shows what is known of an opened run that did not complete", async () => {
+    gets['/tools/runs/9'] = () =>
+      of({ object: { run_id: 9, tool: 'mset', status: 'failed', problem: 'The run failed.' } });
+
+    await create('9');
+
+    expect(component.errorMessage).toBe('The run failed.');
+    expect(component.runId).toBeUndefined();
+  });
+
+  it('explains a run that cannot be opened', async () => {
+    gets['/tools/runs/10'] = () =>
+      throwError(() => ({ status: 409, error: { detail: 'Run 10 does not show its gene sets.' } }));
+
+    await create('10');
+
+    expect(component.errorMessage).toBe('Run 10 does not show its gene sets.');
+    expect(component.running).toBe(false);
   });
 });
