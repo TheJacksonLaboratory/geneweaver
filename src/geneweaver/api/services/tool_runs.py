@@ -18,7 +18,9 @@ guarantees cannot be taken on trust:
   reported with what is known -- the status, and *stalled* past
   ``TOOL_RUN_STALLED_AFTER_MINUTES`` -- rather than a reason the API cannot have.
 - AsyncTask keeps runs forever. ``TOOL_RUN_RETENTION_DAYS`` is applied per user, when they
-  list their runs, since only a run's owner may delete it.
+  list their runs, since only a run's owner may delete it. A listing deletes at most
+  ``TOOL_RUN_EXPIRY_BATCH`` of them, oldest first, within ``TOOL_RUN_EXPIRY_SECONDS``, so a
+  user returning to a large backlog gets their list now and the rest goes on later listings.
 
 Reading a result re-checks access (G3-736): the caller must still be able to read the run's
 input gene sets, and gene sets named in an ABBA or Similar gene sets result that the caller
@@ -26,6 +28,7 @@ can no longer read are withheld.
 """
 
 import logging
+import time
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import datetime, timedelta, timezone
@@ -37,6 +40,7 @@ from pydantic import ValidationError
 
 from geneweaver.api.core.config import settings
 from geneweaver.api.schemas.auth import User
+from geneweaver.api.services.abba import verified_seed_genesets
 from geneweaver.api.services.asynctask import (
     COMPLETED,
     RUNNING,
@@ -206,14 +210,26 @@ def _older_than(runs: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, 
     return old
 
 
-def _delete_all(client: AsyncTaskClient, runs: list[dict[str, Any]], strict: bool) -> set[int]:
-    """Delete these runs; the ids deleted.
+def _delete_all(
+    client: AsyncTaskClient,
+    runs: list[dict[str, Any]],
+    strict: bool,
+    limit: int | None = None,
+    deadline: float | None = None,
+) -> set[int]:
+    """Delete these runs, in order; the ids deleted.
 
     :param strict: Raise the first failure (a request to delete), or log it and go on
         (expiry while listing, which must not cost the user their list).
+    :param limit: Try at most this many runs.
+    :param deadline: A ``time.monotonic()`` instant after which no further run is started.
     """
     deleted = set()
-    for run in runs:
+    for tried, run in enumerate(runs):
+        if (limit is not None and tried >= limit) or (
+            deadline is not None and time.monotonic() >= deadline
+        ):
+            break
         try:
             _remove(client, run["id"], status_name(run.get("status")))
         except AsyncTaskError as error:
@@ -232,17 +248,27 @@ def list_runs(
 ) -> dict[str, Any]:
     """The caller's tool runs, newest first, one page of them.
 
-    Runs older than ``TOOL_RUN_RETENTION_DAYS`` are deleted first, as the caller.
+    Runs older than ``TOOL_RUN_RETENTION_DAYS`` are deleted first, as the caller: at most
+    ``TOOL_RUN_EXPIRY_BATCH``, oldest first, within ``TOOL_RUN_EXPIRY_SECONDS``. Any left
+    over stay listed, counted in ``expiring``, and go on a later listing.
 
-    :return: ``{runs, total, expired, retention_days}``.
+    :return: ``{runs, total, expired, expiring, retention_days}``.
     """
     now = now or datetime.now(timezone.utc)
     client = client_for(user)
     runs = _our_runs(client)
     expired: set[int] = set()
+    old: list[dict[str, Any]] = []
     if settings.TOOL_RUN_RETENTION_DAYS > 0:
         cutoff = now - timedelta(days=settings.TOOL_RUN_RETENTION_DAYS)
-        expired = _delete_all(client, _older_than(runs, cutoff), strict=False)
+        old = sorted(_older_than(runs, cutoff), key=lambda run: _started(run["init_time"]))
+        expired = _delete_all(
+            client,
+            old,
+            strict=False,
+            limit=settings.TOOL_RUN_EXPIRY_BATCH,
+            deadline=time.monotonic() + settings.TOOL_RUN_EXPIRY_SECONDS,
+        )
     runs = [run for run in runs if run["id"] not in expired]
     inputs = {
         item["id"]: item
@@ -260,6 +286,7 @@ def list_runs(
         "runs": [_summary(run, inputs, now) for run in page],
         "total": len(runs),
         "expired": len(expired),
+        "expiring": len(old) - len(expired),
         "retention_days": settings.TOOL_RUN_RETENTION_DAYS,
     }
 
@@ -309,12 +336,16 @@ def _from_envelope(values: object) -> tuple[str | None, list[int] | None]:
     each tool keeps its gene sets: ``input.geneset_ids`` (most, as strings), ``group_a`` and
     ``group_b`` (Triclique), the keys of ``gene_sets`` (PhenomeMap), ``universe.geneset_ids``
     (MSET), ``input.geneset_id`` (Similar gene sets). ABBA's seed gene sets are expanded to
-    genes before submission, so it shows none.
+    genes before submission, so its envelope carries them signed beside the input
+    (`abba.seed_provenance`), and only a valid signature counts: a missing or altered one is
+    *unknown*, not "no seed gene sets".
 
     :return: ``(tool, gene sets)``; gene sets None where the envelope shows none to check.
     """
     envelope = _unwrap(values)
     tool = envelope.get("tool") if isinstance(envelope.get("tool"), str) else None
+    if tool == "abba":
+        return tool, verified_seed_genesets(envelope)
     tool_input = envelope.get("input") if isinstance(envelope.get("input"), dict) else {}
     universe = envelope.get("universe") if isinstance(envelope.get("universe"), dict) else {}
     found: list[Any] = []
@@ -335,7 +366,7 @@ def _from_envelope(values: object) -> tuple[str | None, list[int] | None]:
         found.append(tool_input["geneset_id"])
         shown = True
     if not shown:
-        return tool, [] if tool == "abba" else None
+        return tool, None
     try:
         return tool, sorted({int(value) for value in found})
     except (TypeError, ValueError):
@@ -392,9 +423,11 @@ def read_run(
     record = _consistent_record(run_input)
     tool, shown = _from_envelope(run_input.get("values"))
     tool = tool or (record.tool if record else None)
-    # Every gene set either names: the envelope's cannot be edited, the record's (ABBA's seed
-    # gene sets, which its envelope no longer shows) can, but only by the run's owner.
-    if shown is None and record is None:
+    # Every gene set either names. The envelope's cannot be edited; the record's can, by the
+    # run's owner, so it may add gene sets to check but never stand in for the envelope's.
+    # ABBA's envelope is the only proof of its seed gene sets (the record can be cleared),
+    # so without it the gene sets are unknown.
+    if shown is None and (record is None or tool == "abba"):
         geneset_ids = None
     else:
         geneset_ids = sorted(set(shown or []) | set(record.geneset_ids if record else []))
@@ -416,8 +449,9 @@ def read_run(
         return body
     if geneset_ids is None:
         raise RunNotReadable(
-            f"Run {run_id} was submitted before runs recorded their gene sets, so whether "
-            "you may still read them cannot be checked. Run the analysis again."
+            f"Run {run_id} does not show which gene sets it was run on -- it was submitted "
+            "before runs recorded them -- so whether you may still read them cannot be "
+            "checked. Run the analysis again."
         )
     # Fetched before the cursor is leased: no connection is held across a call to AsyncTask.
     result = client.get_result(run_id)

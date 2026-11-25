@@ -10,8 +10,10 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import pytest
+from geneweaver.tools.abba.identity import sign
 
 from geneweaver.api.core.exceptions import UnauthorizedException
+from geneweaver.api.services import abba as abba_service
 from geneweaver.api.services import tool_runs as service
 from geneweaver.api.services.asynctask import AsyncTaskError, RunState
 from geneweaver.api.services.run_record import RunRecord
@@ -29,6 +31,20 @@ def _at(**ago) -> str:
 def _record(tool="upset", geneset_ids=(1, 2), **request) -> str:
     request = request or {"geneset_ids": list(geneset_ids), "parameters": {}}
     return RunRecord(tool=tool, geneset_ids=list(geneset_ids), request=request).to_description()
+
+
+def _abba_values(seed_geneset_ids=(), genes=("Drd2",)) -> dict:
+    """An ABBA envelope as the API submits it: input, signed identity, signed seed gene sets."""
+    tool_input = {"genes": list(genes)}
+    identity = sign(7, abba_service._secret(), tool_input)
+    return {
+        "tool": "abba",
+        "input": tool_input,
+        "identity": identity,
+        abba_service.SEED_GENESETS_KEY: abba_service.seed_provenance(
+            identity, list(seed_geneset_ids), abba_service._secret()
+        ),
+    }
 
 
 def _record_tool(description: str | None) -> str:
@@ -223,7 +239,7 @@ def test_runs_past_retention_are_deleted_as_the_caller_when_listing(fake) -> Non
     listed = service.list_runs(Mock(), now=NOW)
 
     assert [run["run_id"] for run in listed["runs"]] == [2]
-    assert (listed["expired"], listed["retention_days"]) == (1, 90)
+    assert (listed["expired"], listed["expiring"], listed["retention_days"]) == (1, 0, 90)
     assert 1 not in fake.runs
     assert ("delete_result", 901) in fake.calls
 
@@ -350,7 +366,9 @@ def test_a_result_whose_gene_sets_are_no_longer_readable_is_refused(fake) -> Non
 def test_gene_sets_a_result_names_are_withheld_once_unreadable(fake) -> None:
     """ABBA and Similar gene sets list gene sets beyond the input."""
     result = {"genesets": [{"gs_id": 10}, {"gs_id": 11}, {"gs_id": 12}], "genes": []}
-    fake.add(1, description=_record("abba", (), genes=["Drd2"]), result=result)
+    fake.add(
+        1, description=_record("abba", (), genes=["Drd2"]), values=_abba_values(), result=result
+    )
     with (
         patch.object(service, "_gate_geneset_access"),
         patch.object(service.db_geneset, "readable_ids", return_value={10, 12}) as readable,
@@ -517,13 +535,90 @@ def test_the_envelopes_gene_sets_are_checked_whatever_the_record_says(fake) -> N
         ({"tool": "phenome_map", "input": {"gene_sets": {"7": ["a"], "5": ["b"]}}}, [5, 7]),
         ({"tool": "triclique", "input": {"group_a": ["5"], "group_b": ["6", "7"]}}, [5, 6, 7]),
         ({"tool": "similar_genesets", "input": {"geneset_id": 9}}, [9]),
-        ({"tool": "abba", "input": {"genes": ["Drd2"]}}, []),
+        # An ABBA envelope without signed seed gene sets proves nothing: unknown, not "none".
+        ({"tool": "abba", "input": {"genes": ["Drd2"]}}, None),
         ({"tool": "upset", "input": {}}, None),
     ],
 )
 def test_each_tools_envelope_shows_its_gene_sets(values, expected) -> None:
     """Runs from before records, still being polled, read by their envelope."""
     assert service._from_envelope({"values": values})[1] == expected
+
+
+def test_abbas_signed_seed_gene_sets_show_in_its_envelope() -> None:
+    """Seed gene sets are expanded to genes, so the envelope carries them signed beside."""
+    assert service._from_envelope({"values": _abba_values((6, 5))}) == ("abba", [5, 6])
+    assert service._from_envelope({"values": _abba_values(())}) == ("abba", [])
+
+
+# --- ABBA's seed gene sets cannot be dropped from the check (PR 43 review, finding 1) ------
+
+
+def _revoked(gs_id: int):
+    """The gate, as it answers once the caller can no longer read ``gs_id``."""
+
+    def gate(cursor, user, geneset_ids, **kwargs):
+        if gs_id in geneset_ids:
+            raise UnauthorizedException(detail=f"GS{gs_id}")
+
+    return patch.object(service, "_gate_geneset_access", side_effect=gate)
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        RunRecord("abba", [5], {"genes": ["Drd2"], "geneset_ids": [5]}).to_description(),
+        None,  # cleared with AsyncTask's PATCH /inputs/{id}
+        RunRecord("abba", [], {}).to_description(),  # same tool, gene sets left out
+        "notes",  # replaced by text that is not a record
+    ],
+    ids=["as submitted", "cleared", "same tool without gene sets", "not a record"],
+)
+def test_an_abba_run_seeded_from_a_revoked_gene_set_stays_refused(fake, description) -> None:
+    """Whatever its owner does to the description, GS5 is still checked.
+
+    The seed's genes came from GS5, so they are not returned once GS5 is unreadable.
+    """
+    fake.add(1, description=description, values=_abba_values((5,)), result={"seed_genes": ["x"]})
+
+    with _revoked(5), pytest.raises(UnauthorizedException):
+        service.read_run(_open_cursor, Mock(), 1, now=NOW)
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        lambda v: {k: x for k, x in v.items() if k != abba_service.SEED_GENESETS_KEY},
+        lambda v: {
+            **v,
+            abba_service.SEED_GENESETS_KEY: {
+                **v[abba_service.SEED_GENESETS_KEY],
+                "geneset_ids": [],
+            },
+        },
+        lambda v: {
+            **v,
+            abba_service.SEED_GENESETS_KEY: {"geneset_ids": [], "signature": "0" * 64},
+        },
+        lambda v: {**v, "identity": {**v["identity"], "signature": "f" * 64}},
+    ],
+    ids=["no provenance", "gene sets removed", "forged signature", "other identity"],
+)
+def test_an_abba_envelope_that_does_not_prove_its_seed_is_not_read(fake, tamper) -> None:
+    """Missing or altered provenance is unknown, not "no seed gene sets": no result.
+
+    Covers a run from before provenance, and a copy of an envelope submitted to AsyncTask
+    directly with its gene sets left out -- the signature is bound to the identity's.
+    """
+    fake.add(
+        1,
+        description=RunRecord("abba", [], {}).to_description(),
+        values=tamper(_abba_values((5,))),
+    )
+
+    with patch.object(service, "_gate_geneset_access"), pytest.raises(service.RunNotReadable):
+        service.read_run(_open_cursor, Mock(), 1, now=NOW)
+    assert ("get_result", 1) not in fake.calls
 
 
 def test_a_rerun_gets_the_endpoints_own_request_checks(fake) -> None:
@@ -543,3 +638,40 @@ def test_retention_of_zero_days_expires_nothing(fake) -> None:
 
     assert [run["run_id"] for run in listed["runs"]] == [1]
     assert listed["expired"] == 0
+
+
+# --- expiry is bounded per listing (PR 43 review, finding 3) -------------------------------
+
+
+def test_a_large_backlog_is_expired_a_batch_at_a_time_oldest_first(fake, monkeypatch) -> None:
+    """200 expired runs no longer cost 602 AsyncTask calls before the list comes back."""
+    monkeypatch.setattr(service.settings, "TOOL_RUN_EXPIRY_BATCH", 10)
+    for run_id in range(1, 201):
+        fake.add(run_id, started=_at(days=91 + run_id))  # run 200 is the oldest
+    fake.add(500, started=_at(days=1))
+
+    listed = service.list_runs(Mock(), limit=1, now=NOW)
+
+    mutations = [c for c in fake.calls if c[0] in ("result_id", "delete_result", "delete_run")]
+    assert len(mutations) == 30  # ten runs, three calls each
+    assert set(range(191, 201)).isdisjoint(fake.runs)  # the ten oldest went
+    assert [run["run_id"] for run in listed["runs"]] == [500]
+    assert (listed["expired"], listed["expiring"], listed["total"]) == (10, 190, 191)
+
+    again = service.list_runs(Mock(), limit=1, now=NOW)
+
+    assert (again["expired"], again["expiring"]) == (10, 180)
+
+
+def test_expiry_stops_starting_deletions_once_its_time_is_spent(fake, monkeypatch) -> None:
+    """Slow or failing deletions cannot hold the list past `TOOL_RUN_EXPIRY_SECONDS`."""
+    monkeypatch.setattr(service.settings, "TOOL_RUN_EXPIRY_BATCH", 100)
+    monkeypatch.setattr(service.settings, "TOOL_RUN_EXPIRY_SECONDS", 5.0)
+    for run_id in range(1, 6):
+        fake.add(run_id, started=_at(days=100 + run_id))
+    clock = iter([0.0, 1.0, 2.0, 6.0, 7.0, 8.0])  # the budget runs out before the third
+
+    with patch.object(service.time, "monotonic", side_effect=lambda: next(clock)):
+        listed = service.list_runs(Mock(), now=NOW)
+
+    assert (listed["expired"], listed["expiring"]) == (2, 3)

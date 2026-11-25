@@ -93,6 +93,11 @@ class GeneweaverAPIConfig(BaseSettings):
     # per user: runs of a user who never lists again stay until AsyncTask expires them itself.
     # 0 or less turns expiry off.
     TOOL_RUN_RETENTION_DAYS: int = 90
+    # Expiry runs inside a listing request, so it is bounded: at most this many runs, oldest
+    # first, in at most this many seconds (each run is up to three AsyncTask calls). A larger
+    # backlog is worked off over later listings rather than delaying this one.
+    TOOL_RUN_EXPIRY_BATCH: int = 10
+    TOOL_RUN_EXPIRY_SECONDS: float = 5.0
     # A run still running after this is reported as stalled. The tool activity is bounded at
     # 30 min (plus 1 min to be picked up), but a run whose workflow never starts -- AsyncTask's
     # worker down, or without the GeneWeaverTools plugin -- stays running forever, since

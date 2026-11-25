@@ -276,8 +276,9 @@ def list_tool_runs(
     Each run gives its tool, gene sets and name, its status, whether it has `stalled` (still
     running past `TOOL_RUN_STALLED_AFTER_MINUTES`, which a run never recovers from) and what
     is known of a `problem`, and whether it `can_rerun`. Runs older than
-    `TOOL_RUN_RETENTION_DAYS` are deleted first; `expired` says how many. Responds 401 if the
-    caller is not signed in, 404 where runs are not sent to AsyncTask.
+    `TOOL_RUN_RETENTION_DAYS` are deleted first, a bounded batch per listing, oldest first;
+    `expired` says how many were, `expiring` how many are left for later listings. Responds
+    401 if the caller is not signed in, 404 where runs are not sent to AsyncTask.
     """
     return Response(
         object=_map_run_errors(lambda: run_service.list_runs(user, limit=limit, offset=offset))

@@ -126,6 +126,24 @@ def test_seed_gene_sets_are_gated_then_expanded_to_genes() -> None:
     # Repeats are dropped case-insensitively, the typed gene first.
     assert fake.envelope["input"]["genes"] == ["drd2", "Th"]
     assert "geneset_ids" not in fake.envelope["input"]
+    # Beside the input, signed, for when the result is read (PR 43 review, finding 1).
+    assert service.verified_seed_genesets(fake.envelope) == [5]
+
+
+def test_seed_gene_set_provenance_verifies_only_as_signed() -> None:
+    """Bound to the identity's signature: changing the ids, or moving them, fails."""
+    fake = _FakeAsyncTask(result={})
+    with _on_asynctask(fake), patch.object(service, "_gate_geneset_access"):
+        service.run_abba(_Cursors(), ABBARequest(genes=["Drd2"], geneset_ids=[6, 5]), Mock(id=7))
+    envelope = fake.envelope
+    key = service.SEED_GENESETS_KEY
+
+    assert service.verified_seed_genesets(envelope) == [5, 6]
+    emptied = {**envelope, key: {**envelope[key], "geneset_ids": []}}
+    assert service.verified_seed_genesets(emptied) is None
+    other_identity = {**envelope, "identity": {**envelope["identity"], "signature": "0" * 64}}
+    assert service.verified_seed_genesets(other_identity) is None
+    assert service.verified_seed_genesets({k: v for k, v in envelope.items() if k != key}) is None
 
 
 def test_custom_cutoffs_seed_and_reach_the_worker() -> None:
