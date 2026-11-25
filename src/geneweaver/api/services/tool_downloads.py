@@ -264,12 +264,42 @@ def formats_for(tool: str | None) -> list[str]:
     return formats
 
 
+#: What makes a spreadsheet read a cell as a formula, full-width forms included.
+_FORMULA_START = frozenset("=+-@\uff1d\uff0b\uff0d\uff20")
+
+
+def _is_number(text: str) -> bool:
+    try:
+        float(text)
+    except ValueError:
+        return False
+    return True
+
+
+def _spreadsheet_safe(value: Any) -> Any:
+    """A text cell a spreadsheet will show as text, not run as a formula.
+
+    Gene set names and abbreviations are their uploaders' (ABBA, Similar gene sets, Combine's
+    labels), so a name like ``=HYPERLINK(...)`` would otherwise become a live formula in
+    whoever opens the download. Such a cell gets a leading ``'``, as OWASP advises, also
+    where whitespace or control characters come first, since spreadsheets skip those. Numbers
+    are left alone -- including negative and scientific ones, as numbers or as text -- and
+    the JSON download keeps every value as it is.
+    """
+    if not isinstance(value, str) or not value or _is_number(value):
+        return value
+    head = value.lstrip("".join(chr(c) for c in range(33)))
+    if value[0] in "\t\r\n" or (head and head[0] in _FORMULA_START):
+        return "'" + value
+    return value
+
+
 def _delimited(table: Table, delimiter: str) -> bytes:
     header, rows = table
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=delimiter, lineterminator="\n")
     writer.writerow(header)
-    writer.writerows(rows)
+    writer.writerows([_spreadsheet_safe(value) for value in row] for row in rows)
     return buffer.getvalue().encode()
 
 

@@ -231,3 +231,48 @@ def test_intersect_is_read_as_intersection() -> None:
     rows = _rows(downloads.render("boolean_algebra", result, "csv", None, 1))
 
     assert [row[1] for row in rows[1:]] == ["Drd2"]
+
+
+@pytest.mark.parametrize("fmt", ["csv", "tsv"])
+@pytest.mark.parametrize(
+    ("name", "written"),
+    [
+        ('=HYPERLINK("https://example.com","open")', '\'=HYPERLINK("https://example.com","open")'),
+        ("+cmd", "'+cmd"),
+        ("-2+3", "'-2+3"),
+        ("@SUM(A1)", "'@SUM(A1)"),
+        (" \t=1+1", "' \t=1+1"),  # spreadsheets skip leading whitespace
+        ("\N{FULLWIDTH EQUALS SIGN}1+1", "'\N{FULLWIDTH EQUALS SIGN}1+1"),
+        ("Dopamine set", "Dopamine set"),
+        ("-1.5e-3", "-1.5e-3"),  # a number, even as text, stays a number
+    ],
+)
+def test_text_a_spreadsheet_would_run_as_a_formula_is_written_as_text(fmt, name, written) -> None:
+    """Gene set names are their uploaders' (PR 43 review, finding 2)."""
+    result = {
+        "genesets": [
+            {
+                "gs_id": 5,
+                "name": name,
+                "abbreviation": "a",
+                "genes": 9,
+                "shared": 3,
+                "jaccard": -0.25,
+            }
+        ]
+    }
+
+    download = downloads.render("similar_genesets", result, fmt, None, 1)
+    row = _rows(download, "," if fmt == "csv" else "\t")[1]
+
+    assert row[1] == written
+    assert row[5] == "-0.25"  # numbers are untouched, negative ones included
+
+
+def test_json_keeps_the_name_as_uploaded() -> None:
+    """Only the spreadsheet formats are neutralised."""
+    result = {"genesets": [{"gs_id": 5, "name": "=1+1"}]}
+
+    download = downloads.render("similar_genesets", result, "json", None, 1)
+
+    assert json.loads(download.content)["genesets"][0]["name"] == "=1+1"
