@@ -186,6 +186,7 @@ def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> 
     :raises ToolRunPending: If an AsyncTask run outlasts the wait.
     :raises ToolRunFailed: If an AsyncTask run fails.
     """
+    run_id: int | None = None
     if prepared.asynctask is None:
         output = (runner or InProcessToolRunner()).run(UpSet(), prepared.tool_input)
         intersections = [(item.genesets, item.size) for item in output.intersections]
@@ -203,6 +204,7 @@ def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> 
         intersections = [
             (item["genesets"], item["size"]) for item in ran["result"]["intersections"]
         ]
+        run_id = ran["run_id"]
 
     return UpSetResult(
         geneset_ids=prepared.geneset_ids,
@@ -211,6 +213,8 @@ def execute_upset(prepared: PreparedUpSet, runner: ToolRunner | None = None) -> 
         intersections=[
             UpSetIntersection(geneset_ids=genesets, size=size) for genesets, size in intersections
         ],
+        executed_by="in_process" if run_id is None else "asynctask",
+        run_id=run_id,
     )
 
 

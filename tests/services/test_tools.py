@@ -66,6 +66,7 @@ def test_run_upset_gates_then_resolves_then_runs(mock_cursor) -> None:
 
     assert isinstance(result, UpSetResult)
     assert result.tool == "UpSet"
+    assert (result.executed_by, result.run_id) == ("in_process", None)
     assert result.geneset_ids == [1, 2]
     assert result.gene_counts == {"1": 2, "2": 2}
     assert [(i.geneset_ids, i.size) for i in result.intersections] == [(["1", "2"], 1)]
@@ -620,6 +621,8 @@ class TestRunUpsetRouting:
 
         assert isinstance(result, UpSetResult)
         assert [(i.geneset_ids, i.size) for i in result.intersections] == [(["1", "2"], 1)]
+        # The run's id, so the page can download, rerun or delete it (G3-801).
+        assert (result.executed_by, result.run_id) == ("asynctask", 11)
         assert fake.envelope["tool"] == "upset"
         assert fake.envelope["input"]["geneset_ids"] == ["1", "2"]
 
